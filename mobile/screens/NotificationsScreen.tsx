@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 
-const API_URL = 'http://192.168.200.166:8000';
+const API_URL = 'https://silverlieai.onrender.com';
 
 type Notification = {
   id: string;

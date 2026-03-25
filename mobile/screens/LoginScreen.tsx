@@ -11,7 +11,7 @@ import {
 import { useLanguage } from '../i18n/LanguageContext';
 import { Language } from '../i18n/translations';
 
-const API_URL = 'http://192.168.200.166:8000';
+const API_URL = 'https://silverlieai.onrender.com';
 
 const LANGUAGES: { code: Language; flag: string }[] = [
   { code: 'ko', flag: '🇰🇷' },
