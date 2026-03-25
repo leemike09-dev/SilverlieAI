@@ -192,6 +192,37 @@ def get_recommendations(request: RecommendRequest):
     return {"data": result}
 
 
+class UpdateHealthRecord(BaseModel):
+    blood_pressure_systolic: Optional[int] = None
+    blood_pressure_diastolic: Optional[int] = None
+    heart_rate: Optional[int] = None
+    blood_sugar: Optional[float] = None
+    weight: Optional[float] = None
+    steps: Optional[int] = None
+    notes: Optional[str] = None
+
+
+@router.put("/records/{record_id}")
+def update_health_record(record_id: str, record: UpdateHealthRecord):
+    from app.database import get_supabase
+    db = get_supabase()
+    updates = {k: v for k, v in record.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(status_code=400, detail="수정할 항목이 없습니다")
+    result = db.table("health_records").update(updates).eq("id", record_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="기록을 찾을 수 없습니다")
+    return result.data[0]
+
+
+@router.delete("/records/{record_id}")
+def delete_health_record(record_id: str):
+    from app.database import get_supabase
+    db = get_supabase()
+    result = db.table("health_records").delete().eq("id", record_id).execute()
+    return {"success": True}
+
+
 @router.post("/weekly-report")
 def weekly_report(request: ReportRequest):
     api_key = os.getenv("ANTHROPIC_API_KEY")

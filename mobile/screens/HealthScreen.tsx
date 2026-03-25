@@ -8,6 +8,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -42,6 +43,16 @@ export default function HealthScreen({ navigation, route }: any) {
   // 히스토리 상태
   const [records, setRecords] = useState<HealthRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+
+  // 수정 모달 상태
+  const [editRecord, setEditRecord] = useState<HealthRecord | null>(null);
+  const [editSystolic, setEditSystolic] = useState('');
+  const [editDiastolic, setEditDiastolic] = useState('');
+  const [editHeartRate, setEditHeartRate] = useState('');
+  const [editWeight, setEditWeight] = useState('');
+  const [editBloodSugar, setEditBloodSugar] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'history') fetchHistory();
@@ -91,9 +102,65 @@ export default function HealthScreen({ navigation, route }: any) {
     }
   };
 
+  const openEdit = (record: HealthRecord) => {
+    setEditRecord(record);
+    setEditSystolic(record.blood_pressure_systolic ? String(record.blood_pressure_systolic) : '');
+    setEditDiastolic(record.blood_pressure_diastolic ? String(record.blood_pressure_diastolic) : '');
+    setEditHeartRate(record.heart_rate ? String(record.heart_rate) : '');
+    setEditWeight(record.weight ? String(record.weight) : '');
+    setEditBloodSugar(record.blood_sugar ? String(record.blood_sugar) : '');
+    setEditNotes(record.notes || '');
+  };
+
+  const handleUpdate = async () => {
+    if (!editRecord) return;
+    setEditLoading(true);
+    try {
+      const updates: any = {};
+      if (editSystolic) updates.blood_pressure_systolic = parseInt(editSystolic);
+      if (editDiastolic) updates.blood_pressure_diastolic = parseInt(editDiastolic);
+      if (editHeartRate) updates.heart_rate = parseInt(editHeartRate);
+      if (editWeight) updates.weight = parseFloat(editWeight);
+      if (editBloodSugar) updates.blood_sugar = parseFloat(editBloodSugar);
+      if (editNotes) updates.notes = editNotes;
+
+      await fetch(`${API_URL}/health/records/${editRecord.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      setEditRecord(null);
+      Alert.alert('', t.updateSuccess);
+      fetchHistory();
+    } catch {
+      Alert.alert('', t.saveError);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDelete = (record: HealthRecord) => {
+    Alert.alert(t.deleteConfirmTitle, t.deleteConfirmMsg, [
+      { text: t.cancel, style: 'cancel' },
+      {
+        text: t.delete,
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await fetch(`${API_URL}/health/records/${record.id}`, { method: 'DELETE' });
+            Alert.alert('', t.deleteSuccess);
+            fetchHistory();
+          } catch {
+            Alert.alert('', t.saveError);
+          }
+        },
+      },
+    ]);
+  };
+
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
-    return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+    return `${d.getMonth() + 1}/${d.getDate()}`;
   };
 
   return (
@@ -212,10 +279,20 @@ export default function HealthScreen({ navigation, route }: any) {
             </View>
           ) : (
             <View style={styles.historyList}>
-              <Text style={styles.historyCount}>최근 {records.length}개 기록</Text>
+              <Text style={styles.historyCount}>{records.length}</Text>
               {records.map((r, i) => (
                 <View key={i} style={styles.recordCard}>
-                  <Text style={styles.recordDate}>{formatDate(r.date)}</Text>
+                  <View style={styles.recordHeader}>
+                    <Text style={styles.recordDate}>{formatDate(r.date)}</Text>
+                    <View style={styles.actionBtns}>
+                      <TouchableOpacity style={styles.editBtn} onPress={() => openEdit(r)}>
+                        <Text style={styles.editBtnText}>{t.edit}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(r)}>
+                        <Text style={styles.deleteBtnText}>{t.delete}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                   <View style={styles.metricsRow}>
                     {r.blood_pressure_systolic && (
                       <View style={styles.metricChip}>
@@ -260,6 +337,68 @@ export default function HealthScreen({ navigation, route }: any) {
           )}
         </ScrollView>
       )}
+
+      {/* 수정 모달 */}
+      <Modal visible={!!editRecord} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>{t.editModalTitle}</Text>
+            {editRecord && <Text style={styles.modalDate}>{editRecord.date}</Text>}
+
+            <View style={styles.row}>
+              <TextInput
+                style={[styles.modalInput, { flex: 1 }]}
+                placeholder={t.systolicBPPlaceholder}
+                value={editSystolic}
+                onChangeText={setEditSystolic}
+                keyboardType="numeric"
+              />
+              <TextInput
+                style={[styles.modalInput, { flex: 1, marginLeft: 8 }]}
+                placeholder={t.diastolicBPPlaceholder}
+                value={editDiastolic}
+                onChangeText={setEditDiastolic}
+                keyboardType="numeric"
+              />
+            </View>
+            <TextInput
+              style={styles.modalInput}
+              placeholder={t.heartRatePlaceholder}
+              value={editHeartRate}
+              onChangeText={setEditHeartRate}
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder={t.weightPlaceholder}
+              value={editWeight}
+              onChangeText={setEditWeight}
+              keyboardType="decimal-pad"
+            />
+            <TextInput
+              style={styles.modalInput}
+              placeholder={t.bloodSugarPlaceholder}
+              value={editBloodSugar}
+              onChangeText={setEditBloodSugar}
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={[styles.modalInput, styles.textArea]}
+              placeholder={t.notesPlaceholder}
+              value={editNotes}
+              onChangeText={setEditNotes}
+              multiline
+            />
+
+            <TouchableOpacity style={styles.updateBtn} onPress={handleUpdate} disabled={editLoading}>
+              {editLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.updateBtnText}>{t.updateButton}</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditRecord(null)}>
+              <Text style={styles.cancelBtnText}>{t.cancel}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -341,7 +480,28 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
-  recordDate: { fontSize: 16, fontWeight: 'bold', color: '#2D6A4F', marginBottom: 10 },
+  recordHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  recordDate: { fontSize: 16, fontWeight: 'bold', color: '#2D6A4F' },
+  actionBtns: { flexDirection: 'row', gap: 8 },
+  editBtn: {
+    backgroundColor: '#E8F5E9',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  editBtnText: { color: '#2D6A4F', fontSize: 14, fontWeight: '600' },
+  deleteBtn: {
+    backgroundColor: '#FDECEA',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  deleteBtnText: { color: '#C0392B', fontSize: 14, fontWeight: '600' },
   metricsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   metricChip: {
     flexDirection: 'row',
@@ -356,4 +516,35 @@ const styles = StyleSheet.create({
   metricText: { fontSize: 15, fontWeight: 'bold', color: '#333' },
   metricUnit: { fontSize: 12, color: '#888' },
   recordNotes: { marginTop: 10, fontSize: 14, color: '#666', fontStyle: 'italic' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalBox: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#1C1A17', marginBottom: 4 },
+  modalDate: { fontSize: 14, color: '#999', marginBottom: 16 },
+  modalInput: {
+    backgroundColor: '#F7F4EF',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  updateBtn: {
+    backgroundColor: '#2D6A4F',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  updateBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  cancelBtn: { padding: 12, alignItems: 'center', marginTop: 4 },
+  cancelBtnText: { color: '#999', fontSize: 16 },
 });
