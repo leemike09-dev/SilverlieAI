@@ -19,11 +19,12 @@ const LANGUAGES: { code: Language; flag: string; label: string }[] = [
   { code: 'ja', flag: '🇯🇵', label: '日本語' },
 ];
 
-const INTERESTS = ['걷기', '등산', '수영', '요가', '독서', '음악', '요리', '원예', '사진', '여행'];
+// Internal keys always in Korean (consistent across language switches)
+const INTEREST_KEYS = ['걷기', '등산', '수영', '요가', '독서', '음악', '요리', '원예', '사진', '여행'];
 
 export default function SettingsScreen({ navigation, route }: any) {
   const { name, userId } = route.params;
-  const { language, setLanguage } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [notifHealth, setNotifHealth] = useState(true);
   const [notifCommunity, setNotifCommunity] = useState(true);
@@ -40,14 +41,14 @@ export default function SettingsScreen({ navigation, route }: any) {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>← 뒤로</Text>
+          <Text style={styles.backText}>{t.back}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>⚙️ 설정</Text>
+        <Text style={styles.title}>{t.settingsTitle}</Text>
       </View>
 
       {/* 프로필 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>프로필</Text>
+        <Text style={styles.sectionTitle}>{t.settingsProfile}</Text>
         <View style={styles.profileCard}>
           <Text style={styles.profileIcon}>👤</Text>
           <View>
@@ -55,10 +56,10 @@ export default function SettingsScreen({ navigation, route }: any) {
             <Text style={styles.profileId}>ID: {userId?.slice(0, 8)}...</Text>
           </View>
         </View>
-        <Text style={styles.label}>나이</Text>
+        <Text style={styles.label}>{t.settingsAge}</Text>
         <TextInput
           style={styles.input}
-          placeholder="나이를 입력하세요"
+          placeholder={t.settingsAgePlaceholder}
           value={age}
           onChangeText={setAge}
           keyboardType="numeric"
@@ -67,7 +68,7 @@ export default function SettingsScreen({ navigation, route }: any) {
 
       {/* 언어 설정 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>언어 설정</Text>
+        <Text style={styles.sectionTitle}>{t.settingsLanguage}</Text>
         <View style={styles.langRow}>
           {LANGUAGES.map(lang => (
             <TouchableOpacity
@@ -86,17 +87,17 @@ export default function SettingsScreen({ navigation, route }: any) {
 
       {/* 관심사 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>관심사 선택</Text>
-        <Text style={styles.sectionDesc}>AI 추천에 활용됩니다</Text>
+        <Text style={styles.sectionTitle}>{t.settingsInterests}</Text>
+        <Text style={styles.sectionDesc}>{t.settingsInterestsDesc}</Text>
         <View style={styles.interestGrid}>
-          {INTERESTS.map(item => (
+          {INTEREST_KEYS.map((key, index) => (
             <TouchableOpacity
-              key={item}
-              style={[styles.interestBtn, selectedInterests.includes(item) && styles.interestBtnActive]}
-              onPress={() => toggleInterest(item)}
+              key={key}
+              style={[styles.interestBtn, selectedInterests.includes(key) && styles.interestBtnActive]}
+              onPress={() => toggleInterest(key)}
             >
-              <Text style={[styles.interestText, selectedInterests.includes(item) && styles.interestTextActive]}>
-                {item}
+              <Text style={[styles.interestText, selectedInterests.includes(key) && styles.interestTextActive]}>
+                {t.interests[index]}
               </Text>
             </TouchableOpacity>
           ))}
@@ -105,17 +106,17 @@ export default function SettingsScreen({ navigation, route }: any) {
 
       {/* 알림 설정 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>알림 설정</Text>
+        <Text style={styles.sectionTitle}>{t.settingsNotifications}</Text>
         <View style={styles.notifRow}>
-          <Text style={styles.notifLabel}>건강 기록 알림</Text>
+          <Text style={styles.notifLabel}>{t.notifHealthLabel}</Text>
           <Switch value={notifHealth} onValueChange={setNotifHealth} trackColor={{ true: '#2D6A4F' }} />
         </View>
         <View style={styles.notifRow}>
-          <Text style={styles.notifLabel}>커뮤니티 알림</Text>
+          <Text style={styles.notifLabel}>{t.notifCommunityLabel}</Text>
           <Switch value={notifCommunity} onValueChange={setNotifCommunity} trackColor={{ true: '#2D6A4F' }} />
         </View>
         <View style={styles.notifRow}>
-          <Text style={styles.notifLabel}>AI 추천 알림</Text>
+          <Text style={styles.notifLabel}>{t.notifAILabel}</Text>
           <Switch value={notifAI} onValueChange={setNotifAI} trackColor={{ true: '#2D6A4F' }} />
         </View>
       </View>
@@ -124,13 +125,13 @@ export default function SettingsScreen({ navigation, route }: any) {
       <TouchableOpacity
         style={styles.logoutBtn}
         onPress={() => {
-          Alert.alert('로그아웃', '로그아웃 하시겠습니까?', [
-            { text: '취소', style: 'cancel' },
-            { text: '로그아웃', style: 'destructive', onPress: () => navigation.replace('Login') },
+          Alert.alert(t.logoutConfirmTitle, t.logoutConfirmMsg, [
+            { text: t.cancel, style: 'cancel' },
+            { text: t.logout, style: 'destructive', onPress: () => navigation.replace('Login') },
           ]);
         }}
       >
-        <Text style={styles.logoutText}>로그아웃</Text>
+        <Text style={styles.logoutText}>{t.logout}</Text>
       </TouchableOpacity>
 
       <View style={{ height: 40 }} />

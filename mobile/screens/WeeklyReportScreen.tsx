@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -20,6 +21,7 @@ type ReportData = {
 
 export default function WeeklyReportScreen({ navigation, route }: any) {
   const { name, userId } = route.params;
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<ReportData | null>(null);
   const [weeklyData, setWeeklyData] = useState<any[]>([]);
@@ -77,17 +79,17 @@ export default function WeeklyReportScreen({ navigation, route }: any) {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>← 뒤로</Text>
+          <Text style={styles.backText}>{t.back}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>📈 주간 건강 리포트</Text>
-        <Text style={styles.subtitle}>최근 7일 건강 분석</Text>
+        <Text style={styles.title}>{t.weeklyTitle}</Text>
+        <Text style={styles.subtitle}>{t.weeklySubtitle}</Text>
       </View>
 
       {/* 주간 데이터 요약 */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>이번 주 기록</Text>
+        <Text style={styles.cardTitle}>{t.weeklyRecordsTitle}</Text>
         {weeklyData.length === 0 ? (
-          <Text style={styles.emptyText}>건강 기록이 없습니다. 대시보드에서 먼저 기록해주세요!</Text>
+          <Text style={styles.emptyText}>{t.weeklyEmpty}</Text>
         ) : (
           weeklyData.slice(0, 7).map((record, i) => (
             <View key={i} style={styles.recordRow}>
@@ -110,7 +112,7 @@ export default function WeeklyReportScreen({ navigation, route }: any) {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.generateBtnText}>🤖 AI 주간 리포트 생성</Text>
+            <Text style={styles.generateBtnText}>{t.generateReportBtn}</Text>
           )}
         </TouchableOpacity>
       )}
@@ -120,7 +122,7 @@ export default function WeeklyReportScreen({ navigation, route }: any) {
         <>
           {/* 건강 점수 */}
           <View style={styles.scoreCard}>
-            <Text style={styles.scoreLabel}>이번 주 건강 점수</Text>
+            <Text style={styles.scoreLabel}>{t.weeklyScoreLabel}</Text>
             <Text style={[styles.scoreValue, { color: scoreColor(report.health_score) }]}>
               {report.health_score}
             </Text>
@@ -130,7 +132,7 @@ export default function WeeklyReportScreen({ navigation, route }: any) {
 
           {/* 잘한 점 */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>✅ 잘한 점</Text>
+            <Text style={styles.cardTitle}>{t.weeklyAchievements}</Text>
             {report.achievements.map((a, i) => (
               <View key={i} style={styles.listRow}>
                 <Text style={styles.listDot}>•</Text>
@@ -141,7 +143,7 @@ export default function WeeklyReportScreen({ navigation, route }: any) {
 
           {/* 개선할 점 */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>💡 개선할 점</Text>
+            <Text style={styles.cardTitle}>{t.weeklyImprovements}</Text>
             {report.improvements.map((item, i) => (
               <View key={i} style={styles.listRow}>
                 <Text style={styles.listDot}>•</Text>
@@ -152,7 +154,7 @@ export default function WeeklyReportScreen({ navigation, route }: any) {
 
           {/* 핵심 권고 */}
           <View style={[styles.card, styles.recommendCard]}>
-            <Text style={styles.recommendTitle}>이번 주 핵심 권고</Text>
+            <Text style={styles.recommendTitle}>{t.weeklyRecommendTitle}</Text>
             <Text style={styles.recommendText}>{report.recommendation}</Text>
           </View>
         </>

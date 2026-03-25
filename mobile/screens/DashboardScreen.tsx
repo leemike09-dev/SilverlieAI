@@ -30,6 +30,7 @@ type AIInsight = {
 export default function DashboardScreen({ navigation, route }: any) {
   const { name, userId } = route.params;
   const { t } = useLanguage();
+
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -60,14 +61,14 @@ export default function DashboardScreen({ navigation, route }: any) {
 
   const metrics: HealthMetric[] = [
     {
-      label: '걸음수',
+      label: t.metricSteps,
       value: todayData?.steps ? todayData.steps.toLocaleString() : '--',
-      unit: '보',
+      unit: t.metricStepsUnit,
       icon: '🚶',
       color: '#40916C',
     },
     {
-      label: '혈압',
+      label: t.metricBP,
       value: todayData?.blood_pressure_systolic
         ? `${todayData.blood_pressure_systolic}/${todayData.blood_pressure_diastolic}`
         : '--',
@@ -76,21 +77,21 @@ export default function DashboardScreen({ navigation, route }: any) {
       color: '#E07B54',
     },
     {
-      label: '심박수',
+      label: t.metricHR,
       value: todayData?.heart_rate ? String(todayData.heart_rate) : '--',
       unit: 'bpm',
       icon: '💓',
       color: '#C77B3A',
     },
     {
-      label: '체중',
+      label: t.metricWeight,
       value: todayData?.weight ? String(todayData.weight) : '--',
       unit: 'kg',
       icon: '⚖️',
       color: '#3A7CA5',
     },
     {
-      label: '혈당',
+      label: t.metricBloodSugar,
       value: todayData?.blood_sugar ? String(todayData.blood_sugar) : '--',
       unit: 'mg/dL',
       icon: '🩸',
@@ -100,7 +101,7 @@ export default function DashboardScreen({ navigation, route }: any) {
 
   const saveAndAnalyze = async () => {
     if (!systolic && !steps && !sleep && !weight) {
-      Alert.alert('', '최소 하나의 항목을 입력해주세요.');
+      Alert.alert('', t.fillOne);
       return;
     }
     setLoading(true);
@@ -145,7 +146,7 @@ export default function DashboardScreen({ navigation, route }: any) {
         setAiInsight(data.data);
       }
     } catch {
-      Alert.alert('', '저장 중 오류가 발생했습니다.');
+      Alert.alert('', t.saveError);
     } finally {
       setLoading(false);
       setAiLoading(false);
@@ -157,10 +158,10 @@ export default function DashboardScreen({ navigation, route }: any) {
       {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>← 뒤로</Text>
+          <Text style={styles.backText}>{t.back}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>오늘의 건강</Text>
-        <Text style={styles.subtitle}>{name}님의 건강 대시보드</Text>
+        <Text style={styles.title}>{t.dashboardTitle}</Text>
+        <Text style={styles.subtitle}>{t.dashboardSubtitle(name)}</Text>
       </View>
 
       {/* 지표 카드 */}
@@ -177,19 +178,19 @@ export default function DashboardScreen({ navigation, route }: any) {
 
       {/* 기록 버튼 */}
       <TouchableOpacity style={styles.recordBtn} onPress={() => setShowModal(true)}>
-        <Text style={styles.recordBtnText}>+ 오늘 건강 기록하기</Text>
+        <Text style={styles.recordBtnText}>{t.recordTodayBtn}</Text>
       </TouchableOpacity>
 
       {/* AI 분석 결과 */}
       {aiLoading && (
         <View style={styles.aiCard}>
           <ActivityIndicator color="#2D6A4F" />
-          <Text style={styles.aiLoading}>AI 분석 중...</Text>
+          <Text style={styles.aiLoading}>{t.aiAnalyzing}</Text>
         </View>
       )}
       {aiInsight && !aiLoading && (
         <View style={styles.aiCard}>
-          <Text style={styles.aiTitle}>🤖 AI 건강 분석</Text>
+          <Text style={styles.aiTitle}>{t.aiAnalysisTitle}</Text>
           <Text style={styles.aiSummary}>{aiInsight.summary}</Text>
           {aiInsight.insights.map((insight, i) => (
             <View key={i} style={styles.insightRow}>
@@ -204,20 +205,20 @@ export default function DashboardScreen({ navigation, route }: any) {
       <Modal visible={showModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>건강 기록 입력</Text>
-            <TextInput style={styles.input} placeholder="걸음수 (예: 5000)" value={steps} onChangeText={setSteps} keyboardType="numeric" />
+            <Text style={styles.modalTitle}>{t.modalTitle}</Text>
+            <TextInput style={styles.input} placeholder={t.stepsPlaceholder} value={steps} onChangeText={setSteps} keyboardType="numeric" />
             <View style={styles.row}>
-              <TextInput style={[styles.input, { flex: 1 }]} placeholder="수축기 혈압 (120)" value={systolic} onChangeText={setSystolic} keyboardType="numeric" />
-              <TextInput style={[styles.input, { flex: 1, marginLeft: 8 }]} placeholder="이완기 (80)" value={diastolic} onChangeText={setDiastolic} keyboardType="numeric" />
+              <TextInput style={[styles.input, { flex: 1 }]} placeholder={t.systolicBPPlaceholder} value={systolic} onChangeText={setSystolic} keyboardType="numeric" />
+              <TextInput style={[styles.input, { flex: 1, marginLeft: 8 }]} placeholder={t.diastolicBPPlaceholder} value={diastolic} onChangeText={setDiastolic} keyboardType="numeric" />
             </View>
-            <TextInput style={styles.input} placeholder="수면 시간 (예: 7.5)" value={sleep} onChangeText={setSleep} keyboardType="decimal-pad" />
-            <TextInput style={styles.input} placeholder="체중 (예: 65.5)" value={weight} onChangeText={setWeight} keyboardType="decimal-pad" />
-            <TextInput style={styles.input} placeholder="심박수 (예: 72)" value={heartRate} onChangeText={setHeartRate} keyboardType="numeric" />
+            <TextInput style={styles.input} placeholder={t.sleepPlaceholder} value={sleep} onChangeText={setSleep} keyboardType="decimal-pad" />
+            <TextInput style={styles.input} placeholder={t.weightPlaceholder} value={weight} onChangeText={setWeight} keyboardType="decimal-pad" />
+            <TextInput style={styles.input} placeholder={t.heartRatePlaceholder} value={heartRate} onChangeText={setHeartRate} keyboardType="numeric" />
             <TouchableOpacity style={styles.saveBtn} onPress={saveAndAnalyze} disabled={loading}>
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>저장 + AI 분석</Text>}
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>{t.saveAnalyzeBtn}</Text>}
             </TouchableOpacity>
             <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowModal(false)}>
-              <Text style={styles.cancelBtnText}>취소</Text>
+              <Text style={styles.cancelBtnText}>{t.cancel}</Text>
             </TouchableOpacity>
           </View>
         </View>

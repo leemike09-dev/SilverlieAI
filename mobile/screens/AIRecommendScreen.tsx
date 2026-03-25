@@ -7,10 +7,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
-const CATEGORIES = ['전체', '운동', '문화', '사교', '두뇌'];
+// Internal filter keys are always Korean (matches AI-returned category values)
+const CATEGORY_KEYS = ['전체', '운동', '문화', '사교', '두뇌'];
 
 const DEFAULT_RECOMMENDATIONS = [
   { category: '운동', emoji: '🚶', title: '공원 산책', desc: '하루 30분 가벼운 산책으로 혈압과 혈당을 개선하세요', tags: ['걷기', '야외', '혈압'], match: 92 },
@@ -32,6 +34,7 @@ type Recommendation = {
 
 export default function AIRecommendScreen({ navigation, route }: any) {
   const { name, userId } = route.params;
+  const { t } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState<Recommendation[]>(DEFAULT_RECOMMENDATIONS);
@@ -83,10 +86,10 @@ export default function AIRecommendScreen({ navigation, route }: any) {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>← 뒤로</Text>
+          <Text style={styles.backText}>{t.back}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>✨ AI 맞춤 추천</Text>
-        <Text style={styles.subtitle}>{name}님을 위한 활동 추천</Text>
+        <Text style={styles.title}>{t.aiRecommendTitle}</Text>
+        <Text style={styles.subtitle}>{t.aiRecommendSubtitle(name)}</Text>
       </View>
 
       {/* AI 추천 버튼 */}
@@ -96,8 +99,8 @@ export default function AIRecommendScreen({ navigation, route }: any) {
             <ActivityIndicator color="#fff" />
           ) : (
             <>
-              <Text style={styles.aiBtnText}>🤖 내 건강 데이터로 추천받기</Text>
-              <Text style={styles.aiBtnSub}>최근 건강 기록을 분석해 맞춤 추천</Text>
+              <Text style={styles.aiBtnText}>{t.getAIRecommendBtn}</Text>
+              <Text style={styles.aiBtnSub}>{t.getAIRecommendSub}</Text>
             </>
           )}
         </TouchableOpacity>
@@ -105,20 +108,20 @@ export default function AIRecommendScreen({ navigation, route }: any) {
 
       {aiGenerated && (
         <View style={styles.aiGeneratedBadge}>
-          <Text style={styles.aiGeneratedText}>✅ AI가 건강 데이터를 분석했습니다</Text>
+          <Text style={styles.aiGeneratedText}>{t.aiGeneratedBadge}</Text>
         </View>
       )}
 
       {/* 카테고리 필터 */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryRow} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
-        {CATEGORIES.map(cat => (
+        {CATEGORY_KEYS.map((key, index) => (
           <TouchableOpacity
-            key={cat}
-            style={[styles.categoryBtn, selectedCategory === cat && styles.categoryBtnActive]}
-            onPress={() => setSelectedCategory(cat)}
+            key={key}
+            style={[styles.categoryBtn, selectedCategory === key && styles.categoryBtnActive]}
+            onPress={() => setSelectedCategory(key)}
           >
-            <Text style={[styles.categoryText, selectedCategory === cat && styles.categoryTextActive]}>
-              {cat}
+            <Text style={[styles.categoryText, selectedCategory === key && styles.categoryTextActive]}>
+              {t.categories[index]}
             </Text>
           </TouchableOpacity>
         ))}

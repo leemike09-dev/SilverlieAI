@@ -35,20 +35,20 @@ export default function LoginScreen({ navigation }: any) {
 
   const handleSubmit = async () => {
     if (!email || !password) {
-      Alert.alert('', '이메일과 비밀번호를 입력해주세요.');
+      Alert.alert('', t.emailPasswordRequired);
       return;
     }
     if (mode === 'register') {
       if (!name) {
-        Alert.alert('', '이름을 입력해주세요.');
+        Alert.alert('', t.nameRequired);
         return;
       }
       if (password !== confirmPassword) {
-        Alert.alert('', '비밀번호가 일치하지 않습니다.');
+        Alert.alert('', t.passwordMismatch);
         return;
       }
       if (password.length < 6) {
-        Alert.alert('', '비밀번호는 6자 이상이어야 합니다.');
+        Alert.alert('', t.passwordMinLength);
         return;
       }
     }
@@ -113,13 +113,13 @@ export default function LoginScreen({ navigation }: any) {
             style={[styles.modeBtn, mode === 'login' && styles.modeBtnActive]}
             onPress={() => setMode('login')}
           >
-            <Text style={[styles.modeBtnText, mode === 'login' && styles.modeBtnTextActive]}>로그인</Text>
+            <Text style={[styles.modeBtnText, mode === 'login' && styles.modeBtnTextActive]}>{t.loginTab}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.modeBtn, mode === 'register' && styles.modeBtnActive]}
             onPress={() => setMode('register')}
           >
-            <Text style={[styles.modeBtnText, mode === 'register' && styles.modeBtnTextActive]}>회원가입</Text>
+            <Text style={[styles.modeBtnText, mode === 'register' && styles.modeBtnTextActive]}>{t.registerTab}</Text>
           </TouchableOpacity>
         </View>
 
@@ -144,7 +144,7 @@ export default function LoginScreen({ navigation }: any) {
 
         <TextInput
           style={styles.input}
-          placeholder="비밀번호"
+          placeholder={t.passwordPlaceholder}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -154,7 +154,7 @@ export default function LoginScreen({ navigation }: any) {
         {mode === 'register' && (
           <TextInput
             style={styles.input}
-            placeholder="비밀번호 확인"
+            placeholder={t.confirmPasswordPlaceholder}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
@@ -164,7 +164,7 @@ export default function LoginScreen({ navigation }: any) {
         <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
           {loading
             ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.buttonText}>{mode === 'login' ? '로그인' : '회원가입'}</Text>
+            : <Text style={styles.buttonText}>{mode === 'login' ? t.loginTab : t.registerTab}</Text>
           }
         </TouchableOpacity>
       </ScrollView>

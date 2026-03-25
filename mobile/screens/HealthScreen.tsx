@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -26,6 +27,7 @@ type HealthRecord = {
 
 export default function HealthScreen({ navigation, route }: any) {
   const { userId } = route.params;
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'input' | 'history'>('input');
 
   // 입력 상태
@@ -59,7 +61,7 @@ export default function HealthScreen({ navigation, route }: any) {
 
   const handleSave = async () => {
     if (!systolic && !diastolic && !heartRate && !weight && !bloodSugar) {
-      Alert.alert('알림', '최소 하나의 항목을 입력해주세요.');
+      Alert.alert('', t.fillOne);
       return;
     }
     setLoading(true);
@@ -79,11 +81,11 @@ export default function HealthScreen({ navigation, route }: any) {
           notes: notes || null,
         }),
       });
-      Alert.alert('저장 완료', '건강 기록이 저장되었습니다.');
+      Alert.alert('', t.saveSuccess);
       setSystolic(''); setDiastolic(''); setHeartRate('');
       setWeight(''); setBloodSugar(''); setNotes('');
     } catch {
-      Alert.alert('오류', '저장에 실패했습니다.');
+      Alert.alert('', t.saveError);
     } finally {
       setLoading(false);
     }
@@ -99,9 +101,9 @@ export default function HealthScreen({ navigation, route }: any) {
       {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>← 뒤로</Text>
+          <Text style={styles.backText}>{t.back}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>건강 기록</Text>
+        <Text style={styles.title}>{t.healthTitle}</Text>
       </View>
 
       {/* 탭 */}
@@ -110,13 +112,13 @@ export default function HealthScreen({ navigation, route }: any) {
           style={[styles.tab, activeTab === 'input' && styles.tabActive]}
           onPress={() => setActiveTab('input')}
         >
-          <Text style={[styles.tabText, activeTab === 'input' && styles.tabTextActive]}>기록 입력</Text>
+          <Text style={[styles.tabText, activeTab === 'input' && styles.tabTextActive]}>{t.recordInputTab}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'history' && styles.tabActive]}
           onPress={() => setActiveTab('history')}
         >
-          <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>기록 히스토리</Text>
+          <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>{t.historyTab}</Text>
         </TouchableOpacity>
       </View>
 
@@ -124,18 +126,18 @@ export default function HealthScreen({ navigation, route }: any) {
       {activeTab === 'input' && (
         <ScrollView>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>혈압 (mmHg)</Text>
+            <Text style={styles.sectionTitle}>{t.bloodPressure}</Text>
             <View style={styles.row}>
               <TextInput
                 style={[styles.input, styles.halfInput]}
-                placeholder="수축기 (예: 120)"
+                placeholder={t.systolicPlaceholder}
                 value={systolic}
                 onChangeText={setSystolic}
                 keyboardType="numeric"
               />
               <TextInput
                 style={[styles.input, styles.halfInput]}
-                placeholder="이완기 (예: 80)"
+                placeholder={t.diastolicPlaceholder}
                 value={diastolic}
                 onChangeText={setDiastolic}
                 keyboardType="numeric"
@@ -144,10 +146,10 @@ export default function HealthScreen({ navigation, route }: any) {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>심박수 (bpm)</Text>
+            <Text style={styles.sectionTitle}>{t.heartRate}</Text>
             <TextInput
               style={styles.input}
-              placeholder="예: 72"
+              placeholder={t.heartRatePlaceholder}
               value={heartRate}
               onChangeText={setHeartRate}
               keyboardType="numeric"
@@ -155,10 +157,10 @@ export default function HealthScreen({ navigation, route }: any) {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>체중 (kg)</Text>
+            <Text style={styles.sectionTitle}>{t.weight}</Text>
             <TextInput
               style={styles.input}
-              placeholder="예: 65.5"
+              placeholder={t.weightPlaceholder}
               value={weight}
               onChangeText={setWeight}
               keyboardType="decimal-pad"
@@ -166,10 +168,10 @@ export default function HealthScreen({ navigation, route }: any) {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>혈당 (mg/dL)</Text>
+            <Text style={styles.sectionTitle}>{t.bloodSugar}</Text>
             <TextInput
               style={styles.input}
-              placeholder="예: 95"
+              placeholder={t.bloodSugarPlaceholder}
               value={bloodSugar}
               onChangeText={setBloodSugar}
               keyboardType="numeric"
@@ -177,10 +179,10 @@ export default function HealthScreen({ navigation, route }: any) {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>메모</Text>
+            <Text style={styles.sectionTitle}>{t.notes}</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
-              placeholder="오늘 몸 상태를 기록해보세요"
+              placeholder={t.notesPlaceholder}
               value={notes}
               onChangeText={setNotes}
               multiline
@@ -189,7 +191,7 @@ export default function HealthScreen({ navigation, route }: any) {
           </View>
 
           <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>저장하기</Text>}
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>{t.saveButton}</Text>}
           </TouchableOpacity>
         </ScrollView>
       )}
@@ -200,13 +202,13 @@ export default function HealthScreen({ navigation, route }: any) {
           {historyLoading ? (
             <View style={styles.centerBox}>
               <ActivityIndicator size="large" color="#2D6A4F" />
-              <Text style={styles.loadingText}>기록 불러오는 중...</Text>
+              <Text style={styles.loadingText}>{t.aiAnalyzing}</Text>
             </View>
           ) : records.length === 0 ? (
             <View style={styles.centerBox}>
               <Text style={styles.emptyIcon}>📋</Text>
-              <Text style={styles.emptyText}>아직 기록이 없습니다.</Text>
-              <Text style={styles.emptySubText}>기록 입력 탭에서 건강 기록을 추가해보세요!</Text>
+              <Text style={styles.emptyText}>{t.noHistory}</Text>
+              <Text style={styles.emptySubText}>{t.recordInputTab}</Text>
             </View>
           ) : (
             <View style={styles.historyList}>
@@ -247,7 +249,7 @@ export default function HealthScreen({ navigation, route }: any) {
                       <View style={styles.metricChip}>
                         <Text style={styles.metricEmoji}>🚶</Text>
                         <Text style={styles.metricText}>{r.steps.toLocaleString()}</Text>
-                        <Text style={styles.metricUnit}>보</Text>
+                        <Text style={styles.metricUnit}>{t.metricStepsUnit}</Text>
                       </View>
                     )}
                   </View>

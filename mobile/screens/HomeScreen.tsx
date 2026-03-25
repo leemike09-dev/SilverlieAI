@@ -30,8 +30,8 @@ export default function HomeScreen({ route, navigation }: any) {
       <View style={styles.menuGrid}>
         <TouchableOpacity style={styles.menuCard} onPress={() => navigation.navigate('Dashboard', { name, userId })}>
           <Text style={styles.menuIcon}>📊</Text>
-          <Text style={styles.menuTitle}>건강 대시보드</Text>
-          <Text style={styles.menuDesc}>오늘의 건강 + AI 분석</Text>
+          <Text style={styles.menuTitle}>{t.dashboard}</Text>
+          <Text style={styles.menuDesc}>{t.dashboardDesc}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.menuCard} onPress={() => navigation.navigate('Health', { userId })}>
@@ -54,20 +54,20 @@ export default function HomeScreen({ route, navigation }: any) {
 
         <TouchableOpacity style={styles.menuCard} onPress={() => navigation.navigate('AIRecommend', { name, userId })}>
           <Text style={styles.menuIcon}>✨</Text>
-          <Text style={styles.menuTitle}>AI 추천</Text>
-          <Text style={styles.menuDesc}>맞춤 활동 추천</Text>
+          <Text style={styles.menuTitle}>{t.aiRecommend}</Text>
+          <Text style={styles.menuDesc}>{t.aiRecommendDesc}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.menuCard} onPress={() => navigation.navigate('WeeklyReport', { name, userId })}>
           <Text style={styles.menuIcon}>📈</Text>
-          <Text style={styles.menuTitle}>주간 리포트</Text>
-          <Text style={styles.menuDesc}>7일 건강 AI 분석</Text>
+          <Text style={styles.menuTitle}>{t.weeklyReport}</Text>
+          <Text style={styles.menuDesc}>{t.weeklyReportDesc}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.menuCard} onPress={() => navigation.navigate('Settings', { name, userId })}>
           <Text style={styles.menuIcon}>⚙️</Text>
-          <Text style={styles.menuTitle}>설정</Text>
-          <Text style={styles.menuDesc}>프로필 · 언어 · 알림</Text>
+          <Text style={styles.menuTitle}>{t.settings}</Text>
+          <Text style={styles.menuDesc}>{t.settingsDesc}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.menuCard} onPress={() => navigation.navigate('Notifications', { userId })}>
