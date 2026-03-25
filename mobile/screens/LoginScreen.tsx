@@ -170,6 +170,13 @@ export default function LoginScreen({ navigation }: any) {
             : <Text style={styles.buttonText}>{mode === 'login' ? t.loginTab : t.registerTab}</Text>
           }
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.demoButton}
+          onPress={() => navigation.navigate('Home', { name: '게스트', userId: 'demo-user' })}
+        >
+          <Text style={styles.demoButtonText}>👀 둘러보기 (로그인 없이)</Text>
+        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -245,6 +252,21 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#ddd',
+  },
+  demoButton: {
+    width: '100%',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 12,
+    borderWidth: 2,
+    borderColor: '#2D6A4F',
+    backgroundColor: '#fff',
+  },
+  demoButtonText: {
+    color: '#2D6A4F',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   errorMsg: {
     width: '100%',
