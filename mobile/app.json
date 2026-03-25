@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "Silver Life AI",
+    "slug": "silver-life-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2e86ab"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.silverlifeai.app"
+    },
+    "android": {
+      "package": "com.silverlifeai.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#2e86ab",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "2220b18b-fc03-4ccd-9e62-49dda3b0793f"
+      }
+    },
+    "owner": "gigas4"
+  }
+}

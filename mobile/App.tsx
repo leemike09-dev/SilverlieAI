@@ -1,0 +1,30 @@
+import { StatusBar } from 'expo-status-bar';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { LanguageProvider } from './i18n/LanguageContext';
+import LoginScreen from './screens/LoginScreen';
+import HomeScreen from './screens/HomeScreen';
+import HealthScreen from './screens/HealthScreen';
+import AIChatScreen from './screens/AIChatScreen';
+import CommunityScreen from './screens/CommunityScreen';
+import NotificationsScreen from './screens/NotificationsScreen';
+
+const Stack = createNativeStackNavigator();
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <NavigationContainer>
+        <StatusBar style="auto" />
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="Health" component={HealthScreen} />
+          <Stack.Screen name="AIChat" component={AIChatScreen} />
+          <Stack.Screen name="Community" component={CommunityScreen} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </LanguageProvider>
+  );
+}
