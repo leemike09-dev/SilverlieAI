@@ -129,9 +129,8 @@ SUPABASE_SECRET_KEY=
 - SettingsScreen — 언어 / 나이 / 관심사 / 알림 토글 / 로그아웃
 
 ## 테스트 링크
-- 웹 버전: https://m-a9.netlify.app
-- Expo Go QR: exp://u.expo.dev/2220b18b-fc03-4ccd-9e62-49dda3b0793f?channel-name=main
-- 상세 테스트 가이드: REF/2026-03-26_현재상태-테스트링크-다음할일.md
+- 웹 버전 (iOS/Android/PC): https://m-a9.netlify.app
+- 상세 현황: REF/2026-03-26_현재상태-테스트링크-다음할일.md
 
 ## backend 실행 방법 (로컬)
 ```bash
