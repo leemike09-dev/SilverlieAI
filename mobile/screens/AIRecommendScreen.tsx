@@ -44,22 +44,23 @@ export default function AIRecommendScreen({ navigation, route }: any) {
       const histData = await histRes.json();
       const latestRecord = histData.records?.[0];
 
-      if (latestRecord) {
-        const res = await fetch(`${API_URL}/health/analyze`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: userId,
-            user_name: name,
-            age: 65,
-            steps: latestRecord.steps || 3000,
-            blood_pressure_systolic: latestRecord.blood_pressure_systolic || 120,
-            blood_pressure_diastolic: latestRecord.blood_pressure_diastolic || 80,
-            sleep_hours: 7,
-            weight_kg: latestRecord.weight || 65,
-          }),
-        });
-        await res.json();
+      const res = await fetch(`${API_URL}/health/recommendations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          user_name: name,
+          age: 65,
+          steps: latestRecord?.steps || null,
+          blood_pressure_systolic: latestRecord?.blood_pressure_systolic || null,
+          blood_pressure_diastolic: latestRecord?.blood_pressure_diastolic || null,
+          weight_kg: latestRecord?.weight || null,
+          heart_rate: latestRecord?.heart_rate || null,
+        }),
+      });
+      const data = await res.json();
+      if (data.data?.recommendations?.length > 0) {
+        setRecommendations(data.data.recommendations);
       }
       setAiGenerated(true);
     } catch {

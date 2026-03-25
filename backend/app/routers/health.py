@@ -129,6 +129,69 @@ JSON 형식: {{"summary": "...", "insights": ["...", "...", "..."]}}
     return {"data": result}
 
 
+class RecommendRequest(BaseModel):
+    user_id: str
+    user_name: str
+    age: int
+    steps: Optional[int] = None
+    blood_pressure_systolic: Optional[int] = None
+    blood_pressure_diastolic: Optional[int] = None
+    weight_kg: Optional[float] = None
+    heart_rate: Optional[int] = None
+
+
+@router.post("/recommendations")
+def get_recommendations(request: RecommendRequest):
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY 없음")
+
+    client = anthropic.Anthropic(api_key=api_key)
+
+    prompt = f"""
+{request.user_name}({request.age}세) 시니어의 건강 데이터:
+- 걸음수: {request.steps or 'N/A'}보
+- 혈압: {request.blood_pressure_systolic or 'N/A'}/{request.blood_pressure_diastolic or 'N/A'} mmHg
+- 체중: {request.weight_kg or 'N/A'}kg
+- 심박수: {request.heart_rate or 'N/A'}bpm
+
+이 시니어에게 맞는 활동 6가지를 추천해주세요.
+카테고리는 운동/문화/사교/두뇌 중에서 선택하세요.
+매칭 점수는 건강 데이터 기반으로 70~99 사이로 설정하세요.
+
+반드시 다음 JSON 형식으로만 답변하세요:
+{{
+  "recommendations": [
+    {{
+      "category": "운동",
+      "emoji": "🚶",
+      "title": "활동명",
+      "desc": "설명 (2문장 이내)",
+      "tags": ["태그1", "태그2", "태그3"],
+      "match": 92
+    }}
+  ]
+}}
+"""
+
+    response = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=2048,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    import json
+    try:
+        text = response.content[0].text
+        start = text.find('{')
+        end = text.rfind('}') + 1
+        result = json.loads(text[start:end])
+    except Exception:
+        result = {"recommendations": []}
+
+    return {"data": result}
+
+
 @router.post("/weekly-report")
 def weekly_report(request: ReportRequest):
     api_key = os.getenv("ANTHROPIC_API_KEY")
