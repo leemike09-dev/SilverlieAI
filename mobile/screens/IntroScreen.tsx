@@ -7,6 +7,7 @@ import {
   Animated,
   Dimensions,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -14,20 +15,24 @@ export default function IntroScreen({ navigation }: any) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // 페이드 인
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 1200,
       useNativeDriver: true,
     }).start(() => {
-      // 1.5초 유지 후 페이드 아웃
-      setTimeout(() => {
+      setTimeout(async () => {
         Animated.timing(fadeAnim, {
           toValue: 0,
           duration: 1000,
           useNativeDriver: true,
-        }).start(() => {
-          navigation.replace('Login');
+        }).start(async () => {
+          const userId = await AsyncStorage.getItem('userId');
+          const userName = await AsyncStorage.getItem('userName');
+          if (userId && userName) {
+            navigation.replace('Home', { name: userName, userId });
+          } else {
+            navigation.replace('Login');
+          }
         });
       }, 1500);
     });

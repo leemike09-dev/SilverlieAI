@@ -11,6 +11,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../i18n/LanguageContext';
 import { Language } from '../i18n/translations';
 
@@ -71,6 +72,9 @@ export default function LoginScreen({ navigation }: any) {
         Alert.alert('', data.detail || '오류가 발생했습니다.');
         return;
       }
+
+      await AsyncStorage.setItem('userId', data.id);
+      await AsyncStorage.setItem('userName', data.name);
 
       navigation.navigate('Home', { name: data.name, userId: data.id });
     } catch {

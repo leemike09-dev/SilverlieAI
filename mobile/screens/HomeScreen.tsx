@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ScrollView,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../i18n/LanguageContext';
 
 export default function HomeScreen({ route, navigation }: any) {
@@ -20,7 +21,7 @@ export default function HomeScreen({ route, navigation }: any) {
             <Text style={styles.greeting}>{t.greeting(name)}</Text>
             <Text style={styles.subGreeting}>{t.subGreeting}</Text>
           </View>
-          <TouchableOpacity onPress={() => navigation.replace('Login')} style={styles.logoutBtn}>
+          <TouchableOpacity onPress={async () => { await AsyncStorage.clear(); navigation.replace('Login'); }} style={styles.logoutBtn}>
             <Text style={styles.logoutText}>{t.logout}</Text>
           </TouchableOpacity>
         </View>
