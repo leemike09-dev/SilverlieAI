@@ -51,6 +51,12 @@ export default function HomeScreen({ route, navigation }: any) {
           <Text style={styles.menuDesc}>{t.aiChatDesc}</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity style={styles.menuCard} onPress={() => navigation.navigate('WeeklyReport', { name, userId })}>
+          <Text style={styles.menuIcon}>📈</Text>
+          <Text style={styles.menuTitle}>주간 리포트</Text>
+          <Text style={styles.menuDesc}>7일 건강 AI 분석</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.menuCard} onPress={() => navigation.navigate('Settings', { name, userId })}>
           <Text style={styles.menuIcon}>⚙️</Text>
           <Text style={styles.menuTitle}>설정</Text>
