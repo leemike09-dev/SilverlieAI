@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#999',
     marginTop: 40,
-    fontSize: 15,
+    fontSize: 18,
   },
   card: {
     margin: 16,
@@ -132,8 +132,8 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   textArea: { flex: 1 },
-  cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#333' },
+  cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
   cardTitleRead: { fontWeight: 'normal' },
-  cardBody: { fontSize: 14, color: '#666', marginTop: 4 },
-  cardDate: { fontSize: 12, color: '#aaa', marginTop: 6 },
+  cardBody: { fontSize: 16, color: '#666', marginTop: 6, lineHeight: 24 },
+  cardDate: { fontSize: 14, color: '#aaa', marginTop: 8 },
 });

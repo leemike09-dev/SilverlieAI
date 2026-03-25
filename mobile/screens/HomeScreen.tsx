@@ -105,13 +105,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   greeting: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 4,
   },
   subGreeting: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#B7E4C7',
   },
   menuGrid: {
@@ -133,18 +133,19 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   menuIcon: {
-    fontSize: 36,
-    marginBottom: 8,
+    fontSize: 40,
+    marginBottom: 10,
   },
   menuTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   menuDesc: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#999',
     textAlign: 'center',
+    lineHeight: 20,
   },
 });

@@ -256,10 +256,10 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
-  metricIcon: { fontSize: 28, marginBottom: 6 },
-  metricValue: { fontSize: 20, fontWeight: 'bold' },
-  metricUnit: { fontSize: 11, color: '#999', marginTop: 2 },
-  metricLabel: { fontSize: 12, color: '#666', marginTop: 4 },
+  metricIcon: { fontSize: 32, marginBottom: 6 },
+  metricValue: { fontSize: 22, fontWeight: 'bold' },
+  metricUnit: { fontSize: 14, color: '#999', marginTop: 2 },
+  metricLabel: { fontSize: 14, color: '#666', marginTop: 4 },
   recordBtn: {
     margin: 16,
     backgroundColor: '#2D6A4F',
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     padding: 18,
     alignItems: 'center',
   },
-  recordBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  recordBtnText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
   aiCard: {
     margin: 16,
     backgroundColor: '#fff',

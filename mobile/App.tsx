@@ -1,7 +1,9 @@
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LanguageProvider } from './i18n/LanguageContext';
+import { scheduleDailyHealthReminder } from './utils/notifications';
 import IntroScreen from './screens/IntroScreen';
 import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
@@ -17,6 +19,10 @@ import NotificationsScreen from './screens/NotificationsScreen';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+  useEffect(() => {
+    scheduleDailyHealthReminder();
+  }, []);
+
   return (
     <LanguageProvider>
       <NavigationContainer>

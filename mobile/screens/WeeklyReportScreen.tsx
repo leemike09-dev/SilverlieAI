@@ -194,9 +194,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F0EDE7',
   },
-  recordDate: { fontSize: 14, color: '#7A746A', marginBottom: 4 },
+  recordDate: { fontSize: 16, color: '#7A746A', marginBottom: 4 },
   recordValues: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  recordTag: { fontSize: 14, color: '#333', backgroundColor: '#F7F4EF', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  recordTag: { fontSize: 16, color: '#333', backgroundColor: '#F7F4EF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
   generateBtn: {
     margin: 16,
     backgroundColor: '#2D6A4F',
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   scoreSummary: { fontSize: 16, color: '#4A4540', textAlign: 'center', marginTop: 12, lineHeight: 24 },
   listRow: { flexDirection: 'row', marginBottom: 8 },
   listDot: { color: '#2D6A4F', fontSize: 16, marginRight: 8 },
-  listText: { fontSize: 15, color: '#4A4540', flex: 1, lineHeight: 22 },
+  listText: { fontSize: 17, color: '#4A4540', flex: 1, lineHeight: 26 },
   recommendCard: {
     backgroundColor: '#2D6A4F',
   },

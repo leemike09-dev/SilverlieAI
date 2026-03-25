@@ -32,13 +32,13 @@ export const colors = {
 };
 
 export const fonts = {
-  small: 14,
-  body: 16,
-  medium: 18,
-  large: 20,
-  title: 24,
-  display: 28,
-  hero: 36,
+  small: 16,
+  body: 18,
+  medium: 20,
+  large: 22,
+  title: 26,
+  display: 30,
+  hero: 38,
 };
 
 export const radius = {

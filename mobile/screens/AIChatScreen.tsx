@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2D6A4F',
     alignSelf: 'flex-end',
   },
-  bubbleText: { fontSize: 15, lineHeight: 22 },
+  bubbleText: { fontSize: 18, lineHeight: 28 },
   aiText: { color: '#333' },
   userText: { color: '#fff' },
   inputRow: {
@@ -140,14 +140,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 15,
+    paddingVertical: 12,
+    fontSize: 17,
   },
   sendBtn: {
     backgroundColor: '#2D6A4F',
     borderRadius: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     justifyContent: 'center',
+    minHeight: 52,
   },
-  sendText: { color: '#fff', fontWeight: 'bold' },
+  sendText: { color: '#fff', fontWeight: 'bold', fontSize: 17 },
 });
