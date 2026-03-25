@@ -123,7 +123,7 @@ export default function CommunityScreen({ navigation, route }: any) {
       )}
 
       {loading ? (
-        <ActivityIndicator size="large" color="#2e86ab" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color="#2D6A4F" style={{ marginTop: 40 }} />
       ) : groups.length === 0 ? (
         <Text style={styles.emptyText}>아직 그룹이 없습니다. 첫 번째 그룹을 만들어보세요!</Text>
       ) : (
@@ -145,18 +145,18 @@ export default function CommunityScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f8ff' },
+  container: { flex: 1, backgroundColor: '#F7F4EF' },
   header: {
-    backgroundColor: '#2e86ab',
+    backgroundColor: '#2D6A4F',
     padding: 20,
     paddingTop: 60,
   },
   backBtn: { marginBottom: 8 },
-  backText: { color: '#cce8f4', fontSize: 14 },
+  backText: { color: '#B7E4C7', fontSize: 14 },
   title: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
   createBtn: {
     margin: 16,
-    backgroundColor: '#2e86ab',
+    backgroundColor: '#2D6A4F',
     borderRadius: 12,
     padding: 14,
     alignItems: 'center',
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   submitBtn: {
-    backgroundColor: '#2e86ab',
+    backgroundColor: '#2D6A4F',
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   groupName: { fontSize: 18, fontWeight: 'bold', color: '#333' },
   groupCategory: {
     fontSize: 14,
-    color: '#2e86ab',
+    color: '#2D6A4F',
     marginTop: 4,
   },
   groupDesc: { fontSize: 15, color: '#888', marginTop: 6 },
@@ -218,5 +218,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
-  joinBtnText: { color: '#2e86ab', fontWeight: 'bold', fontSize: 16 },
+  joinBtnText: { color: '#2D6A4F', fontWeight: 'bold', fontSize: 16 },
 });

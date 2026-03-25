@@ -64,7 +64,7 @@ export default function NotificationsScreen({ navigation, route }: any) {
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#2e86ab" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color="#2D6A4F" style={{ marginTop: 40 }} />
       ) : notifications.length === 0 ? (
         <Text style={styles.emptyText}>알림이 없습니다.</Text>
       ) : (
@@ -94,14 +94,14 @@ export default function NotificationsScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f8ff' },
+  container: { flex: 1, backgroundColor: '#F7F4EF' },
   header: {
-    backgroundColor: '#2e86ab',
+    backgroundColor: '#2D6A4F',
     padding: 20,
     paddingTop: 60,
   },
   backBtn: { marginBottom: 8 },
-  backText: { color: '#cce8f4', fontSize: 14 },
+  backText: { color: '#B7E4C7', fontSize: 14 },
   title: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
   emptyText: {
     textAlign: 'center',
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#2e86ab',
+    backgroundColor: '#2D6A4F',
     marginTop: 6,
     marginRight: 10,
   },

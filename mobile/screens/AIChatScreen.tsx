@@ -74,7 +74,7 @@ export default function AIChatScreen({ navigation }: any) {
         ))}
         {loading && (
           <View style={styles.aiBubble}>
-            <ActivityIndicator size="small" color="#2e86ab" />
+            <ActivityIndicator size="small" color="#2D6A4F" />
           </View>
         )}
       </ScrollView>
@@ -98,14 +98,14 @@ export default function AIChatScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f8ff' },
+  container: { flex: 1, backgroundColor: '#F7F4EF' },
   header: {
-    backgroundColor: '#2e86ab',
+    backgroundColor: '#2D6A4F',
     padding: 20,
     paddingTop: 60,
   },
   backBtn: { marginBottom: 8 },
-  backText: { color: '#cce8f4', fontSize: 14 },
+  backText: { color: '#B7E4C7', fontSize: 14 },
   title: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
   chatArea: { flex: 1 },
   bubble: {
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
   },
   userBubble: {
-    backgroundColor: '#2e86ab',
+    backgroundColor: '#2D6A4F',
     alignSelf: 'flex-end',
   },
   bubbleText: { fontSize: 15, lineHeight: 22 },
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   sendBtn: {
-    backgroundColor: '#2e86ab',
+    backgroundColor: '#2D6A4F',
     borderRadius: 20,
     paddingHorizontal: 20,
     justifyContent: 'center',

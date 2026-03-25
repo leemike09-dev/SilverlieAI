@@ -138,10 +138,10 @@ export default function HealthScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f8ff',
+    backgroundColor: '#F7F4EF',
   },
   header: {
-    backgroundColor: '#2e86ab',
+    backgroundColor: '#2D6A4F',
     padding: 20,
     paddingTop: 60,
   },
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   backText: {
-    color: '#cce8f4',
+    color: '#B7E4C7',
     fontSize: 14,
   },
   title: {
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   saveButton: {
     margin: 16,
     marginTop: 24,
-    backgroundColor: '#2e86ab',
+    backgroundColor: '#2D6A4F',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',

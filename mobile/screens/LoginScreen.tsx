@@ -99,7 +99,7 @@ export default function LoginScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f8ff',
+    backgroundColor: '#F7F4EF',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#e0e0e0',
   },
   langBtnActive: {
-    backgroundColor: '#2e86ab',
+    backgroundColor: '#2D6A4F',
   },
   langFlag: {
     fontSize: 24,
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#2e86ab',
+    color: '#2D6A4F',
     marginBottom: 8,
   },
   subtitle: {
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   },
   button: {
     width: '100%',
-    backgroundColor: '#2e86ab',
+    backgroundColor: '#2D6A4F',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',

@@ -58,10 +58,10 @@ export default function HomeScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f8ff',
+    backgroundColor: '#F7F4EF',
   },
   header: {
-    backgroundColor: '#2e86ab',
+    backgroundColor: '#2D6A4F',
     padding: 24,
     paddingTop: 60,
   },
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   },
   subGreeting: {
     fontSize: 14,
-    color: '#cce8f4',
+    color: '#B7E4C7',
   },
   menuGrid: {
     flexDirection: 'row',
