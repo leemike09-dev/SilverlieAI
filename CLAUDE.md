@@ -73,7 +73,7 @@ SUPABASE_SECRET_KEY=
 - ✅ 시니어 UI 개선 (폰트/버튼 크기 확대)
 - ✅ 앱 아이콘 + 스플래시 스크린 디자인
 - ✅ Android EAS OTA 업데이트 배포 완료
-- ✅ 웹 버전 Netlify 배포 (https://remarkable-wisp-717949.netlify.app)
+- ✅ 웹 버전 Netlify 배포 (https://m-a9.netlify.app)
 - ✅ GitHub 연동 완료 (leemike09-dev/SilverlieAI)
 - ⏳ iOS 빌드 (Apple Developer 계정 $99/년 필요)
 
@@ -129,7 +129,7 @@ SUPABASE_SECRET_KEY=
 - SettingsScreen — 언어 / 나이 / 관심사 / 알림 토글 / 로그아웃
 
 ## 테스트 링크
-- 웹 버전: https://remarkable-wisp-717949.netlify.app
+- 웹 버전: https://m-a9.netlify.app
 - Expo Go QR: exp://u.expo.dev/2220b18b-fc03-4ccd-9e62-49dda3b0793f?channel-name=main
 - 상세 테스트 가이드: REF/2026-03-26_현재상태-테스트링크-다음할일.md
 
