@@ -1,5 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LanguageProvider } from './i18n/LanguageContext';
@@ -20,7 +21,9 @@ const Stack = createNativeStackNavigator();
 
 export default function App() {
   useEffect(() => {
-    scheduleDailyHealthReminder();
+    if (Platform.OS !== 'web') {
+      scheduleDailyHealthReminder();
+    }
   }, []);
 
   return (

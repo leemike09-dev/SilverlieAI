@@ -36,7 +36,7 @@ export default function IntroScreen({ navigation }: any) {
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <Image
-        source={require('../assets/intro-bg.JPG')}
+        source={require('../assets/intro-bg.jpg')}
         style={styles.bgImage}
         resizeMode="cover"
       />
