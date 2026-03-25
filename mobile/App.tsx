@@ -7,6 +7,7 @@ import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import HealthScreen from './screens/HealthScreen';
 import DashboardScreen from './screens/DashboardScreen';
+import SettingsScreen from './screens/SettingsScreen';
 import AIChatScreen from './screens/AIChatScreen';
 import CommunityScreen from './screens/CommunityScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
@@ -27,6 +28,7 @@ export default function App() {
           <Stack.Screen name="AIChat" component={AIChatScreen} />
           <Stack.Screen name="Community" component={CommunityScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </LanguageProvider>
