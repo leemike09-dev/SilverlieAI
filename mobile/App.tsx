@@ -9,6 +9,7 @@ import HealthScreen from './screens/HealthScreen';
 import DashboardScreen from './screens/DashboardScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import WeeklyReportScreen from './screens/WeeklyReportScreen';
+import AIRecommendScreen from './screens/AIRecommendScreen';
 import AIChatScreen from './screens/AIChatScreen';
 import CommunityScreen from './screens/CommunityScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
@@ -31,6 +32,7 @@ export default function App() {
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} />
+          <Stack.Screen name="AIRecommend" component={AIRecommendScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </LanguageProvider>
