@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -32,23 +31,25 @@ export default function LoginScreen({ navigation }: any) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleSubmit = async () => {
+    setErrorMsg('');
     if (!email || !password) {
-      Alert.alert('', t.emailPasswordRequired);
+      setErrorMsg(t.emailPasswordRequired);
       return;
     }
     if (mode === 'register') {
       if (!name) {
-        Alert.alert('', t.nameRequired);
+        setErrorMsg(t.nameRequired);
         return;
       }
       if (password !== confirmPassword) {
-        Alert.alert('', t.passwordMismatch);
+        setErrorMsg(t.passwordMismatch);
         return;
       }
       if (password.length < 6) {
-        Alert.alert('', t.passwordMinLength);
+        setErrorMsg(t.passwordMinLength);
         return;
       }
     }
@@ -69,7 +70,7 @@ export default function LoginScreen({ navigation }: any) {
       const data = await response.json();
 
       if (!response.ok) {
-        Alert.alert('', data.detail || '오류가 발생했습니다.');
+        setErrorMsg(data.detail || '오류가 발생했습니다.');
         return;
       }
 
@@ -78,7 +79,7 @@ export default function LoginScreen({ navigation }: any) {
 
       navigation.navigate('Home', { name: data.name, userId: data.id });
     } catch {
-      Alert.alert('', t.serverError);
+      setErrorMsg(t.serverError);
     } finally {
       setLoading(false);
     }
@@ -161,6 +162,8 @@ export default function LoginScreen({ navigation }: any) {
           />
         )}
 
+        {errorMsg ? <Text style={styles.errorMsg}>{errorMsg}</Text> : null}
+
         <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
           {loading
             ? <ActivityIndicator color="#fff" />
@@ -242,6 +245,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#ddd',
+  },
+  errorMsg: {
+    width: '100%',
+    backgroundColor: '#FEE2E2',
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 15,
+    color: '#C0392B',
+    marginBottom: 10,
+    textAlign: 'center',
   },
   button: {
     width: '100%',
