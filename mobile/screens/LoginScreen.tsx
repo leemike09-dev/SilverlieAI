@@ -25,25 +25,55 @@ const LANGUAGES: { code: Language; flag: string }[] = [
 
 export default function LoginScreen({ navigation }: any) {
   const { t, language, setLanguage } = useLanguage();
+  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
-    if (!name || !email) {
-      Alert.alert('', t.fillAll);
+  const handleSubmit = async () => {
+    if (!email || !password) {
+      Alert.alert('', '이메일과 비밀번호를 입력해주세요.');
       return;
     }
+    if (mode === 'register') {
+      if (!name) {
+        Alert.alert('', '이름을 입력해주세요.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        Alert.alert('', '비밀번호가 일치하지 않습니다.');
+        return;
+      }
+      if (password.length < 6) {
+        Alert.alert('', '비밀번호는 6자 이상이어야 합니다.');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/users/`, {
+      const endpoint = mode === 'login' ? '/users/login' : '/users/register';
+      const body = mode === 'login'
+        ? { email, password }
+        : { email, name, password, language };
+
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, language }),
+        body: JSON.stringify(body),
       });
+
       const data = await response.json();
-      navigation.navigate('Home', { name, userId: data.id });
-    } catch (error) {
+
+      if (!response.ok) {
+        Alert.alert('', data.detail || '오류가 발생했습니다.');
+        return;
+      }
+
+      navigation.navigate('Home', { name: data.name, userId: data.id });
+    } catch {
       Alert.alert('', t.serverError);
     } finally {
       setLoading(false);
@@ -55,50 +85,92 @@ export default function LoginScreen({ navigation }: any) {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
 
-      {/* 언어 전환 버튼 */}
-      <View style={styles.langRow}>
-        {LANGUAGES.map(lang => (
+        {/* 언어 전환 버튼 */}
+        <View style={styles.langRow}>
+          {LANGUAGES.map(lang => (
+            <TouchableOpacity
+              key={lang.code}
+              style={[styles.langBtn, language === lang.code && styles.langBtnActive]}
+              onPress={() => setLanguage(lang.code)}
+            >
+              <Text style={styles.langFlag}>{lang.flag}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={styles.title}>{t.appName}</Text>
+        <Text style={styles.subtitle}>{t.appSubtitle}</Text>
+
+        {/* 로그인 / 회원가입 탭 */}
+        <View style={styles.modeRow}>
           <TouchableOpacity
-            key={lang.code}
-            style={[styles.langBtn, language === lang.code && styles.langBtnActive]}
-            onPress={() => setLanguage(lang.code)}
+            style={[styles.modeBtn, mode === 'login' && styles.modeBtnActive]}
+            onPress={() => setMode('login')}
           >
-            <Text style={styles.langFlag}>{lang.flag}</Text>
+            <Text style={[styles.modeBtnText, mode === 'login' && styles.modeBtnTextActive]}>로그인</Text>
           </TouchableOpacity>
-        ))}
-      </View>
+          <TouchableOpacity
+            style={[styles.modeBtn, mode === 'register' && styles.modeBtnActive]}
+            onPress={() => setMode('register')}
+          >
+            <Text style={[styles.modeBtnText, mode === 'register' && styles.modeBtnTextActive]}>회원가입</Text>
+          </TouchableOpacity>
+        </View>
 
-      <Text style={styles.title}>{t.appName}</Text>
-      <Text style={styles.subtitle}>{t.appSubtitle}</Text>
+        {/* 회원가입 전용: 이름 */}
+        {mode === 'register' && (
+          <TextInput
+            style={styles.input}
+            placeholder={t.namePlaceholder}
+            value={name}
+            onChangeText={setName}
+          />
+        )}
 
-      <TextInput
-        style={styles.input}
-        placeholder={t.namePlaceholder}
-        value={name}
-        onChangeText={setName}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder={t.emailPlaceholder}
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
+        <TextInput
+          style={styles.input}
+          placeholder={t.emailPlaceholder}
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t.startButton}</Text>}
-      </TouchableOpacity>
-    </ScrollView>
+        <TextInput
+          style={styles.input}
+          placeholder="비밀번호"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+
+        {/* 회원가입 전용: 비밀번호 확인 */}
+        {mode === 'register' && (
+          <TextInput
+            style={styles.input}
+            placeholder="비밀번호 확인"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+          />
+        )}
+
+        <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
+          {loading
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={styles.buttonText}>{mode === 'login' ? '로그인' : '회원가입'}</Text>
+          }
+        </TouchableOpacity>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: '#F7F4EF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -129,8 +201,33 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 40,
+    marginBottom: 32,
     textAlign: 'center',
+  },
+  modeRow: {
+    flexDirection: 'row',
+    backgroundColor: '#E8E4DC',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 24,
+    width: '100%',
+  },
+  modeBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  modeBtnActive: {
+    backgroundColor: '#2D6A4F',
+  },
+  modeBtnText: {
+    fontSize: 16,
+    color: '#888',
+    fontWeight: '600',
+  },
+  modeBtnTextActive: {
+    color: '#fff',
   },
   input: {
     width: '100%',

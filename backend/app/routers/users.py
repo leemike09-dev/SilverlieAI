@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from typing import Optional
 from app.database import get_supabase
+import bcrypt
 
 router = APIRouter()
 
@@ -13,10 +14,54 @@ class UserCreate(BaseModel):
     language: Optional[str] = "ko"
 
 
+class RegisterRequest(BaseModel):
+    email: str
+    name: str
+    password: str
+    language: Optional[str] = "ko"
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+@router.post("/register")
+def register(req: RegisterRequest):
+    db = get_supabase()
+    existing = db.table("users").select("id").eq("email", req.email).execute()
+    if existing.data:
+        raise HTTPException(status_code=400, detail="이미 사용 중인 이메일입니다.")
+    password_hash = bcrypt.hashpw(req.password.encode(), bcrypt.gensalt()).decode()
+    result = db.table("users").insert({
+        "email": req.email,
+        "name": req.name,
+        "language": req.language,
+        "password_hash": password_hash,
+    }).execute()
+    if not result.data:
+        raise HTTPException(status_code=400, detail="회원가입 실패")
+    user = result.data[0]
+    return {"id": user["id"], "name": user["name"], "email": user["email"]}
+
+
+@router.post("/login")
+def login(req: LoginRequest):
+    db = get_supabase()
+    result = db.table("users").select("*").eq("email", req.email).execute()
+    if not result.data:
+        raise HTTPException(status_code=401, detail="이메일 또는 비밀번호가 틀렸습니다.")
+    user = result.data[0]
+    if not user.get("password_hash"):
+        raise HTTPException(status_code=401, detail="비밀번호가 설정되지 않은 계정입니다.")
+    if not bcrypt.checkpw(req.password.encode(), user["password_hash"].encode()):
+        raise HTTPException(status_code=401, detail="이메일 또는 비밀번호가 틀렸습니다.")
+    return {"id": user["id"], "name": user["name"], "email": user["email"]}
+
+
 @router.post("/")
 def create_user(user: UserCreate):
     db = get_supabase()
-    # 이미 존재하는 이메일이면 기존 사용자 반환
     existing = db.table("users").select("*").eq("email", user.email).execute()
     if existing.data:
         return existing.data[0]
