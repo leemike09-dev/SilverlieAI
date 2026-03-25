@@ -27,6 +27,12 @@ export default function HomeScreen({ route, navigation }: any) {
       </View>
 
       <View style={styles.menuGrid}>
+        <TouchableOpacity style={styles.menuCard} onPress={() => navigation.navigate('Dashboard', { name, userId })}>
+          <Text style={styles.menuIcon}>📊</Text>
+          <Text style={styles.menuTitle}>건강 대시보드</Text>
+          <Text style={styles.menuDesc}>오늘의 건강 + AI 분석</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.menuCard} onPress={() => navigation.navigate('Health', { userId })}>
           <Text style={styles.menuIcon}>❤️</Text>
           <Text style={styles.menuTitle}>{t.healthRecord}</Text>
