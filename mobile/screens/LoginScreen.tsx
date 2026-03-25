@@ -7,6 +7,9 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import { useLanguage } from '../i18n/LanguageContext';
 import { Language } from '../i18n/translations';
@@ -48,7 +51,12 @@ export default function LoginScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+
       {/* 언어 전환 버튼 */}
       <View style={styles.langRow}>
         {LANGUAGES.map(lang => (
@@ -83,7 +91,8 @@ export default function LoginScreen({ navigation }: any) {
       <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t.startButton}</Text>}
       </TouchableOpacity>
-    </View>
+    </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -2,6 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LanguageProvider } from './i18n/LanguageContext';
+import IntroScreen from './screens/IntroScreen';
 import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import HealthScreen from './screens/HealthScreen';
@@ -16,7 +17,8 @@ export default function App() {
     <LanguageProvider>
       <NavigationContainer>
         <StatusBar style="auto" />
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Intro">
+          <Stack.Screen name="Intro" component={IntroScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="Health" component={HealthScreen} />

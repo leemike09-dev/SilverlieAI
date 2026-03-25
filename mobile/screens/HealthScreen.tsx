@@ -159,13 +159,13 @@ const styles = StyleSheet.create({
   },
   section: {
     padding: 16,
-    paddingBottom: 0,
+    paddingBottom: 4,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#555',
-    marginBottom: 8,
+    color: '#444',
+    marginBottom: 10,
   },
   row: {
     flexDirection: 'row',
@@ -174,11 +174,12 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 14,
-    fontSize: 16,
+    padding: 16,
+    fontSize: 18,
     borderWidth: 1,
     borderColor: '#ddd',
     flex: 1,
+    marginBottom: 4,
   },
   halfInput: {
     flex: 1,

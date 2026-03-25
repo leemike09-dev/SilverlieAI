@@ -51,7 +51,8 @@ export default function AIChatScreen({ navigation }: any) {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={80}
     >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -85,6 +86,8 @@ export default function AIChatScreen({ navigation }: any) {
           value={input}
           onChangeText={setInput}
           multiline
+          editable={true}
+          pointerEvents="auto"
         />
         <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
           <Text style={styles.sendText}>전송</Text>
