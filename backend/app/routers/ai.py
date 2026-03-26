@@ -25,12 +25,14 @@ def chat(request: ChatRequest):
     if not api_key:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY가 설정되지 않았습니다.")
 
-    client = anthropic.Anthropic(api_key=api_key)
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=1024,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": request.message}],
-    )
-
-    return {"reply": response.content[0].text}
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1024,
+            system=SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": request.message}],
+        )
+        return {"reply": response.content[0].text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI 오류: {str(e)}")
