@@ -92,6 +92,16 @@ export default function HealthScreen({ navigation, route }: any) {
           notes: notes || null,
         }),
       });
+      // 알림 자동 생성
+      fetch(`${API_URL}/notifications/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          title: t.notifHealthSaved,
+          body: t.notifHealthSavedBody,
+        }),
+      }).catch(() => {});
       Alert.alert('', t.saveSuccess);
       setSystolic(''); setDiastolic(''); setHeartRate('');
       setWeight(''); setBloodSugar(''); setNotes('');

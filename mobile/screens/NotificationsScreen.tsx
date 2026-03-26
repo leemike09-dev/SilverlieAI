@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -20,6 +21,7 @@ type Notification = {
 
 export default function NotificationsScreen({ navigation, route }: any) {
   const { userId } = route.params;
+  const { t } = useLanguage();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -51,22 +53,22 @@ export default function NotificationsScreen({ navigation, route }: any) {
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+    return date.toLocaleDateString();
   };
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>← 뒤로</Text>
+          <Text style={styles.backText}>{t.back}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>🔔 알림</Text>
+        <Text style={styles.title}>{t.notificationsTitle}</Text>
       </View>
 
       {loading ? (
         <ActivityIndicator size="large" color="#2D6A4F" style={{ marginTop: 40 }} />
       ) : notifications.length === 0 ? (
-        <Text style={styles.emptyText}>알림이 없습니다.</Text>
+        <Text style={styles.emptyText}>{t.noNotifications}</Text>
       ) : (
         notifications.map(notification => (
           <TouchableOpacity

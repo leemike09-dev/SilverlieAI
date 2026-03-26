@@ -139,6 +139,8 @@ export const translations = {
     homeTodaySummary: '오늘의 건강 요약',
     homeTodayNoRecord: '오늘 건강 기록이 없습니다',
     homeRecordNow: '지금 기록하기 →',
+    notifHealthSaved: '건강 기록 저장 완료 ✅',
+    notifHealthSavedBody: '오늘의 건강 기록이 저장되었습니다. 꾸준한 기록이 건강의 시작입니다!',
   },
   zh: {
     appName: 'Silver Life AI',
@@ -267,6 +269,8 @@ export const translations = {
     homeTodaySummary: '今日健康摘要',
     homeTodayNoRecord: '今日暂无健康记录',
     homeRecordNow: '立即记录 →',
+    notifHealthSaved: '健康记录保存成功 ✅',
+    notifHealthSavedBody: '今日的健康记录已保存。坚持记录是健康的开始！',
   },
   ja: {
     appName: 'Silver Life AI',
@@ -395,6 +399,8 @@ export const translations = {
     homeTodaySummary: '今日の健康サマリー',
     homeTodayNoRecord: '今日の健康記録がありません',
     homeRecordNow: '今すぐ記録 →',
+    notifHealthSaved: '健康記録を保存しました ✅',
+    notifHealthSavedBody: '今日の健康記録が保存されました。継続的な記録が健康の第一歩です！',
   },
   en: {
     appName: 'Silver Life AI',
@@ -523,5 +529,7 @@ export const translations = {
     homeTodaySummary: "Today's Health Summary",
     homeTodayNoRecord: 'No health record for today',
     homeRecordNow: 'Record Now →',
+    notifHealthSaved: 'Health Record Saved ✅',
+    notifHealthSavedBody: "Today's health record has been saved. Consistent tracking is the start of good health!",
   },
 };
