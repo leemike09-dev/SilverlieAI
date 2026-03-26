@@ -19,16 +19,6 @@ class ChatRequest(BaseModel):
     language: str = "ko"  # ko, zh, en, ja
 
 
-@router.get("/debug")
-def debug():
-    import anthropic as _anthropic
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    return {
-        "api_key_set": bool(api_key),
-        "api_key_prefix": api_key[:10] + "..." if api_key else None,
-        "anthropic_version": _anthropic.__version__,
-    }
-
 
 @router.post("/chat")
 def chat(request: ChatRequest):
