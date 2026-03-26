@@ -1,3 +1,4 @@
+import { HEADER_PADDING_TOP } from '../utils/layout';
 import React, { useState } from 'react';
 import {
   View,
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#2D6A4F',
     padding: 20,
-    paddingTop: 60,
+    paddingTop: HEADER_PADDING_TOP,
   },
   backBtn: { marginBottom: 8 },
   backText: { color: '#B7E4C7', fontSize: 14 },

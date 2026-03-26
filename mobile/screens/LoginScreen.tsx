@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../i18n/LanguageContext';
+import { HEADER_PADDING_TOP } from '../utils/layout';
 import { Language } from '../i18n/translations';
 
 const API_URL = 'https://silverlieai.onrender.com';
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     padding: 24,
-    paddingTop: 60,
+    paddingTop: HEADER_PADDING_TOP,
   },
   title: {
     fontSize: 40,

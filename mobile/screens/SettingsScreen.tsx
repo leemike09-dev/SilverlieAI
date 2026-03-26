@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../i18n/LanguageContext';
+import { HEADER_PADDING_TOP } from '../utils/layout';
 import { Language } from '../i18n/translations';
 
 const API_URL = 'https://silverlieai.onrender.com';
@@ -222,7 +223,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#2D6A4F',
     padding: 20,
-    paddingTop: 60,
+    paddingTop: HEADER_PADDING_TOP,
   },
   backBtn: { marginBottom: 8 },
   backText: { color: '#B7E4C7', fontSize: 16 },

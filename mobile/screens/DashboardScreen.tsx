@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { useLanguage } from '../i18n/LanguageContext';
+import { HEADER_PADDING_TOP } from '../utils/layout';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -232,7 +233,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#2D6A4F',
     padding: 20,
-    paddingTop: 60,
+    paddingTop: HEADER_PADDING_TOP,
     paddingBottom: 24,
   },
   backBtn: { marginBottom: 8 },
