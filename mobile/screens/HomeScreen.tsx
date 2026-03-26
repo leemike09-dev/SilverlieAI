@@ -149,6 +149,12 @@ export default function HomeScreen({ route, navigation }: any) {
           <Text style={styles.menuTitle}>{t.notifications}</Text>
           <Text style={styles.menuDesc}>{t.notificationsDesc}</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuCard} onPress={() => navigation.navigate('Wearable')}>
+          <Text style={styles.menuIcon}>⌚</Text>
+          <Text style={styles.menuTitle}>{t.wearable}</Text>
+          <Text style={styles.menuDesc}>{t.wearableDesc}</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );

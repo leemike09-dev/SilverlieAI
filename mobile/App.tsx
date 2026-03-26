@@ -17,6 +17,7 @@ import AIChatScreen from './screens/AIChatScreen';
 import CommunityScreen from './screens/CommunityScreen';
 import GroupBoardScreen from './screens/GroupBoardScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
+import WearableScreen from './screens/WearableScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -44,6 +45,7 @@ export default function App() {
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} />
           <Stack.Screen name="AIRecommend" component={AIRecommendScreen} />
+          <Stack.Screen name="Wearable" component={WearableScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </LanguageProvider>
