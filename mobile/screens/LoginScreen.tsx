@@ -92,19 +92,6 @@ export default function LoginScreen({ navigation }: any) {
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
 
-        {/* 언어 전환 버튼 */}
-        <View style={styles.langRow}>
-          {LANGUAGES.map(lang => (
-            <TouchableOpacity
-              key={lang.code}
-              style={[styles.langBtn, language === lang.code && styles.langBtnActive]}
-              onPress={() => setLanguage(lang.code)}
-            >
-              <Text style={styles.langFlag}>{lang.flag}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
         <Text style={styles.title}>{t.appName}</Text>
         <Text style={styles.subtitle}>{t.appSubtitle}</Text>
 
@@ -202,35 +189,20 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: '#F7F4EF',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     padding: 24,
-  },
-  langRow: {
-    flexDirection: 'row',
-    marginBottom: 32,
-    gap: 12,
-  },
-  langBtn: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#e0e0e0',
-  },
-  langBtnActive: {
-    backgroundColor: '#2D6A4F',
-  },
-  langFlag: {
-    fontSize: 24,
+    paddingTop: 60,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#2D6A4F',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   subtitle: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 32,
+    marginBottom: 24,
     textAlign: 'center',
   },
   modeRow: {
