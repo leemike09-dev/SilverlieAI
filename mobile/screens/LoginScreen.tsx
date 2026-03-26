@@ -171,12 +171,27 @@ export default function LoginScreen({ navigation }: any) {
           }
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.demoButton}
-          onPress={() => navigation.navigate('Home', { name: '게스트', userId: 'demo-user' })}
-        >
-          <Text style={styles.demoButtonText}>👀 둘러보기 (로그인 없이)</Text>
-        </TouchableOpacity>
+        <View style={styles.demoSection}>
+          <Text style={styles.demoLabel}>👀 {t.demoLabel}</Text>
+          <View style={styles.demoFlagRow}>
+            {LANGUAGES.map(lang => (
+              <TouchableOpacity
+                key={lang.code}
+                style={styles.demoFlagBtn}
+                onPress={() => {
+                  setLanguage(lang.code);
+                  const guestNames: Record<string, string> = {
+                    ko: '게스트', zh: '访客', en: 'Guest', ja: 'ゲスト',
+                  };
+                  navigation.navigate('Home', { name: guestNames[lang.code], userId: 'demo-user' });
+                }}
+              >
+                <Text style={styles.demoFlagText}>{lang.flag}</Text>
+                <Text style={styles.demoFlagLang}>{lang.code.toUpperCase()}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -253,20 +268,43 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
   },
-  demoButton: {
+  demoSection: {
     width: '100%',
     borderRadius: 12,
     padding: 16,
-    alignItems: 'center',
     marginTop: 12,
     borderWidth: 2,
     borderColor: '#2D6A4F',
     backgroundColor: '#fff',
+    alignItems: 'center',
   },
-  demoButtonText: {
+  demoLabel: {
     color: '#2D6A4F',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  demoFlagRow: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'center',
+  },
+  demoFlagBtn: {
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: '#F7F4EF',
+    minWidth: 60,
+  },
+  demoFlagText: {
+    fontSize: 28,
+  },
+  demoFlagLang: {
+    fontSize: 11,
+    color: '#666',
+    marginTop: 4,
+    fontWeight: '600',
   },
   errorMsg: {
     width: '100%',
