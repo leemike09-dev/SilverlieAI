@@ -136,6 +136,9 @@ export const translations = {
     updateButton: '수정 완료',
     deleteSuccess: '기록이 삭제되었습니다.',
     updateSuccess: '기록이 수정되었습니다.',
+    homeTodaySummary: '오늘의 건강 요약',
+    homeTodayNoRecord: '오늘 건강 기록이 없습니다',
+    homeRecordNow: '지금 기록하기 →',
   },
   zh: {
     appName: 'Silver Life AI',
@@ -261,6 +264,9 @@ export const translations = {
     updateButton: '保存修改',
     deleteSuccess: '记录已删除。',
     updateSuccess: '记录已更新。',
+    homeTodaySummary: '今日健康摘要',
+    homeTodayNoRecord: '今日暂无健康记录',
+    homeRecordNow: '立即记录 →',
   },
   ja: {
     appName: 'Silver Life AI',
@@ -386,6 +392,9 @@ export const translations = {
     updateButton: '更新する',
     deleteSuccess: '記録が削除されました。',
     updateSuccess: '記録が更新されました。',
+    homeTodaySummary: '今日の健康サマリー',
+    homeTodayNoRecord: '今日の健康記録がありません',
+    homeRecordNow: '今すぐ記録 →',
   },
   en: {
     appName: 'Silver Life AI',
@@ -511,5 +520,8 @@ export const translations = {
     updateButton: 'Save Changes',
     deleteSuccess: 'Record deleted.',
     updateSuccess: 'Record updated.',
+    homeTodaySummary: "Today's Health Summary",
+    homeTodayNoRecord: 'No health record for today',
+    homeRecordNow: 'Record Now →',
   },
 };

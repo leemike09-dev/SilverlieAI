@@ -1,17 +1,40 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../i18n/LanguageContext';
 
+const API_URL = 'https://silverlieai.onrender.com';
+
 export default function HomeScreen({ route, navigation }: any) {
   const { name, userId } = route.params;
   const { t } = useLanguage();
+  const [todayRecord, setTodayRecord] = useState<any>(null);
+  const [loadingRecord, setLoadingRecord] = useState(true);
+
+  useEffect(() => {
+    if (!userId || userId === 'demo-user') {
+      setLoadingRecord(false);
+      return;
+    }
+    fetch(`${API_URL}/health/records?user_id=${userId}`)
+      .then(r => r.json())
+      .then(data => {
+        const today = new Date().toISOString().slice(0, 10);
+        const todayRec = Array.isArray(data)
+          ? data.find((r: any) => r.recorded_at?.slice(0, 10) === today)
+          : null;
+        setTodayRecord(todayRec || null);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingRecord(false));
+  }, [userId]);
 
   return (
     <ScrollView style={styles.container}>
@@ -26,6 +49,56 @@ export default function HomeScreen({ route, navigation }: any) {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* 오늘의 건강 요약 카드 */}
+      <TouchableOpacity
+        style={styles.summaryCard}
+        onPress={() => navigation.navigate('Health', { userId })}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.summaryTitle}>{t.homeTodaySummary}</Text>
+        {loadingRecord ? (
+          <ActivityIndicator color="#2D6A4F" style={{ marginTop: 8 }} />
+        ) : todayRecord ? (
+          <View style={styles.summaryMetrics}>
+            {todayRecord.blood_pressure_systolic && (
+              <View style={styles.metric}>
+                <Text style={styles.metricIcon}>💓</Text>
+                <Text style={styles.metricValue}>
+                  {todayRecord.blood_pressure_systolic}/{todayRecord.blood_pressure_diastolic}
+                </Text>
+                <Text style={styles.metricLabel}>{t.metricBP}</Text>
+              </View>
+            )}
+            {todayRecord.heart_rate && (
+              <View style={styles.metric}>
+                <Text style={styles.metricIcon}>🫀</Text>
+                <Text style={styles.metricValue}>{todayRecord.heart_rate}</Text>
+                <Text style={styles.metricLabel}>{t.metricHR}</Text>
+              </View>
+            )}
+            {todayRecord.weight && (
+              <View style={styles.metric}>
+                <Text style={styles.metricIcon}>⚖️</Text>
+                <Text style={styles.metricValue}>{todayRecord.weight}</Text>
+                <Text style={styles.metricLabel}>{t.metricWeight}</Text>
+              </View>
+            )}
+            {todayRecord.blood_sugar && (
+              <View style={styles.metric}>
+                <Text style={styles.metricIcon}>🩸</Text>
+                <Text style={styles.metricValue}>{todayRecord.blood_sugar}</Text>
+                <Text style={styles.metricLabel}>{t.metricBloodSugar}</Text>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View style={styles.noRecordRow}>
+            <Text style={styles.noRecordText}>{t.homeTodayNoRecord}</Text>
+            <Text style={styles.recordNowText}>{t.homeRecordNow}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
 
       <View style={styles.menuGrid}>
         <TouchableOpacity style={styles.menuCard} onPress={() => navigation.navigate('Dashboard', { name, userId })}>
@@ -114,6 +187,63 @@ const styles = StyleSheet.create({
   subGreeting: {
     fontSize: 16,
     color: '#B7E4C7',
+  },
+  summaryCard: {
+    margin: 16,
+    marginBottom: 4,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2D6A4F',
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2D6A4F',
+    marginBottom: 12,
+  },
+  summaryMetrics: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  metric: {
+    alignItems: 'center',
+    minWidth: 64,
+  },
+  metricIcon: {
+    fontSize: 22,
+    marginBottom: 4,
+  },
+  metricValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1C1A17',
+  },
+  metricLabel: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
+  },
+  noRecordRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  noRecordText: {
+    fontSize: 15,
+    color: '#999',
+  },
+  recordNowText: {
+    fontSize: 15,
+    color: '#2D6A4F',
+    fontWeight: 'bold',
   },
   menuGrid: {
     flexDirection: 'row',
