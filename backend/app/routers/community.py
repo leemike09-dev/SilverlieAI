@@ -23,6 +23,46 @@ class MembershipCreate(BaseModel):
     user_id: str
 
 
+class PostCreate(BaseModel):
+    group_id: str
+    user_id: str
+    author_name: str
+    content: str
+
+
+class CommentCreate(BaseModel):
+    user_id: str
+    author_name: str
+    content: str
+
+
+@router.post("/posts")
+def create_post(post: PostCreate):
+    db = get_supabase()
+    result = db.table("community_posts").insert(post.model_dump()).execute()
+    if not result.data:
+        raise HTTPException(status_code=400, detail="게시글 작성 실패")
+    return result.data[0]
+
+
+@router.get("/posts/{post_id}/comments")
+def get_comments(post_id: str):
+    db = get_supabase()
+    result = db.table("community_comments").select("*").eq("post_id", post_id).order("created_at").execute()
+    return result.data
+
+
+@router.post("/posts/{post_id}/comments")
+def create_comment(post_id: str, comment: CommentCreate):
+    db = get_supabase()
+    data = comment.model_dump()
+    data["post_id"] = post_id
+    result = db.table("community_comments").insert(data).execute()
+    if not result.data:
+        raise HTTPException(status_code=400, detail="댓글 작성 실패")
+    return result.data[0]
+
+
 @router.post("/")
 def create_group(group: GroupCreate):
     db = get_supabase()
@@ -55,6 +95,13 @@ def join_group(membership: MembershipCreate):
     if not result.data:
         raise HTTPException(status_code=400, detail="그룹 가입 실패")
     return result.data[0]
+
+
+@router.get("/{group_id}/posts")
+def get_group_posts(group_id: str):
+    db = get_supabase()
+    result = db.table("community_posts").select("*").eq("group_id", group_id).order("created_at", desc=True).execute()
+    return result.data
 
 
 @router.get("/{group_id}/members")

@@ -113,7 +113,7 @@ export default function HomeScreen({ route, navigation }: any) {
           <Text style={styles.menuDesc}>{t.healthDesc}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuCard} onPress={() => navigation.navigate('Community', { userId })}>
+        <TouchableOpacity style={styles.menuCard} onPress={() => navigation.navigate('Community', { userId, name })}>
           <Text style={styles.menuIcon}>👥</Text>
           <Text style={styles.menuTitle}>{t.community}</Text>
           <Text style={styles.menuDesc}>{t.communityDesc}</Text>

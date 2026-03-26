@@ -6,9 +6,9 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -20,13 +20,15 @@ type Group = {
 };
 
 export default function CommunityScreen({ navigation, route }: any) {
-  const { userId } = route.params;
+  const { userId, name: userName } = route.params;
+  const { t } = useLanguage();
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [groupDesc, setGroupDesc] = useState('');
   const [groupCategory, setGroupCategory] = useState('');
+  const [msgMap, setMsgMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchGroups();
@@ -38,18 +40,12 @@ export default function CommunityScreen({ navigation, route }: any) {
       const response = await fetch(`${API_URL}/community/`);
       const data = await response.json();
       setGroups(data);
-    } catch {
-      Alert.alert('오류', '그룹 목록을 불러오지 못했습니다.');
-    } finally {
-      setLoading(false);
-    }
+    } catch {}
+    finally { setLoading(false); }
   };
 
   const createGroup = async () => {
-    if (!groupName) {
-      Alert.alert('알림', '그룹 이름을 입력해주세요.');
-      return;
-    }
+    if (!groupName) return;
     try {
       await fetch(`${API_URL}/community/`, {
         method: 'POST',
@@ -61,13 +57,10 @@ export default function CommunityScreen({ navigation, route }: any) {
           created_by: userId,
         }),
       });
-      Alert.alert('완료', '그룹이 생성되었습니다.');
       setGroupName(''); setGroupDesc(''); setGroupCategory('');
       setShowCreate(false);
       fetchGroups();
-    } catch {
-      Alert.alert('오류', '그룹 생성에 실패했습니다.');
-    }
+    } catch {}
   };
 
   const joinGroup = async (groupId: string) => {
@@ -77,47 +70,46 @@ export default function CommunityScreen({ navigation, route }: any) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ group_id: groupId, user_id: userId }),
       });
-      Alert.alert('완료', '그룹에 가입했습니다!');
-    } catch {
-      Alert.alert('오류', '가입에 실패했습니다.');
-    }
+      setMsgMap(prev => ({ ...prev, [groupId]: '✅' }));
+      setTimeout(() => setMsgMap(prev => ({ ...prev, [groupId]: '' })), 2000);
+    } catch {}
   };
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>← 뒤로</Text>
+          <Text style={styles.backText}>{t.back}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>👥 커뮤니티</Text>
+        <Text style={styles.title}>{t.communityTitle}</Text>
       </View>
 
       <TouchableOpacity style={styles.createBtn} onPress={() => setShowCreate(!showCreate)}>
-        <Text style={styles.createBtnText}>+ 새 그룹 만들기</Text>
+        <Text style={styles.createBtnText}>{t.createGroup}</Text>
       </TouchableOpacity>
 
       {showCreate && (
         <View style={styles.createForm}>
           <TextInput
             style={styles.input}
-            placeholder="그룹 이름"
+            placeholder={t.groupNamePlaceholder}
             value={groupName}
             onChangeText={setGroupName}
           />
           <TextInput
             style={styles.input}
-            placeholder="설명 (선택)"
+            placeholder={t.groupDescPlaceholder}
             value={groupDesc}
             onChangeText={setGroupDesc}
           />
           <TextInput
             style={styles.input}
-            placeholder="카테고리 (예: 건강, 취미, 운동)"
+            placeholder={t.groupCategoryPlaceholder}
             value={groupCategory}
             onChangeText={setGroupCategory}
           />
           <TouchableOpacity style={styles.submitBtn} onPress={createGroup}>
-            <Text style={styles.submitBtnText}>생성하기</Text>
+            <Text style={styles.submitBtnText}>{t.create}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -125,7 +117,7 @@ export default function CommunityScreen({ navigation, route }: any) {
       {loading ? (
         <ActivityIndicator size="large" color="#2D6A4F" style={{ marginTop: 40 }} />
       ) : groups.length === 0 ? (
-        <Text style={styles.emptyText}>아직 그룹이 없습니다. 첫 번째 그룹을 만들어보세요!</Text>
+        <Text style={styles.emptyText}>{t.noGroups}</Text>
       ) : (
         groups.map(group => (
           <View key={group.id} style={styles.groupCard}>
@@ -134,9 +126,24 @@ export default function CommunityScreen({ navigation, route }: any) {
               {group.category && <Text style={styles.groupCategory}>{group.category}</Text>}
               {group.description && <Text style={styles.groupDesc}>{group.description}</Text>}
             </View>
-            <TouchableOpacity style={styles.joinBtn} onPress={() => joinGroup(group.id)}>
-              <Text style={styles.joinBtnText}>가입</Text>
-            </TouchableOpacity>
+            <View style={styles.groupActions}>
+              <TouchableOpacity
+                style={styles.boardBtn}
+                onPress={() => navigation.navigate('GroupBoard', {
+                  groupId: group.id,
+                  groupName: group.name,
+                  userId,
+                  userName: userName || '익명',
+                })}
+              >
+                <Text style={styles.boardBtnText}>📋 {t.communityBoard}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.joinBtn} onPress={() => joinGroup(group.id)}>
+                <Text style={styles.joinBtnText}>
+                  {msgMap[group.id] || t.join}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ))
       )}
@@ -189,6 +196,7 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 40,
     fontSize: 15,
+    paddingHorizontal: 24,
   },
   groupCard: {
     marginHorizontal: 16,
@@ -196,27 +204,32 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
     elevation: 2,
   },
-  groupInfo: { flex: 1 },
+  groupInfo: { marginBottom: 12 },
   groupName: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-  groupCategory: {
-    fontSize: 14,
-    color: '#2D6A4F',
-    marginTop: 4,
-  },
+  groupCategory: { fontSize: 14, color: '#2D6A4F', marginTop: 4 },
   groupDesc: { fontSize: 15, color: '#888', marginTop: 6 },
+  groupActions: { flexDirection: 'row', gap: 8 },
+  boardBtn: {
+    flex: 1,
+    backgroundColor: '#E8F4F0',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  boardBtnText: { color: '#2D6A4F', fontWeight: 'bold', fontSize: 14 },
   joinBtn: {
-    backgroundColor: '#e8f4f8',
+    backgroundColor: '#2D6A4F',
     borderRadius: 8,
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  joinBtnText: { color: '#2D6A4F', fontWeight: 'bold', fontSize: 16 },
+  joinBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
 });

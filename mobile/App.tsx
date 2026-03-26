@@ -15,6 +15,7 @@ import WeeklyReportScreen from './screens/WeeklyReportScreen';
 import AIRecommendScreen from './screens/AIRecommendScreen';
 import AIChatScreen from './screens/AIChatScreen';
 import CommunityScreen from './screens/CommunityScreen';
+import GroupBoardScreen from './screens/GroupBoardScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 
 const Stack = createNativeStackNavigator();
@@ -38,6 +39,7 @@ export default function App() {
           <Stack.Screen name="Dashboard" component={DashboardScreen} />
           <Stack.Screen name="AIChat" component={AIChatScreen} />
           <Stack.Screen name="Community" component={CommunityScreen} />
+          <Stack.Screen name="GroupBoard" component={GroupBoardScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} />
