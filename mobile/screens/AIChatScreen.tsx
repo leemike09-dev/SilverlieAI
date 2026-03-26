@@ -1,5 +1,4 @@
-import { HEADER_PADDING_TOP } from '../utils/layout';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +10,8 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { useLanguage } from '../i18n/LanguageContext';
+import { HEADER_PADDING_TOP } from '../utils/layout';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -20,14 +21,16 @@ type Message = {
 };
 
 export default function AIChatScreen({ navigation }: any) {
+  const { t, language } = useLanguage();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'ai', text: '안녕하세요! 건강에 관해 궁금한 점을 물어보세요 😊' },
+    { role: 'ai', text: t.aiGreeting },
   ]);
   const [loading, setLoading] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || loading) return;
 
     const userMessage = input.trim();
     setInput('');
@@ -38,31 +41,34 @@ export default function AIChatScreen({ navigation }: any) {
       const response = await fetch(`${API_URL}/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage, language: 'ko' }),
+        body: JSON.stringify({ message: userMessage, language }),
       });
       const data = await response.json();
       setMessages(prev => [...prev, { role: 'ai', text: data.reply }]);
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'ai', text: '연결 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' }]);
+    } catch {
+      setMessages(prev => [...prev, { role: 'ai', text: t.serverError }]);
     } finally {
       setLoading(false);
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={80}
-    >
+    <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>← 뒤로</Text>
+          <Text style={styles.backText}>{t.back}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>🤖 AI 건강 상담</Text>
+        <Text style={styles.title}>{t.aiChatTitle}</Text>
       </View>
 
-      <ScrollView style={styles.chatArea} contentContainerStyle={{ padding: 16 }}>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.chatArea}
+        contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+      >
         {messages.map((msg, index) => (
           <View
             key={index}
@@ -74,27 +80,34 @@ export default function AIChatScreen({ navigation }: any) {
           </View>
         ))}
         {loading && (
-          <View style={styles.aiBubble}>
+          <View style={[styles.bubble, styles.aiBubble]}>
             <ActivityIndicator size="small" color="#2D6A4F" />
           </View>
         )}
       </ScrollView>
 
-      <View style={styles.inputRow}>
-        <TextInput
-          style={styles.input}
-          placeholder="질문을 입력하세요..."
-          value={input}
-          onChangeText={setInput}
-          multiline
-          editable={true}
-          pointerEvents="auto"
-        />
-        <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
-          <Text style={styles.sendText}>전송</Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.input}
+            placeholder={t.inputPlaceholder}
+            value={input}
+            onChangeText={setInput}
+            multiline
+            onSubmitEditing={sendMessage}
+          />
+          <TouchableOpacity
+            style={[styles.sendBtn, (!input.trim() || loading) && styles.sendBtnDisabled]}
+            onPress={sendMessage}
+            disabled={!input.trim() || loading}
+          >
+            <Text style={styles.sendText}>{t.send}</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -106,13 +119,13 @@ const styles = StyleSheet.create({
     paddingTop: HEADER_PADDING_TOP,
   },
   backBtn: { marginBottom: 8 },
-  backText: { color: '#B7E4C7', fontSize: 14 },
+  backText: { color: '#B7E4C7', fontSize: 16 },
   title: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
   chatArea: { flex: 1 },
   bubble: {
     maxWidth: '80%',
     borderRadius: 16,
-    padding: 12,
+    padding: 14,
     marginBottom: 10,
   },
   aiBubble: {
@@ -125,7 +138,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2D6A4F',
     alignSelf: 'flex-end',
   },
-  bubbleText: { fontSize: 18, lineHeight: 28 },
+  bubbleText: { fontSize: 17, lineHeight: 26 },
   aiText: { color: '#333' },
   userText: { color: '#fff' },
   inputRow: {
@@ -135,6 +148,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: '#ddd',
     gap: 8,
+    alignItems: 'flex-end',
   },
   input: {
     flex: 1,
@@ -143,13 +157,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 17,
+    maxHeight: 100,
   },
   sendBtn: {
     backgroundColor: '#2D6A4F',
     borderRadius: 20,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     justifyContent: 'center',
-    minHeight: 52,
+  },
+  sendBtnDisabled: {
+    backgroundColor: '#aaa',
   },
   sendText: { color: '#fff', fontWeight: 'bold', fontSize: 17 },
 });
