@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from app.database import get_supabase
 import bcrypt
 
@@ -68,6 +68,24 @@ def create_user(user: UserCreate):
     result = db.table("users").insert(user.model_dump()).execute()
     if not result.data:
         raise HTTPException(status_code=400, detail="사용자 생성 실패")
+    return result.data[0]
+
+
+class UpdateUserRequest(BaseModel):
+    age: Optional[int] = None
+    interests: Optional[List[str]] = None
+    language: Optional[str] = None
+
+
+@router.put("/{user_id}")
+def update_user(user_id: str, req: UpdateUserRequest):
+    db = get_supabase()
+    update_data = {k: v for k, v in req.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="업데이트할 데이터가 없습니다.")
+    result = db.table("users").update(update_data).eq("id", user_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
     return result.data[0]
 
 

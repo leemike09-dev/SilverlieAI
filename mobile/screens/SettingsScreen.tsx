@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,13 @@ import {
   TouchableOpacity,
   TextInput,
   Switch,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../i18n/LanguageContext';
 import { Language } from '../i18n/translations';
+
+const API_URL = 'https://silverlieai.onrender.com';
 
 const LANGUAGES: { code: Language; flag: string; label: string }[] = [
   { code: 'ko', flag: '🇰🇷', label: '한국어' },
@@ -19,7 +22,6 @@ const LANGUAGES: { code: Language; flag: string; label: string }[] = [
   { code: 'ja', flag: '🇯🇵', label: '日本語' },
 ];
 
-// Internal keys always in Korean (consistent across language switches)
 const INTEREST_KEYS = ['걷기', '등산', '수영', '요가', '독서', '음악', '요리', '원예', '사진', '여행'];
 
 export default function SettingsScreen({ navigation, route }: any) {
@@ -30,11 +32,65 @@ export default function SettingsScreen({ navigation, route }: any) {
   const [notifCommunity, setNotifCommunity] = useState(true);
   const [notifAI, setNotifAI] = useState(false);
   const [age, setAge] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState('');
+  const [saveMsgType, setSaveMsgType] = useState<'success' | 'error'>('success');
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // 앱 시작 시 기존 사용자 데이터 로드
+  useEffect(() => {
+    if (userId && userId !== 'demo-user') {
+      fetch(`${API_URL}/users/${userId}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.age) setAge(String(data.age));
+          if (data.interests) setSelectedInterests(data.interests);
+        })
+        .catch(() => {});
+    }
+  }, [userId]);
 
   const toggleInterest = (item: string) => {
     setSelectedInterests(prev =>
       prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]
     );
+  };
+
+  const handleSave = async () => {
+    if (userId === 'demo-user') {
+      setSaveMsgType('error');
+      setSaveMsg('게스트 모드에서는 저장할 수 없습니다.');
+      setTimeout(() => setSaveMsg(''), 3000);
+      return;
+    }
+    setSaving(true);
+    setSaveMsg('');
+    try {
+      const body: any = { language };
+      if (age) body.age = parseInt(age, 10);
+      if (selectedInterests.length > 0) body.interests = selectedInterests;
+
+      const response = await fetch(`${API_URL}/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) throw new Error();
+      setSaveMsgType('success');
+      setSaveMsg(t.updateSuccess);
+    } catch {
+      setSaveMsgType('error');
+      setSaveMsg(t.saveError);
+    } finally {
+      setSaving(false);
+      setTimeout(() => setSaveMsg(''), 3000);
+    }
+  };
+
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem('userId');
+    await AsyncStorage.removeItem('userName');
+    navigation.replace('Login');
   };
 
   return (
@@ -121,18 +177,40 @@ export default function SettingsScreen({ navigation, route }: any) {
         </View>
       </View>
 
-      {/* 로그아웃 */}
-      <TouchableOpacity
-        style={styles.logoutBtn}
-        onPress={() => {
-          Alert.alert(t.logoutConfirmTitle, t.logoutConfirmMsg, [
-            { text: t.cancel, style: 'cancel' },
-            { text: t.logout, style: 'destructive', onPress: () => navigation.replace('Login') },
-          ]);
-        }}
-      >
-        <Text style={styles.logoutText}>{t.logout}</Text>
+      {/* 저장 메시지 */}
+      {saveMsg ? (
+        <View style={[styles.msgBox, saveMsgType === 'success' ? styles.msgSuccess : styles.msgError]}>
+          <Text style={styles.msgText}>{saveMsg}</Text>
+        </View>
+      ) : null}
+
+      {/* 저장 버튼 */}
+      <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+        {saving
+          ? <ActivityIndicator color="#fff" />
+          : <Text style={styles.saveBtnText}>💾 {t.updateButton}</Text>
+        }
       </TouchableOpacity>
+
+      {/* 로그아웃 */}
+      {showLogoutConfirm ? (
+        <View style={styles.logoutConfirmBox}>
+          <Text style={styles.logoutConfirmTitle}>{t.logoutConfirmTitle}</Text>
+          <Text style={styles.logoutConfirmMsg}>{t.logoutConfirmMsg}</Text>
+          <View style={styles.logoutConfirmBtns}>
+            <TouchableOpacity style={styles.logoutCancelBtn} onPress={() => setShowLogoutConfirm(false)}>
+              <Text style={styles.logoutCancelText}>{t.cancel}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.logoutConfirmBtn} onPress={handleLogout}>
+              <Text style={styles.logoutConfirmBtnText}>{t.logout}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <TouchableOpacity style={styles.logoutBtn} onPress={() => setShowLogoutConfirm(true)}>
+          <Text style={styles.logoutText}>{t.logout}</Text>
+        </TouchableOpacity>
+      )}
 
       <View style={{ height: 40 }} />
     </ScrollView>
@@ -220,9 +298,27 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F0EDE7',
   },
   notifLabel: { fontSize: 16, color: '#1C1A17' },
-  logoutBtn: {
+  msgBox: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
+    padding: 14,
+  },
+  msgSuccess: { backgroundColor: '#D1FAE5' },
+  msgError: { backgroundColor: '#FEE2E2' },
+  msgText: { fontSize: 15, textAlign: 'center', fontWeight: '600' },
+  saveBtn: {
     margin: 16,
-    marginTop: 20,
+    marginTop: 16,
+    backgroundColor: '#2D6A4F',
+    borderRadius: 14,
+    padding: 18,
+    alignItems: 'center',
+  },
+  saveBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  logoutBtn: {
+    marginHorizontal: 16,
+    marginTop: 8,
     backgroundColor: '#fff',
     borderRadius: 14,
     padding: 18,
@@ -231,4 +327,32 @@ const styles = StyleSheet.create({
     borderColor: '#C0392B',
   },
   logoutText: { color: '#C0392B', fontSize: 18, fontWeight: 'bold' },
+  logoutConfirmBox: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#C0392B',
+  },
+  logoutConfirmTitle: { fontSize: 18, fontWeight: 'bold', color: '#1C1A17', marginBottom: 8 },
+  logoutConfirmMsg: { fontSize: 15, color: '#666', marginBottom: 16 },
+  logoutConfirmBtns: { flexDirection: 'row', gap: 12 },
+  logoutCancelBtn: {
+    flex: 1,
+    backgroundColor: '#F7F4EF',
+    borderRadius: 10,
+    padding: 14,
+    alignItems: 'center',
+  },
+  logoutCancelText: { fontSize: 16, color: '#555', fontWeight: '600' },
+  logoutConfirmBtn: {
+    flex: 1,
+    backgroundColor: '#C0392B',
+    borderRadius: 10,
+    padding: 14,
+    alignItems: 'center',
+  },
+  logoutConfirmBtnText: { fontSize: 16, color: '#fff', fontWeight: 'bold' },
 });
