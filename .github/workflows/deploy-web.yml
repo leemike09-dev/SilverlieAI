@@ -28,6 +28,11 @@ jobs:
       - name: Build web
         run: cd mobile && npx expo export --platform web
 
+      - name: Fix asset paths for GitHub Pages
+        run: |
+          sed -i 's|href="/favicon.ico"|href="/SilverlieAI/favicon.ico"|g' mobile/dist/index.html
+          sed -i 's|src="/_expo/|src="/SilverlieAI/_expo/|g' mobile/dist/index.html
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
