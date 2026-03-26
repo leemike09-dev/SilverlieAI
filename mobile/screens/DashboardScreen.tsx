@@ -207,20 +207,22 @@ export default function DashboardScreen({ navigation, route }: any) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>{t.modalTitle}</Text>
-            <TextInput style={styles.input} placeholder={t.stepsPlaceholder} value={steps} onChangeText={setSteps} keyboardType="numeric" />
-            <View style={styles.row}>
-              <TextInput style={[styles.input, { flex: 1 }]} placeholder={t.systolicBPPlaceholder} value={systolic} onChangeText={setSystolic} keyboardType="numeric" />
-              <TextInput style={[styles.input, { flex: 1, marginLeft: 8 }]} placeholder={t.diastolicBPPlaceholder} value={diastolic} onChangeText={setDiastolic} keyboardType="numeric" />
-            </View>
-            <TextInput style={styles.input} placeholder={t.sleepPlaceholder} value={sleep} onChangeText={setSleep} keyboardType="decimal-pad" />
-            <TextInput style={styles.input} placeholder={t.weightPlaceholder} value={weight} onChangeText={setWeight} keyboardType="decimal-pad" />
-            <TextInput style={styles.input} placeholder={t.heartRatePlaceholder} value={heartRate} onChangeText={setHeartRate} keyboardType="numeric" />
-            <TouchableOpacity style={styles.saveBtn} onPress={saveAndAnalyze} disabled={loading}>
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>{t.saveAnalyzeBtn}</Text>}
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowModal(false)}>
-              <Text style={styles.cancelBtnText}>{t.cancel}</Text>
-            </TouchableOpacity>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <TextInput style={styles.input} placeholder={t.stepsPlaceholder} value={steps} onChangeText={setSteps} keyboardType="numeric" />
+              <View style={styles.row}>
+                <TextInput style={[styles.input, { flex: 1 }]} placeholder={t.systolicBPPlaceholder} value={systolic} onChangeText={setSystolic} keyboardType="numeric" />
+                <TextInput style={[styles.input, { flex: 1, marginLeft: 8 }]} placeholder={t.diastolicBPPlaceholder} value={diastolic} onChangeText={setDiastolic} keyboardType="numeric" />
+              </View>
+              <TextInput style={styles.input} placeholder={t.sleepPlaceholder} value={sleep} onChangeText={setSleep} keyboardType="decimal-pad" />
+              <TextInput style={styles.input} placeholder={t.weightPlaceholder} value={weight} onChangeText={setWeight} keyboardType="decimal-pad" />
+              <TextInput style={styles.input} placeholder={t.heartRatePlaceholder} value={heartRate} onChangeText={setHeartRate} keyboardType="numeric" />
+              <TouchableOpacity style={styles.saveBtn} onPress={saveAndAnalyze} disabled={loading}>
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>{t.saveAnalyzeBtn}</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowModal(false)}>
+                <Text style={styles.cancelBtnText}>{t.cancel}</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -298,6 +300,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     padding: 24,
     paddingBottom: 40,
+    maxHeight: '85%',
   },
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#1C1A17', marginBottom: 16 },
   row: { flexDirection: 'row' },
