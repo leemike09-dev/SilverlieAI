@@ -27,10 +27,13 @@ export default function AIChatScreen({ navigation }: any) {
     { role: 'ai', text: t.aiGreeting },
   ]);
   const [loading, setLoading] = useState(false);
+  const [msgCount, setMsgCount] = useState(0);
+  const MAX_MESSAGES = 5;
   const scrollRef = useRef<ScrollView>(null);
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
+    if (msgCount >= MAX_MESSAGES) return;
 
     const userMessage = input.trim();
     setInput('');
@@ -44,7 +47,14 @@ export default function AIChatScreen({ navigation }: any) {
         body: JSON.stringify({ message: userMessage, language }),
       });
       const data = await response.json();
+      const newCount = msgCount + 1;
+      setMsgCount(newCount);
       setMessages(prev => [...prev, { role: 'ai', text: data.reply }]);
+      if (newCount >= MAX_MESSAGES) {
+        setTimeout(() => {
+          setMessages(prev => [...prev, { role: 'ai', text: t.demoChatLimit }]);
+        }, 500);
+      }
     } catch {
       setMessages(prev => [...prev, { role: 'ai', text: t.serverError }]);
     } finally {
@@ -90,21 +100,27 @@ export default function AIChatScreen({ navigation }: any) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            placeholder={t.inputPlaceholder}
-            value={input}
-            onChangeText={setInput}
-            multiline
-            onSubmitEditing={sendMessage}
-          />
-          <TouchableOpacity
-            style={[styles.sendBtn, (!input.trim() || loading) && styles.sendBtnDisabled]}
-            onPress={sendMessage}
-            disabled={!input.trim() || loading}
-          >
-            <Text style={styles.sendText}>{t.send}</Text>
-          </TouchableOpacity>
+          {msgCount >= MAX_MESSAGES ? (
+            <Text style={styles.limitText}>{t.demoChatLimit}</Text>
+          ) : (
+            <>
+              <TextInput
+                style={styles.input}
+                placeholder={t.inputPlaceholder}
+                value={input}
+                onChangeText={setInput}
+                multiline
+                onSubmitEditing={sendMessage}
+              />
+              <TouchableOpacity
+                style={[styles.sendBtn, (!input.trim() || loading) && styles.sendBtnDisabled]}
+                onPress={sendMessage}
+                disabled={!input.trim() || loading}
+              >
+                <Text style={styles.sendText}>{t.send}</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </KeyboardAvoidingView>
     </View>
@@ -170,4 +186,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#aaa',
   },
   sendText: { color: '#fff', fontWeight: 'bold', fontSize: 17 },
+  limitText: {
+    flex: 1,
+    textAlign: 'center',
+    color: '#999',
+    fontSize: 14,
+    paddingVertical: 14,
+  },
 });
