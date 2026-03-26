@@ -8,8 +8,6 @@ load_dotenv()
 
 router = APIRouter()
 
-client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-
 SYSTEM_PROMPT = """당신은 Silver Life AI의 건강 도우미입니다.
 60세 이상 시니어를 위한 건강 모니터링과 생활 조언을 제공합니다.
 답변은 쉽고 친근한 언어로, 간결하게 작성하세요.
@@ -18,7 +16,7 @@ SYSTEM_PROMPT = """당신은 Silver Life AI의 건강 도우미입니다.
 
 class ChatRequest(BaseModel):
     message: str
-    language: str = "ko"  # ko, zh, en
+    language: str = "ko"  # ko, zh, en, ja
 
 
 @router.post("/chat")
@@ -27,6 +25,7 @@ def chat(request: ChatRequest):
     if not api_key:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY가 설정되지 않았습니다.")
 
+    client = anthropic.Anthropic(api_key=api_key)
     response = client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=1024,
