@@ -32,6 +32,8 @@ jobs:
         run: |
           sed -i 's|href="/favicon.ico"|href="/SilverlieAI/favicon.ico"|g' mobile/dist/index.html
           sed -i 's|src="/_expo/|src="/SilverlieAI/_expo/|g' mobile/dist/index.html
+          find mobile/dist/_expo -name "*.js" -exec sed -i 's|"/_expo/|"/SilverlieAI/_expo/|g' {} \;
+          find mobile/dist/_expo -name "*.js" -exec sed -i 's|"/assets/|"/SilverlieAI/assets/|g' {} \;
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
