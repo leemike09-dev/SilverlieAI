@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,7 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Platform,
+  Linking,
 } from 'react-native';
 import * as Speech from 'expo-speech';
 import { HEADER_PADDING_TOP } from '../utils/layout';
@@ -20,6 +20,7 @@ type NewsItem = {
   title: string;
   summary: string;
   source: string;
+  source_url: string;
 };
 
 const IP_COUNTRY_MAP: Record<string, string> = {
@@ -49,13 +50,9 @@ export default function HealthNewsScreen({ navigation }: any) {
         userLang = IP_COUNTRY_MAP[countryCode] || 'ko';
       } catch {}
 
-      const res = await fetch(`${API_URL}/news/health-news`);
+      const res = await fetch(`${API_URL}/news/health-news?language=${userLang}`);
       const data = await res.json();
-      const items: NewsItem[] = data.news || [];
-
-      // 접속 국가 뉴스만 표시
-      const filtered = items.filter(n => n.language === userLang);
-      setNews(filtered.length > 0 ? filtered : items.slice(0, 1));
+      setNews(data.news || []);
     } catch {
       setNews([]);
     } finally {
@@ -156,7 +153,9 @@ export default function HealthNewsScreen({ navigation }: any) {
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.summary}>{item.summary}</Text>
-                <Text style={styles.source}>📰 {item.source}</Text>
+                <TouchableOpacity onPress={() => Linking.openURL(item.source_url)}>
+                  <Text style={styles.source}>📰 {item.source} ↗</Text>
+                </TouchableOpacity>
               </View>
             ))
           )}
