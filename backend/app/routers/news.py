@@ -1,5 +1,6 @@
 import feedparser
 import requests
+import re
 from fastapi import APIRouter, Query
 
 router = APIRouter()
@@ -77,7 +78,7 @@ def get_health_news(language: str = Query(default='ko')):
                 "country": feed_info['country'],
                 "language": language,
                 "title": entry.get('title', '').split(' - ')[0],  # 출처명 제거
-                "summary": entry.get('summary', '')[:200] if entry.get('summary') else '',
+                "summary": re.sub(r'<[^>]+>', '', entry.get('summary', ''))[:200] if entry.get('summary') else '',
                 "source": source or feed_info['country'],
                 "source_url": actual_url or raw_link,
             })
