@@ -6,3 +6,4 @@ supabase==2.15.1
 pydantic==2.11.1
 bcrypt==4.2.1
 feedparser==6.0.12
+requests==2.32.3
