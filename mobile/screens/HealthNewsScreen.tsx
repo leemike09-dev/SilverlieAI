@@ -154,10 +154,8 @@ export default function HealthNewsScreen({ navigation }: any) {
                 </View>
                 <Text style={styles.summary}>{item.summary}</Text>
                 <TouchableOpacity onPress={() => {
-                  const query = encodeURIComponent(item.title);
-                  const langMap: Record<string, string> = { ko: 'ko', en: 'en', ja: 'ja', zh: 'zh-CN' };
-                  const hl = langMap[item.language] || 'ko';
-                  Linking.openURL(`https://news.google.com/search?q=${query}&hl=${hl}`);
+                  const query = encodeURIComponent(item.title + ' ' + item.source);
+                  Linking.openURL(`https://www.google.com/search?q=${query}&tbm=nws`);
                 }}>
                   <Text style={styles.source}>📰 {item.source} — 관련 기사 보기 ↗</Text>
                 </TouchableOpacity>
@@ -167,9 +165,12 @@ export default function HealthNewsScreen({ navigation }: any) {
         </ScrollView>
       )}
 
-      <TouchableOpacity style={styles.nextBtn} onPress={goNext}>
-        <Text style={styles.nextBtnText}>Log In →</Text>
-      </TouchableOpacity>
+      <View style={styles.loginGuide}>
+        <Text style={styles.loginGuideText}>뉴스를 다 읽으셨나요?</Text>
+        <TouchableOpacity style={styles.nextBtn} onPress={goNext}>
+          <Text style={styles.nextBtnText}>Log In →</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -233,11 +234,19 @@ const styles = StyleSheet.create({
   playBtnText: { fontSize: 20 },
   summary: { fontSize: 15, color: '#444', lineHeight: 22, marginBottom: 10 },
   source: { fontSize: 13, color: '#888' },
-  nextBtn: {
+  loginGuide: {
     position: 'absolute',
-    bottom: 32,
+    bottom: 24,
     left: 24,
     right: 24,
+  },
+  loginGuideText: {
+    textAlign: 'center',
+    color: '#666',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  nextBtn: {
     backgroundColor: '#2D6A4F',
     borderRadius: 14,
     padding: 18,
