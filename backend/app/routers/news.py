@@ -63,8 +63,11 @@ def get_health_news():
             max_tokens=1500,
             messages=[{"role": "user", "content": NEWS_PROMPT}],
         )
-        import json
+        import json, re
         text = response.content[0].text.strip()
+        # 마크다운 코드블록 제거
+        text = re.sub(r'```json\s*', '', text)
+        text = re.sub(r'```\s*', '', text)
         data = json.loads(text)
         return data
     except Exception as e:
