@@ -153,11 +153,8 @@ export default function HealthNewsScreen({ navigation }: any) {
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.summary}>{item.summary}</Text>
-                <TouchableOpacity onPress={() => {
-                  const query = encodeURIComponent(item.title + ' ' + item.source);
-                  Linking.openURL(`https://www.google.com/search?q=${query}&tbm=nws`);
-                }}>
-                  <Text style={styles.source}>📰 {item.source} — 관련 기사 보기 ↗</Text>
+                <TouchableOpacity onPress={() => Linking.openURL(item.source_url)}>
+                  <Text style={styles.source}>📰 {item.source} — 기사 전문 보기 ↗</Text>
                 </TouchableOpacity>
               </View>
             ))
