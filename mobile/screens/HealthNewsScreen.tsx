@@ -22,6 +22,11 @@ type NewsItem = {
   source: string;
 };
 
+const IP_COUNTRY_MAP: Record<string, string> = {
+  KR: 'ko', US: 'en', JP: 'ja', CN: 'zh',
+  GB: 'en', AU: 'en', CA: 'en',
+};
+
 export default function HealthNewsScreen({ navigation }: any) {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,15 +34,31 @@ export default function HealthNewsScreen({ navigation }: any) {
   const [isFemale, setIsFemale] = useState(true);
 
   useEffect(() => {
-    fetchNews();
+    fetchNewsWithIP();
     return () => { Speech.stop(); };
   }, []);
 
-  const fetchNews = async () => {
+  const fetchNewsWithIP = async () => {
     try {
+      // IP 감지
+      let userLang = 'ko';
+      try {
+        const ipRes = await fetch('https://ipapi.co/json/');
+        const ipData = await ipRes.json();
+        const countryCode = ipData.country_code || '';
+        userLang = IP_COUNTRY_MAP[countryCode] || 'ko';
+      } catch {}
+
       const res = await fetch(`${API_URL}/news/health-news`);
       const data = await res.json();
-      setNews(data.news || []);
+      const items: NewsItem[] = data.news || [];
+
+      // 사용자 국가 뉴스를 맨 위로
+      const sorted = [
+        ...items.filter(n => n.language === userLang),
+        ...items.filter(n => n.language !== userLang),
+      ];
+      setNews(sorted);
     } catch {
       setNews([]);
     } finally {
@@ -146,7 +167,7 @@ export default function HealthNewsScreen({ navigation }: any) {
       )}
 
       <TouchableOpacity style={styles.nextBtn} onPress={goNext}>
-        <Text style={styles.nextBtnText}>로그인 화면으로 →</Text>
+        <Text style={styles.nextBtnText}>Log In →</Text>
       </TouchableOpacity>
     </View>
   );
