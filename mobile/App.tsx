@@ -18,6 +18,7 @@ import CommunityScreen from './screens/CommunityScreen';
 import GroupBoardScreen from './screens/GroupBoardScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import WearableScreen from './screens/WearableScreen';
+import HealthNewsScreen from './screens/HealthNewsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -34,6 +35,7 @@ export default function App() {
         <StatusBar style="auto" />
         <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Intro">
           <Stack.Screen name="Intro" component={IntroScreen} />
+          <Stack.Screen name="HealthNews" component={HealthNewsScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="Health" component={HealthScreen} />
