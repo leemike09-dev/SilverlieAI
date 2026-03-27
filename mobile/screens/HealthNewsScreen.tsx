@@ -53,12 +53,9 @@ export default function HealthNewsScreen({ navigation }: any) {
       const data = await res.json();
       const items: NewsItem[] = data.news || [];
 
-      // 사용자 국가 뉴스를 맨 위로
-      const sorted = [
-        ...items.filter(n => n.language === userLang),
-        ...items.filter(n => n.language !== userLang),
-      ];
-      setNews(sorted);
+      // 접속 국가 뉴스만 표시
+      const filtered = items.filter(n => n.language === userLang);
+      setNews(filtered.length > 0 ? filtered : items.slice(0, 1));
     } catch {
       setNews([]);
     } finally {
