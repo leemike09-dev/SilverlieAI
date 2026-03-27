@@ -153,8 +153,13 @@ export default function HealthNewsScreen({ navigation }: any) {
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.summary}>{item.summary}</Text>
-                <TouchableOpacity onPress={() => Linking.openURL(item.source_url)}>
-                  <Text style={styles.source}>📰 {item.source} ↗</Text>
+                <TouchableOpacity onPress={() => {
+                  const query = encodeURIComponent(item.title);
+                  const langMap: Record<string, string> = { ko: 'ko', en: 'en', ja: 'ja', zh: 'zh-CN' };
+                  const hl = langMap[item.language] || 'ko';
+                  Linking.openURL(`https://news.google.com/search?q=${query}&hl=${hl}`);
+                }}>
+                  <Text style={styles.source}>📰 {item.source} — 관련 기사 보기 ↗</Text>
                 </TouchableOpacity>
               </View>
             ))
