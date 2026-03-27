@@ -1,4 +1,5 @@
 import feedparser
+import requests
 from fastapi import APIRouter, Query
 
 router = APIRouter()
@@ -67,21 +68,32 @@ def get_health_news(language: str = Query(default='ko')):
 
         news = []
         for entry in entries:
-            source = entry.get('source', {}).get('title', '') or entry.get('tags', [{}])[0].get('term', '') if entry.get('tags') else ''
+            source = entry.get('source', {}).get('title', '') or (entry.get('tags', [{}])[0].get('term', '') if entry.get('tags') else '')
+            raw_link = entry.get('link', '')
+            # Google News 리다이렉트 URL → 실제 기사 URL 추출
+            actual_url = _resolve_url(raw_link)
             news.append({
                 "flag": feed_info['flag'],
                 "country": feed_info['country'],
                 "language": language,
-                "title": entry.get('title', ''),
+                "title": entry.get('title', '').split(' - ')[0],  # 출처명 제거
                 "summary": entry.get('summary', '')[:200] if entry.get('summary') else '',
                 "source": source or feed_info['country'],
-                "source_url": entry.get('link', ''),
+                "source_url": actual_url or raw_link,
             })
 
         return {"news": news}
 
     except Exception:
         return _fallback(language, feed_info)
+
+
+def _resolve_url(url: str) -> str:
+    try:
+        r = requests.get(url, allow_redirects=True, timeout=5, headers={'User-Agent': 'Mozilla/5.0'})
+        return r.url
+    except Exception:
+        return url
 
 
 def _fallback(language, feed_info):
