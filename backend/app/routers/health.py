@@ -133,6 +133,7 @@ class RecommendRequest(BaseModel):
     user_id: str
     user_name: str
     age: int
+    interests: Optional[List[str]] = []
     steps: Optional[int] = None
     blood_pressure_systolic: Optional[int] = None
     blood_pressure_diastolic: Optional[int] = None
@@ -150,14 +151,16 @@ def get_recommendations(request: RecommendRequest):
 
     prompt = f"""
 {request.user_name}({request.age}세) 시니어의 건강 데이터:
+- 관심사: {', '.join(request.interests) if request.interests else '없음'}
 - 걸음수: {request.steps or 'N/A'}보
 - 혈압: {request.blood_pressure_systolic or 'N/A'}/{request.blood_pressure_diastolic or 'N/A'} mmHg
 - 체중: {request.weight_kg or 'N/A'}kg
 - 심박수: {request.heart_rate or 'N/A'}bpm
 
 이 시니어에게 맞는 활동 6가지를 추천해주세요.
+관심사를 고려하여 개인화된 추천을 해주세요.
 카테고리는 운동/문화/사교/두뇌 중에서 선택하세요.
-매칭 점수는 건강 데이터 기반으로 70~99 사이로 설정하세요.
+매칭 점수는 건강 데이터와 관심사 기반으로 70~99 사이로 설정하세요.
 
 반드시 다음 JSON 형식으로만 답변하세요:
 {{
@@ -264,5 +267,100 @@ def weekly_report(request: ReportRequest):
         result = json.loads(text[start:end])
     except Exception:
         result = {"health_score": 70, "summary": response.content[0].text, "achievements": [], "improvements": [], "recommendation": ""}
+
+    return {"data": result}
+
+
+class ExerciseRequest(BaseModel):
+    user_id: str
+    user_name: str
+    age: int
+    steps: Optional[int] = None
+    blood_pressure_systolic: Optional[int] = None
+    blood_pressure_diastolic: Optional[int] = None
+    heart_rate: Optional[int] = None
+    weight_kg: Optional[float] = None
+    blood_sugar: Optional[float] = None
+    language: Optional[str] = 'ko'
+
+
+@router.post("/exercise-recommendation")
+def exercise_recommendation(request: ExerciseRequest):
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY 없음")
+
+    client = anthropic.Anthropic(api_key=api_key)
+
+    lang_map = {
+        'ko': '한국어',
+        'en': 'English',
+        'ja': '日本語',
+        'zh': '中文',
+    }
+    lang_label = lang_map.get(request.language or 'ko', '한국어')
+
+    bp_status = ''
+    if request.blood_pressure_systolic:
+        if request.blood_pressure_systolic >= 140:
+            bp_status = '고혈압 (격렬한 운동 주의)'
+        elif request.blood_pressure_systolic >= 120:
+            bp_status = '혈압 주의 범위'
+        else:
+            bp_status = '정상 혈압'
+
+    hr_status = ''
+    if request.heart_rate:
+        if request.heart_rate > 100:
+            hr_status = '심박수 높음 (운동 강도 조절 필요)'
+        elif request.heart_rate < 60:
+            hr_status = '서맥 (의사 확인 권장)'
+        else:
+            hr_status = '정상 심박수'
+
+    prompt = f"""
+당신은 시니어 운동 전문가입니다. 아래 {request.age}세 시니어의 오늘 건강 수치를 바탕으로 
+오늘 할 수 있는 운동 3가지를 처방해주세요.
+
+[오늘의 건강 수치]
+- 걸음수: {request.steps or 'N/A'}보
+- 혈압: {request.blood_pressure_systolic or 'N/A'}/{request.blood_pressure_diastolic or 'N/A'} mmHg {bp_status}
+- 심박수: {request.heart_rate or 'N/A'} bpm {hr_status}
+- 체중: {request.weight_kg or 'N/A'} kg
+- 혈당: {request.blood_sugar or 'N/A'} mg/dL
+
+건강 수치에 맞는 안전하고 효과적인 운동을 추천하세요.
+고혈압이나 심박수가 높으면 저강도 운동 위주로 추천하세요.
+
+반드시 {lang_label}로 답변하고, 다음 JSON 형식으로만 답변하세요:
+{{
+  "exercises": [
+    {{
+      "emoji": "🚶",
+      "name": "운동 이름",
+      "duration": "20분",
+      "method": "방법 설명 (2-3문장)",
+      "caution": "주의사항 (건강 수치 기반)",
+      "intensity": "저강도"
+    }}
+  ]
+}}
+intensity는 저강도/중강도/고강도 중 하나.
+"""
+
+    response = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=1500,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    import json
+    try:
+        text = response.content[0].text
+        start = text.find('{')
+        end = text.rfind('}') + 1
+        result = json.loads(text[start:end])
+    except Exception:
+        result = {"exercises": []}
 
     return {"data": result}
