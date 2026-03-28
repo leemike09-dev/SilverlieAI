@@ -31,7 +31,7 @@ type HealthRecord = {
 };
 
 export default function HealthScreen({ navigation, route }: any) {
-  const { userId } = route.params;
+  const { userId, name = '' } = route.params;
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'input' | 'history'>('input');
 
@@ -115,9 +115,14 @@ export default function HealthScreen({ navigation, route }: any) {
           });
         }
       } catch {}
-      Alert.alert('', t.saveSuccess);
       setSystolic(''); setDiastolic(''); setHeartRate('');
       setWeight(''); setBloodSugar(''); setSteps(''); setNotes('');
+      setActiveTab('history');
+      fetchHistory();
+      Alert.alert('', t.saveSuccess, [
+        { text: t.home ?? '홈으로', onPress: () => navigation.navigate('Home', { userId, name }) },
+        { text: t.historyTab ?? '기록 보기', style: 'cancel' },
+      ]);
     } catch {
       Alert.alert('', t.saveError);
     } finally {
@@ -365,13 +370,7 @@ export default function HealthScreen({ navigation, route }: any) {
                         <Text style={styles.metricUnit}>mg/dL</Text>
                       </View>
                     )}
-                    {r.steps && (
-                      <View style={styles.metricChip}>
-                        <Text style={styles.metricEmoji}>🚶</Text>
-                        <Text style={styles.metricText}>{r.steps.toLocaleString()}</Text>
-                        <Text style={styles.metricUnit}>{t.metricStepsUnit}</Text>
-                      </View>
-                    )}
+
                   </View>
                   {r.notes && <Text style={styles.recordNotes}>{r.notes}</Text>}
                 </View>
@@ -450,7 +449,7 @@ export default function HealthScreen({ navigation, route }: any) {
         </View>
       </Modal>
     
-      <BottomTabBar navigation={navigation} activeTab="health" userId={userId} />
+      <BottomTabBar navigation={navigation} activeTab="health" userId={userId} name={name} />
     </View>
   );
 }

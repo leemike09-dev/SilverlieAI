@@ -99,7 +99,7 @@ export default function HomeScreen({ route, navigation }: any) {
           {/* 컨디션 카드 */}
           <TouchableOpacity
             style={styles.conditionCard}
-            onPress={() => navigation.navigate('Health', { userId })}
+            onPress={() => navigation.navigate('Health', { userId, name })}
             activeOpacity={0.85}
           >
             {loadingRecord ? (
@@ -142,7 +142,7 @@ export default function HomeScreen({ route, navigation }: any) {
               style={[styles.menuCard, { backgroundColor: item.color }]}
               onPress={() => {
                 if (item.screen === 'Dashboard')     navigation.navigate('Dashboard', { name, userId });
-                else if (item.screen === 'Health')   navigation.navigate('Health', { userId });
+                else if (item.screen === 'Health')   navigation.navigate('Health', { userId, name });
                 else if (item.screen === 'Community')navigation.navigate('Community', { userId, name });
                 else if (item.screen === 'Settings') navigation.navigate('Settings', { name, userId });
                 else if (item.screen === 'WeeklyReport') navigation.navigate('WeeklyReport', { name, userId });

@@ -14,7 +14,7 @@ export default function BottomTabBar({ navigation, activeTab = 'home', userId = 
 
   const tabs = [
     { key: 'home',      icon: '🏠', label: t.home ?? '홈',         onPress: () => navigation.navigate('Home', { userId, name }) },
-    { key: 'health',    icon: '❤️', label: t.healthRecord ?? '건강', onPress: () => navigation.navigate('Health', { userId }) },
+    { key: 'health',    icon: '❤️', label: t.healthRecord ?? '건강', onPress: () => navigation.navigate('Health', { userId, name }) },
     { key: 'ai',        icon: '🤖', label: t.aiChat ?? 'AI',        onPress: () => navigation.navigate('AIChat', { userId, name }) },
     { key: 'community', icon: '👥', label: t.community ?? '커뮤니티', onPress: () => navigation.navigate('Community', { userId, name }) },
     { key: 'settings',  icon: '⚙️', label: t.settings ?? '설정',    onPress: () => navigation.navigate('Settings', { name, userId }) },
