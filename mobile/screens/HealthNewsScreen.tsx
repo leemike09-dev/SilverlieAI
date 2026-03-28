@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Linking,
+  Animated,
+  Platform,
 } from 'react-native';
 import * as Speech from 'expo-speech';
 import { HEADER_PADDING_TOP } from '../utils/layout';
@@ -34,14 +36,43 @@ export default function HealthNewsScreen({ navigation }: any) {
   const [speaking, setSpeaking] = useState<string | null>(null);
   const [isFemale, setIsFemale] = useState(true);
 
+  // 각 카드별 애니메이션 값 (최대 9개)
+  const anims = useRef(
+    Array.from({ length: 9 }, () => ({
+      opacity: new Animated.Value(0),
+      translateY: new Animated.Value(60),
+    }))
+  ).current;
+
   useEffect(() => {
     fetchNewsWithIP();
     return () => { Speech.stop(); };
   }, []);
 
+  // 뉴스 로딩 완료 후 카드 순차 슬라이드업
+  useEffect(() => {
+    if (news.length === 0) return;
+    const animations = news.map((_, i) =>
+      Animated.parallel([
+        Animated.timing(anims[i].opacity, {
+          toValue: 1,
+          duration: 500,
+          delay: i * 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(anims[i].translateY, {
+          toValue: 0,
+          duration: 500,
+          delay: i * 150,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    Animated.stagger(150, animations).start();
+  }, [news]);
+
   const fetchNewsWithIP = async () => {
     try {
-      // IP 감지
       let userLang = 'ko';
       try {
         const ipRes = await fetch('https://ipapi.co/json/');
@@ -60,21 +91,9 @@ export default function HealthNewsScreen({ navigation }: any) {
     }
   };
 
-  const getVoice = (language: string) => {
-    if (Platform.OS === 'ios') {
-      const voices: Record<string, { female: string; male: string }> = {
-        ko: { female: 'ko-KR-language', male: 'ko-KR-language' },
-        en: { female: 'en-US-language', male: 'en-US-language' },
-        ja: { female: 'ja-JP-language', male: 'ja-JP-language' },
-        zh: { female: 'zh-CN-language', male: 'zh-CN-language' },
-      };
-      return voices[language] || voices['ko'];
-    }
-    return null;
-  };
-
-  const speak = (item: NewsItem) => {
-    if (speaking === item.country) {
+  const speak = (item: NewsItem, index: number) => {
+    const key = `${index}`;
+    if (speaking === key) {
       Speech.stop();
       setSpeaking(null);
       return;
@@ -82,14 +101,11 @@ export default function HealthNewsScreen({ navigation }: any) {
     Speech.stop();
 
     const langMap: Record<string, string> = {
-      ko: 'ko-KR',
-      en: 'en-US',
-      ja: 'ja-JP',
-      zh: 'zh-CN',
+      ko: 'ko-KR', en: 'en-US', ja: 'ja-JP', zh: 'zh-CN',
     };
 
     const text = `${item.title}. ${item.summary}`;
-    setSpeaking(item.country);
+    setSpeaking(key);
 
     Speech.speak(text, {
       language: langMap[item.language] || 'ko-KR',
@@ -109,9 +125,8 @@ export default function HealthNewsScreen({ navigation }: any) {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>🌏 오늘의 건강 뉴스</Text>
-        <Text style={styles.subtitle}>Today's Health News</Text>
+        <Text style={styles.subtitle}>Today\'s Health News</Text>
 
-        {/* 남/여 토글 */}
         <View style={styles.voiceToggle}>
           <TouchableOpacity
             style={[styles.voiceBtn, isFemale && styles.voiceBtnActive]}
@@ -139,24 +154,32 @@ export default function HealthNewsScreen({ navigation }: any) {
             <Text style={styles.errorText}>뉴스를 불러올 수 없습니다.</Text>
           ) : (
             news.map((item, index) => (
-              <View key={index} style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.flag}>{item.flag}</Text>
-                  <View style={styles.cardTitleBox}>
-                    <Text style={styles.countryName}>{item.country}</Text>
-                    <Text style={styles.newsTitle}>{item.title}</Text>
+              <Animated.View
+                key={index}
+                style={{
+                  opacity: anims[index]?.opacity ?? 1,
+                  transform: [{ translateY: anims[index]?.translateY ?? 0 }],
+                }}
+              >
+                <View style={styles.card}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.flag}>{item.flag}</Text>
+                    <View style={styles.cardTitleBox}>
+                      <Text style={styles.countryName}>{item.country}</Text>
+                      <Text style={styles.newsTitle}>{item.title}</Text>
+                    </View>
+                    <TouchableOpacity style={styles.playBtn} onPress={() => speak(item, index)}>
+                      <Text style={styles.playBtnText}>
+                        {speaking === `${index}` ? '⏹' : '▶️'}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity style={styles.playBtn} onPress={() => speak(item)}>
-                    <Text style={styles.playBtnText}>
-                      {speaking === item.country ? '⏹' : '▶️'}
-                    </Text>
+                  <Text style={styles.summary}>{item.summary}</Text>
+                  <TouchableOpacity onPress={() => Linking.openURL(item.source_url)}>
+                    <Text style={styles.source}>📰 {item.source} — 기사 전문 보기 ↗</Text>
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.summary}>{item.summary}</Text>
-                <TouchableOpacity onPress={() => Linking.openURL(item.source_url)}>
-                  <Text style={styles.source}>📰 {item.source} — 기사 전문 보기 ↗</Text>
-                </TouchableOpacity>
-              </View>
+              </Animated.View>
             ))
           )}
         </ScrollView>
@@ -182,14 +205,9 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
   subtitle: { fontSize: 13, color: '#B7E4C7', marginTop: 2, marginBottom: 12 },
-  voiceToggle: {
-    flexDirection: 'row',
-    gap: 8,
-  },
+  voiceToggle: { flexDirection: 'row', gap: 8 },
   voiceBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.2)',
   },
   voiceBtnActive: { backgroundColor: '#fff' },
@@ -210,44 +228,20 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-  },
+  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 },
   flag: { fontSize: 32, marginRight: 12 },
   cardTitleBox: { flex: 1 },
   countryName: { fontSize: 13, color: '#2D6A4F', fontWeight: '700', marginBottom: 4 },
   newsTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1A17', lineHeight: 22 },
   playBtn: {
-    backgroundColor: '#E8F4F0',
-    borderRadius: 24,
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
+    backgroundColor: '#E8F4F0', borderRadius: 24, width: 44, height: 44,
+    alignItems: 'center', justifyContent: 'center', marginLeft: 8,
   },
   playBtnText: { fontSize: 20 },
   summary: { fontSize: 15, color: '#444', lineHeight: 22, marginBottom: 10 },
   source: { fontSize: 13, color: '#888' },
-  loginGuide: {
-    position: 'absolute',
-    bottom: 24,
-    left: 24,
-    right: 24,
-  },
-  loginGuideText: {
-    textAlign: 'center',
-    color: '#666',
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  nextBtn: {
-    backgroundColor: '#2D6A4F',
-    borderRadius: 14,
-    padding: 18,
-    alignItems: 'center',
-  },
+  loginGuide: { position: 'absolute', bottom: 24, left: 24, right: 24 },
+  loginGuideText: { textAlign: 'center', color: '#666', fontSize: 14, marginBottom: 8 },
+  nextBtn: { backgroundColor: '#2D6A4F', borderRadius: 14, padding: 18, alignItems: 'center' },
   nextBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 });
