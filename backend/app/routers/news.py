@@ -86,7 +86,20 @@ def get_health_news(language: str = Query(default='ko')):
 
     try:
         feed = feedparser.parse(feed_info['url'], request_headers={'User-Agent': UA})
-        entries = feed.entries[:9]
+        # 부고/비의료 기사 제외 키워드
+        EXCLUDE_KW = ['부고', '별세', '사망', '장례', '추모', '애도', '유족', '빈소',
+                      'obituary', 'passed away', 'funeral', 'mourning']
+
+        filtered = []
+        for entry in feed.entries:
+            title = entry.get('title', '')
+            if any(kw in title for kw in EXCLUDE_KW):
+                continue
+            filtered.append(entry)
+            if len(filtered) >= 9:
+                break
+
+        entries = filtered
 
         if not entries:
             return _fallback(language, feed_info)
