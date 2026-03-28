@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 24,
     backgroundColor: '#E8F5E9',
     borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,,
+    borderBottomRightRadius: 24,
     padding: 20,
     paddingTop: HEADER_PADDING_TOP,
     paddingBottom: 24,
