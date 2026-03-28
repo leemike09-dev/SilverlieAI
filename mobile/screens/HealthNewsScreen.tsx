@@ -138,8 +138,8 @@ export default function HealthNewsScreen({ navigation }: any) {
           {news.length === 0 ? (
             <Text style={styles.errorText}>뉴스를 불러올 수 없습니다.</Text>
           ) : (
-            news.map((item) => (
-              <View key={item.country} style={styles.card}>
+            news.map((item, index) => (
+              <View key={index} style={styles.card}>
                 <View style={styles.cardHeader}>
                   <Text style={styles.flag}>{item.flag}</Text>
                   <View style={styles.cardTitleBox}>
