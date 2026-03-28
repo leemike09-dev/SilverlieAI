@@ -35,7 +35,7 @@ export default function App() {
         <StatusBar style="auto" />
         <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Intro">
           <Stack.Screen name="Intro" component={IntroScreen} />
-          <Stack.Screen name="HealthNews" component={HealthNewsScreen} options={{ animation: "slide_from_bottom" }} />
+          <Stack.Screen name="HealthNews" component={HealthNewsScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="Health" component={HealthScreen} />
