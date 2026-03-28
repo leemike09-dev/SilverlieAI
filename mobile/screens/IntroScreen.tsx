@@ -35,7 +35,7 @@ export default function IntroScreen({ navigation }: any) {
     if (userId && userName) {
       navigation.replace('Home', { name: userName, userId });
     } else {
-      navigation.replace('HealthNews');
+      navigation.navigate('HealthNews');
     }
   };
 
