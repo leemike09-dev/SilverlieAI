@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -40,6 +40,19 @@ export default function AIRecommendScreen({ navigation, route }: any) {
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState<Recommendation[]>(DEFAULT_RECOMMENDATIONS);
   const [aiGenerated, setAiGenerated] = useState(false);
+  const [userData, setUserData] = useState<{ age?: number; interests?: string[] }>({});
+
+  // 사용자 데이터 로드
+  useEffect(() => {
+    if (userId && userId !== 'demo-user') {
+      fetch(`${API_URL}/users/${userId}`)
+        .then(r => r.json())
+        .then(data => {
+          setUserData({ age: data.age, interests: data.interests || [] });
+        })
+        .catch(() => {});
+    }
+  }, [userId]);
 
   const getAIRecommendations = async () => {
     setLoading(true);
@@ -54,7 +67,8 @@ export default function AIRecommendScreen({ navigation, route }: any) {
         body: JSON.stringify({
           user_id: userId,
           user_name: name,
-          age: 65,
+          age: userData.age || 65,
+          interests: userData.interests || [],
           steps: latestRecord?.steps || null,
           blood_pressure_systolic: latestRecord?.blood_pressure_systolic || null,
           blood_pressure_diastolic: latestRecord?.blood_pressure_diastolic || null,
@@ -160,17 +174,19 @@ export default function AIRecommendScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F4EF' },
+  container: { flex: 1, backgroundColor: '#FFF8F0' },
   header: {
-    backgroundColor: '#2D6A4F',
+    backgroundColor: '#E8F5E9',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,,
     padding: 20,
     paddingTop: HEADER_PADDING_TOP,
     paddingBottom: 24,
   },
   backBtn: { marginBottom: 8 },
   backText: { color: '#B7E4C7', fontSize: 16 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#fff' },
-  subtitle: { fontSize: 15, color: '#B7E4C7', marginTop: 4 },
+  title: { fontSize: 26, fontWeight: 'bold', color: '#1B4332' },
+  subtitle: { fontSize: 15, color: '#52B788', marginTop: 4 },
   aiBtn: {
     margin: 16,
     backgroundColor: '#2D6A4F',

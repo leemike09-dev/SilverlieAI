@@ -167,17 +167,19 @@ export default function WeeklyReportScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F4EF' },
+  container: { flex: 1, backgroundColor: '#FFF8F0' },
   header: {
-    backgroundColor: '#2D6A4F',
+    backgroundColor: '#E8F5E9',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,,
     padding: 20,
     paddingTop: HEADER_PADDING_TOP,
     paddingBottom: 24,
   },
   backBtn: { marginBottom: 8 },
   backText: { color: '#B7E4C7', fontSize: 16 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#fff' },
-  subtitle: { fontSize: 15, color: '#B7E4C7', marginTop: 4 },
+  title: { fontSize: 26, fontWeight: 'bold', color: '#1B4332' },
+  subtitle: { fontSize: 15, color: '#52B788', marginTop: 4 },
   card: {
     margin: 16,
     marginBottom: 0,
@@ -199,7 +201,7 @@ const styles = StyleSheet.create({
   },
   recordDate: { fontSize: 16, color: '#7A746A', marginBottom: 4 },
   recordValues: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  recordTag: { fontSize: 16, color: '#333', backgroundColor: '#F7F4EF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  recordTag: { fontSize: 16, color: '#333', backgroundColor: '#FFF8F0', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
   generateBtn: {
     margin: 16,
     backgroundColor: '#2D6A4F',

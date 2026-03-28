@@ -14,7 +14,7 @@ import { useLanguage } from '../i18n/LanguageContext';
 import { HEADER_PADDING_TOP } from '../utils/layout';
 import { Language } from '../i18n/translations';
 
-const API_URL = 'https://silverlieai.onrender.com';
+const API_URL = 'http://localhost:8001';
 
 const LANGUAGES: { code: Language; flag: string; label: string }[] = [
   { code: 'ko', flag: '🇰🇷', label: '한국어' },
@@ -46,6 +46,9 @@ export default function SettingsScreen({ navigation, route }: any) {
         .then(data => {
           if (data.age) setAge(String(data.age));
           if (data.interests) setSelectedInterests(data.interests);
+          if (data.notification_health !== undefined) setNotifHealth(data.notification_health);
+          if (data.notification_community !== undefined) setNotifCommunity(data.notification_community);
+          if (data.notification_ai !== undefined) setNotifAI(data.notification_ai);
         })
         .catch(() => {});
     }
@@ -70,6 +73,9 @@ export default function SettingsScreen({ navigation, route }: any) {
       const body: any = { language };
       if (age) body.age = parseInt(age, 10);
       if (selectedInterests.length > 0) body.interests = selectedInterests;
+      body.notification_health = notifHealth;
+      body.notification_community = notifCommunity;
+      body.notification_ai = notifAI;
 
       const response = await fetch(`${API_URL}/users/${userId}`, {
         method: 'PUT',
@@ -219,15 +225,17 @@ export default function SettingsScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F4EF' },
+  container: { flex: 1, backgroundColor: '#FFF8F0' },
   header: {
-    backgroundColor: '#2D6A4F',
+    backgroundColor: '#E8F5E9',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,,
     padding: 20,
     paddingTop: HEADER_PADDING_TOP,
   },
   backBtn: { marginBottom: 8 },
   backText: { color: '#B7E4C7', fontSize: 16 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#fff' },
+  title: { fontSize: 26, fontWeight: 'bold', color: '#1B4332' },
   section: {
     margin: 16,
     marginBottom: 0,
@@ -248,7 +256,7 @@ const styles = StyleSheet.create({
   profileId: { fontSize: 13, color: '#999', marginTop: 2 },
   label: { fontSize: 15, color: '#555', marginBottom: 6, marginTop: 4 },
   input: {
-    backgroundColor: '#F7F4EF',
+    backgroundColor: '#FFF8F0',
     borderRadius: 12,
     padding: 14,
     fontSize: 16,
@@ -263,7 +271,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 10,
     borderRadius: 12,
-    backgroundColor: '#F7F4EF',
+    backgroundColor: '#FFF8F0',
     minWidth: 72,
   },
   langBtnActive: { backgroundColor: '#2D6A4F' },
@@ -280,7 +288,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#F7F4EF',
+    backgroundColor: '#FFF8F0',
     borderWidth: 1,
     borderColor: '#ddd',
   },
@@ -342,7 +350,7 @@ const styles = StyleSheet.create({
   logoutConfirmBtns: { flexDirection: 'row', gap: 12 },
   logoutCancelBtn: {
     flex: 1,
-    backgroundColor: '#F7F4EF',
+    backgroundColor: '#FFF8F0',
     borderRadius: 10,
     padding: 14,
     alignItems: 'center',

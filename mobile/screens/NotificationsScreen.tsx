@@ -97,15 +97,17 @@ export default function NotificationsScreen({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F4EF' },
+  container: { flex: 1, backgroundColor: '#FFF8F0' },
   header: {
-    backgroundColor: '#2D6A4F',
+    backgroundColor: '#E8F5E9',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,,
     padding: 20,
     paddingTop: HEADER_PADDING_TOP,
   },
   backBtn: { marginBottom: 8 },
   backText: { color: '#B7E4C7', fontSize: 14 },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
+  title: { fontSize: 22, fontWeight: 'bold', color: '#1B4332' },
   emptyText: {
     textAlign: 'center',
     color: '#999',

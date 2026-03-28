@@ -188,7 +188,7 @@ export default function LoginScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    backgroundColor: '#F7F4EF',
+    backgroundColor: '#FFF8F0',
     alignItems: 'center',
     justifyContent: 'flex-start',
     padding: 24,
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 10,
     borderRadius: 12,
-    backgroundColor: '#F7F4EF',
+    backgroundColor: '#FFF8F0',
     minWidth: 60,
   },
   demoFlagText: {

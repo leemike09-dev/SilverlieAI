@@ -40,6 +40,7 @@ export default function HealthScreen({ navigation, route }: any) {
   const [heartRate, setHeartRate] = useState('');
   const [weight, setWeight] = useState('');
   const [bloodSugar, setBloodSugar] = useState('');
+  const [steps, setSteps] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -54,6 +55,7 @@ export default function HealthScreen({ navigation, route }: any) {
   const [editHeartRate, setEditHeartRate] = useState('');
   const [editWeight, setEditWeight] = useState('');
   const [editBloodSugar, setEditBloodSugar] = useState('');
+  const [editSteps, setEditSteps] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [editLoading, setEditLoading] = useState(false);
 
@@ -74,7 +76,7 @@ export default function HealthScreen({ navigation, route }: any) {
   };
 
   const handleSave = async () => {
-    if (!systolic && !diastolic && !heartRate && !weight && !bloodSugar) {
+    if (!systolic && !diastolic && !heartRate && !weight && !bloodSugar && !steps) {
       Alert.alert('', t.fillOne);
       return;
     }
@@ -92,22 +94,29 @@ export default function HealthScreen({ navigation, route }: any) {
           heart_rate: heartRate ? parseInt(heartRate) : null,
           weight: weight ? parseFloat(weight) : null,
           blood_sugar: bloodSugar ? parseFloat(bloodSugar) : null,
+          steps: steps ? parseInt(steps) : null,
           notes: notes || null,
         }),
       });
-      // 알림 자동 생성
-      fetch(`${API_URL}/notifications/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: userId,
-          title: t.notifHealthSaved,
-          body: t.notifHealthSavedBody,
-        }),
-      }).catch(() => {});
+      // 알림 설정 확인 후 자동 생성
+      try {
+        const userRes = await fetch(`${API_URL}/users/${userId}`);
+        const userData = await userRes.json();
+        if (userData.notification_health !== false) { // 기본값 true
+          await fetch(`${API_URL}/notifications/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: userId,
+              title: t.notifHealthSaved,
+              body: t.notifHealthSavedBody,
+            }),
+          });
+        }
+      } catch {}
       Alert.alert('', t.saveSuccess);
       setSystolic(''); setDiastolic(''); setHeartRate('');
-      setWeight(''); setBloodSugar(''); setNotes('');
+      setWeight(''); setBloodSugar(''); setSteps(''); setNotes('');
     } catch {
       Alert.alert('', t.saveError);
     } finally {
@@ -122,6 +131,7 @@ export default function HealthScreen({ navigation, route }: any) {
     setEditHeartRate(record.heart_rate ? String(record.heart_rate) : '');
     setEditWeight(record.weight ? String(record.weight) : '');
     setEditBloodSugar(record.blood_sugar ? String(record.blood_sugar) : '');
+    setEditSteps(record.steps ? String(record.steps) : '');
     setEditNotes(record.notes || '');
   };
 
@@ -135,6 +145,7 @@ export default function HealthScreen({ navigation, route }: any) {
       if (editHeartRate) updates.heart_rate = parseInt(editHeartRate);
       if (editWeight) updates.weight = parseFloat(editWeight);
       if (editBloodSugar) updates.blood_sugar = parseFloat(editBloodSugar);
+      if (editSteps) updates.steps = parseInt(editSteps);
       if (editNotes) updates.notes = editNotes;
 
       await fetch(`${API_URL}/health/records/${editRecord.id}`, {
@@ -259,6 +270,17 @@ export default function HealthScreen({ navigation, route }: any) {
           </View>
 
           <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t.steps}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder={t.stepsPlaceholder}
+              value={steps}
+              onChangeText={setSteps}
+              keyboardType="numeric"
+            />
+          </View>
+
+          <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t.notes}</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
@@ -326,6 +348,13 @@ export default function HealthScreen({ navigation, route }: any) {
                         <Text style={styles.metricEmoji}>⚖️</Text>
                         <Text style={styles.metricText}>{r.weight}</Text>
                         <Text style={styles.metricUnit}>kg</Text>
+                      </View>
+                    )}
+                    {r.steps && (
+                      <View style={styles.metricChip}>
+                        <Text style={styles.metricEmoji}>🚶</Text>
+                        <Text style={styles.metricText}>{r.steps}</Text>
+                        <Text style={styles.metricUnit}>{t.stepsUnit}</Text>
                       </View>
                     )}
                     {r.blood_sugar && (
@@ -396,6 +425,13 @@ export default function HealthScreen({ navigation, route }: any) {
               keyboardType="numeric"
             />
             <TextInput
+              style={styles.modalInput}
+              placeholder={t.stepsPlaceholder}
+              value={editSteps}
+              onChangeText={setEditSteps}
+              keyboardType="numeric"
+            />
+            <TextInput
               style={[styles.modalInput, styles.textArea]}
               placeholder={t.notesPlaceholder}
               value={editNotes}
@@ -419,16 +455,18 @@ export default function HealthScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F4EF',
+    backgroundColor: '#FFF8F0',
   },
   header: {
-    backgroundColor: '#2D6A4F',
+    backgroundColor: '#E8F5E9',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,,
     padding: 20,
     paddingTop: HEADER_PADDING_TOP,
   },
   backBtn: { marginBottom: 8 },
   backText: { color: '#B7E4C7', fontSize: 14 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#1B4332' },
   tabRow: {
     flexDirection: 'row',
     backgroundColor: '#fff',
@@ -544,7 +582,7 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#1C1A17', marginBottom: 4 },
   modalDate: { fontSize: 14, color: '#999', marginBottom: 16 },
   modalInput: {
-    backgroundColor: '#F7F4EF',
+    backgroundColor: '#FFF8F0',
     borderRadius: 12,
     padding: 14,
     fontSize: 16,
