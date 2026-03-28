@@ -78,7 +78,8 @@ export default function WeeklyReportScreen({ navigation, route }: any) {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backText}>{t.back}</Text>
@@ -159,13 +160,14 @@ export default function WeeklyReportScreen({ navigation, route }: any) {
             <Text style={styles.recommendTitle}>{t.weeklyRecommendTitle}</Text>
             <Text style={styles.recommendText}>{report.recommendation}</Text>
           
-      <BottomTabBar navigation={navigation} activeTab="health" userId={userId} name={name} />
-    </View>
+          </View>
         </>
       )}
 
       <View style={{ height: 40 }} />
-    </ScrollView>
+      </ScrollView>
+      <BottomTabBar navigation={navigation} activeTab="health" userId={userId} name={name} />
+    </View>
   );
 }
 

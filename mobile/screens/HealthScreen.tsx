@@ -221,7 +221,7 @@ export default function HealthScreen({ navigation, route }: any) {
 
       {/* 입력 탭 */}
       {activeTab === 'input' && (
-        <ScrollView>
+        <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t.bloodPressure}</Text>
             <View style={styles.row}>
@@ -306,7 +306,7 @@ export default function HealthScreen({ navigation, route }: any) {
 
       {/* 히스토리 탭 */}
       {activeTab === 'history' && (
-        <ScrollView>
+        <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
           {historyLoading ? (
             <View style={styles.centerBox}>
               <ActivityIndicator size="large" color="#2D6A4F" />
