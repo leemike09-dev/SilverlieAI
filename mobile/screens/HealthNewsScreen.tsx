@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import * as Speech from 'expo-speech';
 import { HEADER_PADDING_TOP } from '../utils/layout';
+import { useLanguage } from '../i18n/LanguageContext';
+import BottomTabBar from '../components/BottomTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -33,7 +35,11 @@ const IP_COUNTRY_MAP: Record<string, string> = {
 // 최대 9개 카드 애니메이션 값 미리 생성
 const MAX_NEWS = 9;
 
-export default function HealthNewsScreen({ navigation }: any) {
+export default function HealthNewsScreen({ navigation, route }: any) {
+  const { t } = useLanguage();
+  const userId = route?.params?.userId || '';
+  const name   = route?.params?.name   || '';
+  const isLoggedIn = !!userId;
   const [news, setNews]       = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [speaking, setSpeaking] = useState<string | null>(null);
@@ -124,6 +130,11 @@ export default function HealthNewsScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        {isLoggedIn && (
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Text style={styles.backText}>← {t.home ?? '홈'}</Text>
+          </TouchableOpacity>
+        )}
         <Text style={styles.title}>🌏 오늘의 건강 뉴스</Text>
         <Text style={styles.subtitle}>Today's Health News</Text>
         <View style={styles.voiceToggle}>
@@ -184,12 +195,16 @@ export default function HealthNewsScreen({ navigation }: any) {
         </ScrollView>
       )}
 
-      <View style={styles.loginGuide}>
-        <Text style={styles.loginGuideText}>뉴스를 다 읽으셨나요?</Text>
-        <TouchableOpacity style={styles.nextBtn} onPress={goNext}>
-          <Text style={styles.nextBtnText}>Log In →</Text>
-        </TouchableOpacity>
-      </View>
+      {isLoggedIn ? (
+        <BottomTabBar navigation={navigation} activeTab="home" userId={userId} name={name} />
+      ) : (
+        <View style={styles.loginGuide}>
+          <Text style={styles.loginGuideText}>뉴스를 다 읽으셨나요?</Text>
+          <TouchableOpacity style={styles.nextBtn} onPress={goNext}>
+            <Text style={styles.nextBtnText}>Log In →</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -200,6 +215,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#2D6A4F',
     padding: 20, paddingTop: HEADER_PADDING_TOP, paddingBottom: 16,
   },
+  backBtn:  { marginBottom: 10 },
+  backText: { color: '#B7E4C7', fontSize: 14, fontWeight: '600' },
   title:    { fontSize: 22, fontWeight: 'bold', color: '#fff' },
   subtitle: { fontSize: 13, color: '#B7E4C7', marginTop: 2, marginBottom: 12 },
   voiceToggle: { flexDirection: 'row', gap: 8 },
