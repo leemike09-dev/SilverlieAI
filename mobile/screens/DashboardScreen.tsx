@@ -215,9 +215,7 @@ export default function DashboardScreen({ navigation, route }: any) {
         <View style={styles.emptyBox}>
           <Text style={styles.emptyEmoji}>📋</Text>
           <Text style={styles.emptyText}>건강 기록이 없습니다{'\n'}건강기록 화면에서 수치를 입력해주세요</Text>
-          <TouchableOpacity style={styles.goRecordBtn} onPress={() => navigation.navigate('Health', { userId })}>
-            <Text style={styles.goRecordText}>건강 기록 입력하러 가기 →</Text>
-          </TouchableOpacity>
+
         </View>
       ) : (
         <>
@@ -335,8 +333,7 @@ const styles = StyleSheet.create({
   emptyBox:    { alignItems: 'center', marginTop: 60, paddingHorizontal: 32 },
   emptyEmoji:  { fontSize: 56, marginBottom: 16 },
   emptyText:   { fontSize: 16, color: '#666', textAlign: 'center', lineHeight: 26 },
-  goRecordBtn: { marginTop: 20, backgroundColor: '#2D6A4F', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 24 },
-  goRecordText:{ color: '#fff', fontSize: 16, fontWeight: 'bold' },
+
 
   avgRow:   { flexDirection: 'row', justifyContent: 'space-around', padding: 16 },
   avgBadge: { alignItems: 'center', borderWidth: 2, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 10, backgroundColor: '#fff', minWidth: 72 },
