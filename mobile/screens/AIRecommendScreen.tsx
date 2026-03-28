@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useLanguage } from '../i18n/LanguageContext';
 import { HEADER_PADDING_TOP } from '../utils/layout';
+import BottomTabBar from '../components/BottomTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -166,7 +167,9 @@ export default function AIRecommendScreen({ navigation, route }: any) {
             </View>
           </View>
         ))}
-      </View>
+      
+      <BottomTabBar navigation={navigation} activeTab="ai" userId={userId} name={name} />
+    </View>
 
       <View style={{ height: 40 }} />
     </ScrollView>

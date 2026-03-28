@@ -11,6 +11,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../i18n/LanguageContext';
 import { HEADER_PADDING_TOP } from '../utils/layout';
+import BottomTabBar from '../components/BottomTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -159,20 +160,7 @@ export default function HomeScreen({ route, navigation }: any) {
       </ScrollView>
 
       {/* ── 하단 탭바 ── */}
-      <View style={styles.tabbar}>
-        {[
-          { icon: '🏠', label: t.home ?? '홈',      onPress: () => {} },
-          { icon: '❤️', label: t.healthRecord,      onPress: () => navigation.navigate('Health', { userId }) },
-          { icon: '🤖', label: t.aiChat,            onPress: () => navigation.navigate('AIChat') },
-          { icon: '👥', label: t.community,         onPress: () => navigation.navigate('Community', { userId, name }) },
-          { icon: '⚙️', label: t.settings,          onPress: () => navigation.navigate('Settings', { name, userId }) },
-        ].map((tab, i) => (
-          <TouchableOpacity key={i} style={styles.tab} onPress={tab.onPress}>
-            <Text style={[styles.tabIcon, i === 0 && styles.tabIconActive]}>{tab.icon}</Text>
-            <Text style={[styles.tabLabel, i === 0 && styles.tabLabelActive]}>{tab.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <BottomTabBar navigation={navigation} activeTab="home" userId={userId} name={name} />
     </View>
   );
 }

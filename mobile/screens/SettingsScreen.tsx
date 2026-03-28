@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../i18n/LanguageContext';
 import { HEADER_PADDING_TOP } from '../utils/layout';
 import { Language } from '../i18n/translations';
+import BottomTabBar from '../components/BottomTabBar';
 
 const API_URL = 'http://localhost:8001';
 
@@ -212,7 +213,9 @@ export default function SettingsScreen({ navigation, route }: any) {
               <Text style={styles.logoutConfirmBtnText}>{t.logout}</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        
+      <BottomTabBar navigation={navigation} activeTab="settings" userId={userId} name={name} />
+    </View>
       ) : (
         <TouchableOpacity style={styles.logoutBtn} onPress={() => setShowLogoutConfirm(true)}>
           <Text style={styles.logoutText}>{t.logout}</Text>

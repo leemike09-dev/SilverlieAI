@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useLanguage } from '../i18n/LanguageContext';
 import { HEADER_PADDING_TOP } from '../utils/layout';
+import BottomTabBar from '../components/BottomTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -193,7 +194,9 @@ export default function DashboardScreen({ navigation, route }: any) {
           <TouchableOpacity style={styles.retryBtn} onPress={() => getExercises()}>
             <Text style={styles.retryBtnText}>🔄 다시 처방받기</Text>
           </TouchableOpacity>
-        </View>
+        
+      <BottomTabBar navigation={navigation} activeTab="health" userId={userId} name={name} />
+    </View>
       )}
 
       <View style={{ height: 40 }} />

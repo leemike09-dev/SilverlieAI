@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useLanguage } from '../i18n/LanguageContext';
 import { HEADER_PADDING_TOP } from '../utils/layout';
+import BottomTabBar from '../components/BottomTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -88,7 +89,9 @@ export default function NotificationsScreen({ navigation, route }: any) {
                 )}
                 <Text style={styles.cardDate}>{formatDate(notification.created_at)}</Text>
               </View>
-            </View>
+            
+      <BottomTabBar navigation={navigation} activeTab="home" userId={userId} />
+    </View>
           </TouchableOpacity>
         ))
       )}

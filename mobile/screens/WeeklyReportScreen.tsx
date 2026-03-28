@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useLanguage } from '../i18n/LanguageContext';
 import { HEADER_PADDING_TOP } from '../utils/layout';
+import BottomTabBar from '../components/BottomTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -157,7 +158,9 @@ export default function WeeklyReportScreen({ navigation, route }: any) {
           <View style={[styles.card, styles.recommendCard]}>
             <Text style={styles.recommendTitle}>{t.weeklyRecommendTitle}</Text>
             <Text style={styles.recommendText}>{report.recommendation}</Text>
-          </View>
+          
+      <BottomTabBar navigation={navigation} activeTab="health" userId={userId} name={name} />
+    </View>
         </>
       )}
 

@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useLanguage } from '../i18n/LanguageContext';
 import { HEADER_PADDING_TOP } from '../utils/layout';
+import BottomTabBar from '../components/BottomTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -448,6 +449,8 @@ export default function HealthScreen({ navigation, route }: any) {
           </View>
         </View>
       </Modal>
+    
+      <BottomTabBar navigation={navigation} activeTab="health" userId={userId} />
     </View>
   );
 }

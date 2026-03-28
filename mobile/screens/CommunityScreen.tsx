@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useLanguage } from '../i18n/LanguageContext';
 import { HEADER_PADDING_TOP } from '../utils/layout';
+import BottomTabBar from '../components/BottomTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -145,7 +146,9 @@ export default function CommunityScreen({ navigation, route }: any) {
                 </Text>
               </TouchableOpacity>
             </View>
-          </View>
+          
+      <BottomTabBar navigation={navigation} activeTab="community" userId={userId} name={name} />
+    </View>
         ))
       )}
     </ScrollView>

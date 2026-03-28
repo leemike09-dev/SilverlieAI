@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useLanguage } from '../i18n/LanguageContext';
 import { HEADER_PADDING_TOP } from '../utils/layout';
+import BottomTabBar from '../components/BottomTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -123,6 +124,8 @@ export default function AIChatScreen({ navigation }: any) {
           )}
         </View>
       </KeyboardAvoidingView>
+    
+      <BottomTabBar navigation={navigation} activeTab="ai" />
     </View>
   );
 }
