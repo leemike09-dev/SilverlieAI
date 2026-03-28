@@ -27,21 +27,23 @@ type NewsItem = {
 
 const IP_COUNTRY_MAP: Record<string, string> = {
   KR: 'ko', US: 'en', JP: 'ja', CN: 'zh',
-  GB: 'en', AU: 'en', CA: 'en',
+  GB: 'en', AU: 'en', CA: 'en', TW: 'zh', HK: 'zh',
 };
 
+// 최대 9개 카드 애니메이션 값 미리 생성
+const MAX_NEWS = 9;
+
 export default function HealthNewsScreen({ navigation }: any) {
-  const [news, setNews] = useState<NewsItem[]>([]);
+  const [news, setNews]       = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [speaking, setSpeaking] = useState<string | null>(null);
   const [isFemale, setIsFemale] = useState(true);
 
-  // 각 카드별 애니메이션 값 (최대 9개)
-  const anims = useRef(
-    Array.from({ length: 9 }, () => ({
-      opacity: new Animated.Value(0),
-      translateY: new Animated.Value(60),
-    }))
+  const slideAnims = useRef(
+    Array.from({ length: MAX_NEWS }, () => new Animated.Value(80))
+  ).current;
+  const fadeAnims = useRef(
+    Array.from({ length: MAX_NEWS }, () => new Animated.Value(0))
   ).current;
 
   useEffect(() => {
@@ -49,26 +51,28 @@ export default function HealthNewsScreen({ navigation }: any) {
     return () => { Speech.stop(); };
   }, []);
 
-  // 뉴스 로딩 완료 후 카드 순차 슬라이드업
+  // 뉴스 로드 완료 → 카드 순차 슬라이드업
   useEffect(() => {
     if (news.length === 0) return;
-    const animations = news.map((_, i) =>
+
+    // 각 카드를 200ms 간격으로 천천히 슬라이드업
+    news.forEach((_, i) => {
+      const delay = i * 200;
       Animated.parallel([
-        Animated.timing(anims[i].opacity, {
-          toValue: 1,
-          duration: 500,
-          delay: i * 150,
-          useNativeDriver: true,
-        }),
-        Animated.timing(anims[i].translateY, {
+        Animated.timing(slideAnims[i], {
           toValue: 0,
-          duration: 500,
-          delay: i * 150,
+          duration: 600,
+          delay,
           useNativeDriver: true,
         }),
-      ])
-    );
-    Animated.stagger(150, animations).start();
+        Animated.timing(fadeAnims[i], {
+          toValue: 1,
+          duration: 600,
+          delay,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
   }, [news]);
 
   const fetchNewsWithIP = async () => {
@@ -92,26 +96,22 @@ export default function HealthNewsScreen({ navigation }: any) {
   };
 
   const speak = (item: NewsItem, index: number) => {
-    const key = `${index}`;
+    const key = String(index);
     if (speaking === key) {
       Speech.stop();
       setSpeaking(null);
       return;
     }
     Speech.stop();
-
     const langMap: Record<string, string> = {
       ko: 'ko-KR', en: 'en-US', ja: 'ja-JP', zh: 'zh-CN',
     };
-
-    const text = `${item.title}. ${item.summary}`;
     setSpeaking(key);
-
-    Speech.speak(text, {
+    Speech.speak(`${item.title}. ${item.summary}`, {
       language: langMap[item.language] || 'ko-KR',
       pitch: isFemale ? 1.2 : 0.8,
       rate: 0.9,
-      onDone: () => setSpeaking(null),
+      onDone:  () => setSpeaking(null),
       onError: () => setSpeaking(null),
     });
   };
@@ -125,8 +125,7 @@ export default function HealthNewsScreen({ navigation }: any) {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>🌏 오늘의 건강 뉴스</Text>
-        <Text style={styles.subtitle}>Today\'s Health News</Text>
-
+        <Text style={styles.subtitle}>Today's Health News</Text>
         <View style={styles.voiceToggle}>
           <TouchableOpacity
             style={[styles.voiceBtn, isFemale && styles.voiceBtnActive]}
@@ -157,8 +156,8 @@ export default function HealthNewsScreen({ navigation }: any) {
               <Animated.View
                 key={index}
                 style={{
-                  opacity: anims[index]?.opacity ?? 1,
-                  transform: [{ translateY: anims[index]?.translateY ?? 0 }],
+                  opacity: fadeAnims[index],
+                  transform: [{ translateY: slideAnims[index] }],
                 }}
               >
                 <View style={styles.card}>
@@ -170,7 +169,7 @@ export default function HealthNewsScreen({ navigation }: any) {
                     </View>
                     <TouchableOpacity style={styles.playBtn} onPress={() => speak(item, index)}>
                       <Text style={styles.playBtnText}>
-                        {speaking === `${index}` ? '⏹' : '▶️'}
+                        {speaking === String(index) ? '⏹' : '▶️'}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -199,49 +198,41 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F7F4EF' },
   header: {
     backgroundColor: '#2D6A4F',
-    padding: 20,
-    paddingTop: HEADER_PADDING_TOP,
-    paddingBottom: 16,
+    padding: 20, paddingTop: HEADER_PADDING_TOP, paddingBottom: 16,
   },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
+  title:    { fontSize: 22, fontWeight: 'bold', color: '#fff' },
   subtitle: { fontSize: 13, color: '#B7E4C7', marginTop: 2, marginBottom: 12 },
   voiceToggle: { flexDirection: 'row', gap: 8 },
   voiceBtn: {
     paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.2)',
   },
-  voiceBtnActive: { backgroundColor: '#fff' },
-  voiceBtnText: { fontSize: 14, color: '#B7E4C7', fontWeight: '600' },
+  voiceBtnActive:     { backgroundColor: '#fff' },
+  voiceBtnText:       { fontSize: 14, color: '#B7E4C7', fontWeight: '600' },
   voiceBtnTextActive: { color: '#2D6A4F' },
-  loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  loadingBox:  { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingText: { marginTop: 12, fontSize: 16, color: '#666' },
-  errorText: { textAlign: 'center', color: '#999', fontSize: 16, marginTop: 40 },
-  scroll: { flex: 1 },
+  errorText:   { textAlign: 'center', color: '#999', fontSize: 16, marginTop: 40 },
+  scroll:      { flex: 1 },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 6,
-    elevation: 3,
+    backgroundColor: '#fff', borderRadius: 16, padding: 18, marginBottom: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07, shadowRadius: 6, elevation: 3,
   },
-  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 },
-  flag: { fontSize: 32, marginRight: 12 },
-  cardTitleBox: { flex: 1 },
-  countryName: { fontSize: 13, color: '#2D6A4F', fontWeight: '700', marginBottom: 4 },
-  newsTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1A17', lineHeight: 22 },
+  cardHeader:    { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 },
+  flag:          { fontSize: 32, marginRight: 12 },
+  cardTitleBox:  { flex: 1 },
+  countryName:   { fontSize: 13, color: '#2D6A4F', fontWeight: '700', marginBottom: 4 },
+  newsTitle:     { fontSize: 16, fontWeight: 'bold', color: '#1C1A17', lineHeight: 22 },
   playBtn: {
     backgroundColor: '#E8F4F0', borderRadius: 24, width: 44, height: 44,
     alignItems: 'center', justifyContent: 'center', marginLeft: 8,
   },
-  playBtnText: { fontSize: 20 },
-  summary: { fontSize: 15, color: '#444', lineHeight: 22, marginBottom: 10 },
-  source: { fontSize: 13, color: '#888' },
-  loginGuide: { position: 'absolute', bottom: 24, left: 24, right: 24 },
+  playBtnText:    { fontSize: 20 },
+  summary:        { fontSize: 15, color: '#444', lineHeight: 22, marginBottom: 10 },
+  source:         { fontSize: 13, color: '#888' },
+  loginGuide:     { position: 'absolute', bottom: 24, left: 24, right: 24 },
   loginGuideText: { textAlign: 'center', color: '#666', fontSize: 14, marginBottom: 8 },
-  nextBtn: { backgroundColor: '#2D6A4F', borderRadius: 14, padding: 18, alignItems: 'center' },
-  nextBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  nextBtn:        { backgroundColor: '#2D6A4F', borderRadius: 14, padding: 18, alignItems: 'center' },
+  nextBtnText:    { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 });

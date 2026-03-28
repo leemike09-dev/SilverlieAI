@@ -17,16 +17,17 @@ const IP_LANG_MAP: Record<string, string> = {
 };
 
 const GREETINGS: Record<string, { greeting: string; tagline: string }> = {
-  ko: { greeting: '안녕하세요!',  tagline: '당신의 건강을 함께 돌봅니다' },
-  zh: { greeting: '您好！',       tagline: '一起守护您的健康' },
-  en: { greeting: 'Hello!',      tagline: 'We care for your health together' },
-  ja: { greeting: 'こんにちは！', tagline: 'あなたの健康を一緒に守ります' },
+  ko: { greeting: '안녕하세요!',   tagline: '당신의 건강을 함께 돌봅니다' },
+  zh: { greeting: '您好！',        tagline: '一起守护您的健康' },
+  en: { greeting: 'Hello!',       tagline: 'We care for your health together' },
+  ja: { greeting: 'こんにちは！',  tagline: 'あなたの健康を一緒に守ります' },
 };
 
 export default function IntroScreen({ navigation }: any) {
   const bgAnim   = useRef(new Animated.Value(0)).current;
   const textAnim = useRef(new Animated.Value(0)).current;
-  const [lang, setLang] = useState<string>('ko');
+  const langRef  = useRef<string>('ko');
+  const [displayLang, setDisplayLang] = useState<string>('ko');
 
   const navigateAway = async () => {
     const userId   = await AsyncStorage.getItem('userId');
@@ -40,34 +41,40 @@ export default function IntroScreen({ navigation }: any) {
 
   useEffect(() => {
     const run = async () => {
-      // IP 감지 (실패 시 기본 ko)
-      let detectedLang = 'ko';
-      try {
-        const res = await fetch('https://ipapi.co/json/');
-        const data = await res.json();
-        detectedLang = IP_LANG_MAP[data.country_code] || 'ko';
-      } catch {}
-      setLang(detectedLang);
+      // 1) IP 감지 먼저 (배경 페이드인과 병렬)
+      Animated.timing(bgAnim, { toValue: 1, duration: 700, useNativeDriver: true }).start();
 
-      // 배경 페이드인
-      Animated.timing(bgAnim, { toValue: 1, duration: 800, useNativeDriver: true }).start(() => {
-        // 인사말 페이드인
-        Animated.timing(textAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start(() => {
-          // 1.2초 유지 후 페이드아웃 → 이동
-          setTimeout(() => {
-            Animated.timing(textAnim, { toValue: 0, duration: 500, useNativeDriver: true }).start(() => {
-              Animated.timing(bgAnim, { toValue: 0, duration: 600, useNativeDriver: true }).start(() => {
-                navigateAway();
-              });
-            });
-          }, 1200);
-        });
+      try {
+        const res = await Promise.race([
+          fetch('https://ipapi.co/json/'),
+          new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 2000)),
+        ]) as Response;
+        const data = await res.json();
+        const detected = IP_LANG_MAP[data.country_code] || 'ko';
+        langRef.current = detected;
+        setDisplayLang(detected);
+      } catch {
+        // 기본 ko 유지
+      }
+
+      // 2) 배경이 충분히 보인 뒤 인사말 표시 (총 0.8s 기다림)
+      await new Promise(r => setTimeout(r, 800));
+
+      // 3) 인사말 페이드인 → 1.5s 유지 → 페이드아웃 → 이동
+      Animated.timing(textAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start(() => {
+        setTimeout(() => {
+          Animated.sequence([
+            Animated.timing(textAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
+            Animated.timing(bgAnim,   { toValue: 0, duration: 500, useNativeDriver: true }),
+          ]).start(() => navigateAway());
+        }, 1500);
       });
     };
+
     run();
   }, []);
 
-  const g = GREETINGS[lang] || GREETINGS['ko'];
+  const g = GREETINGS[displayLang] || GREETINGS['ko'];
 
   return (
     <Animated.View style={[styles.container, { opacity: bgAnim }]}>
@@ -88,7 +95,7 @@ export default function IntroScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, width, height },
-  bgImage: { position: 'absolute', width, height },
+  bgImage:   { position: 'absolute', width, height },
   overlay: {
     position: 'absolute', width, height,
     backgroundColor: 'rgba(0, 60, 90, 0.45)',
