@@ -28,6 +28,7 @@ type HealthRecord = {
   blood_sugar: number | null;
   steps: number | null;
   notes: string | null;
+  source: string | null;
 };
 
 export default function HealthScreen({ navigation, route }: any) {
@@ -324,7 +325,14 @@ export default function HealthScreen({ navigation, route }: any) {
               {records.map((r, i) => (
                 <View key={i} style={styles.recordCard}>
                   <View style={styles.recordHeader}>
-                    <Text style={styles.recordDate}>{formatDate(r.date)}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={styles.recordDate}>{formatDate(r.date)}</Text>
+                      {r.source === 'wearable' && (
+                        <View style={styles.sourceBadge}>
+                          <Text style={styles.sourceBadgeText}>⌚ 웨어러블</Text>
+                        </View>
+                      )}
+                    </View>
                     <View style={styles.actionBtns}>
                       <TouchableOpacity style={styles.editBtn} onPress={() => openEdit(r)}>
                         <Text style={styles.editBtnText}>{t.edit}</Text>
@@ -540,6 +548,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   recordDate: { fontSize: 16, fontWeight: 'bold', color: '#2D6A4F' },
+  sourceBadge: { backgroundColor: '#E0F2FE', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
+  sourceBadgeText: { fontSize: 11, color: '#0C4A6E', fontWeight: '700' },
   actionBtns: { flexDirection: 'row', gap: 8 },
   editBtn: {
     backgroundColor: '#E8F5E9',

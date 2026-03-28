@@ -149,6 +149,7 @@ export default function HomeScreen({ route, navigation }: any) {
                 else if (item.screen === 'AIRecommend')  navigation.navigate('AIRecommend', { name, userId });
                 else if (item.screen === 'Notifications')navigation.navigate('Notifications', { userId });
                 else if (item.screen === 'HealthNews') navigation.navigate('HealthNews', { userId, name });
+                else if (item.screen === 'Wearable')   navigation.navigate('Wearable', { userId, name });
                 else navigation.navigate(item.screen);
               }}
               activeOpacity={0.8}

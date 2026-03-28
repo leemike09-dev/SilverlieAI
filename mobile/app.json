@@ -22,7 +22,20 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "permissions": [
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.READ_BLOOD_PRESSURE",
+        "android.permission.health.READ_WEIGHT",
+        "android.permission.health.READ_BLOOD_GLUCOSE",
+        "android.permission.health.READ_SLEEP",
+        "android.permission.health.WRITE_STEPS",
+        "android.permission.health.WRITE_HEART_RATE",
+        "android.permission.health.WRITE_BLOOD_PRESSURE",
+        "android.permission.health.WRITE_WEIGHT",
+        "android.permission.health.WRITE_BLOOD_GLUCOSE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -39,6 +52,14 @@
     },
     "updates": {
       "url": "https://u.expo.dev/2220b18b-fc03-4ccd-9e62-49dda3b0793f"
-    }
+    },
+    "plugins": [
+      [
+        "react-native-health-connect",
+        {
+          "package": "com.silverlifeai.app"
+        }
+      ]
+    ]
   }
 }
