@@ -90,6 +90,7 @@ export default function NotificationsScreen({ navigation, route }: any) {
                 )}
                 <Text style={styles.cardDate}>{formatDate(notification.created_at)}</Text>
               </View>
+            </View>
           </TouchableOpacity>
         ))
       )}

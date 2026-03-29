@@ -201,6 +201,7 @@ export default function DashboardScreen({ navigation, route }: any) {
     </ScrollView>
       <BottomTabBar navigation={navigation} activeTab="health" userId={userId} name={name} />
     </View>
+  </View>
   );
 
 const styles = StyleSheet.create({

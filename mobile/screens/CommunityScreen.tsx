@@ -152,6 +152,7 @@ export default function CommunityScreen({ navigation, route }: any) {
     </ScrollView>
       <BottomTabBar navigation={navigation} activeTab="community" userId={userId} name={name} />
     </View>
+  </View>
   );
 
 const styles = StyleSheet.create({

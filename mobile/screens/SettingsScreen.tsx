@@ -224,6 +224,7 @@ export default function SettingsScreen({ navigation, route }: any) {
     </ScrollView>
       <BottomTabBar navigation={navigation} activeTab="settings" userId={userId} name={name} />
     </View>
+  </View>
   );
 
 const styles = StyleSheet.create({

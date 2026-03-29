@@ -173,6 +173,7 @@ export default function AIRecommendScreen({ navigation, route }: any) {
     </ScrollView>
       <BottomTabBar navigation={navigation} activeTab="ai" userId={userId} name={name} />
     </View>
+  </View>
   );
 
 const styles = StyleSheet.create({
