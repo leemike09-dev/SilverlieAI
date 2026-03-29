@@ -84,12 +84,18 @@ export default function HealthNewsScreen({ navigation, route }: any) {
   const fetchNewsWithIP = async () => {
     try {
       let userLang = 'ko';
-      try {
-        const ipRes = await fetch('https://ipapi.co/json/');
-        const ipData = await ipRes.json();
-        const countryCode = ipData.country_code || '';
-        userLang = IP_COUNTRY_MAP[countryCode] || 'ko';
-      } catch {}
+      if (isLoggedIn) {
+        // 로그인 상태: 앱 언어 설정 사용
+        userLang = language;
+      } else {
+        // 미로그인: IP로 언어 감지
+        try {
+          const ipRes = await fetch('https://ipapi.co/json/');
+          const ipData = await ipRes.json();
+          const countryCode = ipData.country_code || '';
+          userLang = IP_COUNTRY_MAP[countryCode] || 'ko';
+        } catch {}
+      }
 
       const res = await fetch(`${API_URL}/news/health-news?language=${userLang}`);
       const data = await res.json();

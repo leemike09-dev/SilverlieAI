@@ -59,7 +59,8 @@ export default function NotificationsScreen({ navigation, route }: any) {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={{ flex: 1 }}>
+      <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backText}>{t.back}</Text>
@@ -89,15 +90,13 @@ export default function NotificationsScreen({ navigation, route }: any) {
                 )}
                 <Text style={styles.cardDate}>{formatDate(notification.created_at)}</Text>
               </View>
-            
-      <BottomTabBar navigation={navigation} activeTab="home" userId={userId} />
-    </View>
           </TouchableOpacity>
         ))
       )}
     </ScrollView>
+      <BottomTabBar navigation={navigation} activeTab="home" userId={userId} />
+    </View>
   );
-}
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF8F0' },

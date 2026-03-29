@@ -94,7 +94,8 @@ export default function DashboardScreen({ navigation, route }: any) {
   const intensityColor = (i: string) => INTENSITY_COLOR[i] || '#52B788';
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={{ flex: 1 }}>
+      <ScrollView style={styles.container}>
       {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -194,15 +195,13 @@ export default function DashboardScreen({ navigation, route }: any) {
           <TouchableOpacity style={styles.retryBtn} onPress={() => getExercises()}>
             <Text style={styles.retryBtnText}>🔄 다시 처방받기</Text>
           </TouchableOpacity>
-        
-      <BottomTabBar navigation={navigation} activeTab="health" userId={userId} name={name} />
-    </View>
       )}
 
       <View style={{ height: 40 }} />
     </ScrollView>
+      <BottomTabBar navigation={navigation} activeTab="health" userId={userId} name={name} />
+    </View>
   );
-}
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF8F0' },
