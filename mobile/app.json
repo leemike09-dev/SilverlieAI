@@ -35,7 +35,8 @@
         "android.permission.health.WRITE_BLOOD_PRESSURE",
         "android.permission.health.WRITE_WEIGHT",
         "android.permission.health.WRITE_BLOOD_GLUCOSE"
-      ]
+      ],
+      "minSdkVersion": 26
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -54,12 +55,7 @@
       "url": "https://u.expo.dev/2220b18b-fc03-4ccd-9e62-49dda3b0793f"
     },
     "plugins": [
-      [
-        "react-native-health-connect",
-        {
-          "package": "com.silverlifeai.app"
-        }
-      ]
+      "react-native-health-connect"
     ]
   }
 }
