@@ -168,13 +168,14 @@ export default function AIRecommendScreen({ navigation, route }: any) {
             </View>
           </View>
         ))}
+      </View>
 
       <View style={{ height: 40 }} />
     </ScrollView>
       <BottomTabBar navigation={navigation} activeTab="ai" userId={userId} name={name} />
     </View>
-  </View>
   );
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF8F0' },

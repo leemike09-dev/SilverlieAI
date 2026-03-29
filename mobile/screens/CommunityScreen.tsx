@@ -147,13 +147,14 @@ export default function CommunityScreen({ navigation, route }: any) {
                 </Text>
               </TouchableOpacity>
             </View>
+          </View>
         ))
       )}
     </ScrollView>
       <BottomTabBar navigation={navigation} activeTab="community" userId={userId} name={name} />
     </View>
-  </View>
   );
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF8F0' },

@@ -36,7 +36,7 @@ const IP_COUNTRY_MAP: Record<string, string> = {
 const MAX_NEWS = 9;
 
 export default function HealthNewsScreen({ navigation, route }: any) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const userId = route?.params?.userId || '';
   const name   = route?.params?.name   || '';
   const isLoggedIn = !!userId;

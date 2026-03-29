@@ -98,6 +98,7 @@ export default function NotificationsScreen({ navigation, route }: any) {
       <BottomTabBar navigation={navigation} activeTab="home" userId={userId} />
     </View>
   );
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF8F0' },

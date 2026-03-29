@@ -214,6 +214,7 @@ export default function SettingsScreen({ navigation, route }: any) {
               <Text style={styles.logoutConfirmBtnText}>{t.logout}</Text>
             </TouchableOpacity>
           </View>
+        </View>
       ) : (
         <TouchableOpacity style={styles.logoutBtn} onPress={() => setShowLogoutConfirm(true)}>
           <Text style={styles.logoutText}>{t.logout}</Text>
@@ -224,8 +225,8 @@ export default function SettingsScreen({ navigation, route }: any) {
     </ScrollView>
       <BottomTabBar navigation={navigation} activeTab="settings" userId={userId} name={name} />
     </View>
-  </View>
   );
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF8F0' },

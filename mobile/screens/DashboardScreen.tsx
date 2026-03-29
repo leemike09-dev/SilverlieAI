@@ -195,14 +195,15 @@ export default function DashboardScreen({ navigation, route }: any) {
           <TouchableOpacity style={styles.retryBtn} onPress={() => getExercises()}>
             <Text style={styles.retryBtnText}>🔄 다시 처방받기</Text>
           </TouchableOpacity>
+        </View>
       )}
 
       <View style={{ height: 40 }} />
     </ScrollView>
       <BottomTabBar navigation={navigation} activeTab="health" userId={userId} name={name} />
     </View>
-  </View>
   );
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF8F0' },
