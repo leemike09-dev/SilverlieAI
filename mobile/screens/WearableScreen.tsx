@@ -9,14 +9,8 @@ import BottomTabBar from '../components/BottomTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
-// Health Connect는 Android 네이티브 빌드에서만 동작
-// 웹/iOS에서는 수동입력 안내
-let HealthConnect: any = null;
-try {
-  if (Platform.OS === 'android') {
-    HealthConnect = require('react-native-health-connect');
-  }
-} catch {}
+// Health Connect 네이티브 모듈 (추후 EAS 빌드 시 연동)
+const HealthConnect: any = null;
 
 type SyncResult = {
   steps?: number;
