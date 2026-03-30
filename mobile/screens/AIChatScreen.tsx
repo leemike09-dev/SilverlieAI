@@ -125,7 +125,7 @@ export default function AIChatScreen({ navigation }: any) {
         </View>
       </KeyboardAvoidingView>
     
-      <BottomTabBar navigation={navigation} activeTab="ai" />
+      <BottomTabBar navigation={navigation} activeTab="life" />
     </View>
   );
 }

@@ -5,7 +5,6 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LanguageProvider } from './i18n/LanguageContext';
 import { scheduleDailyHealthReminder } from './utils/notifications';
-import IntroScreen from './screens/IntroScreen';
 import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import HealthScreen from './screens/HealthScreen';
@@ -18,7 +17,6 @@ import CommunityScreen from './screens/CommunityScreen';
 import GroupBoardScreen from './screens/GroupBoardScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import WearableScreen from './screens/WearableScreen';
-import HealthNewsScreen from './screens/HealthNewsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -33,9 +31,7 @@ export default function App() {
     <LanguageProvider>
       <NavigationContainer>
         <StatusBar style="auto" />
-        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Intro">
-          <Stack.Screen name="Intro" component={IntroScreen} />
-          <Stack.Screen name="HealthNews" component={HealthNewsScreen} />
+        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Login">
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="Health" component={HealthScreen} />

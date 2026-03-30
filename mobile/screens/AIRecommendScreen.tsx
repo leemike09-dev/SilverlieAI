@@ -172,7 +172,7 @@ export default function AIRecommendScreen({ navigation, route }: any) {
 
       <View style={{ height: 40 }} />
     </ScrollView>
-      <BottomTabBar navigation={navigation} activeTab="ai" userId={userId} name={name} />
+      <BottomTabBar navigation={navigation} activeTab="life" userId={userId} name={name} />
     </View>
   );
 }
