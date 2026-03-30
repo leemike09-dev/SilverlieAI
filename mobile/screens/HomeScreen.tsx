@@ -1,12 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-  StatusBar,
+  View, Text, TouchableOpacity, StyleSheet,
+  ScrollView, ActivityIndicator, StatusBar, Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -15,29 +10,45 @@ import BottomTabBar from '../components/BottomTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
-const MENU_ITEMS = [
-  { icon: '📊', key: 'dashboard',    screen: 'Dashboard', color: '#D8F3DC', textColor: '#1B4332' },
-  { icon: '❤️', key: 'healthRecord', screen: 'Health',    color: '#DBEAFE', textColor: '#1E3A5F' },
-  { icon: '📈', key: 'weeklyReport', screen: 'WeeklyReport', color: '#FEF3C7', textColor: '#78350F' },
-  { icon: '👥', key: 'community',    screen: 'Community', color: '#EDE9FE', textColor: '#4C1D95' },
-  { icon: '🌏', key: 'healthNews',   screen: 'HealthNews', color: '#E0F2FE', textColor: '#0C4A6E' },
-  { icon: '🔔', key: 'notifications',screen: 'Notifications', color: '#FEE2E2', textColor: '#7F1D1D' },
-  { icon: '⌚', key: 'wearable',     screen: 'Wearable',  color: '#F0FDF4', textColor: '#166534' },
-  { icon: '⚙️', key: 'settings',    screen: 'Settings',  color: '#F5F3FF', textColor: '#4C1D95' },
+const HEALTH_TILES = [
+  { icon: '🫀', key: '심혈관', label_ko: '심혈관', label_en: 'Cardio', label_ja: '心臓', label_zh: '心血管' },
+  { icon: '🦴', key: '관절', label_ko: '관절', label_en: 'Joints', label_ja: '関節', label_zh: '关节' },
+  { icon: '🥗', key: '식이', label_ko: '식이', label_en: 'Diet', label_ja: '食事', label_zh: '饮食' },
+  { icon: '🧠', key: '두뇌', label_ko: '두뇌', label_en: 'Brain', label_ja: '脳', label_zh: '大脑' },
 ];
 
-const CONDITION_MAP = [
-  { min: 0,   max: 3000, emoji: '😴', label_ko: '오늘 활동이 부족해요', label_en: 'Low activity today', label_ja: '今日は活動が少ないです', label_zh: '今天活动不足' },
-  { min: 3000,max: 6000, emoji: '🙂', label_ko: '보통이에요, 조금 더 걸어볼까요?', label_en: 'Not bad, walk a bit more?', label_ja: 'まあまあです', label_zh: '一般，再走走吧' },
-  { min: 6000,max: 9999, emoji: '😊', label_ko: '컨디션이 좋아요!', label_en: 'Feeling good!', label_ja: '調子がいいですね！', label_zh: '状态不错！' },
-  { min: 9999,max: 99999,emoji: '🌟', label_ko: '훌륭해요! 최고의 하루!', label_en: 'Excellent! Best day!', label_ja: '素晴らしい！', label_zh: '太棒了！' },
+const TICKER_MSGS = [
+  { text_ko: '여행 일정이 필요하신가요?', text_en: 'Need a travel plan?', text_ja: '旅行の計画が必要ですか？', text_zh: '需要旅行计划吗？', target: 'Life' },
+  { text_ko: '더 많은 건강 음식 레시피 →', text_en: 'More healthy recipes →', text_ja: 'ヘルシーレシピをもっと見る →', text_zh: '更多健康食谱 →', target: 'Life' },
+  { text_ko: '같이하고 싶은 사람들의 모임', text_en: 'Find people to meet', text_ja: '一緒に活動する仲間', text_zh: '寻找同伴活动', target: 'Community' },
 ];
 
-function getCondition(steps: number | null, lang: string) {
-  if (!steps) return { emoji: '😊', label: lang === 'ko' ? '오늘도 건강한 하루!' : lang === 'ja' ? '今日も健康に！' : lang === 'zh' ? '今天也健康！' : 'Have a healthy day!' };
-  const c = CONDITION_MAP.find(m => steps >= m.min && steps < m.max) || CONDITION_MAP[2];
-  const label = lang === 'ja' ? c.label_ja : lang === 'zh' ? c.label_zh : lang === 'en' ? c.label_en : c.label_ko;
-  return { emoji: c.emoji, label };
+function calcHealthScore(record: any): number {
+  if (!record) return 0;
+  let score = 0; let count = 0;
+  if (record.steps) { count++; score += record.steps >= 5000 ? 100 : record.steps >= 3000 ? 70 : 40; }
+  if (record.blood_pressure_systolic) {
+    count++;
+    const s = record.blood_pressure_systolic;
+    score += s < 120 ? 100 : s < 130 ? 85 : s < 140 ? 65 : 40;
+  }
+  if (record.heart_rate) {
+    count++;
+    const h = record.heart_rate;
+    score += (h >= 60 && h <= 100) ? 100 : 60;
+  }
+  if (record.blood_sugar) {
+    count++;
+    const b = record.blood_sugar;
+    score += b < 100 ? 100 : b < 125 ? 75 : 45;
+  }
+  return count > 0 ? Math.round(score / count) : 72;
+}
+
+function getScoreLabel(score: number, lang: string) {
+  if (score >= 85) return lang === 'ko' ? '건강 상태 양호' : lang === 'ja' ? '健康状態良好' : lang === 'zh' ? '健康状况良好' : 'Health is good';
+  if (score >= 65) return lang === 'ko' ? '주의가 필요해요' : lang === 'ja' ? '注意が必要です' : lang === 'zh' ? '需要注意' : 'Needs attention';
+  return lang === 'ko' ? '오늘 건강 체크를!' : lang === 'ja' ? '健康チェックを！' : lang === 'zh' ? '请做健康检查！' : 'Check your health!';
 }
 
 function getTodayStr(lang: string) {
@@ -51,219 +62,269 @@ function getTodayStr(lang: string) {
 export default function HomeScreen({ route, navigation }: any) {
   const { name, userId } = route.params;
   const { t, language } = useLanguage();
+  const lang = language || 'ko';
+
   const [todayRecord, setTodayRecord] = useState<any>(null);
   const [loadingRecord, setLoadingRecord] = useState(true);
+  const [exerciseDone, setExerciseDone] = useState<boolean | null>(null);
+  const [tickerIdx, setTickerIdx] = useState(0);
+  const tickerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!userId || userId === 'demo-user') { setLoadingRecord(false); return; }
     fetch(`${API_URL}/health/history/${userId}?days=1`)
       .then(r => r.json())
-      .then(data => {
-        if (data.records?.length > 0) setTodayRecord(data.records[0]);
-      })
+      .then(data => { if (data.records?.length > 0) setTodayRecord(data.records[0]); })
       .catch(() => {})
       .finally(() => setLoadingRecord(false));
   }, [userId]);
 
-  const condition = getCondition(todayRecord?.steps ?? null, language || 'ko');
-  const todayStr  = getTodayStr(language || 'ko');
+  // 티커 애니메이션
+  useEffect(() => {
+    const cycle = () => {
+      Animated.sequence([
+        Animated.timing(tickerAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.delay(3200),
+        Animated.timing(tickerAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+      ]).start(() => {
+        setTickerIdx(i => (i + 1) % TICKER_MSGS.length);
+      });
+    };
+    cycle();
+    const id = setInterval(cycle, 4000);
+    return () => clearInterval(id);
+  }, []);
 
-  const metricSummary = todayRecord
-    ? [
-        todayRecord.blood_pressure_systolic ? `💓 ${todayRecord.blood_pressure_systolic}/${todayRecord.blood_pressure_diastolic}` : null,
-        todayRecord.steps ? `🚶 ${todayRecord.steps.toLocaleString()}${language==='ko'?'보':language==='ja'?'歩':'steps'}` : null,
-        todayRecord.weight ? `⚖️ ${todayRecord.weight}kg` : null,
-      ].filter(Boolean).join('  ·  ')
-    : null;
+  const healthScore = calcHealthScore(todayRecord);
+  const scoreLabel  = getScoreLabel(healthScore, lang);
+  const todayStr    = getTodayStr(lang);
+  const ticker      = TICKER_MSGS[tickerIdx];
+  const tickerText  = lang === 'ja' ? ticker.text_ja : lang === 'zh' ? ticker.text_zh : lang === 'en' ? ticker.text_en : ticker.text_ko;
+  const tickerTarget = ticker.target;
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="#E8F5E9" />
+      <StatusBar barStyle="light-content" backgroundColor="#1a3a5c" />
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* ── 헤더 ── */}
+
+        {/* ── 파노라마 헤더 ── */}
         <View style={styles.header}>
-          <View style={styles.headerRow}>
-            <View>
-              <Text style={styles.greeting}>{t.greeting(name)} 😊</Text>
-              <Text style={styles.subGreeting}>{t.subGreeting}</Text>
+          <View style={styles.headerTop}>
+            <Text style={styles.headerTitle}>Silver Life AI</Text>
+            <View style={styles.headerBtns}>
+              <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.headerBtnText}>{lang === 'ko' ? '로그인' : 'Login'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.headerBtn, styles.headerBtnFill]} onPress={() => navigation.navigate('Login')}>
+                <Text style={[styles.headerBtnText, { color: '#1a3a5c' }]}>{lang === 'ko' ? '회원가입' : 'Sign up'}</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={styles.dateBadge}
-              onPress={async () => { await AsyncStorage.clear(); navigation.replace('Login'); }}
-            >
-              <Text style={styles.dateBadgeText}>{todayStr}</Text>
-            </TouchableOpacity>
           </View>
 
-          {/* 컨디션 카드 */}
-          <TouchableOpacity
-            style={styles.conditionCard}
-            onPress={() => navigation.navigate('Health', { userId, name })}
-            activeOpacity={0.85}
-          >
-            {loadingRecord ? (
-              <ActivityIndicator color="#2D6A4F" style={{ marginVertical: 4 }} />
-            ) : (
-              <>
-                <Text style={styles.condEmoji}>{condition.emoji}</Text>
-                <View style={styles.condTextBox}>
-                  <Text style={styles.condLabel}>{condition.label}</Text>
-                  {metricSummary ? (
-                    <Text style={styles.condMetrics}>{metricSummary}</Text>
-                  ) : (
-                    <Text style={styles.condMetrics}>{t.homeTodayNoRecord} →</Text>
-                  )}
-                </View>
-              </>
-            )}
+          <View style={styles.panoramaRow}>
+            {/* 건강 점수 링 */}
+            <View style={styles.scoreRing}>
+              {loadingRecord ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <>
+                  <Text style={styles.scoreNum}>{todayRecord ? healthScore : '—'}</Text>
+                  <Text style={styles.scoreUnit}>{lang === 'ko' ? '점' : 'pts'}</Text>
+                </>
+              )}
+            </View>
+            <View style={styles.panoramaInfo}>
+              <Text style={styles.panoramaDate}>{todayStr}</Text>
+              <Text style={styles.panoramaLabel}>{lang === 'ko' ? '🤖 AI 건강 점수' : '🤖 AI Health Score'}</Text>
+              <Text style={styles.panoramaStatus}>{scoreLabel}</Text>
+              <View style={styles.chipRow}>
+                {todayRecord?.blood_pressure_systolic ? (
+                  <View style={styles.chip}>
+                    <Text style={styles.chipText}>💗 {todayRecord.blood_pressure_systolic}/{todayRecord.blood_pressure_diastolic}</Text>
+                  </View>
+                ) : null}
+                {todayRecord?.steps ? (
+                  <View style={styles.chip}>
+                    <Text style={styles.chipText}>🚶 {todayRecord.steps.toLocaleString()}</Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* ── 운동 체크 카드 ── */}
+        <View style={styles.section}>
+          <View style={styles.exerciseCard}>
+            <Text style={styles.exerciseQuestion}>
+              {lang === 'ko' ? '오늘 운동 하셨나요? 🏃' : lang === 'ja' ? '今日運動しましたか？🏃' : lang === 'zh' ? '今天运动了吗？🏃' : 'Did you exercise today? 🏃'}
+            </Text>
+            <View style={styles.exerciseBtns}>
+              <TouchableOpacity
+                style={[styles.exerciseBtn, styles.exerciseBtnYes, exerciseDone === true && styles.exerciseBtnActive]}
+                onPress={() => setExerciseDone(true)}
+              >
+                <Text style={[styles.exerciseBtnText, exerciseDone === true && { color: '#fff' }]}>
+                  {lang === 'ko' ? '✓ 했어요' : '✓ Yes'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.exerciseBtn, styles.exerciseBtnNo, exerciseDone === false && styles.exerciseBtnNoActive]}
+                onPress={() => setExerciseDone(false)}
+              >
+                <Text style={[styles.exerciseBtnText, exerciseDone === false && { color: '#fff' }]}>
+                  {lang === 'ko' ? '✗ 아직요' : '✗ Not yet'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* ── AI 상담 카드 ── */}
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.aiCard} onPress={() => navigation.navigate('AIChat')} activeOpacity={0.88}>
+            <View style={styles.aiCardAccent} />
+            <View style={styles.aiCardBody}>
+              <Text style={styles.aiCardIcon}>🤖</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.aiCardTitle}>{t.aiChat}</Text>
+                <Text style={styles.aiCardSub}>{t.aiChatDesc}</Text>
+              </View>
+              <Text style={styles.aiCardArrow}>›</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
-        {/* ── AI 상담 대형 버튼 ── */}
-        <TouchableOpacity
-          style={styles.aiButton}
-          onPress={() => navigation.navigate('AIChat')}
-          activeOpacity={0.88}
-        >
-          <Text style={styles.aiButtonIcon}>🤖</Text>
-          <View>
-            <Text style={styles.aiButtonTitle}>{t.aiChat}</Text>
-            <Text style={styles.aiButtonSub}>{t.aiChatDesc}</Text>
+        {/* ── 건강 정보 타일 ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>{lang === 'ko' ? '건강 정보' : lang === 'ja' ? '健康情報' : lang === 'zh' ? '健康信息' : 'Health Info'}</Text>
+          <View style={styles.tileGrid}>
+            {HEALTH_TILES.map((tile) => (
+              <TouchableOpacity
+                key={tile.key}
+                style={styles.tile}
+                onPress={() => navigation.navigate('Health', { userId, name })}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.tileIcon}>{tile.icon}</Text>
+                <Text style={styles.tileLabel}>
+                  {lang === 'ja' ? tile.label_ja : lang === 'zh' ? tile.label_zh : lang === 'en' ? tile.label_en : tile.label_ko}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
-          <Text style={styles.aiArrow}>›</Text>
-        </TouchableOpacity>
-
-        {/* ── 메뉴 그리드 ── */}
-        <View style={styles.grid}>
-          {MENU_ITEMS.map((item) => (
-            <TouchableOpacity
-              key={item.key}
-              style={[styles.menuCard, { backgroundColor: item.color }]}
-              onPress={() => {
-                if (item.screen === 'Dashboard')     navigation.navigate('Dashboard', { name, userId });
-                else if (item.screen === 'Health')   navigation.navigate('Health', { userId, name });
-                else if (item.screen === 'Community')navigation.navigate('Community', { userId, name });
-                else if (item.screen === 'Settings') navigation.navigate('Settings', { name, userId });
-                else if (item.screen === 'WeeklyReport') navigation.navigate('WeeklyReport', { name, userId });
-                else if (item.screen === 'AIRecommend')  navigation.navigate('AIRecommend', { name, userId });
-                else if (item.screen === 'Notifications')navigation.navigate('Notifications', { userId });
-                else if (item.screen === 'HealthNews') navigation.navigate('HealthNews', { userId, name });
-                else if (item.screen === 'Wearable')   navigation.navigate('Wearable', { userId, name });
-                else navigation.navigate(item.screen);
-              }}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.menuIcon}>{item.icon}</Text>
-              <Text style={[styles.menuTitle, { color: item.textColor }]}>{(t as any)[item.key] || item.key}</Text>
-            </TouchableOpacity>
-          ))}
         </View>
+
+        {/* ── 슬라이딩 티커 ── */}
+        <View style={styles.section}>
+          <Animated.View
+            style={[
+              styles.tickerCard,
+              { opacity: tickerAnim, transform: [{ translateY: tickerAnim.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] },
+            ]}
+          >
+            <Text style={styles.tickerText} numberOfLines={1}>{tickerText}</Text>
+            <TouchableOpacity
+              style={styles.tickerBtn}
+              onPress={() => navigation.navigate(tickerTarget === 'Community' ? 'Community' : 'HealthNews', { userId, name })}
+            >
+              <Text style={styles.tickerBtnText}>
+                {tickerTarget === 'Community'
+                  ? (lang === 'ko' ? '커뮤니티로' : 'Community')
+                  : (lang === 'ko' ? '라이프로' : 'Life')}
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+
       </ScrollView>
 
-      {/* ── 하단 탭바 ── */}
       <BottomTabBar navigation={navigation} activeTab="home" userId={userId} name={name} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root:          { flex: 1, backgroundColor: '#FFF8F0' },
+  root:          { flex: 1, backgroundColor: '#f4f8fc' },
   scroll:        { flex: 1 },
   scrollContent: { paddingBottom: 90 },
 
   /* 헤더 */
   header: {
-    background: 'transparent',
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#1a3a5c',
     paddingTop: HEADER_PADDING_TOP,
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 24,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
   },
-  headerRow:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
-  greeting:      { fontSize: 24, fontWeight: 'bold', color: '#1B4332' },
-  subGreeting:   { fontSize: 13, color: '#52B788', marginTop: 2 },
-  dateBadge:     { backgroundColor: '#2D6A4F', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 6 },
-  dateBadgeText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
+  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 0.5 },
+  headerBtns: { flexDirection: 'row', gap: 8 },
+  headerBtn: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5 },
+  headerBtnFill: { backgroundColor: '#fff', borderColor: '#fff' },
+  headerBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
 
-  /* 컨디션 카드 */
-  conditionCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    shadowColor: '#2D6A4F',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 4,
+  /* 파노라마 */
+  panoramaRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  scoreRing: {
+    width: 72, height: 72, borderRadius: 36,
+    borderWidth: 4, borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  condEmoji:   { fontSize: 40 },
-  condTextBox: { flex: 1 },
-  condLabel:   { fontSize: 16, fontWeight: 'bold', color: '#1B4332' },
-  condMetrics: { fontSize: 12, color: '#666', marginTop: 4 },
+  scoreNum:  { fontSize: 22, fontWeight: '800', color: '#fff', lineHeight: 24 },
+  scoreUnit: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
+  panoramaInfo: { flex: 1 },
+  panoramaDate:   { fontSize: 11, color: 'rgba(255,255,255,0.6)', marginBottom: 2 },
+  panoramaLabel:  { fontSize: 11, color: '#7dd3fc', fontWeight: '600', marginBottom: 2 },
+  panoramaStatus: { fontSize: 15, fontWeight: '700', color: '#ffd700', marginBottom: 6 },
+  chipRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  chip: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 3 },
+  chipText: { color: '#fff', fontSize: 12, fontWeight: '600' },
 
-  /* AI 버튼 */
-  aiButton: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    backgroundColor: '#2D6A4F',
-    borderRadius: 20,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    shadowColor: '#2D6A4F',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  aiButtonIcon:  { fontSize: 34 },
-  aiButtonTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
-  aiButtonSub:   { fontSize: 12, color: '#B7E4C7', marginTop: 2 },
-  aiArrow:       { marginLeft: 'auto', fontSize: 28, color: '#B7E4C7' },
+  /* 섹션 */
+  section: { marginHorizontal: 16, marginTop: 14 },
+  sectionLabel: { fontSize: 13, fontWeight: '700', color: '#1a3a5c', marginBottom: 10 },
 
-  /* 메뉴 그리드 */
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 16,
-    gap: 12,
-  },
-  menuCard: {
-    width: '47%',
-    borderRadius: 18,
-    padding: 18,
-    alignItems: 'flex-start',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  menuIcon:  { fontSize: 32, marginBottom: 8 },
-  menuTitle: { fontSize: 16, fontWeight: 'bold' },
+  /* 운동 체크 */
+  exerciseCard: { backgroundColor: '#fff', borderRadius: 18, padding: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 2 },
+  exerciseQuestion: { fontSize: 18, fontWeight: '700', color: '#1a3a5c', marginBottom: 14 },
+  exerciseBtns: { flexDirection: 'row', gap: 12 },
+  exerciseBtn: { flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center', borderWidth: 2 },
+  exerciseBtnYes: { borderColor: '#1565c0', backgroundColor: '#f0f7ff' },
+  exerciseBtnNo:  { borderColor: '#e0e0e0', backgroundColor: '#fafafa' },
+  exerciseBtnActive: { backgroundColor: '#1565c0' },
+  exerciseBtnNoActive: { backgroundColor: '#9e9e9e', borderColor: '#9e9e9e' },
+  exerciseBtnText: { fontSize: 16, fontWeight: '700', color: '#1565c0' },
 
-  /* 탭바 */
-  tabbar: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
-    backgroundColor: '#fff',
-    borderTopWidth: 2,
-    borderTopColor: '#E8F5E9',
-    flexDirection: 'row',
-    paddingBottom: 12,
-    paddingTop: 8,
+  /* AI 카드 */
+  aiCard: { borderRadius: 18, overflow: 'hidden', flexDirection: 'row', backgroundColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 2 },
+  aiCardAccent: { width: 5, backgroundColor: '#1565c0' },
+  aiCardBody: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16 },
+  aiCardIcon:  { fontSize: 32 },
+  aiCardTitle: { fontSize: 16, fontWeight: '700', color: '#1a3a5c' },
+  aiCardSub:   { fontSize: 12, color: '#7b8fa6', marginTop: 2 },
+  aiCardArrow: { fontSize: 26, color: '#c5d0da' },
+
+  /* 건강정보 타일 */
+  tileGrid: { flexDirection: 'row', gap: 10 },
+  tile: {
+    flex: 1, backgroundColor: '#fff', borderRadius: 14, padding: 14,
+    alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
   },
-  tab:           { flex: 1, alignItems: 'center', gap: 2 },
-  tabIcon:       { fontSize: 22, opacity: 0.4 },
-  tabIconActive: { opacity: 1 },
-  tabLabel:      { fontSize: 9, color: '#aaa' },
-  tabLabelActive:{ color: '#2D6A4F', fontWeight: '700' },
+  tileIcon:  { fontSize: 26, marginBottom: 6 },
+  tileLabel: { fontSize: 11, fontWeight: '700', color: '#1a3a5c' },
+
+  /* 티커 */
+  tickerCard: {
+    backgroundColor: '#fff', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
+  },
+  tickerText: { flex: 1, fontSize: 13, color: '#1a3a5c', fontWeight: '500' },
+  tickerBtn: { backgroundColor: '#1565c0', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 },
+  tickerBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 });
