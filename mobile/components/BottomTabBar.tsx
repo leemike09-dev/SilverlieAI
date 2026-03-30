@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useLanguage } from '../i18n/LanguageContext';
 
 type Props = {
   navigation: any;
@@ -10,14 +9,12 @@ type Props = {
 };
 
 export default function BottomTabBar({ navigation, activeTab = 'home', userId = '', name = '' }: Props) {
-  const { t } = useLanguage();
-
   const tabs = [
-    { key: 'home',      icon: '🏠', label: t.home ?? '홈',           onPress: () => navigation.navigate('Home', { userId, name }) },
-    { key: 'health',    icon: '🫀', label: t.healthRecord ?? '건강',  onPress: () => navigation.navigate('Health', { userId, name }) },
-    { key: 'life',      icon: '🌿', label: '라이프',                   onPress: () => navigation.navigate('HealthNews', { userId, name }) },
-    { key: 'community', icon: '👥', label: t.community ?? '커뮤니티',  onPress: () => navigation.navigate('Community', { userId, name }) },
-    { key: 'settings',  icon: '👤', label: t.settings ?? '내 정보',   onPress: () => navigation.navigate('Settings', { name, userId }) },
+    { key: 'home',      icon: '🏠', label: '홈',      onPress: () => navigation.navigate('Home',      { userId, name }) },
+    { key: 'health',    icon: '🫀', label: '건강',    onPress: () => navigation.navigate('Health',    { userId, name }) },
+    { key: 'life',      icon: '🌿', label: '라이프',  onPress: () => navigation.navigate('Community', { userId, name }) },
+    { key: 'community', icon: '👥', label: '커뮤니티', onPress: () => navigation.navigate('Community', { userId, name }) },
+    { key: 'settings',  icon: '👤', label: '내 정보', onPress: () => navigation.navigate('Settings',  { name, userId }) },
   ];
 
   return (
@@ -25,12 +22,7 @@ export default function BottomTabBar({ navigation, activeTab = 'home', userId = 
       {tabs.map((tab) => {
         const isActive = tab.key === activeTab;
         return (
-          <TouchableOpacity
-            key={tab.key}
-            style={styles.tab}
-            onPress={tab.onPress}
-            activeOpacity={0.7}
-          >
+          <TouchableOpacity key={tab.key} style={styles.tab} onPress={tab.onPress} activeOpacity={0.7}>
             <Text style={[styles.tabIcon, isActive && styles.tabIconActive]}>{tab.icon}</Text>
             <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>
           </TouchableOpacity>
@@ -42,18 +34,13 @@ export default function BottomTabBar({ navigation, activeTab = 'home', userId = 
 
 const styles = StyleSheet.create({
   tabbar: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#eef2f7',
-    flexDirection: 'row',
-    paddingBottom: 12,
-    paddingTop: 8,
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#eef2f7',
+    flexDirection: 'row', paddingBottom: 12, paddingTop: 8,
   },
-  tab:             { flex: 1, alignItems: 'center', gap: 2 },
-  tabIcon:         { fontSize: 22, opacity: 0.4 },
-  tabIconActive:   { opacity: 1 },
-  tabLabel:        { fontSize: 9, color: '#b0bec5', fontWeight: '500' },
-  tabLabelActive:  { color: '#1565c0', fontWeight: '700' },
+  tab:            { flex: 1, alignItems: 'center', gap: 2 },
+  tabIcon:        { fontSize: 22, opacity: 0.35 },
+  tabIconActive:  { opacity: 1 },
+  tabLabel:       { fontSize: 9, color: '#b0bec5', fontWeight: '500' },
+  tabLabelActive: { color: '#1565c0', fontWeight: '700' },
 });
