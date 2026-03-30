@@ -5,7 +5,6 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LanguageProvider } from './i18n/LanguageContext';
 import { scheduleDailyHealthReminder } from './utils/notifications';
-import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import HealthScreen from './screens/HealthScreen';
 import DashboardScreen from './screens/DashboardScreen';
@@ -20,6 +19,8 @@ import WearableScreen from './screens/WearableScreen';
 
 const Stack = createNativeStackNavigator();
 
+const DEMO = { name: '홍길동', userId: 'demo-user' };
+
 export default function App() {
   useEffect(() => {
     if (Platform.OS !== 'web') {
@@ -31,19 +32,18 @@ export default function App() {
     <LanguageProvider>
       <NavigationContainer>
         <StatusBar style="auto" />
-        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Login">
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="Health" component={HealthScreen} />
-          <Stack.Screen name="Dashboard" component={DashboardScreen} />
-          <Stack.Screen name="AIChat" component={AIChatScreen} />
-          <Stack.Screen name="Community" component={CommunityScreen} />
-          <Stack.Screen name="GroupBoard" component={GroupBoardScreen} />
-          <Stack.Screen name="Notifications" component={NotificationsScreen} />
-          <Stack.Screen name="Settings" component={SettingsScreen} />
-          <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} />
-          <Stack.Screen name="AIRecommend" component={AIRecommendScreen} />
-          <Stack.Screen name="Wearable" component={WearableScreen} />
+        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
+          <Stack.Screen name="Home"        component={HomeScreen}        initialParams={DEMO} />
+          <Stack.Screen name="Health"      component={HealthScreen}      initialParams={DEMO} />
+          <Stack.Screen name="Dashboard"   component={DashboardScreen}   initialParams={DEMO} />
+          <Stack.Screen name="AIChat"      component={AIChatScreen}      initialParams={DEMO} />
+          <Stack.Screen name="Community"   component={CommunityScreen}   initialParams={DEMO} />
+          <Stack.Screen name="GroupBoard"  component={GroupBoardScreen}  initialParams={DEMO} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} initialParams={DEMO} />
+          <Stack.Screen name="Settings"    component={SettingsScreen}    initialParams={DEMO} />
+          <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} initialParams={DEMO} />
+          <Stack.Screen name="AIRecommend" component={AIRecommendScreen} initialParams={DEMO} />
+          <Stack.Screen name="Wearable"    component={WearableScreen}    initialParams={DEMO} />
         </Stack.Navigator>
       </NavigationContainer>
     </LanguageProvider>
