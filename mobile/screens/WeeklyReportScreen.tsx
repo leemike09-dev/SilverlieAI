@@ -1,243 +1,130 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
-import { useLanguage } from '../i18n/LanguageContext';
-import { HEADER_PADDING_TOP } from '../utils/layout';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
 import BottomTabBar from '../components/BottomTabBar';
 
-const API_URL = 'https://silverlieai.onrender.com';
+const { width } = Dimensions.get('window');
+type Props = { route: any; navigation: any };
 
-type ReportData = {
-  health_score: number;
-  summary: string;
-  achievements: string[];
-  improvements: string[];
-  recommendation: string;
-};
+const DAYS = ['월','화','수','목','금','토','일'];
+const SCORES = [65, 72, 78, 70, 82, 88, 82];
+const MAX_SCORE = 100;
+const BAR_H = 80;
 
-export default function WeeklyReportScreen({ navigation, route }: any) {
-  const { name, userId } = route.params;
-  const { t } = useLanguage();
-  const [loading, setLoading] = useState(false);
-  const [report, setReport] = useState<ReportData | null>(null);
-  const [weeklyData, setWeeklyData] = useState<any[]>([]);
+const BAR_COLORS = ['#1a3a5c','#1e5080','#1565c0','#1e5080','#1976d2','#4fc3f7','#29b6f6'];
 
-  useEffect(() => {
-    fetchWeeklyData();
-  }, []);
-
-  const fetchWeeklyData = async () => {
-    try {
-      const res = await fetch(`${API_URL}/health/history/${userId}?days=7`);
-      const data = await res.json();
-      setWeeklyData(data.records || []);
-    } catch {}
-  };
-
-  const generateReport = async () => {
-    if (weeklyData.length === 0) {
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/health/weekly-report`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: userId,
-          user_name: name,
-          age: 65,
-          weekly_data: weeklyData.map(r => ({
-            date: r.date,
-            steps: r.steps,
-            blood_pressure_systolic: r.blood_pressure_systolic,
-            blood_pressure_diastolic: r.blood_pressure_diastolic,
-            sleep_hours: null,
-            weight_kg: r.weight,
-          })),
-        }),
-      });
-      const data = await res.json();
-      setReport(data.data);
-    } catch {
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const scoreColor = (score: number) => {
-    if (score >= 80) return '#2D6A4F';
-    if (score >= 60) return '#C77B3A';
-    return '#E07B54';
-  };
+export default function WeeklyReportScreen({ route, navigation }: Props) {
+  const { name = '회원', userId = 'demo-user' } = route?.params ?? {};
+  const avg = Math.round(SCORES.reduce((a,b) => a+b, 0) / SCORES.length);
 
   return (
-    <View style={styles.container}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
+    <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>{t.back}</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.back}>← 건강</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>{t.weeklyTitle}</Text>
-        <Text style={styles.subtitle}>{t.weeklySubtitle}</Text>
+        <Text style={styles.title}>7일 건강 리포트</Text>
+        <Text style={styles.sub}>03.25 — 03.31 · 평균 {avg}점</Text>
       </View>
 
-      {/* 주간 데이터 요약 */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>{t.weeklyRecordsTitle}</Text>
-        {weeklyData.length === 0 ? (
-          <Text style={styles.emptyText}>{t.weeklyEmpty}</Text>
-        ) : (
-          weeklyData.slice(0, 7).map((record, i) => (
-            <View key={i} style={styles.recordRow}>
-              <Text style={styles.recordDate}>{record.date}</Text>
-              <View style={styles.recordValues}>
-                {record.steps && <Text style={styles.recordTag}>🚶 {record.steps.toLocaleString()}</Text>}
-                {record.blood_pressure_systolic && (
-                  <Text style={styles.recordTag}>❤️ {record.blood_pressure_systolic}/{record.blood_pressure_diastolic}</Text>
-                )}
-                {record.weight && <Text style={styles.recordTag}>⚖️ {record.weight}kg</Text>}
-              </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        {/* 막대 차트 */}
+        <View style={styles.chartBox}>
+          <Text style={styles.chartLabel}>WEEKLY SCORE</Text>
+          <View style={styles.barsRow}>
+            {SCORES.map((score, i) => {
+              const h = Math.round((score / MAX_SCORE) * BAR_H);
+              return (
+                <View key={i} style={styles.barWrap}>
+                  <Text style={styles.barVal}>{score}</Text>
+                  <View style={[styles.bar, { height: h, backgroundColor: BAR_COLORS[i] }]} />
+                  <Text style={styles.barLbl}>{DAYS[i]}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* 평균 통계 */}
+        <View style={styles.statsRow}>
+          {[
+            { n: '5,820', l: '평균걸음' },
+            { n: '119/79', l: '평균혈압' },
+            { n: '74', l: '평균맥박' },
+          ].map((s, i) => (
+            <View key={i} style={[styles.statBox, i < 2 && { borderRightWidth: 1, borderRightColor: '#1a2a3a' }]}>
+              <Text style={styles.statN}>{s.n}</Text>
+              <Text style={styles.statL}>{s.l}</Text>
             </View>
-          ))
-        )}
-      </View>
+          ))}
+        </View>
 
-      {/* AI 리포트 생성 버튼 */}
-      {weeklyData.length > 0 && !report && (
-        <TouchableOpacity style={styles.generateBtn} onPress={generateReport} disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.generateBtnText}>{t.generateReportBtn}</Text>
-          )}
-        </TouchableOpacity>
-      )}
+        {/* AI 주간 총평 */}
+        <View style={styles.aiBox}>
+          <View style={styles.aiTag}><Text style={styles.aiTagTxt}>AI WEEKLY SUMMARY</Text></View>
+          <Text style={styles.aiText}>
+            이번 주 건강점수 평균{' '}
+            <Text style={{ color: '#4fc3f7', fontWeight: '700' }}>{avg}점</Text>
+            으로 지난주 대비{' '}
+            <Text style={{ color: '#69f0ae', fontWeight: '700' }}>+5점</Text>{' '}
+            향상됐습니다.{'\n'}걸음수가 꾸준히 늘었고 혈압도 안정적입니다.{'\n'}다음 주는 수분 섭취를 늘려보세요 💧
+          </Text>
+        </View>
 
-      {/* 리포트 결과 */}
-      {report && (
-        <>
-          {/* 건강 점수 */}
-          <View style={styles.scoreCard}>
-            <Text style={styles.scoreLabel}>{t.weeklyScoreLabel}</Text>
-            <Text style={[styles.scoreValue, { color: scoreColor(report.health_score) }]}>
-              {report.health_score}
-            </Text>
-            <Text style={styles.scoreMax}>/ 100</Text>
-            <Text style={styles.scoreSummary}>{report.summary}</Text>
-          </View>
-
-          {/* 잘한 점 */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{t.weeklyAchievements}</Text>
-            {report.achievements.map((a, i) => (
-              <View key={i} style={styles.listRow}>
-                <Text style={styles.listDot}>•</Text>
-                <Text style={styles.listText}>{a}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* 개선할 점 */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{t.weeklyImprovements}</Text>
-            {report.improvements.map((item, i) => (
-              <View key={i} style={styles.listRow}>
-                <Text style={styles.listDot}>•</Text>
-                <Text style={styles.listText}>{item}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* 핵심 권고 */}
-          <View style={[styles.card, styles.recommendCard]}>
-            <Text style={styles.recommendTitle}>{t.weeklyRecommendTitle}</Text>
-            <Text style={styles.recommendText}>{report.recommendation}</Text>
-          
-          </View>
-        </>
-      )}
-
-      <View style={{ height: 40 }} />
+        {/* 항목별 트렌드 */}
+        <View style={styles.trendBox}>
+          <View style={styles.aiTag}><Text style={styles.aiTagTxt}>TREND ANALYSIS</Text></View>
+          {[
+            { icon: '🚶', label: '걸음수', trend: '↑ 꾸준히 증가 중', color: '#69f0ae' },
+            { icon: '💗', label: '혈압',   trend: '→ 안정적 유지',   color: '#4fc3f7' },
+            { icon: '💓', label: '맥박',   trend: '→ 정상 범위',     color: '#4fc3f7' },
+            { icon: '🩸', label: '혈당',   trend: '↓ 약간 감소',     color: '#69f0ae' },
+          ].map((t, i) => (
+            <View key={i} style={styles.trendItem}>
+              <Text style={styles.trendIcon}>{t.icon}</Text>
+              <Text style={styles.trendLabel}>{t.label}</Text>
+              <Text style={[styles.trendVal, { color: t.color }]}>{t.trend}</Text>
+            </View>
+          ))}
+        </View>
       </ScrollView>
+
       <BottomTabBar navigation={navigation} activeTab="health" userId={userId} name={name} />
-    </View>
+    </SafeAreaView>
   );
 }
 
+const BG = '#0a1628'; const CARD = '#0e1e35'; const BORDER = '#1a2a3a'; const ACCENT = '#4fc3f7';
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF8F0' },
-  header: {
-    backgroundColor: '#E8F5E9',
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    padding: 20,
-    paddingTop: HEADER_PADDING_TOP,
-    paddingBottom: 24,
-  },
-  backBtn: { marginBottom: 8 },
-  backText: { color: '#B7E4C7', fontSize: 16 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#1B4332' },
-  subtitle: { fontSize: 15, color: '#52B788', marginTop: 4 },
-  card: {
-    margin: 16,
-    marginBottom: 0,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#1C1A17', marginBottom: 12 },
-  emptyText: { color: '#999', fontSize: 15, textAlign: 'center', paddingVertical: 12 },
-  recordRow: {
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0EDE7',
-  },
-  recordDate: { fontSize: 16, color: '#7A746A', marginBottom: 4 },
-  recordValues: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  recordTag: { fontSize: 16, color: '#333', backgroundColor: '#FFF8F0', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  generateBtn: {
-    margin: 16,
-    backgroundColor: '#2D6A4F',
-    borderRadius: 14,
-    padding: 18,
-    alignItems: 'center',
-  },
-  generateBtnText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  scoreCard: {
-    margin: 16,
-    marginBottom: 0,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  scoreLabel: { fontSize: 16, color: '#7A746A', marginBottom: 8 },
-  scoreValue: { fontSize: 72, fontWeight: 'bold' },
-  scoreMax: { fontSize: 18, color: '#999', marginTop: -8 },
-  scoreSummary: { fontSize: 16, color: '#4A4540', textAlign: 'center', marginTop: 12, lineHeight: 24 },
-  listRow: { flexDirection: 'row', marginBottom: 8 },
-  listDot: { color: '#2D6A4F', fontSize: 16, marginRight: 8 },
-  listText: { fontSize: 17, color: '#4A4540', flex: 1, lineHeight: 26 },
-  recommendCard: {
-    backgroundColor: '#2D6A4F',
-  },
-  recommendTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginBottom: 10 },
-  recommendText: { fontSize: 16, color: '#B7E4C7', lineHeight: 26 },
+  safe:   { flex: 1, backgroundColor: BG },
+  header: { backgroundColor: BG, padding: 18, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: BORDER },
+  back:   { fontSize: 12, color: ACCENT, marginBottom: 8 },
+  title:  { fontSize: 18, fontWeight: '800', color: '#fff' },
+  sub:    { fontSize: 11, color: '#607d8b', marginTop: 3 },
+
+  chartBox:  { backgroundColor: CARD, padding: 18, borderBottomWidth: 1, borderBottomColor: BORDER },
+  chartLabel:{ fontSize: 10, color: '#546e7a', fontWeight: '700', letterSpacing: 1, marginBottom: 14 },
+  barsRow:   { flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: BAR_H + 36 },
+  barWrap:   { flex: 1, alignItems: 'center', gap: 4, justifyContent: 'flex-end' },
+  bar:       { width: '100%', borderRadius: 4 },
+  barVal:    { fontSize: 9, fontWeight: '700', color: ACCENT },
+  barLbl:    { fontSize: 9, color: '#546e7a' },
+
+  statsRow: { flexDirection: 'row', backgroundColor: CARD, borderBottomWidth: 1, borderBottomColor: BORDER },
+  statBox:  { flex: 1, padding: 14, alignItems: 'center' },
+  statN:    { fontSize: 15, fontWeight: '800', color: ACCENT, marginBottom: 3 },
+  statL:    { fontSize: 9, color: '#546e7a' },
+
+  aiBox:    { backgroundColor: BG, padding: 18, borderBottomWidth: 1, borderBottomColor: BORDER },
+  trendBox: { backgroundColor: BG, padding: 18 },
+  aiTag:    { backgroundColor: '#0d3b66', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3,
+              alignSelf: 'flex-start', marginBottom: 12 },
+  aiTagTxt: { color: ACCENT, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
+  aiText:   { color: '#b0bec5', fontSize: 13, lineHeight: 22 },
+
+  trendItem:  { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10,
+                borderBottomWidth: 1, borderBottomColor: BORDER },
+  trendIcon:  { fontSize: 18, width: 24 },
+  trendLabel: { flex: 1, fontSize: 13, fontWeight: '600', color: '#e3f2fd' },
+  trendVal:   { fontSize: 12, fontWeight: '700' },
 });
