@@ -5,7 +5,9 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LanguageProvider } from './i18n/LanguageContext';
 import { scheduleDailyHealthReminder } from './utils/notifications';
+import IntroScreen from './screens/IntroScreen';
 import HomeScreen from './screens/HomeScreen';
+import LoginScreen from './screens/LoginScreen';
 import HealthScreen from './screens/HealthScreen';
 import DashboardScreen from './screens/DashboardScreen';
 import SettingsScreen from './screens/SettingsScreen';
@@ -19,8 +21,7 @@ import WearableScreen from './screens/WearableScreen';
 import LifeScreen from './screens/LifeScreen';
 
 const Stack = createNativeStackNavigator();
-
-const DEMO = { name: '홍길동', userId: 'demo-user' };
+const DEMO = { name: '홍길동', userId: 'demo-user', isGuest: false };
 
 export default function App() {
   useEffect(() => {
@@ -33,8 +34,10 @@ export default function App() {
     <LanguageProvider>
       <NavigationContainer>
         <StatusBar style="auto" />
-        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Home">
+        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Intro">
+          <Stack.Screen name="Intro"       component={IntroScreen}       />
           <Stack.Screen name="Home"        component={HomeScreen}        initialParams={DEMO} />
+          <Stack.Screen name="Login"       component={LoginScreen}       />
           <Stack.Screen name="Health"      component={HealthScreen}      initialParams={DEMO} />
           <Stack.Screen name="Dashboard"   component={DashboardScreen}   initialParams={DEMO} />
           <Stack.Screen name="AIChat"      component={AIChatScreen}      initialParams={DEMO} />
