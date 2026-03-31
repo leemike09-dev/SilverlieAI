@@ -12,8 +12,8 @@ export default function BottomTabBar({ navigation, activeTab = 'home', userId = 
   const tabs = [
     { key: 'home',      icon: '🏠', label: '홈',      onPress: () => navigation.navigate('Home',      { userId, name }) },
     { key: 'health',    icon: '🫀', label: '건강',    onPress: () => navigation.navigate('Health',    { userId, name }) },
-    { key: 'life',      icon: '🌿', label: '라이프',  onPress: () => navigation.navigate('Community', { userId, name }) },
-    { key: 'community', icon: '👥', label: '커뮤니티', onPress: () => navigation.navigate('Community', { userId, name }) },
+    { key: 'life',      icon: '🌿', label: '라이프',  onPress: () => navigation.navigate('Life',      { userId, name }) },
+    { key: 'community', icon: '👥', label: '함께하기', onPress: () => navigation.navigate('Community', { userId, name }) },
     { key: 'settings',  icon: '👤', label: '내 정보', onPress: () => navigation.navigate('Settings',  { name, userId }) },
   ];
 

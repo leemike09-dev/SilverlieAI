@@ -16,6 +16,7 @@ import CommunityScreen from './screens/CommunityScreen';
 import GroupBoardScreen from './screens/GroupBoardScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import WearableScreen from './screens/WearableScreen';
+import LifeScreen from './screens/LifeScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -44,6 +45,7 @@ export default function App() {
           <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} initialParams={DEMO} />
           <Stack.Screen name="AIRecommend" component={AIRecommendScreen} initialParams={DEMO} />
           <Stack.Screen name="Wearable"    component={WearableScreen}    initialParams={DEMO} />
+          <Stack.Screen name="Life"        component={LifeScreen}        initialParams={DEMO} />
         </Stack.Navigator>
       </NavigationContainer>
     </LanguageProvider>
