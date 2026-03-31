@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, StatusBar, Animated,
+  ActivityIndicator, StatusBar, Animated, SafeAreaView,
 } from 'react-native';
 import { useLanguage } from '../i18n/LanguageContext';
 import { HEADER_PADDING_TOP } from '../utils/layout';
@@ -10,16 +10,16 @@ import BottomTabBar from '../components/BottomTabBar';
 const API_URL = 'https://silverlieai.onrender.com';
 
 const HEALTH_TILES = [
-  { icon: '🫀', label_ko: '심혈관', label_en: 'Cardio',  label_ja: '心臓',  label_zh: '心血管' },
-  { icon: '🦴', label_ko: '관절',   label_en: 'Joints',  label_ja: '関節',  label_zh: '关节'  },
-  { icon: '🥗', label_ko: '식이',   label_en: 'Diet',    label_ja: '食事',  label_zh: '饮食'  },
-  { icon: '🧠', label_ko: '두뇌',   label_en: 'Brain',   label_ja: '脳',    label_zh: '大脑'  },
+  { icon: '🫀', label_ko: '심혈관', label_en: 'Cardio',  label_ja: '心臓', label_zh: '心血管' },
+  { icon: '🦴', label_ko: '관절',   label_en: 'Joints',  label_ja: '関節', label_zh: '关节'  },
+  { icon: '🥗', label_ko: '식이',   label_en: 'Diet',    label_ja: '食事', label_zh: '饮食'  },
+  { icon: '🧠', label_ko: '두뇌',   label_en: 'Brain',   label_ja: '脳',   label_zh: '大脑'  },
 ];
 
 const TICKER_MSGS = [
-  { text_ko: '여행 일정이 필요하신가요?',      text_en: 'Need a travel plan?',      text_ja: '旅行の計画が必要ですか？', text_zh: '需要旅行计划吗？', target: 'Life' },
-  { text_ko: '건강에 좋은 음식 레시피 →',      text_en: 'Healthy food recipes →',   text_ja: 'ヘルシーレシピを見る →',  text_zh: '更多健康食谱 →',    target: 'Life' },
-  { text_ko: '같이하고 싶은 사람들의 모임',     text_en: 'Find people to meet',      text_ja: '一緒に活動する仲間',       text_zh: '寻找同伴活动',       target: 'Community' },
+  { text_ko: '여행 일정이 필요하신가요?',   text_en: 'Need a travel plan?',    text_ja: '旅行の計画が必要ですか？', text_zh: '需要旅行计划吗？', target: 'Life' },
+  { text_ko: '건강에 좋은 음식 레시피 →',   text_en: 'Healthy food recipes →', text_ja: 'ヘルシーレシピを見る →',  text_zh: '更多健康食谱 →',   target: 'Life' },
+  { text_ko: '같이하고 싶은 사람들의 모임', text_en: 'Find people to meet',    text_ja: '一緒に活動する仲間',      text_zh: '寻找同伴活动',      target: 'Community' },
 ];
 
 function calcHealthScore(r: any): number {
@@ -51,10 +51,10 @@ export default function HomeScreen({ route, navigation }: any) {
   const { t, language } = useLanguage();
   const lang = language || 'ko';
 
-  const [todayRecord, setTodayRecord]   = useState<any>(null);
+  const [todayRecord, setTodayRecord]     = useState<any>(null);
   const [loadingRecord, setLoadingRecord] = useState(true);
-  const [exerciseDone, setExerciseDone] = useState<boolean | null>(null);
-  const [tickerIdx, setTickerIdx]       = useState(0);
+  const [exerciseDone, setExerciseDone]   = useState<boolean | null>(null);
+  const [tickerIdx, setTickerIdx]         = useState(0);
   const tickerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -66,7 +66,6 @@ export default function HomeScreen({ route, navigation }: any) {
       .finally(() => setLoadingRecord(false));
   }, [userId]);
 
-  // 티커 애니메이션
   useEffect(() => {
     const run = () => {
       Animated.sequence([
@@ -90,155 +89,127 @@ export default function HomeScreen({ route, navigation }: any) {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor="#1a3a5c" />
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-
-        {/* ── 파노라마 헤더 ── */}
-        <View style={styles.header}>
-          {/* 상단 바: 앱명 + 날짜 */}
-          <View style={styles.headerTop}>
-            <View>
-              <Text style={styles.appName}>Silver Life AI</Text>
-              <Text style={styles.headerDate}>{todayStr}</Text>
-            </View>
-            <View style={styles.headerRight}>
-              <TouchableOpacity
-                style={styles.langBtn}
-                onPress={() => navigation.navigate('Settings', { name, userId })}
-              >
-                <Text style={styles.langBtnText}>⚙️</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.notifBtn}
-                onPress={() => navigation.navigate('Notifications', { userId, name })}
-              >
-                <Text style={styles.notifBtnText}>🔔</Text>
-              </TouchableOpacity>
-            </View>
+      {/* ── 파노라마 헤더 ── */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.appName}>Silver Life AI</Text>
+            <Text style={styles.headerDate}>{todayStr}</Text>
           </View>
+          <View style={styles.headerRight}>
+            <TouchableOpacity style={styles.authBtn}
+              onPress={() => navigation.navigate('Settings', { name, userId })}>
+              <Text style={styles.authBtnText}>로그인</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.authBtn, styles.authBtnFill]}
+              onPress={() => navigation.navigate('Settings', { name, userId })}>
+              <Text style={[styles.authBtnText, { color: '#1a3a5c' }]}>회원가입</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-          {/* 건강 점수 파노라마 */}
-          <View style={styles.panoramaRow}>
-            <View style={styles.scoreRing}>
-              {loadingRecord ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <>
-                  <Text style={styles.scoreNum}>{todayRecord ? healthScore : '—'}</Text>
-                  <Text style={styles.scoreUnit}>{lang === 'ko' ? '점' : 'pts'}</Text>
-                </>
+        <View style={styles.panoramaRow}>
+          <View style={styles.scoreRing}>
+            {loadingRecord ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <Text style={styles.scoreNum}>{todayRecord ? healthScore : '—'}</Text>
+                <Text style={styles.scoreUnit}>{lang === 'ko' ? '점' : 'pts'}</Text>
+              </>
+            )}
+          </View>
+          <View style={styles.panoramaInfo}>
+            <Text style={styles.panoramaTagLine}>🤖 {lang === 'ko' ? 'AI 건강 점수' : 'AI Health Score'}</Text>
+            <Text style={styles.panoramaStatus}>{scoreLabel}</Text>
+            <View style={styles.chipRow}>
+              {todayRecord?.blood_pressure_systolic ? (
+                <View style={styles.chip}>
+                  <Text style={styles.chipText}>💗 {todayRecord.blood_pressure_systolic}/{todayRecord.blood_pressure_diastolic}</Text>
+                </View>
+              ) : null}
+              {todayRecord?.steps ? (
+                <View style={styles.chip}>
+                  <Text style={styles.chipText}>🚶 {todayRecord.steps.toLocaleString()}{lang === 'ko' ? '보' : ''}</Text>
+                </View>
+              ) : null}
+              {!todayRecord && !loadingRecord && (
+                <TouchableOpacity style={styles.chipEmpty}
+                  onPress={() => navigation.navigate('Health', { userId, name })}>
+                  <Text style={styles.chipEmptyText}>+ 오늘 기록 입력</Text>
+                </TouchableOpacity>
               )}
             </View>
-            <View style={styles.panoramaInfo}>
-              <Text style={styles.panoramaTagLine}>🤖 {lang === 'ko' ? 'AI 건강 점수' : 'AI Health Score'}</Text>
-              <Text style={styles.panoramaStatus}>{scoreLabel}</Text>
-              <View style={styles.chipRow}>
-                {todayRecord?.blood_pressure_systolic ? (
-                  <View style={styles.chip}>
-                    <Text style={styles.chipText}>💗 {todayRecord.blood_pressure_systolic}/{todayRecord.blood_pressure_diastolic}</Text>
-                  </View>
-                ) : null}
-                {todayRecord?.steps ? (
-                  <View style={styles.chip}>
-                    <Text style={styles.chipText}>🚶 {todayRecord.steps.toLocaleString()}{lang === 'ko' ? '보' : ''}</Text>
-                  </View>
-                ) : null}
-                {!todayRecord && !loadingRecord && (
-                  <TouchableOpacity style={styles.chipEmpty} onPress={() => navigation.navigate('Health', { userId, name })}>
-                    <Text style={styles.chipEmptyText}>{lang === 'ko' ? '+ 오늘 기록 입력' : '+ Add today\'s record'}</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
           </View>
         </View>
+      </View>
 
-        {/* ── 운동 체크 카드 ── */}
-        <View style={styles.section}>
-          <View style={styles.exerciseCard}>
-            <Text style={styles.exerciseQ}>
-              {lang === 'ko' ? '오늘 운동 하셨나요? 🏃' : lang === 'ja' ? '今日運動しましたか？🏃' : lang === 'zh' ? '今天运动了吗？🏃' : 'Did you exercise today? 🏃'}
-            </Text>
-            <View style={styles.exerciseBtns}>
-              <TouchableOpacity
-                style={[styles.exBtn, styles.exBtnYes, exerciseDone === true && styles.exBtnYesActive]}
-                onPress={() => setExerciseDone(true)}
-              >
-                <Text style={[styles.exBtnText, { color: exerciseDone === true ? '#fff' : '#1565c0' }]}>✓ {lang === 'ko' ? '했어요' : 'Yes'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.exBtn, styles.exBtnNo, exerciseDone === false && styles.exBtnNoActive]}
-                onPress={() => setExerciseDone(false)}
-              >
-                <Text style={[styles.exBtnText, { color: exerciseDone === false ? '#fff' : '#9aabb8' }]}>✗ {lang === 'ko' ? '아직요' : 'Not yet'}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+      {/* ── 본문 (고정 레이아웃, 스크롤 없음) ── */}
+      <View style={styles.body}>
 
-        {/* ── AI 상담 카드 ── */}
-        <View style={styles.section}>
-          <TouchableOpacity style={styles.aiCard} onPress={() => navigation.navigate('AIChat', { userId, name })} activeOpacity={0.88}>
-            <View style={styles.aiCardBar} />
-            <View style={styles.aiCardInner}>
-              <Text style={styles.aiCardIcon}>🤖</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.aiCardTitle}>{t.aiChat}</Text>
-                <Text style={styles.aiCardSub}>{t.aiChatDesc}</Text>
-              </View>
-              <Text style={styles.aiCardArrow}>›</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* ── 건강 정보 타일 4개 ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>
-            {lang === 'ko' ? '건강 정보' : lang === 'ja' ? '健康情報' : lang === 'zh' ? '健康信息' : 'Health Info'}
+        {/* 운동 체크 */}
+        <View style={styles.exerciseCard}>
+          <Text style={styles.exerciseQ}>
+            {lang === 'ko' ? '오늘 운동 하셨나요? 🏃' : lang === 'ja' ? '今日運動しましたか？🏃' : lang === 'zh' ? '今天运动了吗？🏃' : 'Did you exercise today? 🏃'}
           </Text>
-          <View style={styles.tileRow}>
-            {HEALTH_TILES.map((tile, i) => (
-              <TouchableOpacity
-                key={i}
-                style={styles.tile}
-                onPress={() => navigation.navigate('Health', { userId, name })}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.tileIcon}>{tile.icon}</Text>
-                <Text style={styles.tileLabel}>
-                  {lang === 'ja' ? tile.label_ja : lang === 'zh' ? tile.label_zh : lang === 'en' ? tile.label_en : tile.label_ko}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          <View style={styles.exerciseBtns}>
+            <TouchableOpacity
+              style={[styles.exBtn, styles.exBtnYes, exerciseDone === true && styles.exBtnYesActive]}
+              onPress={() => setExerciseDone(true)}>
+              <Text style={[styles.exBtnText, { color: exerciseDone === true ? '#fff' : '#1565c0' }]}>✓ {lang === 'ko' ? '했어요' : 'Yes'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.exBtn, styles.exBtnNo, exerciseDone === false && styles.exBtnNoActive]}
+              onPress={() => setExerciseDone(false)}>
+              <Text style={[styles.exBtnText, { color: exerciseDone === false ? '#fff' : '#9aabb8' }]}>✗ {lang === 'ko' ? '아직요' : 'Not yet'}</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* ── 슬라이딩 티커 ── */}
-        <View style={styles.section}>
-          <Animated.View
-            style={[
-              styles.tickerCard,
-              {
-                opacity: tickerAnim,
-                transform: [{ translateY: tickerAnim.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }],
-              },
-            ]}
-          >
-            <Text style={styles.tickerText} numberOfLines={1}>{tickerText}</Text>
-            <TouchableOpacity
-              style={styles.tickerBtn}
-              onPress={() => navigation.navigate(ticker.target === 'Community' ? 'Community' : 'Notifications', { userId, name })}
-            >
-              <Text style={styles.tickerBtnText}>
-                {ticker.target === 'Community'
-                  ? (lang === 'ko' ? '커뮤니티로' : 'Community')
-                  : (lang === 'ko' ? '라이프로' : 'Life')}
+        {/* AI 상담 카드 */}
+        <TouchableOpacity style={styles.aiCard}
+          onPress={() => navigation.navigate('AIChat', { userId, name })} activeOpacity={0.88}>
+          <View style={styles.aiCardBar} />
+          <View style={styles.aiCardInner}>
+            <Text style={styles.aiCardIcon}>🤖</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.aiCardTitle}>{t.aiChat}</Text>
+              <Text style={styles.aiCardSub}>{t.aiChatDesc}</Text>
+            </View>
+            <Text style={styles.aiCardArrow}>›</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* 건강 정보 타일 */}
+        <View style={styles.tileRow}>
+          {HEALTH_TILES.map((tile, i) => (
+            <TouchableOpacity key={i} style={styles.tile}
+              onPress={() => navigation.navigate('Health', { userId, name })} activeOpacity={0.8}>
+              <Text style={styles.tileIcon}>{tile.icon}</Text>
+              <Text style={styles.tileLabel}>
+                {lang === 'ja' ? tile.label_ja : lang === 'zh' ? tile.label_zh : lang === 'en' ? tile.label_en : tile.label_ko}
               </Text>
             </TouchableOpacity>
-          </Animated.View>
+          ))}
         </View>
 
-        <View style={{ height: 20 }} />
-      </ScrollView>
+        {/* 티커 */}
+        <Animated.View style={[styles.tickerCard, {
+          opacity: tickerAnim,
+          transform: [{ translateY: tickerAnim.interpolate({ inputRange: [0,1], outputRange: [8,0] }) }],
+        }]}>
+          <Text style={styles.tickerText} numberOfLines={1}>{tickerText}</Text>
+          <TouchableOpacity style={styles.tickerBtn}
+            onPress={() => navigation.navigate(ticker.target === 'Community' ? 'Community' : 'Life', { userId, name })}>
+            <Text style={styles.tickerBtnText}>
+              {ticker.target === 'Community'
+                ? (lang === 'ko' ? '커뮤니티로' : 'Community')
+                : (lang === 'ko' ? '라이프로' : 'Life')}
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
+
+      </View>
 
       <BottomTabBar navigation={navigation} activeTab="home" userId={userId} name={name} />
     </View>
@@ -246,111 +217,82 @@ export default function HomeScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  root:          { flex: 1, backgroundColor: '#f4f8fc' },
-  scroll:        { flex: 1 },
-  scrollContent: { paddingBottom: 90 },
+  root: { flex: 1, backgroundColor: '#f4f8fc' },
 
   /* 헤더 */
   header: {
     backgroundColor: '#1a3a5c',
     paddingTop: HEADER_PADDING_TOP,
-    paddingHorizontal: 20,
-    paddingBottom: 26,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    paddingHorizontal: 18,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
-  headerTop: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'flex-start', marginBottom: 20,
-  },
-  appName:    { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 0.4 },
-  headerDate: { color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 2 },
-  headerRight: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  langBtn:     { padding: 4 },
-  langBtnText: { fontSize: 20 },
-  notifBtn:    { padding: 4 },
-  notifBtnText: { fontSize: 20 },
+  headerTop:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  appName:    { color: '#fff', fontSize: 17, fontWeight: '800', letterSpacing: 0.4 },
+  headerDate: { color: 'rgba(255,255,255,0.6)', fontSize: 11, marginTop: 2 },
+  headerRight: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  authBtn:     { borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.5)', borderRadius: 16,
+                 paddingHorizontal: 12, paddingVertical: 6 },
+  authBtnFill: { backgroundColor: '#fff', borderColor: '#fff' },
+  authBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 
   /* 파노라마 */
-  panoramaRow: { flexDirection: 'row', alignItems: 'center', gap: 18 },
-  scoreRing: {
-    width: 76, height: 76, borderRadius: 38,
-    borderWidth: 4, borderColor: 'rgba(255,255,255,0.3)',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  scoreNum:  { fontSize: 24, fontWeight: '800', color: '#fff', lineHeight: 26 },
-  scoreUnit: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
+  panoramaRow:     { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  scoreRing:       { width: 68, height: 68, borderRadius: 34, borderWidth: 3,
+                     borderColor: 'rgba(255,255,255,0.3)', backgroundColor: 'rgba(255,255,255,0.1)',
+                     alignItems: 'center', justifyContent: 'center' },
+  scoreNum:        { fontSize: 22, fontWeight: '800', color: '#fff', lineHeight: 24 },
+  scoreUnit:       { fontSize: 10, color: 'rgba(255,255,255,0.7)' },
   panoramaInfo:    { flex: 1 },
-  panoramaTagLine: { fontSize: 11, color: '#7dd3fc', fontWeight: '600', marginBottom: 4 },
-  panoramaStatus:  { fontSize: 16, fontWeight: '700', color: '#ffd700', marginBottom: 8 },
-  chipRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  chip: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4,
-  },
-  chipText:      { color: '#fff', fontSize: 12, fontWeight: '600' },
-  chipEmpty: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4,
-    borderStyle: 'dashed',
-  },
+  panoramaTagLine: { fontSize: 10, color: '#7dd3fc', fontWeight: '600', marginBottom: 3 },
+  panoramaStatus:  { fontSize: 15, fontWeight: '700', color: '#ffd700', marginBottom: 6 },
+  chipRow:   { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  chip:      { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
+  chipText:  { color: '#fff', fontSize: 11, fontWeight: '600' },
+  chipEmpty: { backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+               borderColor: 'rgba(255,255,255,0.3)', borderRadius: 10,
+               paddingHorizontal: 8, paddingVertical: 3 },
   chipEmptyText: { color: 'rgba(255,255,255,0.7)', fontSize: 11 },
 
-  /* 섹션 */
-  section:      { marginHorizontal: 16, marginTop: 14 },
-  sectionLabel: { fontSize: 13, fontWeight: '700', color: '#1a3a5c', marginBottom: 10 },
+  /* 본문 */
+  body: { flex: 1, paddingHorizontal: 14, paddingTop: 12, justifyContent: 'space-between', paddingBottom: 8 },
 
   /* 운동 체크 */
-  exerciseCard: {
-    backgroundColor: '#fff', borderRadius: 18, padding: 18,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07, shadowRadius: 8, elevation: 3,
-  },
-  exerciseQ:    { fontSize: 18, fontWeight: '700', color: '#1a3a5c', marginBottom: 14 },
-  exerciseBtns: { flexDirection: 'row', gap: 12 },
-  exBtn:        { flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center', borderWidth: 2 },
+  exerciseCard: { backgroundColor: '#fff', borderRadius: 16, padding: 14,
+                  shadowColor: '#000', shadowOffset: { width:0, height:2 }, shadowOpacity:0.06, shadowRadius:6, elevation:2 },
+  exerciseQ:    { fontSize: 16, fontWeight: '700', color: '#1a3a5c', marginBottom: 12 },
+  exerciseBtns: { flexDirection: 'row', gap: 10 },
+  exBtn:        { flex: 1, borderRadius: 12, paddingVertical: 12, alignItems: 'center', borderWidth: 2 },
   exBtnYes:     { borderColor: '#1565c0', backgroundColor: '#f0f7ff' },
   exBtnNo:      { borderColor: '#e0e0e0', backgroundColor: '#fafafa' },
   exBtnYesActive: { backgroundColor: '#1565c0', borderColor: '#1565c0' },
   exBtnNoActive:  { backgroundColor: '#9e9e9e', borderColor: '#9e9e9e' },
-  exBtnText:    { fontSize: 16, fontWeight: '700' },
+  exBtnText:    { fontSize: 15, fontWeight: '700' },
 
-  /* AI 상담 카드 */
-  aiCard: {
-    borderRadius: 18, overflow: 'hidden', flexDirection: 'row',
-    backgroundColor: '#fff',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07, shadowRadius: 8, elevation: 3,
-  },
+  /* AI 상담 */
+  aiCard:      { borderRadius: 16, overflow: 'hidden', flexDirection: 'row', backgroundColor: '#fff',
+                 shadowColor: '#000', shadowOffset: { width:0, height:2 }, shadowOpacity:0.06, shadowRadius:6, elevation:2 },
   aiCardBar:   { width: 5, backgroundColor: '#1565c0' },
-  aiCardInner: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16 },
-  aiCardIcon:  { fontSize: 32 },
-  aiCardTitle: { fontSize: 16, fontWeight: '700', color: '#1a3a5c' },
-  aiCardSub:   { fontSize: 12, color: '#7b8fa6', marginTop: 2 },
-  aiCardArrow: { fontSize: 28, color: '#c5d0da' },
+  aiCardInner: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  aiCardIcon:  { fontSize: 28 },
+  aiCardTitle: { fontSize: 15, fontWeight: '700', color: '#1a3a5c' },
+  aiCardSub:   { fontSize: 11, color: '#7b8fa6', marginTop: 2 },
+  aiCardArrow: { fontSize: 24, color: '#c5d0da' },
 
-  /* 건강 정보 타일 */
-  tileRow: { flexDirection: 'row', gap: 10 },
-  tile: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 16, paddingVertical: 16,
-    alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
-  },
-  tileIcon:  { fontSize: 26, marginBottom: 6 },
-  tileLabel: { fontSize: 12, fontWeight: '700', color: '#1a3a5c' },
+  /* 타일 */
+  tileRow:   { flexDirection: 'row', gap: 8 },
+  tile:      { flex: 1, backgroundColor: '#fff', borderRadius: 14, paddingVertical: 14,
+               alignItems: 'center', shadowColor: '#000', shadowOffset: { width:0, height:1 },
+               shadowOpacity:0.05, shadowRadius:4, elevation:2 },
+  tileIcon:  { fontSize: 24, marginBottom: 5 },
+  tileLabel: { fontSize: 11, fontWeight: '700', color: '#1a3a5c' },
 
   /* 티커 */
-  tickerCard: {
-    backgroundColor: '#fff', borderRadius: 14,
-    paddingVertical: 13, paddingHorizontal: 16,
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
-  },
+  tickerCard:    { backgroundColor: '#fff', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14,
+                   flexDirection: 'row', alignItems: 'center', gap: 10,
+                   shadowColor: '#000', shadowOffset: { width:0, height:1 }, shadowOpacity:0.05, shadowRadius:4, elevation:2 },
   tickerText:    { flex: 1, fontSize: 13, color: '#1a3a5c', fontWeight: '500' },
-  tickerBtn:     { backgroundColor: '#1565c0', borderRadius: 10, paddingHorizontal: 13, paddingVertical: 7 },
-  tickerBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  tickerBtn:     { backgroundColor: '#1565c0', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 },
+  tickerBtnText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 });

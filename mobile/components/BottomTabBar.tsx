@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = {
   navigation: any;
@@ -9,6 +10,8 @@ type Props = {
 };
 
 export default function BottomTabBar({ navigation, activeTab = 'home', userId = '', name = '' }: Props) {
+  const insets = useSafeAreaInsets();
+
   const tabs = [
     { key: 'home',      icon: '🏠', label: '홈',      onPress: () => navigation.navigate('Home',      { userId, name }) },
     { key: 'health',    icon: '🫀', label: '건강',    onPress: () => navigation.navigate('Health',    { userId, name }) },
@@ -18,7 +21,7 @@ export default function BottomTabBar({ navigation, activeTab = 'home', userId = 
   ];
 
   return (
-    <View style={styles.tabbar}>
+    <View style={[styles.tabbar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       {tabs.map((tab) => {
         const isActive = tab.key === activeTab;
         return (
@@ -34,9 +37,11 @@ export default function BottomTabBar({ navigation, activeTab = 'home', userId = 
 
 const styles = StyleSheet.create({
   tabbar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#eef2f7',
-    flexDirection: 'row', paddingBottom: 12, paddingTop: 8,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#eef2f7',
+    flexDirection: 'row',
+    paddingTop: 8,
   },
   tab:            { flex: 1, alignItems: 'center', gap: 2 },
   tabIcon:        { fontSize: 22, opacity: 0.35 },
