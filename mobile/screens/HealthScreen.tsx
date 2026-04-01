@@ -466,8 +466,8 @@ const s = StyleSheet.create({
   alertAction: { fontSize: 12, color: '#1565c0', fontWeight: '600' },
 
   // 수치 카드
-  metricsGrid: { flexDirection: 'column', gap: 10 },
-  metricCard:  { width: '100%', backgroundColor: '#fff', borderRadius: 16, padding: 18,
+  metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  metricCard:  { width: (width - 28 - 10) / 2, backgroundColor: '#fff', borderRadius: 16, padding: 18,
                  shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width:0, height:2 }, shadowRadius:6, elevation:2 },
   metricHeader: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
   metricIcon:  { fontSize: 22 },
