@@ -26,11 +26,16 @@ const { width } = Dimensions.get('window');
 type Props = { route: any; navigation: any };
 
 const GRID_ITEMS = [
-  { icon: '🥗', title: '레시피', sub: '시니어 맞춤 건강 요리' },
-  { icon: '🧘', title: '운동',   sub: '집에서 하는 가벼운 스트레칭' },
-  { icon: '🧩', title: '치매예방\n두뇌게임', sub: '매일 10분 두뇌 트레이닝' },
-  { icon: '🎭', title: '문화·공연', sub: '이번 주 추천 문화 행사' },
+  { icon: '🥗', title: '레시피',           sub: '시니어 맞춤 건강 요리',       type: 'recipe'   },
+  { icon: '🧘', title: '운동',              sub: '집에서 하는 가벼운 스트레칭', type: 'exercise' },
+  { icon: '🧩', title: '치매예방\n두뇌게임', sub: '매일 10분 두뇌 트레이닝',   type: 'brain'    },
+  { icon: '🎭', title: '문화·공연',         sub: '이번 주 추천 문화 행사',      type: 'culture'  },
 ];
+
+const YOUTUBE_LINKS: Record<string, string> = {
+  golf: 'https://www.youtube.com/results?search_query=시니어+골프+레슨',
+  ai:   'https://www.youtube.com/results?search_query=시니어를+위한+AI+활용법+강의',
+};
 
 const LECTURES = [
   { icon: '⛳', title: '인터넷 골프 레슨', sub: '시니어를 위한 최적의 강의', color: '#388e3c' },
