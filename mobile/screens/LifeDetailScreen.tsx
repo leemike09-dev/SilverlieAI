@@ -1,5 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
+
+const API_URL = 'https://silverlieai.onrender.com';
 import BottomTabBar from '../components/BottomTabBar';
 
 type Props = { route: any; navigation: any };
@@ -147,6 +149,21 @@ const CONTENT: Record<string, any> = {
 
 export default function LifeDetailScreen({ route, navigation }: Props) {
   const { type, name = '회원', userId = 'demo-user', travelTitle, travelSub, travelTags } = route?.params ?? {};
+  const [aiDetail, setAiDetail] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const fetchTravelDetail = () => {
+    if (!travelTitle || aiLoading) return;
+    setAiLoading(true);
+    fetch(`${API_URL}/ai/chat`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: `시니어 여행지 "${travelTitle}" 에 대해 알려주세요. 교통편, 숙소 추천, 주요 관광지, 맛집을 각 2가지씩 간단히 알려주세요.` }),
+    })
+      .then(r => r.json())
+      .then(d => setAiDetail(d.reply || '정보를 가져오지 못했습니다.'))
+      .catch(() => setAiDetail('연결에 실패했습니다. 잠시 후 다시 시도해주세요.'))
+      .finally(() => setAiLoading(false));
+  };
   const data = CONTENT[type];
   if (!data) return null;
 
@@ -187,6 +204,26 @@ export default function LifeDetailScreen({ route, navigation }: Props) {
           <Text style={s.tipText}>{data.tip}</Text>
         </View>
 
+        {type === 'travel' && (
+          <View style={s.aiDetailWrap}>
+            {!aiDetail ? (
+              <TouchableOpacity style={s.aiDetailBtn} onPress={fetchTravelDetail} disabled={aiLoading}>
+                {aiLoading
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={s.aiDetailBtnText}>🤖 AI에게 상세 정보 물어보기</Text>}
+              </TouchableOpacity>
+            ) : (
+              <View style={s.aiDetailCard}>
+                <Text style={s.aiDetailTitle}>🤖 AI 상세 안내</Text>
+                <Text style={s.aiDetailText}>{aiDetail}</Text>
+                <TouchableOpacity onPress={() => setAiDetail('')} style={s.aiDetailReset}>
+                  <Text style={{ fontSize: 12, color: '#90a4ae' }}>↩ 다시 물어보기</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        )}
+
         <TouchableOpacity style={s.backBtn}
           onPress={() => navigation.navigate('Life', { name, userId })}>
           <Text style={s.backBtnText}>← 라이프로 돌아가기</Text>
@@ -221,4 +258,14 @@ const s = StyleSheet.create({
   backBtn: { backgroundColor: '#fff', borderRadius: 14, paddingVertical: 15,
              alignItems: 'center', borderWidth: 1.5, borderColor: '#c8e6c9' },
   backBtnText: { fontSize: 14, fontWeight: '700', color: '#558b2f' },
+
+  aiDetailWrap:    { marginBottom: 12 },
+  aiDetailBtn:     { backgroundColor: '#1565c0', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+  aiDetailBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  aiDetailCard:    { backgroundColor: '#fff', borderRadius: 14, padding: 16,
+                     borderLeftWidth: 3, borderLeftColor: '#1565c0',
+                     shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width:0, height:2 }, shadowRadius:6, elevation:2 },
+  aiDetailTitle:   { fontSize: 13, fontWeight: '800', color: '#1565c0', marginBottom: 10 },
+  aiDetailText:    { fontSize: 13, color: '#37474f', lineHeight: 22 },
+  aiDetailReset:   { marginTop: 10, alignItems: 'flex-end' },
 });
