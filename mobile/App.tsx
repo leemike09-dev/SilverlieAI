@@ -19,6 +19,7 @@ import GroupBoardScreen from './screens/GroupBoardScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import WearableScreen from './screens/WearableScreen';
 import LifeScreen from './screens/LifeScreen';
+import OnboardingScreen from './screens/OnboardingScreen';
 
 const Stack = createNativeStackNavigator();
 const DEMO = { name: '홍길동', userId: 'demo-user', isGuest: false };
@@ -49,6 +50,7 @@ export default function App() {
           <Stack.Screen name="AIRecommend" component={AIRecommendScreen} initialParams={DEMO} />
           <Stack.Screen name="Wearable"    component={WearableScreen}    initialParams={DEMO} />
           <Stack.Screen name="Life"        component={LifeScreen}        initialParams={DEMO} />
+          <Stack.Screen name="Onboarding"  component={OnboardingScreen}  />
         </Stack.Navigator>
       </NavigationContainer>
     </LanguageProvider>
