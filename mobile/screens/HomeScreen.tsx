@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomTabBar from '../components/BottomTabBar';
+import { DEMO_MODE } from '../App';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -37,9 +38,9 @@ function calcScore(r: any): number {
 }
 
 export default function HomeScreen({ route, navigation }: any) {
-  const [isGuest,      setIsGuest]      = useState(true);
-  const [name,         setName]         = useState('게스트');
-  const [userId,       setUserId]       = useState('');
+  const [isGuest,      setIsGuest]      = useState(DEMO_MODE ? false : true);
+  const [name,         setName]         = useState(DEMO_MODE ? '홍길동' : '게스트');
+  const [userId,       setUserId]       = useState(DEMO_MODE ? 'demo-user' : '');
   const [record,       setRecord]       = useState<any>(null);
   const [exerciseDone, setExerciseDone] = useState<boolean | null>(null);
   const [showPopup,    setShowPopup]    = useState(false);
@@ -48,6 +49,7 @@ export default function HomeScreen({ route, navigation }: any) {
   const tickerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (DEMO_MODE) return;  // 데모 모드: 로그인 체크 스킵
     const checkLogin = async () => {
       const storedId   = await AsyncStorage.getItem('userId');
       const storedName = await AsyncStorage.getItem('userName');

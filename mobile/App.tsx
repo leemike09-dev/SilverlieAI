@@ -24,6 +24,9 @@ import OnboardingScreen from './screens/OnboardingScreen';
 import HealthNewsScreen from './screens/HealthNewsScreen';
 
 const Stack = createNativeStackNavigator();
+
+// ✅ 팀 평가용 데모 모드 — 출시 전 false로 변경
+export const DEMO_MODE = true;
 const DEMO = { name: '홍길동', userId: 'demo-user', isGuest: false };
 
 export default function App() {
