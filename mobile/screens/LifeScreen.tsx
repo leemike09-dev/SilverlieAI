@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, SafeAreaView, Dimensions, Linking, ActivityIndicator,
+  TouchableOpacity, SafeAreaView, Dimensions, Linking, ActivityIndicator, Platform,
 } from 'react-native';
 import BottomTabBar from '../components/BottomTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
+
+const openURL = (url: string) => {
+  if (Platform.OS === 'web') {
+    window.open(url, '_blank');
+  } else {
+    Linking.openURL(url);
+  }
+};
 
 const { width } = Dimensions.get('window');
 
@@ -67,7 +75,7 @@ export default function LifeScreen({ route, navigation }: Props) {
             </>
           )}
           <TouchableOpacity style={styles.heroBtn}
-            onPress={() => Linking.openURL('https://www.google.com/search?q=' + encodeURIComponent((travel?.title ?? '시니어 봄 여행') + ' 시니어'))}>
+            onPress={() => openURL('https://www.google.com/search?q=' + encodeURIComponent((travel?.title ?? '시니어 봄 여행') + ' 시니어'))}>
             <Text style={styles.heroBtnText}>자세히 보기 →</Text>
           </TouchableOpacity>
         </View>
@@ -98,7 +106,7 @@ export default function LifeScreen({ route, navigation }: Props) {
 
         {LECTURES.map((lec, i) => (
           <TouchableOpacity key={i} style={styles.lectureCard} activeOpacity={0.85}
-            onPress={() => Linking.openURL(YOUTUBE_LINKS[i === 0 ? 'golf' : 'ai'])}>
+            onPress={() => openURL(YOUTUBE_LINKS[i === 0 ? 'golf' : 'ai'])}>
             <View style={[styles.lectureAccent, { backgroundColor: lec.color }]} />
             <View style={styles.lectureIconWrap}>
               <Text style={styles.lectureIcon}>{lec.icon}</Text>
