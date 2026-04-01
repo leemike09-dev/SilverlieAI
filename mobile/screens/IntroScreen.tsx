@@ -1,20 +1,18 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Animated, StatusBar, Dimensions, Platform,
+  Animated, StatusBar, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const { width, height } = Dimensions.get('window');
-
 export default function IntroScreen({ navigation }: any) {
   const fadeAnim  = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(24)).current;
+  const slideAnim = useRef(new Animated.Value(28)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim,  { toValue: 1, duration: 900, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 700, delay: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 1000, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 800, delay: 300, useNativeDriver: true }),
     ]).start();
   }, []);
 
@@ -32,63 +30,57 @@ export default function IntroScreen({ navigation }: any) {
     }
   };
 
-  const cardW = width - 40;
-  const cardH = height * 0.80;
-
   return (
     <View style={s.root}>
-      {Platform.OS !== 'web' && <StatusBar barStyle="light-content" backgroundColor="#0d1428" />}
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      <Animated.View style={{ opacity: fadeAnim, alignItems: 'center', width: '100%' }}>
+      {/* ── 전체화면 그라디언트 배경 레이어 ── */}
+      {/* 맨 아래: 다크 네이비 */}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: '#1a3060' }]} />
+      {/* 중간: 스틸 블루 */}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: '#3a6878', opacity: 0.85, bottom: '30%' }]} />
+      {/* 상단: 틸 그린 */}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: '#5a9080', opacity: 0.80, bottom: '48%' }]} />
+      {/* 최상단: 세이지 그린 */}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: '#7aae90', opacity: 0.75, bottom: '62%' }]} />
+      {/* 꼭대기: 연한 세이지 */}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: '#9ac4a4', opacity: 0.60, bottom: '74%' }]} />
 
-        {/* 메인 카드 */}
-        <View style={[s.card, { width: cardW, height: cardH }]}>
+      {/* 태양 글로우 */}
+      <View style={s.sunGlow} />
+      <View style={s.sunCore} />
 
-          {/* 그라디언트 레이어 (세이지그린→틸→스틸블루→다크네이비) */}
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: '#1a3560', borderRadius: 32 }]} />
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: '#2a6070', opacity: 0.80, borderRadius: 32, top: 0, bottom: '35%' }]} />
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: '#4a8878', opacity: 0.75, borderRadius: 32, top: 0, bottom: '55%' }]} />
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: '#6aaa88', opacity: 0.70, borderRadius: 32, top: 0, bottom: '68%' }]} />
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: '#8aba98', opacity: 0.60, borderRadius: 32, top: 0, bottom: '76%' }]} />
+      {/* 산 실루엣 하단 */}
+      <View style={s.mtnWrap}>
+        <View style={s.mtnL} />
+        <View style={s.mtnR} />
+        <View style={s.mtnC} />
+        <View style={s.mtnFloor} />
+      </View>
 
-          {/* 태양 글로우 */}
-          <View style={s.sunGlow} />
-          <View style={s.sunCore} />
+      {/* ── 콘텐츠 ── */}
+      <Animated.View style={[s.content, { opacity: fadeAnim }]}>
 
-          {/* 산 실루엣 */}
-          <View style={s.mtnWrap}>
-            <View style={s.mtnL} />
-            <View style={s.mtnR} />
-            <View style={s.mtnC} />
-            <View style={s.mtnFloor} />
+        {/* 상단: 배지 + 타이틀 */}
+        <View style={s.top}>
+          <View style={s.badge}>
+            <Text style={s.badgeTxt}>🌿 Silver Life AI</Text>
           </View>
+          <Text style={s.title}>{'건강한 하루,\n행복한 내일'}</Text>
+          <Text style={s.subtitle}>시니어를 위한 AI 건강 파트너</Text>
+        </View>
 
-          {/* 배지 + 타이틀 */}
-          <View style={s.cardTop}>
-            <View style={s.badge}>
-              <Text style={s.badgeTxt}>🌿 Silver Life AI</Text>
-            </View>
-            <Text style={s.title}>{'건강한 하루,\n행복한 내일'}</Text>
-            <Text style={s.subtitle}>시니어를 위한 AI 건강 파트너</Text>
-          </View>
-
-          {/* 명언 카드 */}
-          <Animated.View style={[s.quoteCard, { transform: [{ translateY: slideAnim }] }]}>
+        {/* 하단: 명언 + 버튼 */}
+        <Animated.View style={[s.bottom, { transform: [{ translateY: slideAnim }] }]}>
+          <View style={s.quoteCard}>
             <Text style={s.quoteIcon}>💬</Text>
             <Text style={s.quoteTxt}>{'"건강이 전부는 아니지만,\n건강 없이는 전부가 없다."'}</Text>
             <Text style={s.quoteAuthor}>— 아르투어 쇼펜하우어</Text>
-          </Animated.View>
-
-        </View>
-
-        {/* 시작하기 버튼 (카드 바깥) */}
-        <TouchableOpacity
-          style={[s.startBtn, { width: cardW }]}
-          onPress={handleStart}
-          activeOpacity={0.82}
-        >
-          <Text style={s.startBtnTxt}>시작하기</Text>
-        </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={s.startBtn} onPress={handleStart} activeOpacity={0.82}>
+            <Text style={s.startBtnTxt}>시작하기</Text>
+          </TouchableOpacity>
+        </Animated.View>
 
       </Animated.View>
     </View>
@@ -98,136 +90,143 @@ export default function IntroScreen({ navigation }: any) {
 const s = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#0d1428',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 24,
+    backgroundColor: '#1a3060',
   },
-  card: {
-    borderRadius: 32,
-    overflow: 'hidden',
-    position: 'relative',
-  },
+
+  /* 태양 글로우 */
   sunGlow: {
     position: 'absolute',
-    top: '18%',
+    top: '22%',
     left: '50%',
-    marginLeft: -90,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: '#f5c030',
-    opacity: 0.18,
+    marginLeft: -100,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: '#f5d060',
+    opacity: 0.20,
   },
   sunCore: {
     position: 'absolute',
-    top: '21%',
+    top: '25%',
     left: '50%',
-    marginLeft: -50,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#fde878',
-    opacity: 0.30,
+    marginLeft: -55,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: '#ffe080',
+    opacity: 0.28,
   },
+
+  /* 산 실루엣 */
   mtnWrap: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 140,
+    height: 180,
   },
   mtnL: {
     position: 'absolute',
     bottom: 0,
-    left: -40,
+    left: -60,
     width: 0, height: 0,
-    borderLeftWidth: 200,
-    borderRightWidth: 200,
-    borderBottomWidth: 180,
+    borderLeftWidth: 240,
+    borderRightWidth: 240,
+    borderBottomWidth: 210,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderBottomColor: '#071020',
+    borderBottomColor: '#0d1f3a',
   },
   mtnR: {
     position: 'absolute',
     bottom: 0,
-    right: -40,
+    right: -60,
     width: 0, height: 0,
-    borderLeftWidth: 200,
-    borderRightWidth: 200,
-    borderBottomWidth: 155,
+    borderLeftWidth: 240,
+    borderRightWidth: 240,
+    borderBottomWidth: 175,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderBottomColor: '#091528',
+    borderBottomColor: '#0f2244',
   },
   mtnC: {
     position: 'absolute',
     bottom: 0,
     left: '50%',
-    marginLeft: -130,
+    marginLeft: -150,
     width: 0, height: 0,
-    borderLeftWidth: 130,
-    borderRightWidth: 130,
-    borderBottomWidth: 110,
+    borderLeftWidth: 150,
+    borderRightWidth: 150,
+    borderBottomWidth: 130,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderBottomColor: '#0b1830',
+    borderBottomColor: '#112550',
   },
   mtnFloor: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 36,
-    backgroundColor: '#071020',
+    height: 40,
+    backgroundColor: '#0d1f3a',
   },
-  cardTop: {
-    paddingTop: 44,
-    paddingHorizontal: 28,
+
+  /* 콘텐츠 레이아웃 */
+  content: {
+    flex: 1,
+    justifyContent: 'space-between',
+    paddingTop: Platform.OS === 'web' ? 60 : 80,
+    paddingBottom: 40,
+    paddingHorizontal: 24,
+  },
+  top: {
     alignItems: 'center',
   },
+  bottom: {
+    gap: 14,
+  },
+
+  /* 앱 배지 */
   badge: {
     backgroundColor: 'rgba(255,255,255,0.22)',
     borderRadius: 24,
-    paddingHorizontal: 18,
-    paddingVertical: 7,
-    marginBottom: 22,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    marginBottom: 24,
   },
   badgeTxt: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     letterSpacing: 0.3,
   },
+
+  /* 타이틀 */
   title: {
     color: '#fff',
-    fontSize: 38,
+    fontSize: 40,
     fontWeight: '800',
     textAlign: 'center',
-    lineHeight: 52,
-    marginBottom: 12,
-    textShadowColor: 'rgba(0,0,0,0.35)',
+    lineHeight: 54,
+    marginBottom: 14,
+    textShadowColor: 'rgba(0,0,0,0.30)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 10,
   },
   subtitle: {
-    color: 'rgba(255,255,255,0.82)',
-    fontSize: 16,
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 17,
     textAlign: 'center',
     letterSpacing: 0.3,
   },
+
+  /* 명언 카드 */
   quoteCard: {
-    position: 'absolute',
-    bottom: 22,
-    left: 16,
-    right: 16,
-    backgroundColor: 'rgba(8,20,45,0.70)',
+    backgroundColor: 'rgba(8,18,40,0.68)',
     borderRadius: 18,
     padding: 22,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   quoteIcon: {
     fontSize: 22,
@@ -235,8 +234,8 @@ const s = StyleSheet.create({
   },
   quoteTxt: {
     color: '#fff',
-    fontSize: 17,
-    lineHeight: 27,
+    fontSize: 18,
+    lineHeight: 28,
     fontWeight: '500',
     marginBottom: 10,
   },
@@ -245,8 +244,9 @@ const s = StyleSheet.create({
     fontSize: 14,
     textAlign: 'right',
   },
+
+  /* 시작하기 버튼 */
   startBtn: {
-    marginTop: 14,
     backgroundColor: '#4e8a5e',
     borderRadius: 18,
     paddingVertical: 20,
