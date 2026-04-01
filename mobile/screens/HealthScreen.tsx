@@ -254,6 +254,13 @@ export default function HealthScreen({ route, navigation }: any) {
             </View>
           )}
 
+          {/* AI 건강 분석 버튼 — 박스 위 */}
+          <TouchableOpacity style={s.aiAnalysisBtn}
+            onPress={() => navigation.navigate('Dashboard', { userId, name })}
+            activeOpacity={0.85}>
+            <Text style={s.aiAnalysisBtnTxt}>🤖 AI 건강 분석 자세히 보기 →</Text>
+          </TouchableOpacity>
+
           {/* 수치 그리드 — 걸음수 맨 앞 */}
           <View style={s.metricsGrid}>
             {[
@@ -296,13 +303,6 @@ export default function HealthScreen({ route, navigation }: any) {
           {/* 기록하기 버튼 */}
           <TouchableOpacity style={s.recordBtn} onPress={() => setActiveTab('record')}>
             <Text style={s.recordBtnTxt}>📝 오늘 건강 기록하기</Text>
-          </TouchableOpacity>
-
-          {/* AI 건강 분석 버튼 */}
-          <TouchableOpacity style={s.aiAnalysisBtn}
-            onPress={() => navigation.navigate('Dashboard', { userId, name })}
-            activeOpacity={0.85}>
-            <Text style={s.aiAnalysisBtnTxt}>🤖 AI 건강 분석 자세히 보기 →</Text>
           </TouchableOpacity>
 
           {/* 홈으로 */}
@@ -474,16 +474,16 @@ const s = StyleSheet.create({
 
   // 수치 카드
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  metricCard:  { width: (width - 28 - 10) / 2, backgroundColor: '#fff', borderRadius: 16, padding: 18,
+  metricCard:  { width: (width - 28 - 10) / 2, backgroundColor: '#fff', borderRadius: 14, padding: 12,
                  shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width:0, height:2 }, shadowRadius:6, elevation:2 },
   metricHeader: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
-  metricIcon:  { fontSize: 22 },
-  metricLabel: { flex: 1, fontSize: 14, color: '#546e7a', fontWeight: '600' },
+  metricIcon:  { fontSize: 16 },
+  metricLabel: { flex: 1, fontSize: 11, color: '#546e7a', fontWeight: '600' },
   metricAI:    { fontSize: 9, color: '#2196f3', fontWeight: '600' },
-  metricVal:   { fontSize: 28, fontWeight: '800', color: '#1a3a5c', marginBottom: 4 },
-  metricUnit:  { fontSize: 13, color: '#9aabb8', fontWeight: '400' },
-  metricEmpty: { fontSize: 15, color: '#b0bec5' },
-  metricStatus: { fontSize: 13, fontWeight: '600' },
+  metricVal:   { fontSize: 20, fontWeight: '800', color: '#1a3a5c', marginBottom: 2 },
+  metricUnit:  { fontSize: 10, color: '#9aabb8', fontWeight: '400' },
+  metricEmpty: { fontSize: 12, color: '#b0bec5' },
+  metricStatus: { fontSize: 11, fontWeight: '600' },
 
   // CTA 버튼
   ctaRow:         { flexDirection: 'row', gap: 8 },
