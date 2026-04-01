@@ -77,6 +77,39 @@ const CONTENT: Record<string, any> = {
     ],
     tip: '🧠 매일 10분 두뇌 운동은 인지 기능 유지에 도움이 됩니다.',
   },
+  travel: {
+    icon: '✈️', title: 'AI 맞춤 여행',
+    sub: '',
+    tag: 'AI 추천',
+    tagColor: '#e3f2fd', tagText: '#1565c0',
+    sections: [
+      {
+        heading: '✈️ 추천 여행지',
+        items: [''],
+      },
+      {
+        heading: '🏥 시니어 건강 여행 팁',
+        items: [
+          '출발 전 주치의와 여행 가능 여부 상담',
+          '복용 중인 약은 2배수로 챙기기',
+          '여행자 보험 필수 가입 (시니어 특화 상품)',
+          '무리한 일정보다 여유 있는 반일 코스 추천',
+          '현지 병원 위치 미리 확인',
+        ],
+      },
+      {
+        heading: '🎒 짐 꾸리기',
+        items: [
+          '편한 걷기 신발 (굽 낮고 미끄럼 방지)',
+          '무릎 보호대 / 지팡이 (필요 시)',
+          '혈압계·혈당계 (지병 있는 경우)',
+          '상비약: 소화제·두통약·파스',
+          '선크림 SPF 50+ (야외 활동 필수)',
+        ],
+      },
+    ],
+    tip: '💡 시니어 할인: 경로 우대 (만 65세 이상) — 기차·버스·입장료 최대 50% 할인',
+  },
   culture: {
     icon: '🎭', title: '이번 주 문화 행사',
     sub: '서울 시니어 추천 행사',
@@ -113,9 +146,18 @@ const CONTENT: Record<string, any> = {
 };
 
 export default function LifeDetailScreen({ route, navigation }: Props) {
-  const { type, name = '회원', userId = 'demo-user' } = route?.params ?? {};
+  const { type, name = '회원', userId = 'demo-user', travelTitle, travelSub, travelTags } = route?.params ?? {};
   const data = CONTENT[type];
   if (!data) return null;
+
+  // travel 타입이면 AI가 생성한 실제 데이터 사용
+  const displayTitle = type === 'travel' && travelTitle ? travelTitle : data.title;
+  const displaySub   = type === 'travel' && travelSub   ? travelSub   : data.sub;
+
+  if (type === 'travel' && travelTitle) {
+    data.sections[0].items = [travelTitle + (travelSub ? ' — ' + travelSub : '')];
+    if (travelTags) data.sections[0].items.push('키워드: ' + travelTags);
+  }
 
   return (
     <SafeAreaView style={s.safe}>
@@ -123,8 +165,8 @@ export default function LifeDetailScreen({ route, navigation }: Props) {
         <View style={[s.tag, { backgroundColor: data.tagColor }]}>
           <Text style={[s.tagText, { color: data.tagText }]}>{data.tag}</Text>
         </View>
-        <Text style={s.title}>{data.icon} {data.title}</Text>
-        <Text style={s.sub}>{data.sub}</Text>
+        <Text style={s.title}>{data.icon} {displayTitle}</Text>
+        <Text style={s.sub}>{displaySub}</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}

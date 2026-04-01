@@ -89,7 +89,13 @@ export default function LifeScreen({ route, navigation }: Props) {
             </>
           )}
           <TouchableOpacity style={styles.heroBtn}
-            onPress={() => openURL('https://www.google.com/search?q=' + encodeURIComponent((travel?.title ?? '시니어 봄 여행') + ' 시니어'))}>
+            onPress={() => navigation.navigate('LifeDetail', {
+              type: 'travel',
+              name, userId,
+              travelTitle: travel?.title,
+              travelSub: travel?.sub,
+              travelTags: travel?.tags,
+            })}>
             <Text style={styles.heroBtnText}>자세히 보기 →</Text>
           </TouchableOpacity>
         </View>
