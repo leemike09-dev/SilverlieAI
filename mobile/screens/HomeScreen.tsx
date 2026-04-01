@@ -111,7 +111,7 @@ export default function HomeScreen({ route, navigation }: any) {
         <View style={s.headerTop}>
           <Text style={s.appName}>Silver Life</Text>
           <View style={s.headerBtns}>
-            {isGuest ? (
+            {(isGuest || DEMO_MODE) && (
               <>
                 <TouchableOpacity style={s.btnLogin} onPress={goLogin}>
                   <Text style={s.btnLoginTxt}>로그인</Text>
@@ -120,9 +120,9 @@ export default function HomeScreen({ route, navigation }: any) {
                   <Text style={s.btnSignupTxt}>회원가입</Text>
                 </TouchableOpacity>
               </>
-            ) : null}
+            )}
             <TouchableOpacity onPress={() => navigation.navigate('Notifications', { userId, name })}>
-              <Text style={{ fontSize: 24 }}>🔔</Text>
+              <Text style={{ fontSize: 22 }}>🔔</Text>
             </TouchableOpacity>
           </View>
         </View>
