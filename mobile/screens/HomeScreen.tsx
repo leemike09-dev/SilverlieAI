@@ -32,14 +32,36 @@ function calcScore(r: any): number {
 }
 
 export default function HomeScreen({ route, navigation }: any) {
-  const isGuest = route?.params?.isGuest !== false && !route?.params?.userId;
-  const name    = route?.params?.name || '게스트';
-  const userId  = route?.params?.userId || '';
-
+  const [isGuest,      setIsGuest]      = useState(true);
+  const [name,         setName]         = useState('게스트');
+  const [userId,       setUserId]       = useState('');
   const [record,       setRecord]       = useState<any>(null);
   const [exerciseDone, setExerciseDone] = useState<boolean | null>(null);
   const [showPopup,    setShowPopup]    = useState(false);
   const popupAnim = useRef(new Animated.Value(300)).current;
+
+  // AsyncStorage로 로그인 상태 확인 (route params보다 우선)
+  useEffect(() => {
+    const checkLogin = async () => {
+      const storedId   = await AsyncStorage.getItem('userId');
+      const storedName = await AsyncStorage.getItem('userName');
+      if (storedId && storedName) {
+        setIsGuest(false);
+        setName(storedName);
+        setUserId(storedId);
+      } else {
+        const pUserId = route?.params?.userId;
+        const pName   = route?.params?.name;
+        const pGuest  = route?.params?.isGuest;
+        if (pUserId && pUserId !== 'demo-user' && pGuest === false) {
+          setIsGuest(false);
+          setName(pName || '회원');
+          setUserId(pUserId);
+        }
+      }
+    };
+    checkLogin();
+  }, [route?.params]);
 
   useEffect(() => {
     if (!userId || userId === 'demo-user') return;
@@ -166,7 +188,7 @@ export default function HomeScreen({ route, navigation }: any) {
         <View style={s.tilesGrid}>
           {HEALTH_TILES.map((tile, i) => (
             <TouchableOpacity key={i} style={s.tile}
-              onPress={() => navigation.navigate('Life')}
+              onPress={() => navigation.navigate('HealthNews', { userId, name })}
             >
               <Text style={s.tileIcon}>{tile.icon}</Text>
               <Text style={s.tileLabel}>{tile.label}</Text>

@@ -20,6 +20,7 @@ import NotificationsScreen from './screens/NotificationsScreen';
 import WearableScreen from './screens/WearableScreen';
 import LifeScreen from './screens/LifeScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
+import HealthNewsScreen from './screens/HealthNewsScreen';
 
 const Stack = createNativeStackNavigator();
 const DEMO = { name: '홍길동', userId: 'demo-user', isGuest: false };
@@ -51,6 +52,7 @@ export default function App() {
           <Stack.Screen name="Wearable"    component={WearableScreen}    initialParams={DEMO} />
           <Stack.Screen name="Life"        component={LifeScreen}        initialParams={DEMO} />
           <Stack.Screen name="Onboarding"  component={OnboardingScreen}  />
+          <Stack.Screen name="HealthNews"  component={HealthNewsScreen}  initialParams={DEMO} />
         </Stack.Navigator>
       </NavigationContainer>
     </LanguageProvider>
