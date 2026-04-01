@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   SafeAreaView, Dimensions, TextInput,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomTabBar from '../components/BottomTabBar';
 
 const { width } = Dimensions.get('window');
@@ -65,6 +66,18 @@ export default function CommunityScreen({ route, navigation }: Props) {
   const [activeTab, setActiveTab] = useState<'feed' | 'mygroup' | 'explore'>('feed');
   const [activeCat, setActiveCat] = useState('전체');
   const [expandedGroup, setExpandedGroup] = useState<string | null>('새벽 걷기 모임');
+  const [showGuide, setShowGuide] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem('community_guide_dismissed').then(v => {
+      if (!v) setShowGuide(true);
+    });
+  }, []);
+
+  const dismissGuide = () => {
+    setShowGuide(false);
+    AsyncStorage.setItem('community_guide_dismissed', '1');
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -109,6 +122,37 @@ export default function CommunityScreen({ route, navigation }: Props) {
           </ScrollView>
           <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 100 }}>
+            {/* 처음 방문 안내 카드 */}
+            {showGuide && (
+              <View style={styles.guideCard}>
+                <View style={styles.guideTop}>
+                  <Text style={styles.guideTitle}>👋 커뮤니티 처음이세요?</Text>
+                  <TouchableOpacity onPress={dismissGuide}>
+                    <Text style={styles.guideClose}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.guideSteps}>
+                  <View style={styles.guideStep}>
+                    <View style={styles.guideNum}><Text style={styles.guideNumText}>1</Text></View>
+                    <Text style={styles.guideStepText}>그룹 탐색</Text>
+                  </View>
+                  <Text style={styles.guideArrow}>→</Text>
+                  <View style={styles.guideStep}>
+                    <View style={styles.guideNum}><Text style={styles.guideNumText}>2</Text></View>
+                    <Text style={styles.guideStepText}>그룹 가입</Text>
+                  </View>
+                  <Text style={styles.guideArrow}>→</Text>
+                  <View style={styles.guideStep}>
+                    <View style={styles.guideNum}><Text style={styles.guideNumText}>3</Text></View>
+                    <Text style={styles.guideStepText}>이웃과 소통</Text>
+                  </View>
+                </View>
+                <TouchableOpacity style={styles.guideBtn}
+                  onPress={() => { setActiveTab('explore'); dismissGuide(); }}>
+                  <Text style={styles.guideBtnText}>그룹 찾아보기 →</Text>
+                </TouchableOpacity>
+              </View>
+            )}
             {/* 인기글 */}
             <View style={styles.hotBox}>
               <Text style={styles.hotTitle}>🔥 지금 뜨거운 이야기</Text>
@@ -331,4 +375,20 @@ const styles = StyleSheet.create({
   newGroupSub: { fontSize: 12, color: 'rgba(255,255,255,0.8)', textAlign: 'center', lineHeight: 18, marginBottom: 14 },
   newGroupBtn: { backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 24, paddingVertical: 10 },
   newGroupBtnText: { color: BLUE, fontSize: 13, fontWeight: '800' },
+
+  /* 안내 카드 */
+  guideCard: { backgroundColor: '#fff', margin: 12, marginBottom: 0, borderRadius: 16, padding: 16,
+               borderWidth: 1.5, borderColor: '#bbdefb',
+               shadowColor: '#1565c0', shadowOpacity: 0.08, shadowOffset: { width: 0, height: 2 }, shadowRadius: 6, elevation: 3 },
+  guideTop:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  guideTitle: { fontSize: 15, fontWeight: '800', color: '#1a237e' },
+  guideClose: { fontSize: 16, color: '#b0bec5', padding: 4 },
+  guideSteps: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 14, gap: 6 },
+  guideStep:  { alignItems: 'center', gap: 6 },
+  guideNum:   { width: 28, height: 28, borderRadius: 14, backgroundColor: BLUE, justifyContent: 'center', alignItems: 'center' },
+  guideNumText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  guideStepText: { fontSize: 11, color: '#546e7a', fontWeight: '600' },
+  guideArrow: { fontSize: 14, color: '#b0bec5', marginBottom: 14 },
+  guideBtn:   { backgroundColor: BLUE, borderRadius: 20, paddingVertical: 10, alignItems: 'center' },
+  guideBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
 });
