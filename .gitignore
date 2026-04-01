@@ -9,6 +9,7 @@ __pycache__/
 *.pyo
 .venv/
 venv/
+venv_new/
 env/
 *.egg-info/
 dist/
