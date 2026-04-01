@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, Dimensions } from 'react-native';
 import BottomTabBar from '../components/BottomTabBar';
 
 const { width } = Dimensions.get('window');
@@ -19,9 +19,6 @@ export default function WeeklyReportScreen({ route, navigation }: Props) {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.back}>← 건강</Text>
-        </TouchableOpacity>
         <Text style={styles.title}>7일 건강 리포트</Text>
         <Text style={styles.sub}>03.25 — 03.31 · 평균 {avg}점</Text>
       </View>
@@ -98,7 +95,6 @@ const BG = '#0a1628'; const CARD = '#0e1e35'; const BORDER = '#1a2a3a'; const AC
 const styles = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: BG },
   header: { backgroundColor: BG, padding: 18, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: BORDER },
-  back:   { fontSize: 12, color: ACCENT, marginBottom: 8 },
   title:  { fontSize: 18, fontWeight: '800', color: '#fff' },
   sub:    { fontSize: 11, color: '#607d8b', marginTop: 3 },
 
