@@ -9,7 +9,13 @@ const API_URL = 'https://silverlieai.onrender.com';
 
 const openURL = (url: string) => {
   if (Platform.OS === 'web') {
-    window.open(url, '_blank');
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   } else {
     Linking.openURL(url);
   }
@@ -37,6 +43,8 @@ export default function LifeScreen({ route, navigation }: Props) {
   const [travelLoading, setTravelLoading] = useState(true);
 
   useEffect(() => {
+    const DEFAULT = { title: '봄 건강 여행', sub: '경주 온천 1박 2일', tags: '🌡 온천 치료 · 🍱 한식 건강식 · 🚌 편의 이동' };
+    const timer = setTimeout(() => { setTravel(DEFAULT); setTravelLoading(false); }, 5000);
     fetch(`${API_URL}/ai/chat`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: '한국 시니어에게 맞는 봄 여행지 1곳을 추천해줘. 제목(15자 이내), 부제(20자 이내), 키워드 3개를 JSON으로: {"title":"...","sub":"...","tags":"... · ... · ..."}' }),
@@ -46,9 +54,10 @@ export default function LifeScreen({ route, navigation }: Props) {
         const text = d.reply || '';
         const start = text.indexOf('{'); const end = text.lastIndexOf('}') + 1;
         if (start >= 0) setTravel(JSON.parse(text.slice(start, end)));
+        else setTravel(DEFAULT);
       })
-      .catch(() => {})
-      .finally(() => setTravelLoading(false));
+      .catch(() => setTravel(DEFAULT))
+      .finally(() => { clearTimeout(timer); setTravelLoading(false); });
   }, []);
 
   return (
