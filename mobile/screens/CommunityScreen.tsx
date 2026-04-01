@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  SafeAreaView, Dimensions, TextInput,
+  SafeAreaView, Dimensions, TextInput, Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomTabBar from '../components/BottomTabBar';
@@ -67,12 +67,34 @@ export default function CommunityScreen({ route, navigation }: Props) {
   const [activeCat, setActiveCat] = useState('전체');
   const [expandedGroup, setExpandedGroup] = useState<string | null>('새벽 걷기 모임');
   const [showGuide, setShowGuide] = useState(false);
+  const [likes, setLikes] = useState<Record<number, number>>({ 0: 12, 1: 28, 2: 5 });
+  const [liked, setLiked] = useState<Record<number, boolean>>({});
+  const [joined, setJoined] = useState<Record<string, boolean>>({});
+  const [showWrite, setShowWrite] = useState(false);
+  const [writeText, setWriteText] = useState('');
+  const [feedPosts, setFeedPosts] = useState(FEED_POSTS);
 
   useEffect(() => {
     AsyncStorage.getItem('community_guide_dismissed').then(v => {
       if (!v) setShowGuide(true);
     });
   }, []);
+
+  const toggleLike = (i: number) => {
+    setLiked(prev => ({ ...prev, [i]: !prev[i] }));
+    setLikes(prev => ({ ...prev, [i]: (prev[i] || 0) + (liked[i] ? -1 : 1) }));
+  };
+
+  const submitPost = () => {
+    if (!writeText.trim()) return;
+    setFeedPosts(prev => [{
+      avatar: '👤', author: '홍길동 님', time: '방금 전',
+      groupTag: '🌿 자유게시판', groupColor: '#e8f5e9', groupTextColor: '#2e7d32',
+      body: writeText.trim(), img: null, likes: 0, comments: 0,
+    }, ...prev]);
+    setWriteText('');
+    setShowWrite(false);
+  };
 
   const dismissGuide = () => {
     setShowGuide(false);
@@ -89,7 +111,7 @@ export default function CommunityScreen({ route, navigation }: Props) {
             <Text style={styles.headerSub}>커뮤니티</Text>
           </View>
           <TouchableOpacity style={styles.writeBtn}
-            onPress={() => {}}>
+            onPress={() => setShowWrite(true)}>
             <Text style={styles.writeBtnText}>✏️ 글쓰기</Text>
           </TouchableOpacity>
         </View>
@@ -165,7 +187,7 @@ export default function CommunityScreen({ route, navigation }: Props) {
               ))}
             </View>
             {/* 피드 */}
-            {FEED_POSTS.map((post, i) => (
+            {feedPosts.map((post, i) => (
               <View key={i} style={styles.postCard}>
                 <View style={styles.postHeader}>
                   <View style={styles.avatar}><Text style={styles.avatarText}>{post.avatar}</Text></View>
@@ -182,7 +204,11 @@ export default function CommunityScreen({ route, navigation }: Props) {
                 )}
                 <Text style={styles.postBody}>{post.body}</Text>
                 <View style={styles.postFooter}>
-                  <TouchableOpacity style={styles.react}><Text style={styles.reactText}>❤️ {post.likes}</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.react} onPress={() => toggleLike(i)}>
+                    <Text style={[styles.reactText, liked[i] && { color: '#e53935' }]}>
+                      {liked[i] ? '❤️' : '🤍'} {likes[i] || post.likes}
+                    </Text>
+                  </TouchableOpacity>
                   <TouchableOpacity style={styles.react}><Text style={styles.reactText}>💬 {post.comments}</Text></TouchableOpacity>
                   <TouchableOpacity style={styles.react}><Text style={styles.reactText}>📤 공유</Text></TouchableOpacity>
                 </View>
@@ -263,7 +289,11 @@ export default function CommunityScreen({ route, navigation }: Props) {
                 <Text style={styles.gName}>{g.name}</Text>
                 <Text style={styles.gMeta}>{g.meta}</Text>
               </View>
-              <TouchableOpacity style={styles.joinBtn}><Text style={styles.joinBtnText}>가입</Text></TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.joinBtn, joined[g.name] && styles.joinBtnDone]}
+                onPress={() => setJoined(prev => ({ ...prev, [g.name]: !prev[g.name] }))}>
+                <Text style={styles.joinBtnText}>{joined[g.name] ? '가입됨 ✓' : '가입'}</Text>
+              </TouchableOpacity>
             </View>
           ))}
           {/* 새 그룹 만들기 배너 */}
@@ -277,6 +307,34 @@ export default function CommunityScreen({ route, navigation }: Props) {
           </View>
         </ScrollView>
       )}
+
+      {/* 글쓰기 모달 */}
+      <Modal visible={showWrite} transparent animationType="slide">
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowWrite(false)} />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>✏️ 글쓰기</Text>
+              <TouchableOpacity onPress={() => setShowWrite(false)}>
+                <Text style={{ fontSize: 18, color: '#90a4ae' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.writeInput}
+              placeholder="이웃들과 나누고 싶은 이야기를 적어보세요..."
+              placeholderTextColor="#b0bec5"
+              multiline value={writeText}
+              onChangeText={setWriteText}
+              autoFocus
+            />
+            <TouchableOpacity
+              style={[styles.submitBtn, !writeText.trim() && { opacity: 0.4 }]}
+              onPress={submitPost} disabled={!writeText.trim()}>
+              <Text style={styles.submitBtnText}>게시하기</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       <BottomTabBar navigation={navigation} activeTab="community" userId={userId} name={name} />
     </SafeAreaView>
