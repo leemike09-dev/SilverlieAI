@@ -1,137 +1,185 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
-import BottomTabBar from '../components/BottomTabBar';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform,
+} from 'react-native';
+import { DEMO_MODE } from '../App';
 
-type Props = { route: any; navigation: any };
+const SAMPLE = {
+  score: 82, scoreChange: +3, scoreRank: 28,
+  comment: '전반적으로 양호합니다. 혈압 관리와 걸음수를 조금 더 신경써보세요.',
+  points: [
+    { icon: '⚠️', label: '혈압', value: '138/88', status: '주의', color: '#ff9800' },
+    { icon: '✅', label: '맥박', value: '72 bpm', status: '정상', color: '#4caf50' },
+    { icon: '⚠️', label: '걸음수', value: '4,230보', status: '목표 84%', color: '#ff9800' },
+    { icon: '✅', label: '혈당', value: '104 mg', status: '정상', color: '#4caf50' },
+  ],
+  recs: [
+    { icon: '🚶', title: '1,770보 더 걷기', desc: '오후 20분 산책으로 목표 달성 가능', color: '#1a5fbc' },
+    { icon: '🥗', title: '저염식 권장', desc: '혈압 관리를 위해 나트륨 줄이기', color: '#388e3c' },
+    { icon: '😴', title: '7시간 수면', desc: '규칙적인 수면이 혈압 안정에 도움', color: '#6a1b9a' },
+    { icon: '💧', title: '수분 보충', desc: '하루 1.5L 이상 물 마시기', color: '#0288d1' },
+  ],
+};
 
-const METRICS = [
-  { icon: '🚶', label: '걸음수', key: 'steps',       unit: '',    normal: '8,000+' },
-  { icon: '💗', label: '혈압',   key: 'blood_pressure', unit: '',  normal: '120/80' },
-  { icon: '💓', label: '맥박',   key: 'heart_rate',   unit: 'bpm', normal: '60–100' },
-  { icon: '🩸', label: '혈당',   key: 'blood_sugar',  unit: 'mg',  normal: '<100'   },
-];
-
-export default function DashboardScreen({ route, navigation }: Props) {
-  const { name = '회원', userId = 'demo-user', record } = route?.params ?? {};
-  const r = record ?? { steps: 6240, blood_pressure: '118/78', heart_rate: 72, blood_sugar: 98 };
-
-  const getValue = (key: string) => {
-    const v = r[key];
-    if (!v) return '—';
-    if (key === 'steps') return Number(v).toLocaleString();
-    return String(v);
-  };
+export default function DashboardScreen({ route, navigation }: any) {
+  const { name = '홍길동', userId = 'demo-user' } = route?.params ?? {};
+  const d = SAMPLE;
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.back}>← 건강</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>오늘의 건강 분석</Text>
-        <Text style={styles.sub}>AI 종합 리포트</Text>
+    <View style={s.root}>
+
+      {/* 헤더 */}
+      <View style={s.header}>
+        <Text style={s.headerTitle}>🤖 AI 건강 분석</Text>
+        <Text style={s.headerSub}>{name}님의 오늘 리포트</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* 건강점수 */}
-        <View style={styles.scoreRow}>
-          <View style={styles.ring}>
-            <Text style={styles.ringN}>82</Text>
-            <Text style={styles.ringL}>건강점수</Text>
+      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+
+        {/* 종합 점수 카드 */}
+        <View style={s.scoreCard}>
+          <View style={s.scoreLeft}>
+            <View style={s.scoreRing}>
+              <Text style={s.scoreNum}>{d.score}</Text>
+              <Text style={s.scoreUnit}>점</Text>
+            </View>
           </View>
-          <View style={styles.scoreInfo}>
-            <Text style={styles.siTitle}>전반적으로 양호한 상태입니다</Text>
-            <View style={styles.progBar}><View style={[styles.progFill, { width: '82%' }]} /></View>
-            <Text style={styles.siSub}>지난주 대비 +3점 · 상위 28%</Text>
+          <View style={s.scoreRight}>
+            <Text style={s.scoreChange}>지난주 대비 +{d.scoreChange}점 ↑</Text>
+            <Text style={s.scoreRank}>상위 {d.scoreRank}%</Text>
+            <View style={s.progBarWrap}>
+              <View style={[s.progBarFill, { width: `${d.score}%` as any }]} />
+            </View>
+            <Text style={s.scoreComment}>{d.comment}</Text>
           </View>
         </View>
 
-        {/* 지표 4개 */}
-        <View style={styles.metricsRow}>
-          {METRICS.map(m => (
-            <View key={m.key} style={styles.metCard}>
-              <Text style={styles.metIcon}>{m.icon}</Text>
-              <Text style={styles.metVal}>{getValue(m.key)}</Text>
-              <Text style={styles.metLbl}>{m.label}</Text>
+        {/* 개선 포인트 */}
+        <Text style={s.sectionTitle}>📋 오늘의 건강 포인트</Text>
+        <View style={s.pointsGrid}>
+          {d.points.map((p, i) => (
+            <View key={i} style={s.pointCard}>
+              <Text style={s.pointIcon}>{p.icon}</Text>
+              <Text style={s.pointLabel}>{p.label}</Text>
+              <Text style={s.pointValue}>{p.value}</Text>
+              <Text style={[s.pointStatus, { color: p.color }]}>{p.status}</Text>
             </View>
           ))}
         </View>
 
-        {/* AI 분석 */}
-        <View style={styles.aiBox}>
-          <View style={styles.aiTag}><Text style={styles.aiTagTxt}>AI ANALYSIS</Text></View>
-          <Text style={styles.aiText}>
-            혈압이 안정적이며 걸음수가 목표치의 78%입니다.{'\n'}
-            8,000보 달성 시 심혈관 건강이 크게 개선됩니다.
-          </Text>
-          <View style={styles.advRow}>
-            {[
-              { icon: '🚶', title: '+1,760보', sub: '더 걷기' },
-              { icon: '💧', title: '수분 보충', sub: '1.5L 이상' },
-              { icon: '😴', title: '수면 유지', sub: '7시간' },
-            ].map((a, i) => (
-              <View key={i} style={styles.advCard}>
-                <Text style={styles.advIcon}>{a.icon}</Text>
-                <Text style={styles.advTitle}>{a.title}</Text>
-                <Text style={styles.advSub}>{a.sub}</Text>
+        {/* AI 맞춤 추천 */}
+        <Text style={s.sectionTitle}>✨ 오늘의 AI 맞춤 추천</Text>
+        <View style={s.recList}>
+          {d.recs.map((r, i) => (
+            <View key={i} style={[s.recCard, { borderLeftColor: r.color }]}>
+              <Text style={s.recIcon}>{r.icon}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={s.recTitle}>{r.title}</Text>
+                <Text style={s.recDesc}>{r.desc}</Text>
               </View>
-            ))}
-          </View>
+            </View>
+          ))}
         </View>
 
         {/* AI 상담 버튼 */}
-        <TouchableOpacity style={styles.chatBtn}
-          onPress={() => navigation.navigate('AIChat', { name, userId })}>
-          <Text style={styles.chatBtnTxt}>🤖 AI 상담 바로가기</Text>
+        <TouchableOpacity style={s.chatBtn}
+          onPress={() => navigation.navigate('AIChat', { name, userId })}
+          activeOpacity={0.85}>
+          <Text style={s.chatIcon}>💬</Text>
+          <View>
+            <Text style={s.chatTitle}>AI 상담 바로가기</Text>
+            <Text style={s.chatSub}>건강에 대해 더 자세히 물어보세요</Text>
+          </View>
         </TouchableOpacity>
-      </ScrollView>
 
-      <BottomTabBar navigation={navigation} activeTab="health" userId={userId} name={name} />
-    </SafeAreaView>
+        {/* 주간 리포트 버튼 */}
+        <TouchableOpacity style={s.reportBtn}
+          onPress={() => navigation.navigate('WeeklyReport', { name, userId })}
+          activeOpacity={0.85}>
+          <Text style={s.reportIcon}>📊</Text>
+          <View>
+            <Text style={s.reportTitle}>AI 주간 리포트</Text>
+            <Text style={s.reportSub}>7일 건강 흐름 분석 보기</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* 홈으로 */}
+        <TouchableOpacity style={s.homeBtn} onPress={() => navigation.navigate('Home')} activeOpacity={0.85}>
+          <Text style={s.homeBtnTxt}>← 홈으로</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 20 }} />
+      </ScrollView>
+    </View>
   );
 }
 
-const BG = '#0a1628'; const CARD = '#0e1e35'; const BORDER = '#1a2a3a';
-const BLUE = '#1565c0'; const ACCENT = '#4fc3f7';
+const BG   = '#0d1b2a';
+const CARD = '#13243a';
 
-const styles = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: BG },
-  header: { backgroundColor: BG, padding: 18, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: BORDER },
-  back:   { fontSize: 12, color: ACCENT, marginBottom: 8 },
-  title:  { fontSize: 18, fontWeight: '800', color: '#fff' },
-  sub:    { fontSize: 11, color: '#607d8b', marginTop: 3 },
+const s = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: BG,
+    ...(Platform.OS === 'web' ? { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0 } : {}),
+  },
+  header: {
+    backgroundColor: BG,
+    paddingTop: Platform.OS === 'web' ? 20 : 52,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a2a3a',
+  },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 2 },
+  headerSub:   { fontSize: 13, color: 'rgba(255,255,255,0.55)' },
 
-  scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: CARD,
-              padding: 18, borderBottomWidth: 1, borderBottomColor: BORDER },
-  ring:     { width: 72, height: 72, borderRadius: 36, borderWidth: 3, borderColor: BLUE,
-              backgroundColor: 'rgba(21,101,192,0.15)', justifyContent: 'center',
-              alignItems: 'center', flexShrink: 0 },
-  ringN:    { color: ACCENT, fontSize: 26, fontWeight: '900', lineHeight: 28 },
-  ringL:    { color: '#546e7a', fontSize: 9, marginTop: 2 },
-  scoreInfo:{ flex: 1 },
-  siTitle:  { color: '#e3f2fd', fontSize: 13, fontWeight: '700', marginBottom: 8 },
-  progBar:  { backgroundColor: '#1e2d40', borderRadius: 4, height: 6, marginBottom: 6, overflow: 'hidden' },
-  progFill: { height: '100%', borderRadius: 4, backgroundColor: BLUE },
-  siSub:    { color: '#546e7a', fontSize: 11 },
+  scroll:        { flex: 1 },
+  scrollContent: { padding: 16, gap: 12 },
 
-  metricsRow: { flexDirection: 'row', backgroundColor: CARD, borderBottomWidth: 1, borderBottomColor: BORDER },
-  metCard:    { flex: 1, padding: 12, alignItems: 'center', borderRightWidth: 1, borderRightColor: BORDER },
-  metIcon:    { fontSize: 16, marginBottom: 4 },
-  metVal:     { fontSize: 13, fontWeight: '800', color: ACCENT },
-  metLbl:     { fontSize: 9, color: '#546e7a', marginTop: 2 },
+  // 점수 카드
+  scoreCard:  { backgroundColor: CARD, borderRadius: 20, padding: 18, flexDirection: 'row', gap: 16, alignItems: 'center' },
+  scoreLeft:  { alignItems: 'center' },
+  scoreRing:  { width: 80, height: 80, borderRadius: 40, borderWidth: 4, borderColor: '#4fc3f7', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(79,195,247,0.1)' },
+  scoreNum:   { fontSize: 26, fontWeight: '900', color: '#fff', lineHeight: 28 },
+  scoreUnit:  { fontSize: 10, color: 'rgba(255,255,255,0.6)' },
+  scoreRight: { flex: 1 },
+  scoreChange: { fontSize: 13, color: '#4fc3f7', fontWeight: '700', marginBottom: 2 },
+  scoreRank:   { fontSize: 11, color: 'rgba(255,255,255,0.55)', marginBottom: 8 },
+  progBarWrap: { height: 5, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 3, marginBottom: 8 },
+  progBarFill: { height: 5, backgroundColor: '#4fc3f7', borderRadius: 3 },
+  scoreComment: { fontSize: 12, color: 'rgba(255,255,255,0.75)', lineHeight: 18 },
 
-  aiBox:    { backgroundColor: BG, padding: 18, borderBottomWidth: 1, borderBottomColor: BORDER },
-  aiTag:    { backgroundColor: '#0d3b66', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3,
-              alignSelf: 'flex-start', marginBottom: 10 },
-  aiTagTxt: { color: ACCENT, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-  aiText:   { color: '#b0bec5', fontSize: 13, lineHeight: 20, marginBottom: 14 },
-  advRow:   { flexDirection: 'row', gap: 8 },
-  advCard:  { flex: 1, backgroundColor: CARD, borderRadius: 10, padding: 10, alignItems: 'center',
-              borderWidth: 1, borderColor: BORDER },
-  advIcon:  { fontSize: 18, marginBottom: 4 },
-  advTitle: { fontSize: 11, color: '#e3f2fd', fontWeight: '700' },
-  advSub:   { fontSize: 9, color: '#546e7a', marginTop: 2 },
+  sectionTitle: { fontSize: 14, fontWeight: '800', color: '#fff', marginTop: 4 },
 
-  chatBtn:    { margin: 18, backgroundColor: BLUE, borderRadius: 14, padding: 16, alignItems: 'center' },
-  chatBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  // 포인트 그리드
+  pointsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pointCard:  { width: '47.5%', backgroundColor: CARD, borderRadius: 16, padding: 14, alignItems: 'center' },
+  pointIcon:  { fontSize: 22, marginBottom: 4 },
+  pointLabel: { fontSize: 11, color: 'rgba(255,255,255,0.55)', marginBottom: 4 },
+  pointValue: { fontSize: 17, fontWeight: '800', color: '#fff', marginBottom: 3 },
+  pointStatus: { fontSize: 12, fontWeight: '700' },
+
+  // 추천 리스트
+  recList: { gap: 8 },
+  recCard: { backgroundColor: CARD, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderLeftWidth: 4 },
+  recIcon:  { fontSize: 26 },
+  recTitle: { fontSize: 14, fontWeight: '700', color: '#fff', marginBottom: 3 },
+  recDesc:  { fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 17 },
+
+  // AI 상담 버튼
+  chatBtn:   { backgroundColor: '#1a3a5c', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  chatIcon:  { fontSize: 28 },
+  chatTitle: { fontSize: 15, fontWeight: '800', color: '#fff', marginBottom: 2 },
+  chatSub:   { fontSize: 12, color: 'rgba(255,255,255,0.6)' },
+
+  // 주간 리포트
+  reportBtn:   { backgroundColor: '#0d47a1', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  reportIcon:  { fontSize: 28 },
+  reportTitle: { fontSize: 15, fontWeight: '800', color: '#fff', marginBottom: 2 },
+  reportSub:   { fontSize: 12, color: 'rgba(255,255,255,0.6)' },
+
+  // 홈으로
+  homeBtn:    { backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 14, paddingVertical: 15, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
+  homeBtnTxt: { fontSize: 15, fontWeight: '700', color: 'rgba(255,255,255,0.6)' },
 });
