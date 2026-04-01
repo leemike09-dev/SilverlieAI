@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  StatusBar, Modal, Animated, Platform,
+  StatusBar, Modal, Animated, Platform, ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomTabBar from '../components/BottomTabBar';
@@ -47,7 +47,6 @@ export default function HomeScreen({ route, navigation }: any) {
   const popupAnim  = useRef(new Animated.Value(300)).current;
   const tickerAnim = useRef(new Animated.Value(0)).current;
 
-  // 로그인 상태 확인 (AsyncStorage 우선)
   useEffect(() => {
     const checkLogin = async () => {
       const storedId   = await AsyncStorage.getItem('userId');
@@ -66,7 +65,6 @@ export default function HomeScreen({ route, navigation }: any) {
     checkLogin();
   }, [route?.params]);
 
-  // 건강 데이터
   useEffect(() => {
     if (!userId || userId === 'demo-user') return;
     fetch(`${API_URL}/health/history/${userId}?days=1`)
@@ -75,12 +73,11 @@ export default function HomeScreen({ route, navigation }: any) {
       .catch(() => {});
   }, [userId]);
 
-  // 티커 자동 전환
   useEffect(() => {
     const id = setInterval(() => {
-      Animated.sequence([
-        Animated.timing(tickerAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
-      ]).start(() => setTickerIdx(i => (i + 1) % TICKERS.length));
+      Animated.timing(tickerAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(
+        () => setTickerIdx(i => (i + 1) % TICKERS.length)
+      );
     }, 4000);
     return () => clearInterval(id);
   }, []);
@@ -100,14 +97,14 @@ export default function HomeScreen({ route, navigation }: any) {
   const goLogin  = () => { closePopup(); setTimeout(() => navigation.navigate('Login'), 250); };
   const goSignup = () => { closePopup(); setTimeout(() => navigation.navigate('Login', { tab: 'signup' }), 250); };
 
-  const score   = calcScore(record);
-  const ticker  = TICKERS[tickerIdx];
+  const score  = calcScore(record);
+  const ticker = TICKERS[tickerIdx];
 
   return (
     <View style={s.root}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" translucent={false} />
 
-      {/* ── 헤더 ── */}
+      {/* ── 헤더 (고정) ── */}
       <View style={s.header}>
         <View style={s.headerTop}>
           <Text style={s.appName}>Silver Life</Text>
@@ -128,75 +125,84 @@ export default function HomeScreen({ route, navigation }: any) {
         </View>
         <Text style={s.greeting}>{name}님, 안녕하세요</Text>
         <Text style={s.dateText}>{getTodayStr()}</Text>
-        {/* 물결 */}
         <View style={s.wave1} /><View style={s.wave2} />
       </View>
 
-      {/* ── 건강 점수 카드 ── */}
-      <TouchableOpacity style={s.scoreCard}
-        onPress={() => requireLogin(() => navigation.navigate('Dashboard', { userId, name }))}
-        activeOpacity={0.9}>
-        <View style={s.scoreRing}>
-          <Text style={s.scoreNum}>{isGuest ? '--' : (score || '82')}</Text>
-          <Text style={s.scoreUnit}>점</Text>
+      {/* ── 스크롤 콘텐츠 (헤더~탭바 사이) ── */}
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={s.scrollContent}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+      >
+        {/* 건강 점수 카드 */}
+        <TouchableOpacity style={s.scoreCard}
+          onPress={() => requireLogin(() => navigation.navigate('Dashboard', { userId, name }))}
+          activeOpacity={0.9}>
+          <View style={s.scoreRing}>
+            <Text style={s.scoreNum}>{isGuest ? '--' : (score || '82')}</Text>
+            <Text style={s.scoreUnit}>점</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            {isGuest ? (
+              <>
+                <Text style={s.scoreTitle}>건강점수 확인하기 🔒</Text>
+                <Text style={s.scoreSub}>로그인 후 AI 건강 분석 제공</Text>
+              </>
+            ) : (
+              <>
+                <Text style={s.scoreTitle}>건강점수 좋아요! ▲2점</Text>
+                <Text style={s.scoreSub}>지난주보다 상승 · 상위 20%</Text>
+                <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
+                  <View style={s.badge}><Text style={s.badgeTxt}>혈압 120/80</Text></View>
+                  <View style={s.badge}><Text style={s.badgeTxt}>걸음 7.2k</Text></View>
+                </View>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+
+        {/* 오늘 운동 */}
+        <TouchableOpacity style={s.exCard} onPress={() => requireLogin()} activeOpacity={0.9}>
+          <Text style={s.exTitle}>오늘 운동 하셨나요? 🏃</Text>
+          <Text style={s.exSub}>오늘 목표: 30분 걷기</Text>
+          <View style={s.exBtns}>
+            <TouchableOpacity style={[s.exBtn, s.exBtnYes, exerciseDone === true && s.exBtnYesActive]}
+              onPress={() => requireLogin(() => setExerciseDone(true))}>
+              <Text style={[s.exBtnTxt, exerciseDone === true && { color: '#fff' }]}>✓ 했어요</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[s.exBtn, s.exBtnNo]}
+              onPress={() => requireLogin(() => setExerciseDone(false))}>
+              <Text style={s.exBtnNoTxt}>✗ 아직요</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+
+        {/* 건강 정보 */}
+        <Text style={s.sectionLabel}>건강 정보</Text>
+        <View style={s.grid}>
+          {HEALTH_TILES.map((tile, i) => (
+            <TouchableOpacity key={i} style={s.tile}
+              onPress={() => navigation.navigate('HealthInfo', { userId, name, category: tile.label })}>
+              <Text style={s.tileIcon}>{tile.icon}</Text>
+              <Text style={s.tileLabel}>{tile.label}</Text>
+              <Text style={s.tileSub}>{tile.sub}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
-        <View style={{ flex: 1 }}>
-          {isGuest ? (
-            <>
-              <Text style={s.scoreTitle}>건강점수 확인하기 🔒</Text>
-              <Text style={s.scoreSub}>로그인 후 AI 건강 분석 제공</Text>
-            </>
-          ) : (
-            <>
-              <Text style={s.scoreTitle}>건강점수 좋아요! ▲2점</Text>
-              <Text style={s.scoreSub}>지난주보다 상승 · 상위 20%</Text>
-              <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
-                <View style={s.badge}><Text style={s.badgeTxt}>혈압 120/80</Text></View>
-                <View style={s.badge}><Text style={s.badgeTxt}>걸음 7.2k</Text></View>
-              </View>
-            </>
-          )}
-        </View>
-      </TouchableOpacity>
 
-      {/* ── 오늘 운동 ── */}
-      <TouchableOpacity style={s.exCard} onPress={() => requireLogin()} activeOpacity={0.9}>
-        <Text style={s.exTitle}>오늘 운동 하셨나요? 🏃</Text>
-        <Text style={s.exSub}>오늘 목표: 30분 걷기</Text>
-        <View style={s.exBtns}>
-          <TouchableOpacity style={[s.exBtn, s.exBtnYes, exerciseDone === true && s.exBtnYesActive]}
-            onPress={() => requireLogin(() => setExerciseDone(true))}>
-            <Text style={[s.exBtnTxt, exerciseDone === true && { color: '#fff' }]}>✓ 했어요</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[s.exBtn, s.exBtnNo]}
-            onPress={() => requireLogin(() => setExerciseDone(false))}>
-            <Text style={s.exBtnNoTxt}>✗ 아직요</Text>
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
+        {/* 티커 배너 */}
+        <TouchableOpacity style={s.ticker}
+          onPress={() => requireLogin(() => navigation.navigate(ticker.target as any, { userId, name }))}
+          activeOpacity={0.85}>
+          <Text style={s.tickerText}>👥 {ticker.text}</Text>
+          <View style={s.tickerBtn}><Text style={s.tickerBtnTxt}>{ticker.btn}</Text></View>
+        </TouchableOpacity>
 
-      {/* ── 건강 정보 ── */}
-      <Text style={s.sectionLabel}>건강 정보</Text>
-      <View style={s.grid}>
-        {HEALTH_TILES.map((tile, i) => (
-          <TouchableOpacity key={i} style={s.tile}
-            onPress={() => navigation.navigate('HealthInfo', { userId, name, category: tile.label })}>
-            <Text style={s.tileIcon}>{tile.icon}</Text>
-            <Text style={s.tileLabel}>{tile.label}</Text>
-            <Text style={s.tileSub}>{tile.sub}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+        <View style={{ height: 12 }} />
+      </ScrollView>
 
-      {/* ── 티커 배너 (라이프/커뮤니티) ── */}
-      <TouchableOpacity style={s.ticker}
-        onPress={() => requireLogin(() => navigation.navigate(ticker.target as any, { userId, name }))}
-        activeOpacity={0.85}>
-        <Text style={s.tickerText}>👥 {ticker.text}</Text>
-        <View style={s.tickerBtn}><Text style={s.tickerBtnTxt}>{ticker.btn}</Text></View>
-      </TouchableOpacity>
-
-      {/* ── 탭바 ── */}
+      {/* ── 탭바 (항상 하단 고정) ── */}
       <BottomTabBar navigation={navigation} activeTab="Home" userId={userId} name={name} onGuestPress={openPopup} />
 
       {/* ── 로그인 팝업 ── */}
@@ -223,9 +229,13 @@ export default function HomeScreen({ route, navigation }: any) {
 }
 
 const s = StyleSheet.create({
-  root:         { flex: 1, backgroundColor: '#f0f2f7', ...(Platform.OS === 'web' ? { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0 } : {}) },
+  root: {
+    flex: 1,
+    backgroundColor: '#f0f2f7',
+    ...(Platform.OS === 'web' ? { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0 } : {}),
+  },
   // 헤더
-  header:       { backgroundColor: '#fff', paddingHorizontal: 18, paddingTop: Platform.OS === 'web' ? 12 : 48, paddingBottom: 14, position: 'relative' },
+  header:       { backgroundColor: '#fff', paddingHorizontal: 18, paddingTop: Platform.OS === 'web' ? 12 : 48, paddingBottom: 14 },
   headerTop:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   appName:      { fontSize: 20, fontWeight: '800', color: '#1a5fbc' },
   headerBtns:   { flexDirection: 'row', gap: 8 },
@@ -237,8 +247,11 @@ const s = StyleSheet.create({
   dateText:     { fontSize: 12, color: '#90a4ae', marginTop: 2, marginBottom: 8 },
   wave1:        { height: 3, backgroundColor: '#bbdefb', borderRadius: 2, opacity: 0.5, marginBottom: 2 },
   wave2:        { height: 3, backgroundColor: '#90caf9', borderRadius: 2, opacity: 0.7 },
+  // 스크롤
+  scroll:       { flex: 1 },
+  scrollContent:{ padding: 14, paddingTop: 10, gap: 10 },
   // 건강 점수
-  scoreCard:    { marginHorizontal: 14, marginTop: 10, backgroundColor: '#1a5fbc', borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  scoreCard:    { backgroundColor: '#1a5fbc', borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 14 },
   scoreRing:    { width: 58, height: 58, borderRadius: 29, borderWidth: 3, borderColor: 'rgba(255,255,255,0.55)', backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   scoreNum:     { fontSize: 20, fontWeight: '800', color: '#fff', lineHeight: 22 },
   scoreUnit:    { fontSize: 10, color: 'rgba(255,255,255,0.8)' },
@@ -247,7 +260,7 @@ const s = StyleSheet.create({
   badge:        { backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 10, paddingVertical: 3, paddingHorizontal: 8 },
   badgeTxt:     { fontSize: 10, color: '#fff', fontWeight: '600' },
   // 운동
-  exCard:       { marginHorizontal: 14, marginTop: 10, backgroundColor: '#fff', borderRadius: 14, padding: 14 },
+  exCard:       { backgroundColor: '#fff', borderRadius: 14, padding: 14 },
   exTitle:      { fontSize: 15, fontWeight: '800', color: '#1a2a3a', marginBottom: 2 },
   exSub:        { fontSize: 11, color: '#90a4ae', marginBottom: 10 },
   exBtns:       { flexDirection: 'row', gap: 10 },
@@ -258,14 +271,14 @@ const s = StyleSheet.create({
   exBtnTxt:     { fontSize: 13, fontWeight: '700', color: '#1a5fbc' },
   exBtnNoTxt:   { fontSize: 13, fontWeight: '700', color: '#90a4ae' },
   // 건강 정보
-  sectionLabel: { fontSize: 13, fontWeight: '700', color: '#1a2a3a', marginHorizontal: 14, marginTop: 10, marginBottom: 8 },
-  grid:         { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: 14, gap: 8 },
+  sectionLabel: { fontSize: 13, fontWeight: '700', color: '#1a2a3a' },
+  grid:         { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tile:         { width: '47.5%', backgroundColor: '#fff', borderRadius: 13, padding: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
   tileIcon:     { fontSize: 24, marginBottom: 5 },
   tileLabel:    { fontSize: 12, fontWeight: '700', color: '#1a2a3a' },
   tileSub:      { fontSize: 10, color: '#90a4ae', marginTop: 2 },
   // 티커
-  ticker:       { marginHorizontal: 14, marginTop: 10, backgroundColor: '#e8f0fe', borderRadius: 13, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  ticker:       { backgroundColor: '#e8f0fe', borderRadius: 13, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
   tickerText:   { flex: 1, fontSize: 12, fontWeight: '700', color: '#1a3a6c' },
   tickerBtn:    { backgroundColor: '#1a5fbc', borderRadius: 9, paddingVertical: 7, paddingHorizontal: 12 },
   tickerBtnTxt: { fontSize: 11, fontWeight: '700', color: '#fff' },
