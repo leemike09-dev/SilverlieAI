@@ -71,9 +71,6 @@ export default function HealthInfoScreen({ route, navigation }: any) {
     <View style={s.root}>
       {/* 헤더 */}
       <View style={[s.header, { backgroundColor: data.color }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-          <Text style={s.backTxt}>← 뒤로</Text>
-        </TouchableOpacity>
         <Text style={s.headerIcon}>{data.icon}</Text>
         <Text style={s.headerTitle}>{category}</Text>
         <Text style={s.headerSummary}>{data.summary}</Text>
@@ -111,7 +108,10 @@ export default function HealthInfoScreen({ route, navigation }: any) {
           <Text style={[s.infoTxt, { color: data.color }]}>{data.info}</Text>
         </View>
 
-        <View style={{ height: 30 }} />
+        <TouchableOpacity style={s.homeBtn} onPress={() => navigation.navigate('Home')} activeOpacity={0.85}>
+          <Text style={s.homeBtnTxt}>← 홈으로</Text>
+        </TouchableOpacity>
+        <View style={{ height: 20 }} />
       </ScrollView>
     </View>
   );
@@ -123,8 +123,6 @@ const s = StyleSheet.create({
     paddingTop: Platform.OS === 'web' ? 20 : 52,
     paddingBottom: 24, paddingHorizontal: 20,
   },
-  backBtn: { marginBottom: 12 },
-  backTxt: { color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: '600' },
   headerIcon: { fontSize: 40, marginBottom: 6 },
   headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 6 },
   headerSummary: { fontSize: 14, color: 'rgba(255,255,255,0.88)', lineHeight: 20 },
@@ -153,4 +151,6 @@ const s = StyleSheet.create({
   },
   infoIcon: { fontSize: 24 },
   infoTxt: { flex: 1, fontSize: 13, fontWeight: '600', lineHeight: 19 },
+  homeBtn: { backgroundColor: '#fff', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 16, borderWidth: 1.5, borderColor: '#e0e4ea' },
+  homeBtnTxt: { fontSize: 15, fontWeight: '700', color: '#1a5fbc' },
 });
