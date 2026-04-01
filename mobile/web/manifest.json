@@ -1,0 +1,24 @@
+{
+  "name": "Silver Life AI",
+  "short_name": "SilverLife",
+  "description": "60세 이상 시니어를 위한 AI 건강 파트너",
+  "start_url": "/SilverlieAI/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#a2c8a8",
+  "theme_color": "#1a5fbc",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "/SilverlieAI/assets/favicon.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
+    {
+      "src": "/SilverlieAI/assets/icon.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
