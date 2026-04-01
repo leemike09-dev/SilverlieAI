@@ -75,6 +75,9 @@ class UpdateUserRequest(BaseModel):
     age: Optional[int] = None
     interests: Optional[List[str]] = None
     language: Optional[str] = None
+    notification_health: Optional[bool] = None
+    notification_community: Optional[bool] = None
+    notification_ai: Optional[bool] = None
 
 
 @router.put("/{user_id}")
