@@ -180,7 +180,7 @@ export default function HomeScreen({ route, navigation }: any) {
       <View style={s.grid}>
         {HEALTH_TILES.map((tile, i) => (
           <TouchableOpacity key={i} style={s.tile}
-            onPress={() => navigation.navigate('HealthNews', { userId, name })}>
+            onPress={() => navigation.navigate('HealthInfo', { userId, name, category: tile.label })}>
             <Text style={s.tileIcon}>{tile.icon}</Text>
             <Text style={s.tileLabel}>{tile.label}</Text>
             <Text style={s.tileSub}>{tile.sub}</Text>
@@ -223,7 +223,7 @@ export default function HomeScreen({ route, navigation }: any) {
 }
 
 const s = StyleSheet.create({
-  root:         { flex: 1, backgroundColor: '#f0f2f7' },
+  root:         { flex: 1, backgroundColor: '#f0f2f7', ...(Platform.OS === 'web' ? { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0 } : {}) },
   // 헤더
   header:       { backgroundColor: '#fff', paddingHorizontal: 18, paddingTop: Platform.OS === 'web' ? 12 : 48, paddingBottom: 14, position: 'relative' },
   headerTop:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },

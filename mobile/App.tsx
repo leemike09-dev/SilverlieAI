@@ -9,6 +9,7 @@ import IntroScreen from './screens/IntroScreen';
 import HomeScreen from './screens/HomeScreen';
 import LoginScreen from './screens/LoginScreen';
 import HealthScreen from './screens/HealthScreen';
+import HealthInfoScreen from './screens/HealthInfoScreen';
 import DashboardScreen from './screens/DashboardScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import WeeklyReportScreen from './screens/WeeklyReportScreen';
@@ -52,7 +53,8 @@ export default function App() {
           <Stack.Screen name="Wearable"    component={WearableScreen}    initialParams={DEMO} />
           <Stack.Screen name="Life"        component={LifeScreen}        initialParams={DEMO} />
           <Stack.Screen name="Onboarding"  component={OnboardingScreen}  />
-          <Stack.Screen name="HealthNews"  component={HealthNewsScreen}  initialParams={DEMO} />
+          <Stack.Screen name="HealthInfo" component={HealthInfoScreen} />
+        <Stack.Screen name="HealthNews"  component={HealthNewsScreen}  initialParams={DEMO} />
         </Stack.Navigator>
       </NavigationContainer>
     </LanguageProvider>
