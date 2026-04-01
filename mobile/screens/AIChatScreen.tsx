@@ -41,7 +41,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
         body: JSON.stringify({ user_id: userId, message: msg }),
       });
       const data = await res.json();
-      setMsgs(prev => [...prev, { role: 'ai', text: data.response ?? '죄송합니다, 다시 시도해주세요.' }]);
+      setMsgs(prev => [...prev, { role: 'ai', text: data.reply ?? data.response ?? '죄송합니다, 다시 시도해주세요.' }]);
     } catch {
       setMsgs(prev => [...prev, { role: 'ai', text: '연결에 실패했습니다. 잠시 후 다시 시도해주세요.' }]);
     } finally {
