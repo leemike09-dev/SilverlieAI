@@ -52,9 +52,11 @@ export default function AIChatScreen({ route, navigation }: Props) {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.back}>← 홈</Text>
-        </TouchableOpacity>
+        <View style={styles.headerTop}>
+          <TouchableOpacity style={styles.homeBtn} onPress={() => navigation.navigate('Home')}>
+            <Text style={styles.homeBtnText}>🏠 홈</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.title}>AI 건강 상담</Text>
         <Text style={styles.sub}>Claude AI · 24시간 · 의료정보 기반</Text>
       </View>
@@ -126,7 +128,10 @@ const BG = '#0a1628'; const CARD = '#0e1e35'; const BORDER = '#1a2a3a'; const AC
 const styles = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: BG },
   header: { backgroundColor: BG, padding: 18, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: BORDER },
-  back:   { fontSize: 12, color: ACCENT, marginBottom: 8 },
+  headerTop: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 10 },
+  homeBtn:   { backgroundColor: '#1a2a3a', borderWidth: 1, borderColor: ACCENT,
+               borderRadius: 14, paddingHorizontal: 14, paddingVertical: 6 },
+  homeBtnText: { fontSize: 12, color: ACCENT, fontWeight: '700' },
   title:  { fontSize: 18, fontWeight: '800', color: '#fff' },
   sub:    { fontSize: 11, color: '#607d8b', marginTop: 3 },
 
