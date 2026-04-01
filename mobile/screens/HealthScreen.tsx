@@ -466,17 +466,17 @@ const s = StyleSheet.create({
   alertAction: { fontSize: 12, color: '#1565c0', fontWeight: '600' },
 
   // 수치 카드
-  metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  metricCard:  { width: (width - 28 - 8) / 2, backgroundColor: '#fff', borderRadius: 16, padding: 12,
+  metricsGrid: { flexDirection: 'column', gap: 10 },
+  metricCard:  { width: '100%', backgroundColor: '#fff', borderRadius: 16, padding: 18,
                  shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width:0, height:2 }, shadowRadius:6, elevation:2 },
   metricHeader: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
-  metricIcon:  { fontSize: 15 },
-  metricLabel: { flex: 1, fontSize: 11, color: '#546e7a', fontWeight: '600' },
+  metricIcon:  { fontSize: 22 },
+  metricLabel: { flex: 1, fontSize: 14, color: '#546e7a', fontWeight: '600' },
   metricAI:    { fontSize: 9, color: '#2196f3', fontWeight: '600' },
-  metricVal:   { fontSize: 20, fontWeight: '800', color: '#1a3a5c', marginBottom: 3 },
-  metricUnit:  { fontSize: 10, color: '#9aabb8', fontWeight: '400' },
-  metricEmpty: { fontSize: 13, color: '#b0bec5' },
-  metricStatus: { fontSize: 11, fontWeight: '600' },
+  metricVal:   { fontSize: 28, fontWeight: '800', color: '#1a3a5c', marginBottom: 4 },
+  metricUnit:  { fontSize: 13, color: '#9aabb8', fontWeight: '400' },
+  metricEmpty: { fontSize: 15, color: '#b0bec5' },
+  metricStatus: { fontSize: 13, fontWeight: '600' },
 
   // CTA 버튼
   ctaRow:         { flexDirection: 'row', gap: 8 },
