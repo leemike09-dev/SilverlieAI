@@ -110,20 +110,21 @@ export default function HomeScreen({ route, navigation }: any) {
       <View style={s.header}>
         <View style={s.headerTop}>
           <Text style={s.appName}>Silver Life</Text>
-          {isGuest || DEMO_MODE ? (
-            <View style={s.headerBtns}>
-              <TouchableOpacity style={s.btnLogin} onPress={goLogin}>
-                <Text style={s.btnLoginTxt}>로그인</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.btnSignup} onPress={goSignup}>
-                <Text style={s.btnSignupTxt}>회원가입</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
+          <View style={s.headerBtns}>
+            {isGuest ? (
+              <>
+                <TouchableOpacity style={s.btnLogin} onPress={goLogin}>
+                  <Text style={s.btnLoginTxt}>로그인</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.btnSignup} onPress={goSignup}>
+                  <Text style={s.btnSignupTxt}>회원가입</Text>
+                </TouchableOpacity>
+              </>
+            ) : null}
             <TouchableOpacity onPress={() => navigation.navigate('Notifications', { userId, name })}>
-              <Text style={{ fontSize: 22 }}>🔔</Text>
+              <Text style={{ fontSize: 24 }}>🔔</Text>
             </TouchableOpacity>
-          )}
+          </View>
         </View>
         <Text style={s.greeting}>{name}님, 안녕하세요</Text>
         <Text style={s.dateText}>{getTodayStr()}</Text>
