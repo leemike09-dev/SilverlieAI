@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, SafeAreaView,
+  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -9,19 +9,19 @@ const API_URL = 'https://silverlieai.onrender.com';
 
 export default function LoginScreen({ navigation, route }: any) {
   const initTab = route?.params?.tab === 'signup' ? 'register' : 'login';
-  const [mode, setMode]               = useState<'login' | 'register'>(initTab);
-  const [name, setName]               = useState('');
-  const [email, setEmail]             = useState('');
-  const [password, setPassword]       = useState('');
-  const [confirmPw, setConfirmPw]     = useState('');
-  const [loading, setLoading]         = useState(false);
-  const [errorMsg, setErrorMsg]       = useState('');
+  const [mode,      setMode]      = useState<'login' | 'register'>(initTab);
+  const [name,      setName]      = useState('');
+  const [email,     setEmail]     = useState('');
+  const [password,  setPassword]  = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [loading,   setLoading]   = useState(false);
+  const [errorMsg,  setErrorMsg]  = useState('');
 
   const handleSubmit = async () => {
     setErrorMsg('');
     if (!email || !password) { setErrorMsg('이메일과 비밀번호를 입력해주세요.'); return; }
     if (mode === 'register') {
-      if (!name)              { setErrorMsg('이름을 입력해주세요.'); return; }
+      if (!name)                  { setErrorMsg('이름을 입력해주세요.'); return; }
       if (password !== confirmPw) { setErrorMsg('비밀번호가 일치하지 않습니다.'); return; }
       if (password.length < 6)   { setErrorMsg('비밀번호는 6자 이상이어야 합니다.'); return; }
     }
@@ -53,122 +53,143 @@ export default function LoginScreen({ navigation, route }: any) {
     }
   };
 
+  const goHome = () =>
+    navigation.replace('Home', { name: '게스트', userId: '', isGuest: true });
+
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+    <View style={s.root}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-        {/* 헤더 */}
-        <SafeAreaView style={s.header}>
-          <View style={s.headerInner}>
+          {/* 헤더 */}
+          <View style={s.header}>
+            <TouchableOpacity style={s.backRow} onPress={goHome}>
+              <Text style={s.backTxt}>← 홈으로</Text>
+            </TouchableOpacity>
             <Text style={s.appName}>🌿 Silver Life</Text>
-            <Text style={s.appSub}>건강한 시니어 라이프</Text>
-          </View>
-        </SafeAreaView>
-
-        <View style={s.body}>
-          {/* 탭 */}
-          <View style={s.tabs}>
-            <TouchableOpacity style={[s.tab, mode === 'login' && s.tabActive]} onPress={() => setMode('login')}>
-              <Text style={[s.tabTxt, mode === 'login' && s.tabTxtActive]}>로그인</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[s.tab, mode === 'register' && s.tabActive]} onPress={() => setMode('register')}>
-              <Text style={[s.tabTxt, mode === 'register' && s.tabTxtActive]}>회원가입</Text>
-            </TouchableOpacity>
+            <Text style={s.appSub}>시니어를 위한 AI 건강 파트너</Text>
           </View>
 
-          {/* 입력 필드 */}
-          {mode === 'register' && (
+          <View style={s.body}>
+            {/* 로그인 / 회원가입 탭 */}
+            <View style={s.tabs}>
+              <TouchableOpacity style={[s.tab, mode === 'login' && s.tabActive]} onPress={() => { setMode('login'); setErrorMsg(''); }}>
+                <Text style={[s.tabTxt, mode === 'login' && s.tabTxtActive]}>로그인</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.tab, mode === 'register' && s.tabActive]} onPress={() => { setMode('register'); setErrorMsg(''); }}>
+                <Text style={[s.tabTxt, mode === 'register' && s.tabTxtActive]}>회원가입</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 입력 필드 */}
+            {mode === 'register' && (
+              <View style={s.fieldWrap}>
+                <Text style={s.label}>이름</Text>
+                <TextInput style={s.input} placeholder="이름을 입력하세요" placeholderTextColor="#b0bec5"
+                  value={name} onChangeText={setName} />
+              </View>
+            )}
             <View style={s.fieldWrap}>
-              <Text style={s.label}>이름</Text>
-              <TextInput style={s.input} placeholder="이름을 입력하세요" value={name} onChangeText={setName} />
+              <Text style={s.label}>이메일</Text>
+              <TextInput style={s.input} placeholder="이메일을 입력하세요" placeholderTextColor="#b0bec5"
+                value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
             </View>
-          )}
-          <View style={s.fieldWrap}>
-            <Text style={s.label}>이메일</Text>
-            <TextInput style={s.input} placeholder="이메일을 입력하세요"
-              value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-          </View>
-          <View style={s.fieldWrap}>
-            <Text style={s.label}>비밀번호</Text>
-            <TextInput style={s.input} placeholder="비밀번호를 입력하세요"
-              value={password} onChangeText={setPassword} secureTextEntry />
-          </View>
-          {mode === 'register' && (
             <View style={s.fieldWrap}>
-              <Text style={s.label}>비밀번호 확인</Text>
-              <TextInput style={s.input} placeholder="비밀번호를 다시 입력하세요"
-                value={confirmPw} onChangeText={setConfirmPw} secureTextEntry />
+              <Text style={s.label}>비밀번호</Text>
+              <TextInput style={s.input} placeholder="비밀번호 (6자 이상)" placeholderTextColor="#b0bec5"
+                value={password} onChangeText={setPassword} secureTextEntry />
             </View>
-          )}
+            {mode === 'register' && (
+              <View style={s.fieldWrap}>
+                <Text style={s.label}>비밀번호 확인</Text>
+                <TextInput style={s.input} placeholder="비밀번호를 다시 입력하세요" placeholderTextColor="#b0bec5"
+                  value={confirmPw} onChangeText={setConfirmPw} secureTextEntry />
+              </View>
+            )}
 
-          {errorMsg ? <View style={s.errorBox}><Text style={s.errorTxt}>{errorMsg}</Text></View> : null}
+            {errorMsg ? (
+              <View style={s.errorBox}><Text style={s.errorTxt}>{errorMsg}</Text></View>
+            ) : null}
 
-          {/* 메인 버튼 */}
-          <TouchableOpacity style={s.mainBtn} onPress={handleSubmit} disabled={loading} activeOpacity={0.85}>
-            {loading
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={s.mainBtnTxt}>{mode === 'login' ? '로그인' : '가입 완료'}</Text>}
-          </TouchableOpacity>
+            {/* 메인 버튼 */}
+            <TouchableOpacity style={s.mainBtn} onPress={handleSubmit} disabled={loading} activeOpacity={0.85}>
+              {loading
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={s.mainBtnTxt}>{mode === 'login' ? '로그인' : '가입 완료'}</Text>}
+            </TouchableOpacity>
 
-          {/* 소셜 로그인 */}
-          <View style={s.divider}>
-            <View style={s.divLine} /><Text style={s.divTxt}>또는 소셜 로그인</Text><View style={s.divLine} />
-          </View>
-          <View style={s.socialRow}>
-            <TouchableOpacity style={s.socialBtn}><Text style={s.socialTxt}>🟡 카카오</Text></TouchableOpacity>
-            <TouchableOpacity style={s.socialBtn}><Text style={s.socialTxt}>🟢 네이버</Text></TouchableOpacity>
-            <TouchableOpacity style={s.socialBtn}><Text style={s.socialTxt}>⚫ 애플</Text></TouchableOpacity>
-          </View>
-
-          {/* 찾기 링크 */}
-          {mode === 'login' && (
-            <View style={s.findRow}>
-              <TouchableOpacity><Text style={s.findTxt}>이메일 찾기</Text></TouchableOpacity>
-              <Text style={s.findSep}>|</Text>
-              <TouchableOpacity><Text style={s.findTxt}>비밀번호 찾기</Text></TouchableOpacity>
+            {/* 소셜 로그인 */}
+            <View style={s.divider}>
+              <View style={s.divLine} />
+              <Text style={s.divTxt}>또는 소셜 로그인</Text>
+              <View style={s.divLine} />
             </View>
-          )}
+            <View style={s.socialRow}>
+              <TouchableOpacity style={[s.socialBtn, { backgroundColor: '#FEE500' }]}>
+                <Text style={s.socialTxt}>카카오</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.socialBtn, { backgroundColor: '#03C75A' }]}>
+                <Text style={[s.socialTxt, { color: '#fff' }]}>네이버</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.socialBtn, { backgroundColor: '#000' }]}>
+                <Text style={[s.socialTxt, { color: '#fff' }]}>Apple</Text>
+              </TouchableOpacity>
+            </View>
 
-          {/* 홈으로 */}
-          <TouchableOpacity style={s.homeLink}
-            onPress={() => navigation.replace('Home', { name: '게스트', userId: '', isGuest: true })}>
-            <Text style={s.homeLinkTxt}>← 홈으로 돌아가기</Text>
-          </TouchableOpacity>
-        </View>
-
-      </ScrollView>
-    </KeyboardAvoidingView>
+            {/* 이메일/비밀번호 찾기 */}
+            {mode === 'login' && (
+              <View style={s.findRow}>
+                <TouchableOpacity><Text style={s.findTxt}>이메일 찾기</Text></TouchableOpacity>
+                <Text style={s.findSep}>|</Text>
+                <TouchableOpacity><Text style={s.findTxt}>비밀번호 찾기</Text></TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  scroll:      { flexGrow: 1, backgroundColor: '#f0f2f7' },
-  header:      { backgroundColor: '#1a5fbc', paddingBottom: 28, paddingTop: 12 },
-  headerInner: { alignItems: 'center', paddingTop: 16 },
-  appName:     { fontSize: 24, fontWeight: '800', color: '#fff' },
-  appSub:      { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 4 },
-  body:        { flex: 1, padding: 22, paddingTop: 20 },
+  root: {
+    flex: 1,
+    backgroundColor: '#f0f2f7',
+    ...(Platform.OS === 'web' ? { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0 } : {}),
+  },
+  scroll:      { flexGrow: 1 },
+  // 헤더
+  header:      { backgroundColor: '#1a5fbc', paddingTop: Platform.OS === 'web' ? 20 : 52, paddingBottom: 28, paddingHorizontal: 22, alignItems: 'center' },
+  backRow:     { alignSelf: 'flex-start', marginBottom: 12 },
+  backTxt:     { color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '600' },
+  appName:     { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 4 },
+  appSub:      { fontSize: 13, color: 'rgba(255,255,255,0.72)' },
+  // 바디
+  body:        { padding: 22, paddingTop: 20 },
+  // 탭
   tabs:        { flexDirection: 'row', backgroundColor: '#e8ecf5', borderRadius: 14, padding: 3, marginBottom: 20 },
-  tab:         { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 11 },
+  tab:         { flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 11 },
   tabActive:   { backgroundColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
-  tabTxt:      { fontSize: 14, fontWeight: '700', color: '#90a4ae' },
+  tabTxt:      { fontSize: 15, fontWeight: '700', color: '#90a4ae' },
   tabTxtActive:{ color: '#1a5fbc' },
+  // 필드
   fieldWrap:   { marginBottom: 14 },
-  label:       { fontSize: 12, fontWeight: '700', color: '#1a5fbc', marginBottom: 5 },
+  label:       { fontSize: 12, fontWeight: '700', color: '#1a5fbc', marginBottom: 6 },
   input:       { backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e0e8f8', borderRadius: 13, padding: 14, fontSize: 15, color: '#1a2a3a' },
   errorBox:    { backgroundColor: '#fee2e2', borderRadius: 10, padding: 12, marginBottom: 10 },
   errorTxt:    { color: '#c0392b', fontSize: 13, textAlign: 'center' },
-  mainBtn:     { backgroundColor: '#1a5fbc', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 16, shadowColor: '#1a5fbc', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
+  // 버튼
+  mainBtn:     { backgroundColor: '#1a5fbc', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 18, shadowColor: '#1a5fbc', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 5 },
   mainBtnTxt:  { fontSize: 16, fontWeight: '800', color: '#fff' },
+  // 소셜
   divider:     { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
   divLine:     { flex: 1, height: 1, backgroundColor: '#dde3ee' },
   divTxt:      { fontSize: 11, color: '#b0bec5' },
   socialRow:   { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  socialBtn:   { flex: 1, backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e8ecef', borderRadius: 12, paddingVertical: 11, alignItems: 'center' },
-  socialTxt:   { fontSize: 12, color: '#546e7a', fontWeight: '600' },
-  findRow:     { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 16 },
-  findTxt:     { fontSize: 12, color: '#90a4ae', borderBottomWidth: 1, borderBottomColor: '#cfd8dc', paddingBottom: 1 },
-  findSep:     { fontSize: 12, color: '#dde3ee' },
-  homeLink:    { alignItems: 'center', marginTop: 4 },
-  homeLinkTxt: { fontSize: 13, color: '#1a5fbc', fontWeight: '600' },
+  socialBtn:   { flex: 1, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  socialTxt:   { fontSize: 13, fontWeight: '700', color: '#333' },
+  // 찾기
+  findRow:     { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
+  findTxt:     { fontSize: 13, color: '#78909c' },
+  findSep:     { fontSize: 13, color: '#dde3ee' },
 });
