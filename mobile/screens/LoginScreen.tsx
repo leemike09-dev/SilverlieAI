@@ -63,10 +63,7 @@ export default function LoginScreen({ navigation, route }: any) {
 
           {/* 헤더 */}
           <View style={s.header}>
-            <TouchableOpacity style={s.backRow} onPress={goHome}>
-              <Text style={s.backTxt}>← 홈으로</Text>
-            </TouchableOpacity>
-            <Text style={s.appName}>🌿 Silver Life</Text>
+<Text style={s.appName}>🌿 Silver Life</Text>
             <Text style={s.appSub}>시니어를 위한 AI 건강 파트너</Text>
           </View>
 
@@ -144,6 +141,11 @@ export default function LoginScreen({ navigation, route }: any) {
                 <TouchableOpacity><Text style={s.findTxt}>비밀번호 찾기</Text></TouchableOpacity>
               </View>
             )}
+
+            {/* 홈으로 박스 */}
+            <TouchableOpacity style={s.homeBtn} onPress={goHome} activeOpacity={0.85}>
+              <Text style={s.homeBtnTxt}>← 홈으로 돌아가기</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -160,8 +162,6 @@ const s = StyleSheet.create({
   scroll:      { flexGrow: 1 },
   // 헤더
   header:      { backgroundColor: '#1a5fbc', paddingTop: Platform.OS === 'web' ? 20 : 52, paddingBottom: 28, paddingHorizontal: 22, alignItems: 'center' },
-  backRow:     { alignSelf: 'flex-start', marginBottom: 12 },
-  backTxt:     { color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '600' },
   appName:     { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 4 },
   appSub:      { fontSize: 13, color: 'rgba(255,255,255,0.72)' },
   // 바디
@@ -192,4 +192,6 @@ const s = StyleSheet.create({
   findRow:     { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
   findTxt:     { fontSize: 13, color: '#78909c' },
   findSep:     { fontSize: 13, color: '#dde3ee' },
+  homeBtn:     { marginTop: 14, backgroundColor: '#f0f2f7', borderRadius: 14, paddingVertical: 15, alignItems: 'center', borderWidth: 1.5, borderColor: '#dde3ee' },
+  homeBtnTxt:  { fontSize: 15, fontWeight: '700', color: '#546e7a' },
 });
