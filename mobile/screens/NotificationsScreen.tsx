@@ -22,7 +22,7 @@ type Notification = {
 };
 
 export default function NotificationsScreen({ navigation, route }: any) {
-  const { userId } = route.params;
+  const { userId, name = "회원" } = route.params ?? {};
   const { t } = useLanguage();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
@@ -62,9 +62,6 @@ export default function NotificationsScreen({ navigation, route }: any) {
     <View style={{ flex: 1 }}>
       <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>{t.back}</Text>
-        </TouchableOpacity>
         <Text style={styles.title}>{t.notificationsTitle}</Text>
       </View>
 
@@ -95,7 +92,7 @@ export default function NotificationsScreen({ navigation, route }: any) {
         ))
       )}
     </ScrollView>
-      <BottomTabBar navigation={navigation} activeTab="home" userId={userId} />
+      <BottomTabBar navigation={navigation} activeTab="none" userId={userId} name={name} />
     </View>
   );
 }

@@ -28,13 +28,8 @@ export default function LifeScreen({ route, navigation }: Props) {
     <SafeAreaView style={styles.safe}>
       {/* ─── Header ─── */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerSub}>즐거운 시니어 라이프</Text>
-          <Text style={styles.headerTitle}>🌿 라이프</Text>
-        </View>
-        <TouchableOpacity style={styles.aiBtn} onPress={() => navigation.navigate('AIChat', { name, userId })}>
-          <Text style={styles.aiBtnText}>✨ AI 추천</Text>
-        </TouchableOpacity>
+        <Text style={styles.headerSub}>즐거운 시니어 라이프</Text>
+        <Text style={styles.headerTitle}>🌿 라이프</Text>
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
@@ -109,12 +104,6 @@ const styles = StyleSheet.create({
   },
   headerSub:   { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginBottom: 2 },
   headerTitle: { color: '#fff', fontSize: 22, fontWeight: '700' },
-  aiBtn: {
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7,
-  },
-  aiBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-
   /* Hero Banner */
   heroBanner: {
     margin: 16, borderRadius: 18,
