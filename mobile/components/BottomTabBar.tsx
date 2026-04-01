@@ -36,7 +36,7 @@ export default function BottomTabBar({ navigation, activeTab = 'Home', userId = 
   return (
     <View style={[styles.tabbar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       {tabs.map((tab) => {
-        const isActive = tab.key === activeTab;
+        const isActive = tab.key.toLowerCase() === activeTab.toLowerCase();
         return (
           <TouchableOpacity key={tab.key} style={styles.tab}
             onPress={() => handlePress(tab.key, tab.screen)} activeOpacity={0.7}>
