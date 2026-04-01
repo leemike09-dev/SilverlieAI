@@ -19,6 +19,7 @@ import GroupBoardScreen from './screens/GroupBoardScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import WearableScreen from './screens/WearableScreen';
 import LifeScreen from './screens/LifeScreen';
+import LifeDetailScreen from './screens/LifeDetailScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import HealthNewsScreen from './screens/HealthNewsScreen';
 
@@ -53,6 +54,7 @@ export default function App() {
           <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} initialParams={DEMO} />
           <Stack.Screen name="Wearable"    component={WearableScreen}    initialParams={DEMO} />
           <Stack.Screen name="Life"        component={LifeScreen}        initialParams={DEMO} />
+          <Stack.Screen name="LifeDetail"   component={LifeDetailScreen}  initialParams={DEMO} />
           <Stack.Screen name="Onboarding"  component={OnboardingScreen}  />
           <Stack.Screen name="HealthInfo" component={HealthInfoScreen} />
         <Stack.Screen name="HealthNews"  component={HealthNewsScreen}  initialParams={DEMO} />

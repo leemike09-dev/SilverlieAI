@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, SafeAreaView, Dimensions,
+  TouchableOpacity, SafeAreaView, Dimensions, Linking, ActivityIndicator,
 } from 'react-native';
 import BottomTabBar from '../components/BottomTabBar';
+
+const API_URL = 'https://silverlieai.onrender.com';
 
 const { width } = Dimensions.get('window');
 
@@ -23,6 +25,23 @@ const LECTURES = [
 
 export default function LifeScreen({ route, navigation }: Props) {
   const { name = '회원', userId = 'demo-user' } = route?.params ?? {};
+  const [travel, setTravel] = useState<{title:string; sub:string; tags:string} | null>(null);
+  const [travelLoading, setTravelLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_URL}/ai/chat`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: '한국 시니어에게 맞는 봄 여행지 1곳을 추천해줘. 제목(15자 이내), 부제(20자 이내), 키워드 3개를 JSON으로: {"title":"...","sub":"...","tags":"... · ... · ..."}' }),
+    })
+      .then(r => r.json())
+      .then(d => {
+        const text = d.reply || '';
+        const start = text.indexOf('{'); const end = text.lastIndexOf('}') + 1;
+        if (start >= 0) setTravel(JSON.parse(text.slice(start, end)));
+      })
+      .catch(() => {})
+      .finally(() => setTravelLoading(false));
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -36,12 +55,19 @@ export default function LifeScreen({ route, navigation }: Props) {
         {/* ─── AI 히어로 배너 ─── */}
         <View style={styles.heroBanner}>
           <View style={styles.heroTag}><Text style={styles.heroTagText}>✈️ AI 여행 맞춤</Text></View>
-          <Text style={styles.heroTitle}>봄 건강 여행</Text>
-          <Text style={styles.heroSub}>경주 온천 1박 2일</Text>
-          <View style={styles.heroMeta}>
-            <Text style={styles.heroMetaText}>🌡 온천 치료  •  🍱 한식 건강식  •  🚌 편의 이동</Text>
-          </View>
-          <TouchableOpacity style={styles.heroBtn}>
+          {travelLoading ? (
+            <ActivityIndicator color="#fff" style={{ marginVertical: 12 }} />
+          ) : (
+            <>
+              <Text style={styles.heroTitle}>{travel?.title ?? '봄 건강 여행'}</Text>
+              <Text style={styles.heroSub}>{travel?.sub ?? '경주 온천 1박 2일'}</Text>
+              <View style={styles.heroMeta}>
+                <Text style={styles.heroMetaText}>{travel?.tags ?? '🌡 온천 치료  •  🍱 한식 건강식  •  🚌 편의 이동'}</Text>
+              </View>
+            </>
+          )}
+          <TouchableOpacity style={styles.heroBtn}
+            onPress={() => Linking.openURL('https://www.google.com/search?q=' + encodeURIComponent((travel?.title ?? '시니어 봄 여행') + ' 시니어'))}>
             <Text style={styles.heroBtnText}>자세히 보기 →</Text>
           </TouchableOpacity>
         </View>
@@ -55,7 +81,8 @@ export default function LifeScreen({ route, navigation }: Props) {
         {/* ─── 2×2 그리드 ─── */}
         <View style={styles.grid}>
           {GRID_ITEMS.map((item, i) => (
-            <TouchableOpacity key={i} style={styles.gridCard} activeOpacity={0.82}>
+            <TouchableOpacity key={i} style={styles.gridCard} activeOpacity={0.82}
+              onPress={() => navigation.navigate('LifeDetail', { type: item.type, name, userId })}>
               <Text style={styles.gridIcon}>{item.icon}</Text>
               <Text style={styles.gridTitle}>{item.title}</Text>
               <Text style={styles.gridSub}>{item.sub}</Text>
@@ -70,7 +97,8 @@ export default function LifeScreen({ route, navigation }: Props) {
         </View>
 
         {LECTURES.map((lec, i) => (
-          <TouchableOpacity key={i} style={styles.lectureCard} activeOpacity={0.85}>
+          <TouchableOpacity key={i} style={styles.lectureCard} activeOpacity={0.85}
+            onPress={() => Linking.openURL(YOUTUBE_LINKS[i === 0 ? 'golf' : 'ai'])}>
             <View style={[styles.lectureAccent, { backgroundColor: lec.color }]} />
             <View style={styles.lectureIconWrap}>
               <Text style={styles.lectureIcon}>{lec.icon}</Text>
