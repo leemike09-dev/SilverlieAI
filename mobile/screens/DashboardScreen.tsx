@@ -79,7 +79,10 @@ export default function DashboardScreen({ route, navigation }: any) {
           ))}
         </View>
 
-        {/* 홈으로 */}
+        {/* 하단 이동 버튼 2개 */}
+        <TouchableOpacity style={s.healthBtn} onPress={() => navigation.navigate('Health', { userId, name })} activeOpacity={0.85}>
+          <Text style={s.healthBtnTxt}>🫀 건강 화면으로</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={s.homeBtn} onPress={() => navigation.navigate('Home')} activeOpacity={0.85}>
           <Text style={s.homeBtnTxt}>← 홈으로</Text>
         </TouchableOpacity>
@@ -143,6 +146,8 @@ const s = StyleSheet.create({
   recDesc:  { fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 17 },
 
   // 홈으로
+  healthBtn:    { backgroundColor: '#1a3a5c', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+  healthBtnTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
   homeBtn:    { backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 14, paddingVertical: 15, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
   homeBtnTxt: { fontSize: 15, fontWeight: '700', color: 'rgba(255,255,255,0.55)' },
 });
