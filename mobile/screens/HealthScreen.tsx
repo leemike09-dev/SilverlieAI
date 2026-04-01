@@ -135,10 +135,20 @@ export default function HealthScreen({ route, navigation }: any) {
   const bpHighAlert = todayRecord?.blood_pressure_systolic >= 135;
   const allFilled = values.steps && values.heart_rate && values.bp_sys && values.bp_dia && values.blood_sugar;
 
+  const bpDiaMetric = { key: 'bp_dia', icon: '💙', label: '혈압 이완기 (낮은 수치)', unit: 'mmHg',
+    auto: false, normal: '60~80 mmHg', quick: [80, 78, 75, 72] };
+
   const handleConfirm = (key: string, val: string) => {
-    if (key === 'bp') setValues(v => ({ ...v, bp_sys: val, bp_dia: '' }));
-    else setValues(v => ({ ...v, [key]: val }));
-    setKeypadMetric(null);
+    if (key === 'bp') {
+      setValues(v => ({ ...v, bp_sys: val }));
+      setKeypadMetric(bpDiaMetric as any); // 이완기 키패드로 전환
+    } else if (key === 'bp_dia') {
+      setValues(v => ({ ...v, bp_dia: val }));
+      setKeypadMetric(null);
+    } else {
+      setValues(v => ({ ...v, [key]: val }));
+      setKeypadMetric(null);
+    }
   };
 
   const displayVal = (key: string) => {
@@ -160,19 +170,30 @@ export default function HealthScreen({ route, navigation }: any) {
     if (!allFilled) { Alert.alert('알림', '모든 수치를 입력해주세요.'); return; }
     setSaving(true);
     try {
+      const today = new Date().toISOString().split('T')[0];
       const res = await fetch(`${API_URL}/health/records`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: userId,
+          date: today,
           steps: parseInt(values.steps),
           heart_rate: parseInt(values.heart_rate),
           blood_pressure_systolic: parseInt(values.bp_sys),
           blood_pressure_diastolic: parseInt(values.bp_dia),
           blood_sugar: parseInt(values.blood_sugar),
+          source: 'manual',
         }),
       });
-      if (res.ok) Alert.alert('저장 완료', '오늘 건강 기록이 저장되었습니다.');
-      else        Alert.alert('오류', '저장에 실패했습니다.');
+      if (res.ok) {
+        const saved = await res.json();
+        setTodayRecord(saved);
+        setValues({ steps:'', heart_rate:'', bp_sys:'', bp_dia:'', blood_sugar:'' });
+        Alert.alert('저장 완료 ✓', '오늘 건강 기록이 저장됐습니다.', [
+          { text: '확인', onPress: () => setActiveTab('today') }
+        ]);
+      } else {
+        Alert.alert('오류', '저장에 실패했습니다.');
+      }
     } catch { Alert.alert('오류', '네트워크 오류가 발생했습니다.'); }
     finally { setSaving(false); }
   };
