@@ -298,6 +298,13 @@ export default function HealthScreen({ route, navigation }: any) {
             <Text style={s.recordBtnTxt}>📝 오늘 건강 기록하기</Text>
           </TouchableOpacity>
 
+          {/* AI 건강 분석 버튼 */}
+          <TouchableOpacity style={s.aiAnalysisBtn}
+            onPress={() => navigation.navigate('Dashboard', { userId, name })}
+            activeOpacity={0.85}>
+            <Text style={s.aiAnalysisBtnTxt}>🤖 AI 건강 분석 자세히 보기 →</Text>
+          </TouchableOpacity>
+
           {/* 홈으로 */}
           <TouchableOpacity style={s.homeBtn} onPress={() => navigation.navigate('Home')}>
             <Text style={s.homeBtnTxt}>← 홈으로</Text>
@@ -531,6 +538,8 @@ const s = StyleSheet.create({
   saveBtn:    { backgroundColor: '#1a3a5c', borderRadius: 18, padding: 18, alignItems: 'center' },
   saveBtnDim: { opacity: 0.5 },
   saveBtnTxt: { color: '#fff', fontSize: 17, fontWeight: '800' },
+  aiAnalysisBtn:    { backgroundColor: '#1a3a5c', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+  aiAnalysisBtnTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
   homeBtn:    { backgroundColor: '#fff', borderRadius: 14, paddingVertical: 15, alignItems: 'center', borderWidth: 1.5, borderColor: '#dde3ee' },
   homeBtnTxt: { fontSize: 15, fontWeight: '700', color: '#546e7a' },
 

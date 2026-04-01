@@ -150,6 +150,7 @@ export default function HomeScreen({ route, navigation }: any) {
               <>
                 <Text style={s.scoreTitle}>건강점수 확인하기 🔒</Text>
                 <Text style={s.scoreSub}>로그인 후 AI 건강 분석 제공</Text>
+                <Text style={s.scoreHint}>👆 탭하여 AI 분석 보기</Text>
               </>
             ) : (
               <>
@@ -159,6 +160,7 @@ export default function HomeScreen({ route, navigation }: any) {
                   <View style={s.badge}><Text style={s.badgeTxt}>혈압 120/80</Text></View>
                   <View style={s.badge}><Text style={s.badgeTxt}>걸음 7.2k</Text></View>
                 </View>
+                <Text style={s.scoreHint}>👆 탭하여 AI 분석 보기</Text>
               </>
             )}
           </View>
@@ -259,6 +261,7 @@ const s = StyleSheet.create({
   scoreUnit:    { fontSize: 10, color: 'rgba(255,255,255,0.8)' },
   scoreTitle:   { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 2 },
   scoreSub:     { fontSize: 11, color: 'rgba(255,255,255,0.8)' },
+  scoreHint:    { fontSize: 10, color: 'rgba(255,255,255,0.6)', marginTop: 5, fontStyle: 'italic' },
   badge:        { backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 10, paddingVertical: 3, paddingHorizontal: 8 },
   badgeTxt:     { fontSize: 10, color: '#fff', fontWeight: '600' },
   // 운동
