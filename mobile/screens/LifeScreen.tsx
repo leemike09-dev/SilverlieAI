@@ -100,7 +100,6 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: GREEN,
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20,
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
   headerSub:   { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginBottom: 2 },
   headerTitle: { color: '#fff', fontSize: 22, fontWeight: '700' },
