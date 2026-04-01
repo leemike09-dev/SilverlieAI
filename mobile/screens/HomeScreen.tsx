@@ -110,7 +110,7 @@ export default function HomeScreen({ route, navigation }: any) {
       <View style={s.header}>
         <View style={s.headerTop}>
           <Text style={s.appName}>Silver Life</Text>
-          {isGuest ? (
+          {isGuest || DEMO_MODE ? (
             <View style={s.headerBtns}>
               <TouchableOpacity style={s.btnLogin} onPress={goLogin}>
                 <Text style={s.btnLoginTxt}>로그인</Text>
