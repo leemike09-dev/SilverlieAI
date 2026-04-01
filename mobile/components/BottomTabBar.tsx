@@ -54,6 +54,8 @@ const styles = StyleSheet.create({
   tabbar: {
     backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#eef2f7',
     flexDirection: 'row', paddingTop: 8,
+    zIndex: 100,
+    ...(require('react-native').Platform.OS === 'web' ? { position: 'relative' as any } : {}),
   },
   tab:            { flex: 1, alignItems: 'center', gap: 2 },
   tabIcon:        { fontSize: 22, opacity: 0.35 },

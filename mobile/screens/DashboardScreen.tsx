@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform,
 } from 'react-native';
 import { DEMO_MODE } from '../App';
+import BottomTabBar from '../components/BottomTabBar';
 
 const SAMPLE = {
   score: 82, scoreChange: +3, scoreRank: 28,
@@ -110,6 +111,8 @@ export default function DashboardScreen({ route, navigation }: any) {
 
         <View style={{ height: 20 }} />
       </ScrollView>
+
+      <BottomTabBar navigation={navigation} activeTab="Home" userId={userId} name={name} />
     </View>
   );
 }

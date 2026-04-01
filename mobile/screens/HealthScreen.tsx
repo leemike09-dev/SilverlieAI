@@ -205,8 +205,8 @@ export default function HealthScreen({ route, navigation }: any) {
       {activeTab === 'today' && (
         <ScrollView style={s.body} contentContainerStyle={s.bodyContent}>
 
-          {/* AI 건강점수 배너 */}
-          <View style={s.scoreBanner}>
+          {/* AI 건강점수 배너 → 클릭시 대시보드 */}
+          <TouchableOpacity style={s.scoreBanner} onPress={() => navigation.navigate('Dashboard', { userId, name })} activeOpacity={0.9}>
             <View style={s.scoreTop}>
               <View style={s.scoreRing}>
                 {loadingToday
@@ -236,7 +236,7 @@ export default function HealthScreen({ route, navigation }: any) {
                 </View>
               ))}
             </View>
-          </View>
+          </TouchableOpacity>
 
           {/* AI 이상 감지 */}
           {bpHighAlert && (
