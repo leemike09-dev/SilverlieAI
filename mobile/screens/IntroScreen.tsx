@@ -180,12 +180,12 @@ const s = StyleSheet.create({
   subtitle: { color: 'rgba(255,255,255,0.85)', fontSize: 17, textAlign: 'center' },
   quoteCard: {
     backgroundColor: 'rgba(15,28,55,0.42)',
-    borderRadius: 18, padding: 22,
+    borderRadius: 14, padding: 16,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
-  quoteIcon: { fontSize: 22, marginBottom: 10 },
-  quoteTxt: { color: '#fff', fontSize: 18, lineHeight: 28, fontWeight: '500', marginBottom: 10 },
-  quoteAuthor: { color: 'rgba(255,255,255,0.65)', fontSize: 14, textAlign: 'right' },
+  quoteIcon: { fontSize: 18, marginBottom: 6 },
+  quoteTxt: { color: '#fff', fontSize: 15, lineHeight: 23, fontWeight: '500', marginBottom: 6 },
+  quoteAuthor: { color: 'rgba(255,255,255,0.65)', fontSize: 13, textAlign: 'right' },
   startBtn: {
     backgroundColor: '#4e8a5e',
     borderRadius: 18, paddingVertical: 20, alignItems: 'center',
