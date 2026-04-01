@@ -110,7 +110,7 @@ export default function HealthScreen({ route, navigation }: any) {
   const { name = '회원', userId = 'demo-user' } = route?.params ?? {};
   const { t } = useLanguage();
 
-  const [activeTab, setActiveTab] = useState<'today'|'trend'|'ai'|'record'>('today');
+  const [activeTab, setActiveTab] = useState<'today'|'record'>('today');
   const [todayRecord, setTodayRecord] = useState<any>(null);
   const [loadingToday, setLoadingToday] = useState(true);
 
@@ -178,10 +178,8 @@ export default function HealthScreen({ route, navigation }: any) {
   };
 
   const TABS = [
-    { key: 'today', label: '오늘' },
-    { key: 'trend', label: '트렌드' },
-    { key: 'ai',    label: 'AI 리포트' },
-    { key: 'record',label: '기록' },
+    { key: 'today',  label: '오늘' },
+    { key: 'record', label: '기록' },
   ];
 
   return (
@@ -401,16 +399,7 @@ export default function HealthScreen({ route, navigation }: any) {
         </ScrollView>
       )}
 
-      {/* ══ 트렌드 / AI 리포트 탭 ══ */}
-      {(activeTab === 'trend' || activeTab === 'ai') && (
-        <View style={[s.body, { alignItems: 'center', justifyContent: 'center', gap: 16 }]}>
-          <Text style={{ fontSize: 36 }}>🚧</Text>
-          <Text style={{ fontSize: 15, color: '#90a4ae' }}>준비 중입니다</Text>
-          <TouchableOpacity style={s.homeBtn} onPress={() => navigation.navigate('Home')}>
-            <Text style={s.homeBtnTxt}>← 홈으로</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+
 
       {/* 키패드 모달 */}
       <Modal visible={!!keypadMetric} transparent animationType="slide">
