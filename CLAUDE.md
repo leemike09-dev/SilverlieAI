@@ -58,12 +58,12 @@ export const DEMO_MODE = true;  // 팀/외부 평가용 — 모든 화면 로그
 // 정식 출시 시 false로 변경
 ```
 
-## 화면 구성 및 확정 현황 (2026-04-01)
+## 화면 구성 및 확정 현황 (2026-04-02 기준)
 
 ### ✅ 전체 화면 확정 완료
 | 화면 | 파일 | 주요 내용 |
 |------|------|------|
-| 인트로 | IntroScreen.tsx | 전체화면 그라디언트, 명언카드, 시작하기 버튼 |
+| 인트로 | IntroScreen.tsx | 전체화면 그라디언트, 명언카드, 시작하기 버튼, 순차 페이드인 애니메이션 |
 | 홈 | HomeScreen.tsx | Silver Life 파란 디자인, 🔔 알림 버튼, ScrollView 레이아웃 |
 | 로그인/회원가입 | LoginScreen.tsx | 탭 전환, 소셜로그인 버튼, 하단 홈버튼 |
 | AI 온보딩 | OnboardingScreen.tsx | 신체정보 + 관심사 8개 칩 |
@@ -74,12 +74,16 @@ export const DEMO_MODE = true;  // 팀/외부 평가용 — 모든 화면 로그
 | 주간 리포트 | WeeklyReportScreen.tsx | 7일 막대차트, AI총평, 트렌드, 하단탭 건강이동 |
 | 라이프 | LifeScreen.tsx | AI 여행배너(실시간), 카드→상세, YouTube 강의 |
 | 라이프 상세 | LifeDetailScreen.tsx | 레시피/운동/두뇌/문화/여행 타입별 콘텐츠 |
-| 커뮤니티 | CommunityScreen.tsx | 3탭, 좋아요토글, 글쓰기모달, 그룹가입, 첫방문 가이드 |
+| 게시판 | BoardScreen.tsx | 공지/건강정보/이벤트/시니어팁, 카테고리 필터, 좋아요, 상세모달 |
 | 설정 | SettingsScreen.tsx | 블루 프로필헤더, 건강현황, 계정/알림/웨어러블 |
 | 알림 | NotificationsScreen.tsx | 블루 헤더, 읽음처리, 전체읽음 버튼 |
 
 ### 🗑 삭제된 화면
 - AIRecommendScreen.tsx — DashboardScreen에 통합
+- CommunityScreen.tsx — 초기 출시 제외, BoardScreen으로 대체
+
+## 하단 탭바 구성
+🏠 홈 / 🫀 건강·운동 / 🌿 라이프 / 📋 게시판 / 👤 내 정보
 
 ## 네비게이션 흐름
 ```
@@ -101,15 +105,27 @@ Life → LifeDetail (카드 탭, type: recipe/exercise/brain/culture/travel)
 - **탭바 active**: 대소문자 무관 비교 (toLowerCase)
 - **건강 탭**: 4탭→2탭 (오늘/기록)
 - **혈압 입력**: 2단계 키패드 (수축기→이완기 자동 전환)
-- **웹**: position:fixed + CSS linear-gradient
 - **외부 링크**: anchor _blank 방식 (새탭 열기)
+- **커뮤니티**: 초기 출시 제외 → 게시판(BoardScreen)으로 대체
+- **레이아웃 기준**: 갤럭시(Android) 기준, StatusBar.currentHeight로 상단 여백 동적 적용
 
-## 하단 탭바 구성
-🏠 홈 / 🫀 건강·운동 / 🌿 라이프 / 👥 커뮤니티 / 👤 내 정보
+## 배포 현황 (2026-04-02)
+- **웹 데모**: https://leemike09-dev.github.io/SilverlieAI/
+- **백엔드**: https://silverlieai.onrender.com
+- **API 문서**: https://silverlieai.onrender.com/docs
+- **최신 커밋**: 98b1df8
 
-## 구현 완료 기능 (2026-04-01)
+## EAS 앱 빌드 (예정)
+| 플랫폼 | 필요 조건 | 비용 |
+|--------|----------|------|
+| Google Play (Android) | Google Play 개발자 계정 | $25 1회 |
+| App Store (iOS) | Apple Developer 계정 | $99/년 |
+- EAS 계정(gigas4) 및 projectId(2220b18b-fc03-4ccd-9e62-49dda3b0793f) 설정 완료
+- 앱 빌드 시 Safari 뷰포트 이슈 없음 (Platform.OS === 'ios' 기준 렌더링)
 
-### 백엔드 API (전체 작동 확인)
+## 구현 완료 기능
+
+### 백엔드 API
 | 엔드포인트 | 기능 |
 |------|------|
 | POST /users/register | 회원가입 (bcrypt 해시) |
@@ -121,19 +137,24 @@ Life → LifeDetail (카드 탭, type: recipe/exercise/brain/culture/travel)
 | GET /news/health-news | 건강 뉴스 |
 | GET /notifications/{userId} | 알림 조회 |
 
-### 프론트엔드 작동 기능
+### 프론트엔드
 - 회원가입/로그인 → Supabase DB 저장
 - 건강 기록 저장 → DB 저장 후 오늘탭 즉시 반영
 - AI 건강 상담 → Claude API 실시간 응답
 - AI 여행 배너 → Claude API 실시간 추천 (5초 타임아웃)
-- AI 여행 상세 → 앱 내부에서 교통/숙소/맛집 추가 정보
-- 커뮤니티 좋아요/글쓰기/그룹가입 → 로컬 state
+- AI 여행 상세 → 앱 내부 교통/숙소/맛집 추가 정보
+- 게시판 좋아요/상세보기 → 로컬 state
 
-## PWA 설정 (외부 공유용)
+## PWA 설정
 - **manifest.json**: mobile/web/manifest.json
-- **홈 화면 추가**: Safari/Chrome → 공유 → "홈 화면에 추가" → Silver Life AI 아이콘 생성
-- **OG 태그**: 카카오톡/WeChat 링크 공유 시 미리보기 카드 표시
+- **홈 화면 추가**: Safari/Chrome → 공유 → "홈 화면에 추가"
+- **OG 태그**: 카카오톡/WeChat 링크 공유 미리보기
 - **QR 코드**: https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://leemike09-dev.github.io/SilverlieAI/
+
+## iOS Safari 웹 뷰포트 이슈
+- 웹 데모에서 아이폰 Safari 하단 공백 발생 (Safari 탭바가 콘텐츠 침범)
+- 현재 적용: `100svh` (iOS 15.4+), position:fixed 제거, flex 체인
+- 완전한 해결은 EAS 앱 빌드(네이티브) 후 자동 해소됨
 
 ## 배포 절차
 1. python3 subprocess로 파일 수정 (경로에 non-breaking space 포함)
@@ -145,14 +166,9 @@ Life → LifeDetail (카드 탭, type: recipe/exercise/brain/culture/travel)
 ```
 실제 경로: /Users/mikelee/Documents/문서 - Mike의 MacBook Pro/SilverLifeAI
 non-breaking space(\xa0) 포함 — 터미널 cd 불가
-파일 접근: python3 subprocess 또는 Read/Edit/Write 툴 직접 사용
+파일 접근: python3 - "$REPO" << 'PYEOF' 방식 사용
 ```
 
 ## venv
 - backend/venv_new/ 사용 (기존 venv 경로 깨짐, .gitignore 처리됨)
 - 로컬 실행: `cd backend && source venv_new/bin/activate && uvicorn app.main:app --reload`
-
-## 테스트 링크
-- 웹 데모: https://leemike09-dev.github.io/SilverlieAI/
-- API: https://silverlieai.onrender.com
-- API 문서: https://silverlieai.onrender.com/docs
