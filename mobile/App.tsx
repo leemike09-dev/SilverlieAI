@@ -15,6 +15,7 @@ import SettingsScreen from './screens/SettingsScreen';
 import WeeklyReportScreen from './screens/WeeklyReportScreen';
 import AIChatScreen from './screens/AIChatScreen';
 import CommunityScreen from './screens/CommunityScreen';
+import BoardScreen from './screens/BoardScreen';
 import GroupBoardScreen from './screens/GroupBoardScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import WearableScreen from './screens/WearableScreen';
@@ -48,6 +49,7 @@ export default function App() {
           <Stack.Screen name="Dashboard"   component={DashboardScreen}   initialParams={DEMO} />
           <Stack.Screen name="AIChat"      component={AIChatScreen}      initialParams={DEMO} />
           <Stack.Screen name="Community"   component={CommunityScreen}   initialParams={DEMO} />
+          <Stack.Screen name="Board"       component={BoardScreen}       initialParams={DEMO} />
           <Stack.Screen name="GroupBoard"  component={GroupBoardScreen}  initialParams={DEMO} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} initialParams={DEMO} />
           <Stack.Screen name="Settings"    component={SettingsScreen}    initialParams={DEMO} />

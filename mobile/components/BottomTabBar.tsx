@@ -21,7 +21,7 @@ export default function BottomTabBar({ navigation, activeTab = 'Home', userId = 
     { key: 'Home',      icon: '🏠', label: '홈',      screen: 'Home'      },
     { key: 'Health',    icon: '🫀', label: '건강·운동', screen: 'Health'    },
     { key: 'Life',      icon: '🌿', label: '라이프',   screen: 'Life'      },
-    { key: 'Community', icon: '👥', label: '커뮤니티', screen: 'Community' },
+    { key: 'Board',     icon: '📋', label: '게시판',   screen: 'Board'     },
     { key: 'Settings',  icon: '👤', label: '내 정보',  screen: 'Settings'  },
   ];
 
