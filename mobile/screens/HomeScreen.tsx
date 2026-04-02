@@ -19,7 +19,7 @@ const HEALTH_TILES = [
 const TICKERS = [
   { text: '여행 일정이 필요하신가요?',   btn: '라이프로',   target: 'Life' },
   { text: '건강에 좋은 레시피 →',        btn: '라이프로',   target: 'Life' },
-  { text: '같이하고 싶은 사람들의 모임', btn: '커뮤니티로', target: 'Community' },
+  { text: '게시판에서 건강 정보 확인하기', btn: '게시판으로', target: 'Board' },
 ];
 
 function getTodayStr() {
