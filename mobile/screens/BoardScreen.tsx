@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import SeniorTabBar from '../components/SeniorTabBar';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  SafeAreaView, Modal, Platform,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Platform,
 } from 'react-native';
 
 type Props = { route: any; navigation: any };
@@ -111,7 +110,7 @@ export default function BoardScreen({ route, navigation }: any) {
   const selectedPost = selected !== null ? POSTS[selected] : null;
 
   return (
-    <SafeAreaView style={s.safe}>
+    <View style={{flex: 1, backgroundColor: '#f5f7fa'}}>
       <View style={s.header}>
         <Text style={s.headerTitle}>📋 게시판</Text>
         <Text style={s.headerSub}>Silver Life AI 공식 소식</Text>

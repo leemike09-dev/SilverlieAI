@@ -1,8 +1,7 @@
 import SeniorTabBar from '../components/SeniorTabBar';
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  SafeAreaView, Platform, Alert, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Alert, ActivityIndicator,
 } from 'react-native';
 
 const API_URL = 'https://silverlieai.onrender.com';
@@ -105,7 +104,7 @@ export default function WearableScreen({ route, navigation }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={{flex: 1, backgroundColor: '#f5f7fa'}}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.back}>← 내 정보</Text>

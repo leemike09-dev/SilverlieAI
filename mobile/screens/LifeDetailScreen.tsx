@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import SeniorTabBar from '../components/SeniorTabBar';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -177,7 +177,7 @@ export default function LifeDetailScreen({ route, navigation }: Props) {
   }
 
   return (
-    <SafeAreaView style={s.safe}>
+    <View style={{flex: 1, backgroundColor: '#f5f7fa'}}>
       <View style={s.header}>
         <View style={[s.tag, { backgroundColor: data.tagColor }]}>
           <Text style={[s.tagText, { color: data.tagText }]}>{data.tag}</Text>
