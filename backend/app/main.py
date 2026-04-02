@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import health, ai, users, community, notifications, news
+from app.routers import health, ai, users, community, notifications, news, medications, family
 
 app = FastAPI(
     title="Silver Life AI API",
@@ -22,6 +22,9 @@ app.include_router(community.router, prefix="/community", tags=["community"])
 app.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 app.include_router(news.router, prefix="/news", tags=["news"])
 
+
+app.include_router(medications.router, prefix="/medications", tags=["medications"])
+app.include_router(family.router, prefix="/family", tags=["family"])
 
 @app.get("/")
 def root():

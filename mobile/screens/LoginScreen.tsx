@@ -16,6 +16,7 @@ export default function LoginScreen({ navigation, route }: any) {
   const [confirmPw, setConfirmPw] = useState('');
   const [loading,   setLoading]   = useState(false);
   const [errorMsg,  setErrorMsg]  = useState('');
+  const [role,      setRole]      = useState<'senior' | 'family'>('senior');
 
   const handleSubmit = async () => {
     setErrorMsg('');
@@ -80,6 +81,23 @@ export default function LoginScreen({ navigation, route }: any) {
 
             {/* 입력 필드 */}
             {mode === 'register' && (
+              <View style={{ marginBottom: 16 }}>
+                <Text style={[s.label, { marginBottom: 8 }]}>나는 누구인가요?</Text>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TouchableOpacity
+                    style={[s.roleBtn, role === 'senior' && s.roleBtnOn]}
+                    onPress={() => setRole('senior')}>
+                    <Text style={[s.roleTxt, role === 'senior' && s.roleTxtOn]}>👴 시니어 (본인)</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[s.roleBtn, role === 'family' && s.roleBtnOn]}
+                    onPress={() => setRole('family')}>
+                    <Text style={[s.roleTxt, role === 'family' && s.roleTxtOn]}>👨‍👩‍👧 가족 (보호자)</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+        {mode === 'register' && (
               <View style={s.fieldWrap}>
                 <Text style={s.label}>이름</Text>
                 <TextInput style={s.input} placeholder="이름을 입력하세요" placeholderTextColor="#b0bec5"
@@ -194,4 +212,8 @@ const s = StyleSheet.create({
   findSep:     { fontSize: 13, color: '#dde3ee' },
   homeBtn:     { marginTop: 14, backgroundColor: '#f0f2f7', borderRadius: 14, paddingVertical: 15, alignItems: 'center', borderWidth: 1.5, borderColor: '#dde3ee' },
   homeBtnTxt:  { fontSize: 15, fontWeight: '700', color: '#546e7a' },
+  roleBtn:    { flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: '#f0f4f8', alignItems: 'center', borderWidth: 2, borderColor: '#f0f4f8' },
+  roleBtnOn:  { backgroundColor: '#e8f0fe', borderColor: '#1a5fbc' },
+  roleTxt:    { fontSize: 14, fontWeight: '600', color: '#666' },
+  roleTxtOn:  { color: '#1a5fbc' },
 });
