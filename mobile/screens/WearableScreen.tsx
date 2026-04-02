@@ -1,3 +1,4 @@
+import SeniorTabBar from '../components/SeniorTabBar';
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
@@ -225,7 +226,9 @@ export default function WearableScreen({ route, navigation }: Props) {
       </TouchableOpacity>
     ))}
   </View>
-    </SafeAreaView>
+    
+      <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={name} />
+    </View>
   );
 }
 

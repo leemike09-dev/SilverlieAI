@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import SeniorTabBar from '../components/SeniorTabBar';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, StatusBar,
@@ -114,24 +115,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-
-      {/* 새 탭바 (SeniorHome 스타일) */}
-      <View style={s.tabbar}>
-        {[
-          { icon: '🏠', lbl: '오늘',    screen: 'SeniorHome', active: false },
-          { icon: '💊', lbl: '내 약',   screen: 'Medication',  active: false },
-          { icon: '🤖', lbl: 'AI 상담', screen: '',            active: true  },
-          { icon: '👤', lbl: '내 정보', screen: 'Settings',    active: false },
-        ].map(tab => (
-          <TouchableOpacity key={tab.lbl} style={s.tab}
-            onPress={() => tab.screen && navigation.navigate(tab.screen, { userId, name })}
-            activeOpacity={0.7}>
-            <Text style={[s.tabIcon, tab.active && { opacity: 1 }]}>{tab.icon}</Text>
-            <Text style={[s.tabLbl, tab.active && { color: C.sage, fontWeight: '700' }]}>{tab.lbl}</Text>
-            {tab.active && <View style={s.tabDot} />}
-          </TouchableOpacity>
-        ))}
-      </View>
+    
+      <SeniorTabBar navigation={navigation} activeTab="ai" userId={userId} name={name} />
     </View>
   );
 }

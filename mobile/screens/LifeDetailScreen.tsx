@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import SeniorTabBar from '../components/SeniorTabBar';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
 
 const API_URL = 'https://silverlieai.onrender.com';
@@ -228,26 +229,9 @@ export default function LifeDetailScreen({ route, navigation }: Props) {
           <Text style={s.backBtnText}>← 라이프로 돌아가기</Text>
         </TouchableOpacity>
       </ScrollView>
-
-      
-  {/* ── 탭바 ── */}
-  <View style={{flexDirection:'row', backgroundColor:'#FFFFFF', borderTopWidth:1, borderTopColor:'#F0EDE8', paddingTop:10, paddingBottom:14}}>
-    {[
-      {{ icon:'🏠', lbl:'오늘',    screen:'SeniorHome', active: 'home' === 'home' }},
-      {{ icon:'💊', lbl:'내 약',   screen:'Medication',  active: 'home' === 'med'  }},
-      {{ icon:'🤖', lbl:'AI 상담', screen:'AIChat',      active: 'home' === 'ai'   }},
-      {{ icon:'👤', lbl:'내 정보', screen:'Settings',    active: 'home' === 'info' }},
-    ].map(tab => (
-      <TouchableOpacity key={{tab.lbl}} style={{flex:1, alignItems:'center', gap:3}}
-        onPress={() => !tab.active && tab.screen && navigation.navigate(tab.screen, {{ userId, name }})}
-        activeOpacity={{0.7}}>
-        <Text style={{fontSize:22, opacity: tab.active ? 1 : 0.3}}>{tab.icon}</Text>
-        <Text style={{fontSize:10, color: tab.active ? '#6BAE8F' : '#8A8A8A', fontWeight: tab.active ? '700' : '500'}}>{tab.lbl}</Text>
-        {tab.active && <View style={{width:4,height:4,borderRadius:2,backgroundColor:'#6BAE8F',marginTop:1}} />}
-      </TouchableOpacity>
-    ))}
-  </View>
-    </SafeAreaView>
+    
+      <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={name} />
+    </View>
   );
 }
 
