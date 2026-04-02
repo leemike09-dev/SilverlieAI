@@ -53,11 +53,11 @@ export default function OnboardingScreen({ navigation, route }: any) {
       await AsyncStorage.setItem('onboarded', 'true');
     } catch { /* 저장 실패해도 홈으로 이동 */ }
     finally { setSaving(false); }
-    navigation.replace('Home', { name, userId, isGuest: false });
+    navigation.replace('SeniorHome', { name, userId, isGuest: false });
   };
 
   const handleSkip = () => {
-    navigation.replace('Home', { name, userId, isGuest: false });
+    navigation.replace('SeniorHome', { name, userId, isGuest: false });
   };
 
   const step = age || height || weight ? 2 : 1;

@@ -108,7 +108,7 @@ export default function HealthInfoScreen({ route, navigation }: any) {
           <Text style={[s.infoTxt, { color: data.color }]}>{data.info}</Text>
         </View>
 
-        <TouchableOpacity style={s.homeBtn} onPress={() => navigation.navigate('Home')} activeOpacity={0.85}>
+        <TouchableOpacity style={s.homeBtn} onPress={() => navigation.navigate('SeniorHome')} activeOpacity={0.85}>
           <Text style={s.homeBtnTxt}>← 홈으로</Text>
         </TouchableOpacity>
         <View style={{ height: 20 }} />

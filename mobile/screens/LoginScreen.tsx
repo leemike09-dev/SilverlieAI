@@ -55,7 +55,7 @@ export default function LoginScreen({ navigation, route }: any) {
   };
 
   const goHome = () =>
-    navigation.replace('Home', { name: '게스트', userId: '', isGuest: true });
+    navigation.replace('SeniorHome', { name: '게스트', userId: '', isGuest: true });
 
   return (
     <View style={s.root}>
