@@ -105,7 +105,7 @@ const s = StyleSheet.create({
   },
   header: {
     backgroundColor: BG,
-    paddingTop: Platform.OS === 'web' ? 20 : 52,
+    paddingTop: Platform.OS === 'web' ? 20 : (StatusBar.currentHeight ?? 28) + 8,
     paddingHorizontal: 20, paddingBottom: 14,
     borderBottomWidth: 1, borderBottomColor: '#1a2a3a',
   },

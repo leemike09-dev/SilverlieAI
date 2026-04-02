@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, SafeAreaView,
 } from 'react-native';
+import { Platform } from 'react-native';
 import BottomTabBar from '../components/BottomTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
@@ -107,7 +108,7 @@ const styles = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: '#f0f2f7' },
   header: {
     backgroundColor: '#1a5fbc', paddingHorizontal: 20,
-    paddingTop: 18, paddingBottom: 18,
+    paddingTop: Platform.OS === 'web' ? 18 : (StatusBar.currentHeight ?? 28) + 4, paddingBottom: 18,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
   title:       { fontSize: 20, fontWeight: '800', color: '#fff' },

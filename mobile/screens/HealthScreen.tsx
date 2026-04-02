@@ -446,7 +446,7 @@ export default function HealthScreen({ route, navigation }: any) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#f4f8fc', ...(Platform.OS === 'web' ? { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0 } : {}) },
 
-  header:       { backgroundColor: '#fff', paddingTop: Platform.OS === 'web' ? 8 : 44, paddingHorizontal: 18, paddingBottom: 0 },
+  header:       { backgroundColor: '#fff', paddingTop: Platform.OS === 'web' ? 8 : (StatusBar.currentHeight ?? 28) + 4, paddingHorizontal: 18, paddingBottom: 0 },
   headerTitle:  { fontSize: 17, fontWeight: '700', color: '#1a3a5c', textAlign: 'center', marginBottom: 10 },
   tabRow:       { flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: '#e8edf2' },
   tab:          { flex: 1, alignItems: 'center', paddingVertical: 9 },

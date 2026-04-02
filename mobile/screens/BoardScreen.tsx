@@ -197,7 +197,7 @@ const BLUE = '#1a5fbc';
 
 const s = StyleSheet.create({
   safe:       { flex: 1, backgroundColor: '#f5f7fa' },
-  header:     { backgroundColor: BLUE, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 18 },
+  header:     { backgroundColor: BLUE, paddingHorizontal: 20, paddingTop: Platform.OS === 'web' ? 16 : (StatusBar.currentHeight ?? 28) + 4, paddingBottom: 18 },
   headerTitle:{ fontSize: 20, fontWeight: '800', color: '#fff' },
   headerSub:  { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 3 },
 

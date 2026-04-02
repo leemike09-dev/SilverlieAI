@@ -120,7 +120,7 @@ export default function HealthInfoScreen({ route, navigation }: any) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#f5f7fa' },
   header: {
-    paddingTop: Platform.OS === 'web' ? 20 : 52,
+    paddingTop: Platform.OS === 'web' ? 20 : (StatusBar.currentHeight ?? 28) + 8,
     paddingBottom: 24, paddingHorizontal: 20,
   },
   headerIcon: { fontSize: 40, marginBottom: 6 },

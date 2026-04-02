@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   SafeAreaView, Switch, Alert,
 } from 'react-native';
+import { Platform } from 'react-native';
 import BottomTabBar from '../components/BottomTabBar';
 
 type Props = { route: any; navigation: any };
@@ -146,7 +147,7 @@ const styles = StyleSheet.create({
   /* 섹션 제목 */
   sectionTitle: {
     fontSize: 11, color: '#b0bec5', fontWeight: '700',
-    paddingHorizontal: 18, paddingTop: 18, paddingBottom: 6,
+    paddingHorizontal: 18, paddingTop: Platform.OS === 'web' ? 18 : (StatusBar.currentHeight ?? 28) + 4, paddingBottom: 6,
     letterSpacing: 1,
   },
 

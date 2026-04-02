@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
   /* Header */
   header: {
     backgroundColor: GREEN,
-    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20,
+    paddingHorizontal: 20, paddingTop: Platform.OS === 'web' ? 16 : (StatusBar.currentHeight ?? 28) + 4, paddingBottom: 20,
   },
   headerSub:   { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginBottom: 2 },
   headerTitle: { color: '#fff', fontSize: 22, fontWeight: '700' },
