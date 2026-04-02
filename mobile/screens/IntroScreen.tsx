@@ -33,12 +33,12 @@ export default function IntroScreen({ navigation }: any) {
       const userId   = await AsyncStorage.getItem('userId');
       const userName = await AsyncStorage.getItem('userName');
       if (userId && userName) {
-        navigation.replace('Home', { name: userName, userId, isGuest: false });
+        navigation.replace('SeniorHome', { name: userName, userId, isGuest: false });
       } else {
-        navigation.replace('Home', { name: '게스트', userId: '', isGuest: true });
+        navigation.replace('SeniorHome', { name: '홍길동', userId: 'demo-user', isGuest: false });
       }
     } catch {
-      navigation.replace('Home', { name: '게스트', userId: '', isGuest: true });
+      navigation.replace('SeniorHome', { name: '홍길동', userId: 'demo-user', isGuest: false });
     }
   };
 

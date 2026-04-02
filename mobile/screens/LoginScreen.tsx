@@ -45,7 +45,7 @@ export default function LoginScreen({ navigation, route }: any) {
       if (mode === 'register') {
         navigation.replace('Onboarding', { name: data.name, userId: data.id });
       } else {
-        navigation.replace('Home', { name: data.name, userId: data.id, isGuest: false });
+        navigation.replace('SeniorHome', { name: data.name, userId: data.id, isGuest: false });
       }
     } catch {
       setErrorMsg('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
