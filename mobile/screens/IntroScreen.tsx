@@ -44,7 +44,8 @@ export default function IntroScreen({ navigation }: any) {
 
   const rootWebStyle: any = Platform.OS === 'web' ? {
     position: 'fixed',
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: 0, left: 0, right: 0,
+    height: typeof window !== 'undefined' ? window.innerHeight : '100%',
     background: 'linear-gradient(180deg, #a2c8a8 0%, #80b4a0 18%, #5e9898 35%, #3e7890 52%, #2a5878 68%, #1e3e64 82%, #162e50 100%)',
   } : { backgroundColor: '#162e50' };
 

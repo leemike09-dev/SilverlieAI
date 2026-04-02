@@ -101,7 +101,7 @@ const CARD = '#13243a';
 const s = StyleSheet.create({
   root: {
     flex: 1, backgroundColor: BG,
-    ...(Platform.OS === 'web' ? { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0 } : {}),
+    ...(Platform.OS === 'web' ? { position: 'fixed' as any, top: 0, left: 0, right: 0, height: typeof window !== 'undefined' ? window.innerHeight : '100%' } : {}),
   },
   header: {
     backgroundColor: BG,

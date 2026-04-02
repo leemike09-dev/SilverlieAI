@@ -26,23 +26,30 @@
 
   <title>Silver Life AI</title>
   <style>
-    html {
-      height: -webkit-fill-available; /* iOS Safari */
-    }
-    body, #root {
-      height: 100%;
-      min-height: 100vh;
-      min-height: -webkit-fill-available; /* iOS Safari */
-      min-height: 100dvh;               /* Android Chrome 108+ */
-      margin: 0;
-      padding: 0;
+    :root { --app-height: 100vh; }
+    html, body {
+      margin: 0; padding: 0;
       overflow: hidden;
       overscroll-behavior: none;
-      -webkit-overflow-scrolling: touch;
       background-color: #a2c8a8;
+    }
+    #root {
+      height: var(--app-height);
+      overflow: hidden;
     }
     * { box-sizing: border-box; }
   </style>
+  <script>
+    function updateAppHeight() {
+      var h = (window.visualViewport ? window.visualViewport.height : window.innerHeight) + 'px';
+      document.documentElement.style.setProperty('--app-height', h);
+    }
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', updateAppHeight);
+    }
+    window.addEventListener('resize', updateAppHeight);
+    updateAppHeight();
+  </script>
 </head>
 <body>
   <div id="root"></div>
