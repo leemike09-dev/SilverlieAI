@@ -157,7 +157,7 @@ const s = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#f0f2f7',
-    ...(Platform.OS === 'web' ? { position: 'fixed' as any, top: 0, left: 0, right: 0, height: typeof window !== 'undefined' ? window.innerHeight : '100%' } : {}),
+    ...(Platform.OS === 'web' ? { flex: 1 } : {}),
   },
   scroll:      { flexGrow: 1 },
   // 헤더

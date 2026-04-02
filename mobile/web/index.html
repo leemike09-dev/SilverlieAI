@@ -26,30 +26,26 @@
 
   <title>Silver Life AI</title>
   <style>
-    :root { --app-height: 100vh; }
     html, body {
       margin: 0; padding: 0;
+      width: 100%; height: 100%;
       overflow: hidden;
       overscroll-behavior: none;
       background-color: #a2c8a8;
     }
+    /* Safari: 실제 보이는 높이만큼만 */
+    body {
+      height: 100svh; /* iOS 15.4+ */
+    }
     #root {
-      height: var(--app-height);
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column;
       overflow: hidden;
     }
+    /* React Navigation 컨테이너 flex 체인 */
+    #root > div { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
     * { box-sizing: border-box; }
   </style>
-  <script>
-    function updateAppHeight() {
-      var h = (window.visualViewport ? window.visualViewport.height : window.innerHeight) + 'px';
-      document.documentElement.style.setProperty('--app-height', h);
-    }
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', updateAppHeight);
-    }
-    window.addEventListener('resize', updateAppHeight);
-    updateAppHeight();
-  </script>
 </head>
 <body>
   <div id="root"></div>
