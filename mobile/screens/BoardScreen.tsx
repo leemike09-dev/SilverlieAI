@@ -201,9 +201,9 @@ const s = StyleSheet.create({
   headerTitle:{ fontSize: 20, fontWeight: '800', color: '#fff' },
   headerSub:  { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 3 },
 
-  catScroll:  { maxHeight: 48, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eef2f7' },
-  catContent: { paddingHorizontal: 14, paddingVertical: 9, gap: 7, flexDirection: 'row' },
-  catChip:    { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: '#f0f4f8' },
+  catScroll:  { backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eef2f7' },
+  catContent: { paddingHorizontal: 14, paddingVertical: 10, gap: 8, flexDirection: 'row', alignItems: 'center' },
+  catChip:    { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f0f4f8' },
   catChipOn:  { backgroundColor: BLUE },
   catTxt:     { fontSize: 12, fontWeight: '600', color: '#607d8b' },
   catTxtOn:   { color: '#fff' },
