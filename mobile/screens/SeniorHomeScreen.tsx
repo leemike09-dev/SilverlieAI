@@ -45,7 +45,20 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
     Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
     fetchMeds();
     loadMood();
+    fetchFamilyLinks();
   }, []);
+
+  const [familyLinks, setFamilyLinks] = useState<any[]>([]);
+
+  const fetchFamilyLinks = async () => {
+    try {
+      const r = await fetch(`${API}/family/links/${userId}`);
+      const d = await r.json();
+      setFamilyLinks(d.as_family || []);
+    } catch {
+      if (DEMO_MODE) setFamilyLinks([]);
+    }
+  };
 
   const fetchMeds = async () => {
     try {
@@ -182,7 +195,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           <Text style={s.sectionTitle}>바로가기</Text>
           <View style={s.shortcutRow}>
             {[
-              { icon: '👨‍👩‍👧', label: '가족 연결',  color: C.peachLt, screen: 'FamilyConnect' },
+              { icon: '👨‍👩‍👧', label: '가족 연결',  color: C.peachLt, screen: familyLinks.length > 0 ? 'FamilyDashboard' : 'FamilyConnect' },
               { icon: '🤖', label: 'AI 건강 상담', color: C.skyLt,   screen: 'AIChat' },
               { icon: '📊', label: '건강 분석',    color: C.sageLt,  screen: 'Dashboard' },
               { icon: '⚙️', label: '설정',         color: C.line,    screen: 'Settings' },

@@ -62,9 +62,9 @@ export default function FamilyConnectScreen({ route, navigation }: any) {
         body: JSON.stringify({ family_id: userId, family_name: name, link_code: joinCode }),
       });
       const d = await r.json();
-      if (r.ok) { setMsg(`✅ ${d.senior_name}님과 연결되었습니다!`); setJoinCode(''); fetchLinks(); }
+      if (r.ok) { setMsg(`✅ ${d.senior_name}님과 연결되었습니다!`); setJoinCode(''); fetchLinks(); setTimeout(() => navigation.navigate('FamilyDashboard', { userId, name, seniorId: d.senior_id, seniorName: d.senior_name }), 1000); }
       else setMsg(d.detail || '연결에 실패했습니다');
-    } catch { if (DEMO_MODE) setMsg('✅ 홍길동님과 연결되었습니다! (데모)'); }
+    } catch { if (DEMO_MODE) { setMsg('✅ 홍길동님과 연결되었습니다! (데모)'); setTimeout(() => navigation.navigate('FamilyDashboard', { userId, name, seniorId: 'demo-senior', seniorName: '홍길동' }), 1000); } }
     finally { setLoading(false); }
   };
 

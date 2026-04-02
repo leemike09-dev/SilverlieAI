@@ -26,6 +26,7 @@ import HealthNewsScreen from './screens/HealthNewsScreen';
 import SeniorHomeScreen from './screens/SeniorHomeScreen';
 import MedicationScreen from './screens/MedicationScreen';
 import FamilyConnectScreen from './screens/FamilyConnectScreen';
+import FamilyDashboardScreen from './screens/FamilyDashboardScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -66,6 +67,7 @@ export default function App() {
           <Stack.Screen name="SeniorHome"    component={SeniorHomeScreen}   initialParams={DEMO} />
           <Stack.Screen name="Medication"    component={MedicationScreen}   initialParams={DEMO} />
           <Stack.Screen name="FamilyConnect" component={FamilyConnectScreen} initialParams={DEMO} />
+          <Stack.Screen name="FamilyDashboard" component={FamilyDashboardScreen} initialParams={DEMO} />
         </Stack.Navigator>
       </NavigationContainer>
     </LanguageProvider>
