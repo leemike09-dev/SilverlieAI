@@ -175,9 +175,9 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             <Text style={s.sectionTitle}>오늘 기분이 어떠세요?</Text>
             <View style={s.moodRow}>
               {[
-                ['😊', '좋아요',    C.sage],
-                ['😐', '보통이에요', C.sky],
-                ['😔', '안 좋아요', C.lavender],
+                ['🐥', '기분 좋아요!', C.sage],
+                ['🐣', '그냥 그래요~', C.sky],
+                ['🐢', '좀 힘드네요',  C.lavender],
               ].map(([emoji, label, color]) => (
                 <TouchableOpacity key={emoji}
                   style={[s.moodBtn, mood === emoji && { backgroundColor: color + '22', borderColor: color }]}
