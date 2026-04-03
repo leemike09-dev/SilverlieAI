@@ -77,6 +77,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
 
   const [status,    setStatus]    = useState<any>(null);
   const [aiResult,  setAiResult]  = useState<{ level: string; message: string } | null>(null);
+  const [locData,   setLocData]   = useState<any>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [refreshing,setRefreshing]= useState(false);
   const [showPat,   setShowPat]   = useState(false);
@@ -111,6 +112,11 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
         const d = await r.json();
         setStatus(d);
         setLastUpdate(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }));
+        // 오늘 동선 조회
+        try {
+          const lr = await fetch(`${API}/location/today/${seniorId}`);
+          if (lr.ok) { const ld = await lr.json(); setLocData(ld); }
+        } catch {}
         // 경고/위험 레벨이면 AI 자동 분석
         if (d.summary?.alert_level !== 'good') {
           autoAnalyze(d.summary);
@@ -231,6 +237,50 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
             <TouchableOpacity onPress={fetchStatus} style={ss.refreshBtn}>
               <Text style={{ fontSize: 18 }}>🔄</Text>
             </TouchableOpacity>
+          </View>
+
+          {/* ── 오늘 동선 ── */}
+          <View style={ss.section}>
+            <Text style={ss.sectionTitle}>📍 오늘 동선</Text>
+            {!locData || locData.point_count === 0 ? (
+              <View style={[ss.locEmpty]}>
+                <Text style={ss.locEmptyTxt}>아직 위치 정보가 없어요</Text>
+                <Text style={ss.locEmptySub}>{seniorName}님 앱을 열면 자동 기록됩니다</Text>
+              </View>
+            ) : (
+              <View style={ss.locCard}>
+                <View style={[ss.locStatusRow, {
+                  backgroundColor: locData.current_activity === 'outdoor' ? C.peachLt : C.sageLt
+                }]}>
+                  <Text style={{fontSize:22}}>
+                    {locData.current_activity === 'outdoor' ? '🚶' : locData.current_activity === 'home' ? '🏡' : '❓'}
+                  </Text>
+                  <Text style={[ss.locStatusTxt, {
+                    color: locData.current_activity === 'outdoor' ? C.peach : C.sage
+                  }]}>
+                    {locData.current_activity === 'outdoor' ? '외출 중' : locData.current_activity === 'home' ? '집 근처' : '확인 중'}
+                  </Text>
+                  <Text style={ss.locDistTxt}>
+                    {locData.total_distance_m >= 1000
+                      ? `오늘 ${(locData.total_distance_m/1000).toFixed(1)}km 이동`
+                      : `오늘 ${locData.total_distance_m}m 이동`}
+                  </Text>
+                </View>
+                {(locData.logs || []).slice(-5).reverse().map((log: any, i: number) => {
+                  const t = new Date(log.created_at);
+                  const timeStr = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+                  const isOut = log.activity === 'outdoor';
+                  return (
+                    <View key={i} style={ss.locRow}>
+                      <Text style={ss.locTime}>{timeStr}</Text>
+                      <View style={[ss.locDotIcon, {backgroundColor: isOut ? C.peach : C.sage}]} />
+                      <Text style={ss.locAct}>{isOut ? '🚶 외출' : '🏡 집 근처'}</Text>
+                      {log.address ? <Text style={ss.locAddr} numberOfLines={1}>{log.address}</Text> : null}
+                    </View>
+                  );
+                })}
+              </View>
+            )}
           </View>
 
           {/* ── 누락/건너뜀 경고 카드 ── */}
@@ -559,4 +609,21 @@ const ss = StyleSheet.create({
   contactBtn:   { flex:1, alignItems:'center', paddingVertical:14, borderRadius:16, borderWidth:1.5, gap:5 },
   contactIcon:  { fontSize:22 },
   contactLabel: { fontSize:11, fontWeight:'700' },
+
+  // 동선
+  section:       { marginBottom: 20 },
+  sectionTitle:  { fontSize:16, fontWeight:'700', color:C.text, marginBottom:12 },
+  locEmpty:      { alignItems:'center', paddingVertical:24, backgroundColor:C.card, borderRadius:20 },
+  locEmptyTxt:   { fontSize:15, color:C.sub, fontWeight:'600', marginBottom:4 },
+  locEmptySub:   { fontSize:13, color:'#BABABA', textAlign:'center' },
+  locCard:       { backgroundColor:C.card, borderRadius:20, overflow:'hidden' },
+  locStatusRow:  { flexDirection:'row', alignItems:'center', padding:14, gap:10 },
+  locStatusTxt:  { fontSize:15, fontWeight:'700', flex:1 },
+  locDistTxt:    { fontSize:13, color:C.sub },
+  locRow:        { flexDirection:'row', alignItems:'center', gap:8, paddingHorizontal:14,
+                   paddingVertical:9, borderTopWidth:1, borderTopColor:C.line },
+  locTime:       { fontSize:12, color:C.sub, width:38 },
+  locDotIcon:    { width:9, height:9, borderRadius:5 },
+  locAct:        { fontSize:13, fontWeight:'600', color:C.text, flex:1 },
+  locAddr:       { fontSize:12, color:C.sub },
 });

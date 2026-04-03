@@ -46,9 +46,12 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
     fetchMeds();
     loadMood();
     fetchFamilyLinks();
+    sendLocation();
   }, []);
 
-  const [familyLinks, setFamilyLinks] = useState<any[]>([]);
+  const [familyLinks,    setFamilyLinks]    = useState<any[]>([]);
+  const [locationStatus, setLocationStatus] = useState<'sharing'|'off'|'loading'>('off');
+  const [locationAddr,   setLocationAddr]   = useState('');
 
   const fetchFamilyLinks = async () => {
     try {
@@ -57,6 +60,39 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       setFamilyLinks(d.as_family || []);
     } catch {
       if (DEMO_MODE) setFamilyLinks([]);
+    }
+  };
+
+  const sendLocation = async () => {
+    if (!userId) return;
+    try {
+      setLocationStatus('loading');
+      const pos = await new Promise<GeolocationPosition>((res, rej) =>
+        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 8000 })
+      );
+      const { latitude: lat, longitude: lng } = pos.coords;
+
+      // 역지오코딩 (Nominatim — 무료, API키 불필요)
+      let address = '';
+      try {
+        const gr = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ko`,
+          { headers: { 'User-Agent': 'SilverLifeAI/1.0' } }
+        );
+        const gd = await gr.json();
+        const r = gd.address || {};
+        address = r.road || r.suburb || r.neighbourhood || r.county || gd.display_name?.split(',')[0] || '';
+      } catch {}
+
+      await fetch(`${API}/location/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, lat, lng, address, activity: 'unknown' }),
+      });
+      setLocationStatus('sharing');
+      setLocationAddr(address);
+    } catch {
+      setLocationStatus('off');
     }
   };
 
@@ -125,7 +161,19 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             <Text style={s.date}>{getTodayStr()}</Text>
           </View>
 
-          {/* ── 약 복용 카드 ── */}
+          {/* ── 위치 공유 상태 ── */}
+          {locationStatus !== 'off' && (
+            <View style={s.locBadge}>
+              <Text style={s.locDot}>{locationStatus === 'sharing' ? '🟢' : '🟡'}</Text>
+              <Text style={s.locTxt}>
+                {locationStatus === 'loading'
+                  ? '위치 확인 중...'
+                  : `위치 공유 중${locationAddr ? ' · ' + locationAddr : ''}`}
+              </Text>
+            </View>
+          )}
+
+          {/* ── 약 복용 카드 ── */}}
           <TouchableOpacity style={s.medCard}
             onPress={() => navigation.navigate('Medication', { userId, name })}
             activeOpacity={0.92}>
@@ -307,4 +355,10 @@ const s = StyleSheet.create({
   tabIcon:      { fontSize: 22, opacity: 0.3 },
   tabLbl:       { fontSize: 10, color: '#BABABA', fontWeight: '500' },
   tabDot:       { width: 4, height: 4, borderRadius: 2, backgroundColor: C.sage, marginTop: 1 },
+
+  // 위치 배지
+  locBadge:     { flexDirection: 'row', alignItems: 'center', backgroundColor: C.sageLt,
+                  borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8, marginBottom: 16, gap: 6 },
+  locDot:       { fontSize: 10 },
+  locTxt:       { fontSize: 13, color: C.sage, fontWeight: '600', flex: 1 },
 });
