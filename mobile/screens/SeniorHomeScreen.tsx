@@ -4,6 +4,8 @@ import {
   ScrollView, StatusBar, Platform, Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
+import SeniorTabBar from '../components/SeniorTabBar';
 import { DEMO_MODE } from '../App';
 
 const API = 'https://silverlieai.onrender.com';
@@ -243,16 +245,16 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           <Text style={s.sectionTitle}>바로가기</Text>
           <View style={s.shortcutRow}>
             {[
-              { icon: '💝', label: '가족 연결',  color: C.peachLt, screen: familyLinks.length > 0 ? 'FamilyDashboard' : 'FamilyConnect' },
-              { icon: '💬', label: 'AI 건강 상담', color: C.skyLt,   screen: 'AIChat' },
-              { icon: '🌿', label: '건강 분석',    color: C.sageLt,  screen: 'Dashboard' },
-              { icon: '🌺', label: '설정',         color: C.line,    screen: 'Settings' },
+              { icon: 'people',      iconColor: C.peach, label: '가족 연결',  color: C.peachLt, screen: familyLinks.length > 0 ? 'FamilyDashboard' : 'FamilyConnect' },
+              { icon: 'chatbubble',  iconColor: C.sky,   label: 'AI 건강 상담', color: C.skyLt,   screen: 'AIChat' },
+              { icon: 'stats-chart', iconColor: C.sage,  label: '건강 분석',    color: C.sageLt,  screen: 'Dashboard' },
+              { icon: 'settings',    iconColor: C.sub,   label: '설정',         color: C.line,    screen: 'Settings' },
             ].map(item => (
               <TouchableOpacity key={item.screen}
                 style={[s.shortcut, { backgroundColor: item.color }]}
                 onPress={() => navigation.navigate(item.screen, { userId, name })}
                 activeOpacity={0.8}>
-                <Text style={s.shortcutIcon}>{item.icon}</Text>
+                <Ionicons name={item.icon as any} size={30} color={item.iconColor} />
                 <Text style={s.shortcutLbl}>{item.label}</Text>
               </TouchableOpacity>
             ))}
@@ -277,22 +279,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       </Animated.View>
 
       {/* ── 탭바 ── */}
-      <View style={s.tabbar}>
-        {[
-          { icon:'🌿', lbl:'오늘',    screen:'',            active: true  },
-          { icon:'💊', lbl:'내 약',   screen:'Medication',  active: false },
-          { icon:'💬', lbl:'AI 상담', screen:'AIChat',      active: false },
-          { icon:'🌸', lbl:'내 정보', screen:'Settings',    active: false },
-        ].map(tab => (
-          <TouchableOpacity key={tab.lbl} style={s.tab}
-            onPress={() => tab.screen && navigation.navigate(tab.screen, { userId, name })}
-            activeOpacity={0.7}>
-            <Text style={[s.tabIcon, tab.active && { opacity: 1 }]}>{tab.icon}</Text>
-            <Text style={[s.tabLbl, tab.active && { color: C.sage, fontWeight: '700' }]}>{tab.lbl}</Text>
-            {tab.active && <View style={s.tabDot} />}
-          </TouchableOpacity>
-        ))}
-      </View>
+      <SeniorTabBar navigation={navigation} activeTab="home" userId={userId} name={name} />
     </View>
   );
 }

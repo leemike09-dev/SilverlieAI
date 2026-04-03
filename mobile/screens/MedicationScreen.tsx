@@ -4,6 +4,7 @@ import {
   Modal, TextInput, StatusBar, Platform, Alert, Animated,
 } from 'react-native';
 import { DEMO_MODE } from '../App';
+import SeniorTabBar from '../components/SeniorTabBar';
 
 const API = 'https://silverlieai.onrender.com';
 const C = {
@@ -372,22 +373,7 @@ export default function MedicationScreen({ route, navigation }: any) {
       </Modal>
 
       {/* 탭바 */}
-      <View style={s.tabbar}>
-        {[
-          { icon:'🌿', lbl:'오늘',    screen:'SeniorHome', active:false },
-          { icon:'💊', lbl:'내 약',   screen:'',           active:true  },
-          { icon:'💬', lbl:'AI 상담', screen:'AIChat',     active:false },
-          { icon:'🌸', lbl:'내 정보', screen:'Settings',   active:false },
-        ].map(tab => (
-          <TouchableOpacity key={tab.lbl} style={s.tab}
-            onPress={() => tab.screen && navigation.navigate(tab.screen, { userId, name })}
-            activeOpacity={0.7}>
-            <Text style={[s.tabIcon, tab.active && { opacity: 1 }]}>{tab.icon}</Text>
-            <Text style={[s.tabLbl, tab.active && { color: C.sage, fontWeight: '700' }]}>{tab.lbl}</Text>
-            {tab.active && <View style={s.tabDot} />}
-          </TouchableOpacity>
-        ))}
-      </View>
+      <SeniorTabBar navigation={navigation} activeTab="med" userId={userId} name={name} />
     </View>
   );
 }
