@@ -11,10 +11,10 @@ type Props = {
 };
 
 const TABS = [
-  { icon: '🏠', lbl: '오늘',    screen: 'SeniorHome', key: 'home' },
+  { icon: '🌿', lbl: '오늘',    screen: 'SeniorHome', key: 'home' },
   { icon: '💊', lbl: '내 약',   screen: 'Medication',  key: 'med'  },
-  { icon: '🤖', lbl: 'AI 상담', screen: 'AIChat',      key: 'ai'   },
-  { icon: '👤', lbl: '내 정보', screen: 'Settings',    key: 'info' },
+  { icon: '💬', lbl: 'AI 상담', screen: 'AIChat',      key: 'ai'   },
+  { icon: '🌸', lbl: '내 정보', screen: 'Settings',    key: 'info' },
 ];
 
 export default function SeniorTabBar({ navigation, activeTab, userId, name }: Props) {

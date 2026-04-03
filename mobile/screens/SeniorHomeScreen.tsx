@@ -148,7 +148,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
               </View>
 
               <View style={s.medInfo}>
-                <Text style={s.medTitle}>오늘의 약 💊</Text>
+                <Text style={s.medTitle}>오늘의 약 🌱</Text>
                 {allTaken ? (
                   <Text style={s.medGood}>✅ 모두 드셨어요!</Text>
                 ) : totalDoses === 0 ? (
@@ -195,10 +195,10 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           <Text style={s.sectionTitle}>바로가기</Text>
           <View style={s.shortcutRow}>
             {[
-              { icon: '👨‍👩‍👧', label: '가족 연결',  color: C.peachLt, screen: familyLinks.length > 0 ? 'FamilyDashboard' : 'FamilyConnect' },
-              { icon: '🤖', label: 'AI 건강 상담', color: C.skyLt,   screen: 'AIChat' },
-              { icon: '📊', label: '건강 분석',    color: C.sageLt,  screen: 'Dashboard' },
-              { icon: '⚙️', label: '설정',         color: C.line,    screen: 'Settings' },
+              { icon: '💝', label: '가족 연결',  color: C.peachLt, screen: familyLinks.length > 0 ? 'FamilyDashboard' : 'FamilyConnect' },
+              { icon: '💬', label: 'AI 건강 상담', color: C.skyLt,   screen: 'AIChat' },
+              { icon: '🌿', label: '건강 분석',    color: C.sageLt,  screen: 'Dashboard' },
+              { icon: '🌺', label: '설정',         color: C.line,    screen: 'Settings' },
             ].map(item => (
               <TouchableOpacity key={item.screen}
                 style={[s.shortcut, { backgroundColor: item.color }]}
@@ -231,10 +231,10 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       {/* ── 탭바 ── */}
       <View style={s.tabbar}>
         {[
-          { icon:'🏠', lbl:'오늘',    screen:'',            active: true  },
+          { icon:'🌿', lbl:'오늘',    screen:'',            active: true  },
           { icon:'💊', lbl:'내 약',   screen:'Medication',  active: false },
-          { icon:'🤖', lbl:'AI 상담', screen:'AIChat',      active: false },
-          { icon:'👤', lbl:'내 정보', screen:'Settings',    active: false },
+          { icon:'💬', lbl:'AI 상담', screen:'AIChat',      active: false },
+          { icon:'🌸', lbl:'내 정보', screen:'Settings',    active: false },
         ].map(tab => (
           <TouchableOpacity key={tab.lbl} style={s.tab}
             onPress={() => tab.screen && navigation.navigate(tab.screen, { userId, name })}
