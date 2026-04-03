@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 from app.database import get_supabase
 import random, string
+from datetime import datetime, date, timezone
 
 router = APIRouter()
 
@@ -22,7 +23,6 @@ class FamilyStatus(BaseModel):
 @router.post("/generate-code")
 def generate_code(req: LinkRequest):
     db = get_supabase()
-    # 기존 코드 있으면 반환
     existing = db.table("family_links")\
         .select("*")\
         .eq("senior_id", req.senior_id)\
@@ -30,7 +30,6 @@ def generate_code(req: LinkRequest):
         .execute()
     if existing.data:
         return {"code": existing.data[0]["link_code"]}
-    # 새 코드 생성
     code = ''.join(random.choices(string.digits, k=6))
     db.table("family_links").insert({
         "senior_id": req.senior_id,
@@ -62,13 +61,11 @@ def join_family(req: JoinRequest):
 @router.get("/links/{user_id}")
 def get_links(user_id: str):
     db = get_supabase()
-    # 시니어로서 연결된 가족
     as_senior = db.table("family_links")\
         .select("*")\
         .eq("senior_id", user_id)\
         .eq("status", "linked")\
         .execute()
-    # 가족으로서 연결된 시니어
     as_family = db.table("family_links")\
         .select("*")\
         .eq("family_id", user_id)\
@@ -79,27 +76,75 @@ def get_links(user_id: str):
         "as_family": as_family.data or [],
     }
 
-# 시니어 오늘 현황 (가족용)
+# 시니어 오늘 현황 (가족용) — alert_level / missed / skipped 포함
 @router.get("/status/{senior_id}")
 def get_senior_status(senior_id: str):
     db = get_supabase()
-    from datetime import date
     today = date.today().isoformat()
-    # 오늘 복용 기록
-    logs = db.table("medication_logs")\
+    now   = datetime.now(timezone.utc)
+
+    logs_resp = db.table("medication_logs")\
         .select("*")\
         .eq("user_id", senior_id)\
         .eq("date", today)\
         .execute()
-    # 약 목록
-    meds = db.table("medications")\
+    meds_resp = db.table("medications")\
         .select("*")\
         .eq("user_id", senior_id)\
         .execute()
-    total = len(logs.data) if logs.data else 0
-    taken = sum(1 for l in (logs.data or []) if l.get("taken"))
+
+    logs = logs_resp.data or []
+    meds = meds_resp.data or []
+
+    total   = 0
+    taken   = 0
+    skipped = 0
+    missed  = []
+
+    for med in meds:
+        times = med.get("times") or []
+        for t in times:
+            total += 1
+            # 해당 약+시간 로그 검색
+            log = next((l for l in logs
+                        if l.get("medication_id") == med["id"]
+                        and l.get("scheduled_time","")[:5] == t[:5]), None)
+            if log:
+                if log.get("status") == "skipped":
+                    skipped += 1
+                elif log.get("taken"):
+                    taken += 1
+                # else: 로그 있으나 status 불명 → neutral
+            else:
+                # 스케줄 시간이 30분 이상 지났으면 missed
+                try:
+                    sched_h, sched_m = map(int, t[:5].split(":"))
+                    sched_dt = datetime(now.year, now.month, now.day,
+                                        sched_h, sched_m,
+                                        tzinfo=timezone.utc)
+                    if (now - sched_dt).total_seconds() > 1800:
+                        missed.append({"med_name": med["name"], "time": t[:5]})
+                except Exception:
+                    pass
+
+    pct = round(taken / total * 100) if total > 0 else 100
+
+    if missed or skipped >= 2:
+        alert_level = "danger"
+    elif skipped >= 1 or (total > 0 and taken / max(total, 1) < 0.5):
+        alert_level = "warn"
+    else:
+        alert_level = "good"
+
     return {
-        "medications": meds.data or [],
-        "today_logs": logs.data or [],
-        "summary": {"total": total, "taken": taken},
+        "medications": meds,
+        "today_logs":  logs,
+        "summary": {
+            "total":       total,
+            "taken":       taken,
+            "skipped":     skipped,
+            "missed":      missed,
+            "alert_level": alert_level,
+            "pct":         pct,
+        },
     }
