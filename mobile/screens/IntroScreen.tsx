@@ -1,35 +1,20 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
+  View, Text, StyleSheet,
   Animated, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function IntroScreen({ navigation }: any) {
-  const bgAnim     = useRef(new Animated.Value(0)).current;  // 배경
-  const sunAnim    = useRef(new Animated.Value(0)).current;  // 태양/산
-  const topAnim    = useRef(new Animated.Value(0)).current;  // 상단 텍스트
-  const bottomAnim = useRef(new Animated.Value(0)).current;  // 명언+버튼
-  const slideAnim  = useRef(new Animated.Value(32)).current; // 하단 슬라이드
+  const bgAnim     = useRef(new Animated.Value(0)).current;
+  const sunAnim    = useRef(new Animated.Value(0)).current;
+  const topAnim    = useRef(new Animated.Value(0)).current;
+  const bottomAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim  = useRef(new Animated.Value(24)).current;
 
-  useEffect(() => {
-    Animated.sequence([
-      // 1) 배경 서서히 등장 (0 → 0.8s)
-      Animated.timing(bgAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-      // 2) 태양·산 페이드인 (400ms)
-      Animated.timing(sunAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
-      // 3) 상단 타이틀 (600ms)
-      Animated.timing(topAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-      // 4) 명언카드 + 버튼 슬라이드업 (700ms)
-      Animated.parallel([
-        Animated.timing(bottomAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-        Animated.timing(slideAnim,  { toValue: 0, duration: 700, useNativeDriver: true }),
-      ]),
-    ]).start();
-  }, []);
-
-  const handleStart = async () => {
+  const goHome = async () => {
     try {
+      await AsyncStorage.setItem('intro_seen', '1');
       const userId   = await AsyncStorage.getItem('userId');
       const userName = await AsyncStorage.getItem('userName');
       if (userId && userName) {
@@ -41,6 +26,27 @@ export default function IntroScreen({ navigation }: any) {
       navigation.replace('SeniorHome', { name: '홍길동', userId: 'demo-user', isGuest: false });
     }
   };
+
+  useEffect(() => {
+    // 이미 본 적 있으면 인트로 스킵
+    AsyncStorage.getItem('intro_seen').then(seen => {
+      if (seen) { goHome(); return; }
+
+      // 총 1.5초 애니메이션 후 자동 이동
+      Animated.sequence([
+        Animated.timing(bgAnim,     { toValue: 1, duration: 350, useNativeDriver: true }),
+        Animated.timing(sunAnim,    { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.timing(topAnim,    { toValue: 1, duration: 350, useNativeDriver: true }),
+        Animated.parallel([
+          Animated.timing(bottomAnim, { toValue: 1, duration: 350, useNativeDriver: true }),
+          Animated.timing(slideAnim,  { toValue: 0, duration: 350, useNativeDriver: true }),
+        ]),
+      ]).start(() => {
+        // 애니메이션 완료 후 0.15초 잠깐 보여주고 이동
+        setTimeout(goHome, 150);
+      });
+    });
+  }, []);
 
   const rootWebStyle: any = Platform.OS === 'web' ? {
     flex: 1 as any,
@@ -61,11 +67,9 @@ export default function IntroScreen({ navigation }: any) {
         </>
       )}
 
-      {/* 태양 글로우 */}
       <Animated.View style={[s.sunGlow, { opacity: Animated.multiply(sunAnim, 0.22) }]} />
       <Animated.View style={[s.sunCore, { opacity: Animated.multiply(sunAnim, 0.32) }]} />
 
-      {/* 산 실루엣 */}
       <Animated.View style={[s.mtnWrap, { opacity: sunAnim }]}>
         <View style={s.mtnL} />
         <View style={s.mtnR} />
@@ -73,7 +77,6 @@ export default function IntroScreen({ navigation }: any) {
         <View style={s.mtnFloor} />
       </Animated.View>
 
-      {/* 상단 콘텐츠 */}
       <Animated.View style={[s.content, { justifyContent: 'space-between' }]}>
         <Animated.View style={[s.top, { opacity: topAnim }]}>
           <View style={s.badge}>
@@ -89,9 +92,12 @@ export default function IntroScreen({ navigation }: any) {
             <Text style={s.quoteTxt}>{'"건강이 전부는 아니지만,\n건강 없이는 전부가 없다."'}</Text>
             <Text style={s.quoteAuthor}>— 아르투어 쇼펜하우어</Text>
           </View>
-          <TouchableOpacity style={s.startBtn} onPress={handleStart} activeOpacity={0.82}>
-            <Text style={s.startBtnTxt}>시작하기</Text>
-          </TouchableOpacity>
+          {/* 로딩 점 (버튼 대체) */}
+          <View style={s.dotsRow}>
+            {[0,1,2].map(i => (
+              <View key={i} style={[s.dot, i === 1 && s.dotActive]} />
+            ))}
+          </View>
         </Animated.View>
       </Animated.View>
 
@@ -109,7 +115,7 @@ const s = StyleSheet.create({
     position: 'absolute', top: '23%', left: '50%', marginLeft: -55,
     width: 110, height: 110, borderRadius: 55, backgroundColor: '#ffe080',
   },
-  mtnWrap: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 180 },
+  mtnWrap:  { position: 'absolute', bottom: 0, left: 0, right: 0, height: 180 },
   mtnL: {
     position: 'absolute', bottom: 0, left: -60,
     width: 0, height: 0,
@@ -128,21 +134,19 @@ const s = StyleSheet.create({
     borderLeftWidth: 150, borderRightWidth: 150, borderBottomWidth: 130,
     borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#11264c',
   },
-  mtnFloor: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, backgroundColor: '#0d1e38',
-  },
+  mtnFloor: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, backgroundColor: '#0d1e38' },
   content: {
     flex: 1,
     paddingTop: Platform.OS === 'web' ? 60 : 80,
-    paddingBottom: 40, paddingHorizontal: 24,
+    paddingBottom: 48, paddingHorizontal: 24,
   },
   top:    { alignItems: 'center' },
-  bottom: { gap: 14 },
+  bottom: { gap: 16, alignItems: 'center' },
   badge: {
     backgroundColor: 'rgba(255,255,255,0.22)',
     borderRadius: 24, paddingHorizontal: 20, paddingVertical: 8, marginBottom: 24,
   },
-  badgeTxt: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  badgeTxt:  { color: '#fff', fontSize: 16, fontWeight: '600' },
   title: {
     color: '#fff', fontSize: 40, fontWeight: '800',
     textAlign: 'center', lineHeight: 54, marginBottom: 14,
@@ -151,15 +155,13 @@ const s = StyleSheet.create({
   subtitle: { color: 'rgba(255,255,255,0.85)', fontSize: 17, textAlign: 'center' },
   quoteCard: {
     backgroundColor: 'rgba(15,28,55,0.42)',
-    borderRadius: 14, padding: 16,
+    borderRadius: 14, padding: 16, alignSelf: 'stretch',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
   quoteIcon:   { fontSize: 18, marginBottom: 6 },
   quoteTxt:    { color: '#fff', fontSize: 15, lineHeight: 23, fontWeight: '500', marginBottom: 6 },
   quoteAuthor: { color: 'rgba(255,255,255,0.65)', fontSize: 13, textAlign: 'right' },
-  startBtn: {
-    backgroundColor: '#4e8a5e',
-    borderRadius: 18, paddingVertical: 20, alignItems: 'center',
-  },
-  startBtnTxt: { color: '#fff', fontSize: 20, fontWeight: '700', letterSpacing: 0.5 },
+  dotsRow:     { flexDirection: 'row', gap: 8 },
+  dot:         { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.30)' },
+  dotActive:   { backgroundColor: 'rgba(255,255,255,0.85)', width: 20 },
 });
