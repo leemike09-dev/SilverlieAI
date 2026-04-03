@@ -88,9 +88,9 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
   const seniorId   = route?.params?.seniorId   || (DEMO_MODE ? 'demo-senior' : '');
   const seniorName = route?.params?.seniorName || (DEMO_MODE ? '홍길동'       : '부모님');
 
-  const [status,    setStatus]    = useState<any>(null);
+  const [status,    setStatus]    = useState<any>(DEMO_MODE ? DEMO_STATUS : null);
   const [aiResult,  setAiResult]  = useState<{ level: string; message: string } | null>(null);
-  const [locData,   setLocData]   = useState<any>(null);
+  const [locData,   setLocData]   = useState<any>(DEMO_MODE ? DEMO_LOGS : null);
   const [analyzing, setAnalyzing] = useState(false);
   const [refreshing,setRefreshing]= useState(false);
   const [showPat,   setShowPat]   = useState(false);
