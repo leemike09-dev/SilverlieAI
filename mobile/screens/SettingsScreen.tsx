@@ -86,13 +86,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
               thumbColor="#fff"
             />
           </View>
-          <TouchableOpacity style={[styles.listItem, styles.listItemLast]}
-            onPress={() => navigation.navigate('Wearable', { name, userId })}>
-            <Text style={styles.listIcon}>⌚</Text>
-            <Text style={styles.listLabel}>웨어러블 연결</Text>
-            <Text style={[styles.listValue, { color: '#43a047', fontWeight: '700' }]}>연결됨</Text>
-            <Text style={styles.listArrow}>›</Text>
-          </TouchableOpacity>
+          
         </View>
 
         {/* ─── 기타 ─── */}

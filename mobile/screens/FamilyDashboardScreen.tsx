@@ -41,6 +41,19 @@ const DEMO_STATUS = {
   summary: { total: 4, taken: 2, skipped: 1, missed: [{ med_name:'혈압약', time:'20:00' }], alert_level:'warn', pct: 50 },
 };
 
+
+const DEMO_LOGS = {
+  logs: [
+    { lat:37.4979, lng:127.0276, activity:'home',    address:'역삼동',      created_at:'2026-04-03T07:30:00Z' },
+    { lat:37.4985, lng:127.0290, activity:'outdoor', address:'역삼공원',    created_at:'2026-04-03T09:10:00Z' },
+    { lat:37.5001, lng:127.0310, activity:'outdoor', address:'강남역 근처', created_at:'2026-04-03T09:45:00Z' },
+    { lat:37.4992, lng:127.0295, activity:'outdoor', address:'이마트',      created_at:'2026-04-03T10:20:00Z' },
+    { lat:37.4981, lng:127.0280, activity:'home',    address:'역삼동',      created_at:'2026-04-03T11:05:00Z' },
+  ],
+  total_distance_m: 1240,
+  current_activity: 'home',
+  point_count: 5,
+};
 const DEMO_TIMELINE = [
   { time:'07:45', icon:'🌅', label:'기상 감지',         type:'ok'      },
   { time:'08:00', icon:'💊', label:'혈압약 복용 ✅',    type:'ok'      },
@@ -115,8 +128,12 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
         // 오늘 동선 조회
         try {
           const lr = await fetch(`${API}/location/today/${seniorId}`);
-          if (lr.ok) { const ld = await lr.json(); setLocData(ld); }
-        } catch {}
+          if (lr.ok) {
+            const ld = await lr.json();
+            if (ld.point_count > 0) setLocData(ld);
+            else if (DEMO_MODE) setLocData(DEMO_LOGS);
+          } else if (DEMO_MODE) setLocData(DEMO_LOGS);
+        } catch { if (DEMO_MODE) setLocData(DEMO_LOGS); }
         // 경고/위험 레벨이면 AI 자동 분석
         if (d.summary?.alert_level !== 'good') {
           autoAnalyze(d.summary);
