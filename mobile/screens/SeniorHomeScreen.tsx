@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import SeniorTabBar from '../components/SeniorTabBar';
 import { DEMO_MODE } from '../App';
 
@@ -56,13 +57,16 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   const [locationAddr,   setLocationAddr]   = useState('');
 
   const fetchFamilyLinks = async () => {
+    if (DEMO_MODE) {
+      // 데모: 가족 연결된 상태로 표시 → FamilyDashboard로 이동
+      setFamilyLinks([{ senior_id: 'demo-senior', senior_name: '홍길동' }]);
+      return;
+    }
     try {
       const r = await fetch(`${API}/family/links/${userId}`);
       const d = await r.json();
       setFamilyLinks(d.as_family || []);
-    } catch {
-      if (DEMO_MODE) setFamilyLinks([]);
-    }
+    } catch {}
   };
 
   const sendLocation = async () => {
@@ -225,14 +229,18 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             <Text style={s.sectionTitle}>오늘 기분이 어떠세요?</Text>
             <View style={s.moodRow}>
               {[
-                ['🐥', '기분 좋아요!', C.sage],
-                ['🐣', '그냥 그래요~', C.sky],
-                ['🐢', '좀 힘드네요',  C.lavender],
+                ['emoticon-happy-outline',   '기분 좋아요!', C.sage],
+                ['emoticon-neutral-outline', '그냥 그래요~', C.sky],
+                ['emoticon-sad-outline',     '좀 힘드네요',  C.lavender],
               ].map(([emoji, label, color]) => (
                 <TouchableOpacity key={emoji}
                   style={[s.moodBtn, mood === emoji && { backgroundColor: color + '22', borderColor: color }]}
                   onPress={() => saveMood(emoji as string)} activeOpacity={0.75}>
-                  <Text style={s.moodEmoji}>{emoji}</Text>
+                  <MaterialCommunityIcons
+                    name={emoji as any}
+                    size={36}
+                    color={mood === emoji ? color as string : '#C8C8C8'}
+                  />
                   <Text style={[s.moodLabel, mood === emoji && { color: color as string, fontWeight: '700' }]}>
                     {label}
                   </Text>
@@ -245,14 +253,17 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           <Text style={s.sectionTitle}>바로가기</Text>
           <View style={s.shortcutRow}>
             {[
-              { icon: 'people',      iconColor: C.peach, label: '가족 연결',  color: C.peachLt, screen: familyLinks.length > 0 ? 'FamilyDashboard' : 'FamilyConnect' },
+              { icon: 'people',      iconColor: C.peach, label: '가족 연결',  color: C.peachLt, screen: familyLinks.length > 0 ? 'FamilyDashboard' : 'FamilyConnect',
+                seniorId: familyLinks[0]?.senior_id || 'demo-senior',
+                seniorName: familyLinks[0]?.senior_name || '홍길동' },
               { icon: 'chatbubble',  iconColor: C.sky,   label: 'AI 건강 상담', color: C.skyLt,   screen: 'AIChat' },
               { icon: 'stats-chart', iconColor: C.sage,  label: '건강 분석',    color: C.sageLt,  screen: 'Dashboard' },
               { icon: 'settings',    iconColor: C.sub,   label: '설정',         color: C.line,    screen: 'Settings' },
             ].map(item => (
               <TouchableOpacity key={item.screen}
                 style={[s.shortcut, { backgroundColor: item.color }]}
-                onPress={() => navigation.navigate(item.screen, { userId, name })}
+                onPress={() => navigation.navigate(item.screen, { userId, name,
+                  seniorId: (item as any).seniorId, seniorName: (item as any).seniorName })}
                 activeOpacity={0.8}>
                 <Ionicons name={item.icon as any} size={30} color={item.iconColor} />
                 <Text style={s.shortcutLbl}>{item.label}</Text>
