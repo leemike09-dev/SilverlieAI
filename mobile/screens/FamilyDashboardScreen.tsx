@@ -266,6 +266,17 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
                       : `오늘 ${locData.total_distance_m}m 이동`}
                   </Text>
                 </View>
+                {/* 지도로 보기 버튼 */}
+                <TouchableOpacity
+                  style={ss.mapBtn}
+                  onPress={() => navigation.navigate('LocationMap', {
+                    logs:        locData.logs,
+                    seniorName,
+                    totalDist:   locData.total_distance_m,
+                  })}
+                  activeOpacity={0.8}>
+                  <Text style={ss.mapBtnTxt}>🗺️ 지도로 보기</Text>
+                </TouchableOpacity>
                 {(locData.logs || []).slice(-5).reverse().map((log: any, i: number) => {
                   const t = new Date(log.created_at);
                   const timeStr = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
@@ -626,4 +637,6 @@ const ss = StyleSheet.create({
   locDotIcon:    { width:9, height:9, borderRadius:5 },
   locAct:        { fontSize:13, fontWeight:'600', color:C.text, flex:1 },
   locAddr:       { fontSize:12, color:C.sub },
+  mapBtn:        { margin:12, marginTop:4, backgroundColor:C.skyLt, borderRadius:14, paddingVertical:12, alignItems:'center' },
+  mapBtnTxt:     { fontSize:14, fontWeight:'700', color:C.sky },
 });

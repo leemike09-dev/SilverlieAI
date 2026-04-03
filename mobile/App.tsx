@@ -27,6 +27,7 @@ import SeniorHomeScreen from './screens/SeniorHomeScreen';
 import MedicationScreen from './screens/MedicationScreen';
 import FamilyConnectScreen from './screens/FamilyConnectScreen';
 import FamilyDashboardScreen from './screens/FamilyDashboardScreen';
+import LocationMapScreen     from './screens/LocationMapScreen';
 
 const Stack = createNativeStackNavigator();
 
