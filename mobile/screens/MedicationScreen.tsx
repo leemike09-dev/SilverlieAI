@@ -374,10 +374,10 @@ export default function MedicationScreen({ route, navigation }: any) {
       {/* 탭바 */}
       <View style={s.tabbar}>
         {[
-          { icon:'🏠', lbl:'오늘',    screen:'SeniorHome', active:false },
+          { icon:'🌿', lbl:'오늘',    screen:'SeniorHome', active:false },
           { icon:'💊', lbl:'내 약',   screen:'',           active:true  },
-          { icon:'🤖', lbl:'AI 상담', screen:'AIChat',     active:false },
-          { icon:'👤', lbl:'내 정보', screen:'Settings',   active:false },
+          { icon:'💬', lbl:'AI 상담', screen:'AIChat',     active:false },
+          { icon:'🌸', lbl:'내 정보', screen:'Settings',   active:false },
         ].map(tab => (
           <TouchableOpacity key={tab.lbl} style={s.tab}
             onPress={() => tab.screen && navigation.navigate(tab.screen, { userId, name })}

@@ -46,7 +46,7 @@ const DEMO_TIMELINE = [
   { time:'08:00', icon:'💊', label:'혈압약 복용 ✅',    type:'ok'      },
   { time:'08:00', icon:'💊', label:'당뇨약 복용 ✅',    type:'ok'      },
   { time:'09:30', icon:'🚶', label:'산책 출발',          type:'ok'      },
-  { time:'10:20', icon:'🏠', label:'귀가 확인',          type:'ok'      },
+  { time:'10:20', icon:'🌿', label:'귀가 확인',          type:'ok'      },
   { time:'12:00', icon:'💊', label:'당뇨약 건너뜀 ⏭',  type:'skipped' },
   { time:'20:00', icon:'💊', label:'저녁 혈압약 (예정)', type:'pending' },
 ];
