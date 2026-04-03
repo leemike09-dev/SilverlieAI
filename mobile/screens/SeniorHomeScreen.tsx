@@ -173,7 +173,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             </View>
           )}
 
-          {/* ── 약 복용 카드 ── */}}
+          {/* ── 약 복용 카드 ── */}
           <TouchableOpacity style={s.medCard}
             onPress={() => navigation.navigate('Medication', { userId, name })}
             activeOpacity={0.92}>
