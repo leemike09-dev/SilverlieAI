@@ -137,7 +137,7 @@ FamilyConnect → FamilyDashboard (코드 연결 성공)
 - 🔲 Phase 4: 위치 실시간 추적 (네이티브 빌드 후)
 - 🔲 Phase 5: Push 알림 자동화
 
-## 배포 현황 (2026-04-02)
+## 배포 현황 (2026-04-03)
 - **웹 데모**: https://leemike09-dev.github.io/SilverlieAI/
 - **백엔드**: https://silverlieai.onrender.com
 - **최신 커밋**: 33ce2ad
