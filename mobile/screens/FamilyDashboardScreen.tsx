@@ -244,23 +244,31 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
       <Animated.View style={[{ flex: 1 }, { opacity: fadeAnim }]}>
         <ScrollView contentContainerStyle={ss.scroll} showsVerticalScrollIndicator={false}>
 
-          {/* ── 복용 알림 (미복용 약만) ── */}
-          {notTaken.length > 0 && (
-            <View style={ss.notifCard}>
-              <Text style={ss.notifTitle}>🔔 복용 알림</Text>
-              <View style={ss.notifList}>
-                {notTaken.map((item, i) => (
-                  <View key={i} style={ss.notifRow}>
-                    <View style={[ss.notifDot, { backgroundColor: item.color }]} />
-                    <Text style={ss.notifMed}>{item.name}</Text>
-                    <View style={ss.notifTimeBadge}>
-                      <Text style={ss.notifTime}>{item.time}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
+          {/* ── 복용 상태 배너 ── */}
+          <TouchableOpacity
+            style={[ss.medBanner,
+              notTaken.length === 0
+                ? { backgroundColor: C.sageLt, borderColor: C.sage }
+                : { backgroundColor: C.amberLt, borderColor: C.amber }
+            ]}
+            onPress={() => navigation.navigate('Medication', { userId, name })}
+            activeOpacity={0.82}>
+            <Text style={ss.medBannerIcon}>
+              {notTaken.length === 0 ? '✅' : '🔔'}
+            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[ss.medBannerTxt, {
+                color: notTaken.length === 0 ? C.sage : C.amber,
+              }]}>
+                {notTaken.length === 0
+                  ? '오늘 약을 모두 복용하셨어요'
+                  : `아직 드시지 않은 약이 있어요 (${notTaken.length}건)`}
+              </Text>
             </View>
-          )}
+            <Text style={[ss.medBannerArrow, {
+              color: notTaken.length === 0 ? C.sage : C.amber,
+            }]}>›</Text>
+          </TouchableOpacity>
 
           {/* ── 오늘 동선 ── */}
           <View style={ss.card}>
@@ -386,17 +394,12 @@ const ss = StyleSheet.create({
                shadowOffset:{width:0,height:4}, elevation:3 },
   cardTitle: { fontSize:17, fontWeight:'800', color: C.text, marginBottom:14 },
 
-  // 복용 알림
-  notifCard:      { backgroundColor: C.card, borderRadius:20, padding:18, marginBottom:14,
-                    borderLeftWidth: 4, borderLeftColor: C.amber,
-                    shadowColor:'#2272B8', shadowOpacity:0.06, shadowRadius:10, elevation:2 },
-  notifTitle:     { fontSize:17, fontWeight:'800', color: C.text, marginBottom:14 },
-  notifList:      { gap: 10 },
-  notifRow:       { flexDirection:'row', alignItems:'center', gap:10 },
-  notifDot:       { width:10, height:10, borderRadius:5 },
-  notifMed:       { flex:1, fontSize:17, fontWeight:'700', color: C.text },
-  notifTimeBadge: { backgroundColor: C.amberLt, borderRadius:10, paddingHorizontal:12, paddingVertical:4 },
-  notifTime:      { fontSize:15, fontWeight:'700', color: C.amber },
+  // 복용 배너
+  medBanner:      { flexDirection:'row', alignItems:'center', borderRadius:16, borderWidth:1.5,
+                    paddingHorizontal:16, paddingVertical:14, marginBottom:14, gap:12 },
+  medBannerIcon:  { fontSize:22 },
+  medBannerTxt:   { fontSize:16, fontWeight:'700' },
+  medBannerArrow: { fontSize:26, fontWeight:'300' },
 
   // 동선
   locHeader:    { flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:6 },
