@@ -45,7 +45,11 @@ const QUICK_CHIPS = [
 export default function AIChatScreen({ route, navigation }: Props) {
   const { name = '회원', userId = 'demo-user' } = route?.params ?? {};
 
-  const welcomeMsg: Msg = { role: 'ai', text: getTodayTip() };
+  const welcomeMsg: Msg = {
+    role: 'ai',
+    text: `${getGreeting()}
+건강에 대해 편하게 물어보세요 😊`,
+  };
   const [msgs, setMsgs] = useState<Msg[]>([welcomeMsg]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -287,8 +291,8 @@ const s = StyleSheet.create({
   backBtn:      { width:36, height:36, alignItems:'center', justifyContent:'center' },
   backTxt:      { color:'#fff', fontSize:28, fontWeight:'300', lineHeight:32 },
   headerCenter: { flex: 1 },
-  headerTitle:  { fontSize:20, fontWeight:'800', color:'#fff' },
-  headerSub:    { fontSize:12, color:'rgba(255,255,255,0.7)', marginTop:2 },
+  headerTitle:  { fontSize:22, fontWeight:'800', color:'#fff' },
+  headerSub:    { fontSize:14, color:'rgba(255,255,255,0.7)', marginTop:2 },
   onlineDot:    { width:10, height:10, borderRadius:5, backgroundColor:'#3DAB7B',
                   shadowColor:'#3DAB7B', shadowRadius:4, shadowOpacity:0.8 },
 
@@ -304,7 +308,7 @@ const s = StyleSheet.create({
                  shadowOffset:{width:0,height:4}, elevation:6,
                  marginBottom:10 },
   beeImg:      { width:96, height:96 },
-  welcomeName: { fontSize:18, fontWeight:'700', color:C.text },
+  welcomeName: { fontSize:22, fontWeight:'700', color:C.text },
 
   // AI 메시지
   aiRow:    { flexDirection:'row', gap:10, marginBottom:14, alignItems:'flex-start' },
@@ -314,13 +318,13 @@ const s = StyleSheet.create({
               padding:14, maxWidth:'78%',
               shadowColor:C.blue1, shadowOpacity:0.07, shadowRadius:8,
               shadowOffset:{width:0,height:2}, elevation:2 },
-  aiText:   { fontSize:15, color:C.text, lineHeight:24 },
+  aiText:   { fontSize:18, color:C.text, lineHeight:28 },
 
   // 사용자 메시지
   userRow:    { flexDirection:'row', justifyContent:'flex-end', marginBottom:14 },
   userBubble: { backgroundColor:C.blue2, borderRadius:18, borderBottomRightRadius:4,
                 padding:14, maxWidth:'78%' },
-  userText:   { fontSize:15, color:'#fff', lineHeight:24 },
+  userText:   { fontSize:18, color:'#fff', lineHeight:28 },
 
   // 로딩 점
   typingDots: { flexDirection:'row', gap:5, paddingVertical:4 },
@@ -328,16 +332,16 @@ const s = StyleSheet.create({
 
   // 빠른 질문 칩
   chipsWrap:  { marginTop:4, marginBottom:8 },
-  chipsLabel: { fontSize:13, fontWeight:'700', color:C.sub, marginBottom:10, textAlign:'center' },
+  chipsLabel: { fontSize:15, fontWeight:'700', color:C.sub, marginBottom:10, textAlign:'center' },
   chips:      { flexDirection:'row', flexWrap:'wrap', gap:8, justifyContent:'center', marginBottom:12 },
   chip:       { flexDirection:'row', alignItems:'center', gap:6,
                 backgroundColor:C.card, borderRadius:22,
                 paddingHorizontal:14, paddingVertical:9,
                 borderWidth:1.5, borderColor:C.line,
                 shadowColor:C.blue1, shadowOpacity:0.06, shadowRadius:6, elevation:1 },
-  chipEmoji:  { fontSize:16 },
-  chipTxt:    { fontSize:14, color:C.text, fontWeight:'600' },
-  chipsHint:  { fontSize:13, color:C.sub, textAlign:'center', lineHeight:20 },
+  chipEmoji:  { fontSize:18 },
+  chipTxt:    { fontSize:16, color:C.text, fontWeight:'600' },
+  chipsHint:  { fontSize:15, color:C.sub, textAlign:'center', lineHeight:22 },
 
   // 입력창
   inputWrap: { backgroundColor:C.card,
@@ -346,7 +350,7 @@ const s = StyleSheet.create({
   inputRow:  { flexDirection:'row', alignItems:'flex-end', gap:8 },
   inputBox:  { flex:1, backgroundColor:C.bg, borderRadius:22, borderWidth:1.5,
                borderColor:C.line, paddingHorizontal:16, paddingVertical:10,
-               fontSize:15, color:C.text, maxHeight:100, lineHeight:22 },
+               fontSize:17, color:C.text, maxHeight:100, lineHeight:24 },
 
   micBtn:       { width:44, height:44, borderRadius:22, backgroundColor:C.blueCard,
                   alignItems:'center', justifyContent:'center',
