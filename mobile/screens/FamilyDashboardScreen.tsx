@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, StatusBar, Platform, Animated, Alert, ActivityIndicator,
+  ScrollView, StatusBar, Platform, Animated, Alert,
 } from 'react-native';
 import { DEMO_MODE } from '../App';
 import SeniorTabBar from '../components/SeniorTabBar';
@@ -90,13 +90,11 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
   const [mapReady,   setMapReady]  = useState(false);
 
   const fadeAnim     = useRef(new Animated.Value(0)).current;
-  const pulseAnim    = useRef(new Animated.Value(1)).current;
   const inlineMapRef = useRef<any>(null);
   const leafletMapRef = useRef<any>(null);
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
-    startPulse();
     fetchStatus();
     const timer = setInterval(fetchStatus, 120000);
     return () => clearInterval(timer);
@@ -120,37 +118,70 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
 
       const coords: [number, number][] = logs.map((l: any) => [l.lat, l.lng]);
       const center = coords[Math.floor(coords.length / 2)];
-      const map = L.map(el, { zoomControl: false, scrollWheelZoom: false, dragging: true, attributionControl: false }).setView(center, 15);
+
+      const map = L.map(el, {
+        zoomControl: false, scrollWheelZoom: false,
+        dragging: true, attributionControl: false,
+      }).setView(center, 15);
       leafletMapRef.current = map;
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-      L.polyline(coords, { color: '#2272B8', weight: 4, opacity: 0.85, dashArray: '10, 5' }).addTo(map);
+      // CartoDB Positron — 깔끔한 흰 배경, 불필요한 정보 없음
+      L.tileLayer(
+        'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+        { maxZoom: 19, subdomains: 'abcd' }
+      ).addTo(map);
 
+      // 이동 경로 — 굵고 선명한 파란 실선
+      L.polyline(coords, {
+        color: '#2272B8', weight: 6, opacity: 0.9,
+      }).addTo(map);
+
+      // 마커 — 크고 읽기 쉬운 DivIcon
       logs.forEach((log: any, i: number) => {
         const t = new Date(log.created_at);
         const timeStr = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
         const isFirst = i === 0;
         const isLast  = i === logs.length - 1;
-        const color   = isLast ? '#D94040' : (isFirst || log.activity === 'home') ? '#3DAB7B' : '#F4956A';
-        L.circleMarker([log.lat, log.lng], {
-          radius: isFirst || isLast ? 12 : 8,
-          color: '#FFFFFF', fillColor: color, weight: 2.5, fillOpacity: 1,
-        }).bindPopup(
-          `<b>${isFirst ? '🏡 출발' : isLast ? '📍 현재위치' : log.activity==='home' ? '🏡 귀가' : '🚶 외출'}</b><br>${timeStr}${log.address ? '<br>'+log.address : ''}`
-        ).addTo(map);
+        const isHome  = log.activity === 'home';
+
+        let bgColor = '#F4956A';
+        let emoji   = '🚶';
+        if (isFirst)      { bgColor = '#3DAB7B'; emoji = '🏡'; }
+        else if (isLast)  { bgColor = '#D94040'; emoji = '📍'; }
+        else if (isHome)  { bgColor = '#3DAB7B'; emoji = '🏡'; }
+
+        const size = isFirst || isLast ? 52 : 40;
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="
+            width:${size}px; height:${size}px; border-radius:50%;
+            background:${bgColor}; border:3px solid #fff;
+            box-shadow:0 3px 10px rgba(0,0,0,0.25);
+            display:flex; flex-direction:column;
+            align-items:center; justify-content:center;
+            font-size:${isFirst || isLast ? 20 : 16}px; line-height:1;
+          ">
+            <span>${emoji}</span>
+            <span style="
+              font-size:9px; color:#fff; font-weight:700;
+              font-family:sans-serif; margin-top:1px;
+            ">${timeStr}</span>
+          </div>`,
+          iconSize:   [size, size],
+          iconAnchor: [size/2, size/2],
+        });
+
+        const label = isFirst ? '🏡 출발' : isLast ? '📍 현재위치' : isHome ? '🏡 귀가' : '🚶 외출';
+        L.marker([log.lat, log.lng], { icon })
+          .bindPopup(`<div style="font-size:15px;font-weight:700;line-height:1.6">
+            ${label}<br>
+            <span style="font-size:13px;color:#666">${timeStr}${log.address ? ' · '+log.address : ''}</span>
+          </div>`, { maxWidth: 180 })
+          .addTo(map);
       });
 
-      if (coords.length > 1) map.fitBounds(L.latLngBounds(coords), { padding: [28, 28] });
+      if (coords.length > 1) map.fitBounds(L.latLngBounds(coords), { padding: [32, 32] });
     });
-  };
-
-  const startPulse = () => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.25, duration: 900, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1.0,  duration: 900, useNativeDriver: true }),
-      ])
-    ).start();
   };
 
   const fetchStatus = useCallback(async () => {
@@ -180,8 +211,6 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
   const summary: any = s.summary || {};
   const meds: any[]  = s.medications || [];
   const logs: any[]  = s.today_logs  || [];
-  const alertLevel: AlertLevel = summary.alert_level || 'good';
-  const cfg          = ALERT_CFG[alertLevel];
 
   // 복용하지 않은 약 목록
   const notTaken = meds.flatMap(med =>
@@ -223,22 +252,6 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        {/* 상태 배너 */}
-        <View style={[ss.headerBanner, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
-          <Animated.Text style={[ss.bannerIcon,
-            alertLevel === 'danger' && { transform: [{ scale: pulseAnim }] }]}>
-            {cfg.icon}
-          </Animated.Text>
-          <View style={{ flex: 1 }}>
-            <Text style={[ss.bannerTitle, { color: cfg.color }]}>{cfg.title}</Text>
-            <Text style={[ss.bannerDesc,  { color: cfg.color }]}>{cfg.desc}</Text>
-          </View>
-          <TouchableOpacity onPress={fetchStatus} style={ss.refreshBtn}>
-            {refreshing
-              ? <ActivityIndicator size="small" color={cfg.color} />
-              : <Text style={ss.refreshIcon}>↻</Text>}
-          </TouchableOpacity>
-        </View>
       </View>
 
       <Animated.View style={[{ flex: 1 }, { opacity: fadeAnim }]}>
@@ -370,8 +383,8 @@ const ss = StyleSheet.create({
 
   // 헤더
   header:       { paddingTop: Platform.OS==='web' ? 20 : (StatusBar.currentHeight??28)+8,
-                  paddingHorizontal: 18, paddingBottom: 16 },
-  headerTop:    { flexDirection:'row', alignItems:'center', marginBottom: 14, gap: 10 },
+                  paddingHorizontal: 18, paddingBottom: 12 },
+  headerTop:    { flexDirection:'row', alignItems:'center', marginBottom: 4, gap: 10 },
   backBtn:      { width:36, height:36, alignItems:'center', justifyContent:'center' },
   backTxt:      { color:'#fff', fontSize:28, fontWeight:'300', lineHeight:32 },
   headerCenter: { flex: 1 },
@@ -380,11 +393,6 @@ const ss = StyleSheet.create({
   sosBtn:       { width:40, height:40, borderRadius:20,
                   backgroundColor:'rgba(255,255,255,0.18)', alignItems:'center', justifyContent:'center' },
   sosTxt:       { fontSize:18 },
-  headerBanner: { flexDirection:'row', alignItems:'center', borderRadius:16, borderWidth:1.5,
-                  paddingHorizontal:14, paddingVertical:12, gap:10 },
-  bannerIcon:   { fontSize:24 },
-  bannerTitle:  { fontSize:16, fontWeight:'800', marginBottom:2 },
-  bannerDesc:   { fontSize:13, opacity:0.85 },
   refreshBtn:   { width:32, height:32, alignItems:'center', justifyContent:'center' },
   refreshIcon:  { fontSize:20, color: C.sub },
 
