@@ -1,37 +1,80 @@
 import React, { useState, useRef, useEffect } from 'react';
-import SeniorTabBar from '../components/SeniorTabBar';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, StatusBar,
+  TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
+  StatusBar, Image, Animated,
 } from 'react-native';
+import SeniorTabBar from '../components/SeniorTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
 type Props = { route: any; navigation: any };
-
-const QUICK = ['오늘 운동 추천', '식단 조언', '수면 개선', '혈압 관리법'];
 type Msg = { role: 'ai' | 'user'; text: string };
 
-const WELCOME: Msg = {
-  role: 'ai',
-  text: '안녕하세요! 😊 건강에 관해 궁금한 점을 편하게 물어보세요.\n24시간 AI가 함께합니다.',
+const C = {
+  blue1:   '#1A4A8A',
+  blue2:   '#2272B8',
+  blueCard:'#EBF3FB',
+  bg:      '#F0F5FB',
+  card:    '#FFFFFF',
+  text:    '#16273E',
+  sub:     '#7A90A8',
+  line:    '#DDE8F4',
+  sage:    '#3DAB7B',
+  sageLt:  '#E6F7EF',
 };
 
-// 새 탭바 색상
-const C = { sage: '#6BAE8F', line: '#F0EDE8', card: '#FFFFFF', sub: '#8A8A8A' };
+// 시간대별 꿀비 인사 + 오늘의 건강 추천
+function getTodayTip(): string {
+  const h = new Date().getHours();
+  if (h < 9) return '좋은 아침이에요! 🌅\n오늘 하루 건강하게 시작해볼까요?\n\n✅ 아침 약 복용 잊지 마세요\n🥛 공복에 물 한 잔이 혈압 조절에 도움돼요\n🚶 오전 산책 20분을 목표로 해보세요';
+  if (h < 12) return '오전이 활기차네요! ☀️\n\n💊 아침 약은 드셨나요?\n🚶 오늘 걸음 목표: 5,000보\n🫀 가벼운 스트레칭으로 혈액순환을 도와줘요';
+  if (h < 14) return '점심 시간이에요! 🍱\n\n💊 점심 약 복용 시간을 확인해보세요\n🥗 싱겁게 드시면 혈압 관리에 좋아요\n😌 식후 10분 휴식은 소화에 도움이 돼요';
+  if (h < 18) return '오후도 건강하게! 🌤️\n\n🚶 오후 산책이 혈당 조절에 효과적이에요\n💧 물 자주 마시는 거 잊지 마세요\n🧘 5분 호흡 명상으로 스트레스를 줄여봐요';
+  if (h < 21) return '저녁이에요! 🌙\n\n💊 저녁 약 복용 시간이에요\n🍽️ 저녁은 가볍게 드시는 게 수면에 좋아요\n🚶 저녁 산책 30분은 숙면에 도움이 돼요';
+  return '잠자리에 들 준비를 해볼까요? 🌛\n\n💊 자기 전 약 복용을 확인하세요\n📱 취침 1시간 전 화면은 줄여요\n😴 일정한 취침 시간이 수면의 질을 높여요';
+}
+
+const QUICK_CHIPS = [
+  { emoji: '💊', label: '약 복용 도움말' },
+  { emoji: '🚶', label: '오늘 걷기 목표' },
+  { emoji: '💓', label: '혈압 관리 팁' },
+  { emoji: '😴', label: '수면 개선 방법' },
+  { emoji: '🧘', label: '스트레칭 추천' },
+];
 
 export default function AIChatScreen({ route, navigation }: Props) {
   const { name = '회원', userId = 'demo-user' } = route?.params ?? {};
-  const [msgs, setMsgs] = useState<Msg[]>([WELCOME]);
+
+  const welcomeMsg: Msg = { role: 'ai', text: getTodayTip() };
+  const [msgs, setMsgs] = useState<Msg[]>([welcomeMsg]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollToEnd({ animated: true });
   }, [msgs]);
 
+  // 마이크 펄스 애니메이션
+  useEffect(() => {
+    if (isRecording) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.3, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1.0, duration: 600, useNativeDriver: true }),
+        ])
+      ).start();
+    } else {
+      pulseAnim.stopAnimation();
+      pulseAnim.setValue(1);
+    }
+  }, [isRecording]);
+
   const send = async (text?: string) => {
-    const msg = text ?? input.trim();
+    const msg = (text ?? input).trim();
     if (!msg) return;
     setInput('');
     setMsgs(prev => [...prev, { role: 'user', text: msg }]);
@@ -43,31 +86,105 @@ export default function AIChatScreen({ route, navigation }: Props) {
         body: JSON.stringify({ user_id: userId, message: msg }),
       });
       const data = await res.json();
-      setMsgs(prev => [...prev, { role: 'ai', text: data.reply ?? data.response ?? '죄송합니다, 다시 시도해주세요.' }]);
+      setMsgs(prev => [...prev, {
+        role: 'ai',
+        text: data.reply ?? data.response ?? '죄송합니다, 다시 시도해주세요.',
+      }]);
     } catch {
-      setMsgs(prev => [...prev, { role: 'ai', text: '연결에 실패했습니다. 잠시 후 다시 시도해주세요.' }]);
+      setMsgs(prev => [...prev, {
+        role: 'ai',
+        text: '연결에 실패했습니다. 잠시 후 다시 시도해주세요.',
+      }]);
     } finally {
       setLoading(false);
     }
   };
 
+  // 음성 입력 (Web Speech API)
+  const toggleVoice = () => {
+    if (Platform.OS !== 'web') return;
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      setMsgs(prev => [...prev, { role: 'ai', text: '이 브라우저는 음성 인식을 지원하지 않아요.\nChrome을 사용해 주세요.' }]);
+      return;
+    }
+
+    if (isRecording && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    const recognition = new SR();
+    recognition.lang = 'ko-KR';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognitionRef.current = recognition;
+
+    recognition.onstart  = () => setIsRecording(true);
+    recognition.onend    = () => setIsRecording(false);
+    recognition.onerror  = () => setIsRecording(false);
+    recognition.onresult = (e: any) => {
+      const transcript = e.results[0][0].transcript;
+      setInput(transcript);
+    };
+    recognition.start();
+  };
+
+  const showChips = msgs.length <= 1;
+
+  const webBg: any = Platform.OS === 'web'
+    ? { background: 'linear-gradient(175deg, #1A4A8A 0%, #2272B8 65%)' }
+    : { backgroundColor: C.blue1 };
+
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#0a1628" />
+      <StatusBar barStyle="light-content" backgroundColor={C.blue1} />
 
-      {/* 헤더 */}
-      <View style={s.header}>
-        <Text style={s.title}>🤖 AI 건강 상담</Text>
-        <Text style={s.sub}>Claude AI · 24시간 · 의료정보 기반</Text>
+      {/* ── 헤더 ── */}
+      <View style={[s.header, webBg]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+          <Text style={s.backTxt}>‹</Text>
+        </TouchableOpacity>
+        <View style={s.headerCenter}>
+          <Text style={s.headerTitle}>AI 건강 상담</Text>
+          <Text style={s.headerSub}>꿀비와 함께하는 건강 관리</Text>
+        </View>
+        <View style={s.onlineDot} />
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView ref={scrollRef} style={s.chatArea} showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ padding: 14, paddingBottom: 16 }}>
+
+        <ScrollView
+          ref={scrollRef}
+          style={s.chatArea}
+          contentContainerStyle={s.chatContent}
+          showsVerticalScrollIndicator={false}>
+
+          {/* ── 꿀비 웰컴 영역 (첫 메시지일 때만 크게 표시) ── */}
+          {showChips && (
+            <View style={s.welcomeArea}>
+              <View style={s.beeWrap}>
+                <Image
+                  source={require('../assets/EDFA500D-1920-4E9B-A3CA-5C105D320158_1_105_c.jpeg')}
+                  style={s.beeImg}
+                  resizeMode="cover"
+                />
+              </View>
+              <Text style={s.welcomeName}>{name}님, 안녕하세요!</Text>
+            </View>
+          )}
+
+          {/* ── 메시지 목록 ── */}
           {msgs.map((m, i) => (
             m.role === 'ai' ? (
               <View key={i} style={s.aiRow}>
-                <View style={s.aiAvatar}><Text style={{ fontSize: 14 }}>🤖</Text></View>
+                {/* 작은 꿀비 아바타 */}
+                <Image
+                  source={require('../assets/EDFA500D-1920-4E9B-A3CA-5C105D320158_1_105_c.jpeg')}
+                  style={s.aiAvatar}
+                  resizeMode="cover"
+                />
                 <View style={s.aiBubble}>
                   <Text style={s.aiText}>{m.text}</Text>
                 </View>
@@ -80,91 +197,165 @@ export default function AIChatScreen({ route, navigation }: Props) {
               </View>
             )
           ))}
+
+          {/* 로딩 */}
           {loading && (
             <View style={s.aiRow}>
-              <View style={s.aiAvatar}><Text style={{ fontSize: 14 }}>🤖</Text></View>
+              <Image
+                source={require('../assets/EDFA500D-1920-4E9B-A3CA-5C105D320158_1_105_c.jpeg')}
+                style={s.aiAvatar}
+                resizeMode="cover"
+              />
               <View style={s.aiBubble}>
-                <ActivityIndicator color="#4fc3f7" size="small" />
+                <View style={s.typingDots}>
+                  {[0,1,2].map(i => <View key={i} style={s.dot} />)}
+                </View>
               </View>
             </View>
           )}
-          {msgs.length <= 1 && (
-            <View style={s.quickRow}>
-              {QUICK.map(q => (
-                <TouchableOpacity key={q} style={s.quickChip} onPress={() => send(q)}>
-                  <Text style={s.quickTxt}>{q}</Text>
-                </TouchableOpacity>
-              ))}
+
+          {/* ── 빠른 질문 칩 ── */}
+          {showChips && (
+            <View style={s.chipsWrap}>
+              <Text style={s.chipsLabel}>자주 묻는 질문</Text>
+              <View style={s.chips}>
+                {QUICK_CHIPS.map(q => (
+                  <TouchableOpacity
+                    key={q.label}
+                    style={s.chip}
+                    onPress={() => send(q.label)}
+                    activeOpacity={0.75}>
+                    <Text style={s.chipEmoji}>{q.emoji}</Text>
+                    <Text style={s.chipTxt}>{q.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={s.chipsHint}>아래 입력창에서 원하는 질문을 직접 해보세요 👇</Text>
             </View>
           )}
+
+          <View style={{ height: 8 }} />
         </ScrollView>
 
-        <View style={s.inputRow}>
-          <TextInput
-            style={s.inputBox}
-            value={input}
-            onChangeText={setInput}
-            placeholder="메시지를 입력하세요..."
-            placeholderTextColor="#546e7a"
-            multiline
-            onSubmitEditing={() => send()}
-          />
-          <TouchableOpacity style={[s.sendBtn, !input.trim() && s.sendBtnOff]}
-            onPress={() => send()} disabled={!input.trim() || loading}>
-            <Text style={s.sendIcon}>📤</Text>
-          </TouchableOpacity>
+        {/* ── 입력창 ── */}
+        <View style={s.inputWrap}>
+          <View style={s.inputRow}>
+            <TextInput
+              style={s.inputBox}
+              value={input}
+              onChangeText={setInput}
+              placeholder={isRecording ? '🎤 듣고 있어요...' : '건강 궁금증을 물어보세요'}
+              placeholderTextColor={isRecording ? C.blue2 : C.sub}
+              multiline
+              maxLength={300}
+            />
+
+            {/* 마이크 버튼 */}
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <TouchableOpacity
+                style={[s.micBtn, isRecording && s.micBtnActive]}
+                onPress={toggleVoice}
+                activeOpacity={0.8}>
+                <Text style={s.micIcon}>{isRecording ? '⏹' : '🎤'}</Text>
+              </TouchableOpacity>
+            </Animated.View>
+
+            {/* 전송 버튼 */}
+            <TouchableOpacity
+              style={[s.sendBtn, (!input.trim() || loading) && s.sendBtnOff]}
+              onPress={() => send()}
+              disabled={!input.trim() || loading}
+              activeOpacity={0.8}>
+              <Text style={s.sendIcon}>↑</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
-    
+
       <SeniorTabBar navigation={navigation} activeTab="ai" userId={userId} name={name} />
     </View>
   );
 }
 
-const BG = '#0a1628'; const CARD = '#0e1e35'; const BORDER = '#1a2a3a'; const ACCENT = '#4fc3f7';
-
 const s = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: BG },
-  header: { backgroundColor: BG, paddingHorizontal: 18,
-            paddingTop: Platform.OS === 'web' ? 20 : (StatusBar.currentHeight ?? 28) + 8,
-            paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: BORDER },
-  title:  { fontSize: 18, fontWeight: '800', color: '#fff' },
-  sub:    { fontSize: 11, color: '#607d8b', marginTop: 3 },
+  root:     { flex: 1, backgroundColor: C.bg },
 
-  chatArea: { flex: 1, backgroundColor: BG },
+  // 헤더
+  header:       { flexDirection:'row', alignItems:'center',
+                  paddingTop: Platform.OS==='web' ? 20 : (StatusBar.currentHeight??28)+8,
+                  paddingHorizontal: 18, paddingBottom: 14, gap: 12 },
+  backBtn:      { width:36, height:36, alignItems:'center', justifyContent:'center' },
+  backTxt:      { color:'#fff', fontSize:28, fontWeight:'300', lineHeight:32 },
+  headerCenter: { flex: 1 },
+  headerTitle:  { fontSize:20, fontWeight:'800', color:'#fff' },
+  headerSub:    { fontSize:12, color:'rgba(255,255,255,0.7)', marginTop:2 },
+  onlineDot:    { width:10, height:10, borderRadius:5, backgroundColor:'#3DAB7B',
+                  shadowColor:'#3DAB7B', shadowRadius:4, shadowOpacity:0.8 },
 
-  aiRow:    { flexDirection: 'row', gap: 8, marginBottom: 12, alignItems: 'flex-start' },
-  aiAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#0d3b66',
-              justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
-  aiBubble: { backgroundColor: CARD, borderTopRightRadius: 14, borderBottomRightRadius: 14,
-              borderBottomLeftRadius: 14, padding: 12, maxWidth: '78%',
-              borderWidth: 1, borderColor: BORDER },
-  aiText:   { fontSize: 13, color: '#b0bec5', lineHeight: 20 },
+  // 채팅 영역
+  chatArea:    { flex:1, backgroundColor: C.bg },
+  chatContent: { padding:16, paddingBottom:8 },
 
-  userRow:    { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 12 },
-  userBubble: { backgroundColor: '#1565c0', borderRadius: 14, borderBottomRightRadius: 0,
-                padding: 12, maxWidth: '78%' },
-  userText:   { fontSize: 13, color: '#fff', lineHeight: 20 },
+  // 웰컴
+  welcomeArea: { alignItems:'center', marginBottom:20, marginTop:4 },
+  beeWrap:     { width:96, height:96, borderRadius:48, overflow:'hidden',
+                 borderWidth:3, borderColor:'#fff',
+                 shadowColor:C.blue1, shadowOpacity:0.2, shadowRadius:12,
+                 shadowOffset:{width:0,height:4}, elevation:6,
+                 marginBottom:10 },
+  beeImg:      { width:96, height:96 },
+  welcomeName: { fontSize:18, fontWeight:'700', color:C.text },
 
-  quickRow:  { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  quickChip: { backgroundColor: CARD, borderWidth: 1, borderColor: '#1565c0',
-               borderRadius: 14, paddingHorizontal: 12, paddingVertical: 7 },
-  quickTxt:  { fontSize: 12, color: ACCENT, fontWeight: '600' },
+  // AI 메시지
+  aiRow:    { flexDirection:'row', gap:10, marginBottom:14, alignItems:'flex-start' },
+  aiAvatar: { width:36, height:36, borderRadius:18, flexShrink:0 },
+  aiBubble: { backgroundColor:C.card, borderRadius:4, borderTopLeftRadius:18,
+              borderTopRightRadius:18, borderBottomRightRadius:18,
+              padding:14, maxWidth:'78%',
+              shadowColor:C.blue1, shadowOpacity:0.07, shadowRadius:8,
+              shadowOffset:{width:0,height:2}, elevation:2 },
+  aiText:   { fontSize:15, color:C.text, lineHeight:24 },
 
-  inputRow: { flexDirection: 'row', gap: 10, padding: 12,
-              backgroundColor: CARD, borderTopWidth: 1, borderTopColor: BORDER, alignItems: 'flex-end' },
-  inputBox: { flex: 1, backgroundColor: '#1a2a3a', borderRadius: 20,
-              paddingHorizontal: 16, paddingVertical: 10, fontSize: 13, color: '#e3f2fd', maxHeight: 100 },
-  sendBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1565c0',
-                justifyContent: 'center', alignItems: 'center' },
-  sendBtnOff: { backgroundColor: '#1a2a3a' },
-  sendIcon:   { fontSize: 16 },
+  // 사용자 메시지
+  userRow:    { flexDirection:'row', justifyContent:'flex-end', marginBottom:14 },
+  userBubble: { backgroundColor:C.blue2, borderRadius:18, borderBottomRightRadius:4,
+                padding:14, maxWidth:'78%' },
+  userText:   { fontSize:15, color:'#fff', lineHeight:24 },
 
-  // 탭바
-  tabbar: { flexDirection: 'row', backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.line,
-            paddingTop: 10, paddingBottom: 14 },
-  tab:    { flex: 1, alignItems: 'center', gap: 3 },
-  tabIcon:{ fontSize: 22, opacity: 0.3 },
-  tabLbl: { fontSize: 10, color: C.sub, fontWeight: '500' },
-  tabDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: C.sage, marginTop: 1 },
+  // 로딩 점
+  typingDots: { flexDirection:'row', gap:5, paddingVertical:4 },
+  dot:        { width:8, height:8, borderRadius:4, backgroundColor:C.line },
+
+  // 빠른 질문 칩
+  chipsWrap:  { marginTop:4, marginBottom:8 },
+  chipsLabel: { fontSize:13, fontWeight:'700', color:C.sub, marginBottom:10, textAlign:'center' },
+  chips:      { flexDirection:'row', flexWrap:'wrap', gap:8, justifyContent:'center', marginBottom:12 },
+  chip:       { flexDirection:'row', alignItems:'center', gap:6,
+                backgroundColor:C.card, borderRadius:22,
+                paddingHorizontal:14, paddingVertical:9,
+                borderWidth:1.5, borderColor:C.line,
+                shadowColor:C.blue1, shadowOpacity:0.06, shadowRadius:6, elevation:1 },
+  chipEmoji:  { fontSize:16 },
+  chipTxt:    { fontSize:14, color:C.text, fontWeight:'600' },
+  chipsHint:  { fontSize:13, color:C.sub, textAlign:'center', lineHeight:20 },
+
+  // 입력창
+  inputWrap: { backgroundColor:C.card,
+               borderTopWidth:1, borderTopColor:C.line,
+               paddingHorizontal:12, paddingVertical:10 },
+  inputRow:  { flexDirection:'row', alignItems:'flex-end', gap:8 },
+  inputBox:  { flex:1, backgroundColor:C.bg, borderRadius:22, borderWidth:1.5,
+               borderColor:C.line, paddingHorizontal:16, paddingVertical:10,
+               fontSize:15, color:C.text, maxHeight:100, lineHeight:22 },
+
+  micBtn:       { width:44, height:44, borderRadius:22, backgroundColor:C.blueCard,
+                  alignItems:'center', justifyContent:'center',
+                  borderWidth:1.5, borderColor:C.line },
+  micBtnActive: { backgroundColor:'#FDEAEA', borderColor:'#D94040' },
+  micIcon:      { fontSize:20 },
+
+  sendBtn:    { width:44, height:44, borderRadius:22, backgroundColor:C.blue2,
+                alignItems:'center', justifyContent:'center' },
+  sendBtnOff: { backgroundColor:C.line },
+  sendIcon:   { fontSize:20, color:'#fff', fontWeight:'700' },
 });
