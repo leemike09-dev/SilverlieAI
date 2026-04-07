@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import SeniorTabBar from '../components/SeniorTabBar';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  Alert, ActivityIndicator, StatusBar, Modal, Dimensions, Platform,
+  Alert, ActivityIndicator, StatusBar, Modal, Dimensions, Platform, Image,
 } from 'react-native';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -417,7 +417,9 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F0F5FB', ...(Platform.OS === 'web' ? { flex: 1 } : {}) },
 
   header:       { paddingTop: Platform.OS === 'web' ? 14 : (StatusBar.currentHeight ?? 28) + 8, paddingHorizontal: 18, paddingBottom: 0, backgroundColor: '#1A4A8A' },
-  headerTitle:  { fontSize: 20, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 12 },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 12 },
+  headerBeeImg:   { width: 36, height: 36, borderRadius: 18 },
+  headerTitle:    { fontSize: 20, fontWeight: '800', color: '#fff' },
   tabRow:       { flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: 'rgba(255,255,255,0.25)' },
   tab:          { flex: 1, alignItems: 'center', paddingVertical: 9 },
   tabActive:    { borderBottomWidth: 2.5, borderBottomColor: '#fff', marginBottom: -2 },
