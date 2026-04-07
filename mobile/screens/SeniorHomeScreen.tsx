@@ -104,6 +104,12 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       onPress: goFamily,
     },
     {
+      icon: '🫀',
+      title: '건강 기록',
+      sub: '혈압·걸음수·AI 분석 확인',
+      onPress: () => navigation.navigate('Health', { userId, name }),
+    },
+    {
       icon: '💬',
       title: 'AI 건강 상담',
       sub: '궁금한 건강 질문을 해요',
@@ -211,17 +217,17 @@ const s = StyleSheet.create({
 
   // 캐릭터
   charWrap: {
-    width: 130,
-    height: 130,
-    marginBottom: 8,
+    width: 110,
+    height: 110,
+    marginBottom: 6,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   beeImg: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
   },
   stethoscopeWrap: {
     position: 'absolute',
@@ -234,7 +240,7 @@ const s = StyleSheet.create({
   // 타이틀
   titleWrap: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   mainTitle: {
     color: '#ffffff',
@@ -257,7 +263,7 @@ const s = StyleSheet.create({
   // 카드
   cards: {
     width: '100%',
-    gap: 10,
+    gap: 8,
     marginBottom: 10,
   },
   card: {
@@ -265,8 +271,8 @@ const s = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.16)',
     borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     gap: 14,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.22)',
