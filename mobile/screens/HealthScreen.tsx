@@ -209,7 +209,14 @@ export default function HealthScreen({ route, navigation }: any) {
 
       {/* 헤더 */}
       <View style={s.header}>
-        <Text style={s.headerTitle}>🫀 건강</Text>
+        <View style={s.headerTitleRow}>
+          <Image
+            source={require('../assets/EDFA500D-1920-4E9B-A3CA-5C105D320158_1_105_c.jpeg')}
+            style={s.headerBeeImg}
+            resizeMode="cover"
+          />
+          <Text style={s.headerTitle}>건강</Text>
+        </View>
         <View style={s.tabRow}>
           {TABS.map(tab => (
             <TouchableOpacity key={tab.key} style={[s.tab, activeTab === tab.key && s.tabActive]}
