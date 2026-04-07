@@ -46,6 +46,21 @@
     #root > div { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
     * { box-sizing: border-box; }
   </style>
+
+  <!-- 카카오 OAuth 콜백 코드 캡처 (React 로드 전) -->
+  <script>
+    (function() {
+      var search = window.location.search;
+      if (search) {
+        var params = new URLSearchParams(search);
+        var code = params.get('code');
+        if (code) {
+          sessionStorage.setItem('kakao_auth_code', code);
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      }
+    })();
+  </script>
 </head>
 <body>
   <div id="root"></div>
