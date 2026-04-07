@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  StatusBar, Platform, Animated, Image,
+  StatusBar, Platform, Animated, Image, ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SeniorTabBar from '../components/SeniorTabBar';
@@ -122,6 +122,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       <View style={s.circleBig} />
       <View style={s.circleSmall} />
 
+      <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
       <Animated.View style={[s.inner, { opacity: fadeAnim }]}>
 
         {/* 꿀비 캐릭터 */}
@@ -173,6 +174,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         )}
 
       </Animated.View>
+      </ScrollView>
 
       {/* 탭바 */}
       <SeniorTabBar navigation={navigation} activeTab="home" userId={userId} name={name} />
@@ -194,13 +196,16 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
   },
 
+  scrollContent: {
+    flexGrow: 1,
+  },
   inner: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
     paddingTop: Platform.OS === 'web' ? 24 : 40,
-    paddingBottom: 32,
+    paddingBottom: 16,
     gap: 0,
   },
 
