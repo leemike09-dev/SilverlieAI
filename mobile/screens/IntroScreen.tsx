@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, Animated, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { KAKAO_PENDING_CODE } from '../App';
 
 export default function IntroScreen({ navigation }: any) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -29,15 +30,12 @@ export default function IntroScreen({ navigation }: any) {
 
   const goHome = async () => {
     try {
-      // 카카오 OAuth 콜백 감지
-      if (typeof window !== 'undefined' && window.location?.search) {
-        const params = new URLSearchParams(window.location.search);
-        const code = params.get('code');
-        if (code) {
-          window.history.replaceState({}, '', window.location.pathname);
-          const ok = await handleKakaoCallback(code);
-          if (ok) return;
-        }
+      // 카카오 OAuth 콜백 감지 (모듈 레벨에서 캡처된 코드 사용)
+      const kakaoCode = KAKAO_PENDING_CODE;
+      if (kakaoCode) {
+        (require('../App') as any).KAKAO_PENDING_CODE = null;
+        const ok = await handleKakaoCallback(kakaoCode);
+        if (ok) return;
       }
       await AsyncStorage.setItem('intro_seen', '1');
       const userId   = await AsyncStorage.getItem('userId');
@@ -54,10 +52,7 @@ export default function IntroScreen({ navigation }: any) {
 
   useEffect(() => {
     // 카카오 콜백이면 intro_seen 무시하고 바로 처리
-    if (typeof window !== 'undefined' && window.location?.search) {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('code')) { goHome(); return; }
-    }
+    if (KAKAO_PENDING_CODE) { goHome(); return; }
     AsyncStorage.getItem('intro_seen').then(seen => {
       if (seen) { goHome(); return; }
       Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start(() => {

@@ -32,6 +32,16 @@ import LocationMapScreen     from './screens/LocationMapScreen';
 
 const Stack = createNativeStackNavigator();
 
+// React Navigation이 URL을 처리하기 전에 카카오 코드 캡처
+export let KAKAO_PENDING_CODE: string | null = null;
+if (typeof window !== 'undefined' && window.location?.search) {
+  const _p = new URLSearchParams(window.location.search);
+  const _c = _p.get('code');
+  if (_c) {
+    KAKAO_PENDING_CODE = _c;
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+}
 const navigationRef = createNavigationContainerRef<any>();
 
 // ✅ 팀 평가용 데모 모드 — 출시 전 false로 변경
