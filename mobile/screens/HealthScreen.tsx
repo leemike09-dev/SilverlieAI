@@ -315,7 +315,7 @@ export default function HealthScreen({ route, navigation }: any) {
 
           {allFilled && (
             <View style={s.completeRow}>
-              <Text style={{ color: '#4caf50', fontSize: 10 }}>●</Text>
+              <Text style={{ color: '#4caf50', fontSize: 14 }}>●</Text>
               <Text style={s.completeTxt}>모든 수치 입력 완료 ✓</Text>
               <Text style={s.completeTime}>지금</Text>
             </View>
@@ -323,11 +323,11 @@ export default function HealthScreen({ route, navigation }: any) {
 
           {/* 수치 입력 리스트 */}
           <View style={s.inputList}>
-            {METRICS.map((m) => {
+            {METRICS.map((m, idx) => {
               const dv = displayVal(m.key);
               const st = getStatus(m.key);
               return (
-                <TouchableOpacity key={m.key} style={s.inputRow} onPress={() => setKeypadMetric(m)} activeOpacity={0.75}>
+                <TouchableOpacity key={m.key} style={[s.inputRow, idx === METRICS.length - 1 && { borderBottomWidth: 0 }]} onPress={() => setKeypadMetric(m)} activeOpacity={0.75}>
                   <Text style={s.inputIcon}>{m.icon}</Text>
                   <View style={s.inputLabelWrap}>
                     <Text style={s.inputLabel}>{m.label}</Text>
@@ -492,25 +492,18 @@ const s = StyleSheet.create({
                    borderWidth: 1, borderColor: '#DDE8F4', gap: 6 },
   wearBoxIcon:   { fontSize: 32 },
   wearBoxTitle:  { fontSize: 16, fontWeight: '800', color: '#16273E' },
-  wearBoxSub:    { fontSize: 13, color: '#7A90A8', textAlign: 'center', lineHeight: 18 },
+  wearBoxSub:    { fontSize: 13, color: '#7A90A8', textAlign: 'center', lineHeight: 20 },
   wearBoxBtn:    { marginTop: 6, backgroundColor: '#EBF3FB', borderRadius: 12,
                    paddingVertical: 10, paddingHorizontal: 18 },
   wearBoxBtnTxt: { fontSize: 14, fontWeight: '700', color: '#1A4A8A' },
 
   // 완료 상태
   completeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 4 },
-  completeTxt: { flex: 1, fontSize: 13, color: '#4caf50', fontWeight: '600' },
-  completeTime: { fontSize: 11, color: '#90a4ae' },
+  completeTxt: { flex: 1, fontSize: 16, color: '#4caf50', fontWeight: '700' },
+  completeTime: { fontSize: 14, color: '#90a4ae' },
 
   // 수치 카드 배지
-  badge:       { borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
-  badgeAuto:   { backgroundColor: '#e8f4fd' },
-  badgeDone:   { backgroundColor: '#e8f5e9' },
-  badgeEmpty:  { backgroundColor: '#f5f5f5' },
-  badgeTxt:    { fontSize: 12, fontWeight: '600' },
-  badgeTxtAuto: { color: '#1565c0' },
-  badgeTxtDone: { color: '#2e7d32' },
-  badgeTxtEmpty: { color: '#90a4ae' },
+
 
   // AI 즉시 분석
   aiBox:   { backgroundColor: '#fff', borderRadius: 16, padding: 14, flexDirection: 'row', gap: 10, borderLeftWidth: 3, borderLeftColor: '#1565c0' },
