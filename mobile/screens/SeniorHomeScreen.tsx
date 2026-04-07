@@ -104,16 +104,16 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       onPress: goFamily,
     },
     {
-      icon: '🫀',
-      title: '건강 기록',
-      sub: '혈압·걸음수·AI 분석 확인',
-      onPress: () => navigation.navigate('Health', { userId, name }),
-    },
-    {
       icon: '💬',
       title: 'AI 건강 상담',
       sub: '궁금한 건강 질문을 해요',
       onPress: () => navigation.navigate('AIChat', { userId, name }),
+    },
+    {
+      icon: '🫀',
+      title: '건강 기록',
+      sub: '혈압·걸음수·AI 분석 확인',
+      onPress: () => navigation.navigate('Health', { userId, name }),
     },
   ];
 
