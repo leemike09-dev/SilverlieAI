@@ -313,16 +313,6 @@ export default function HealthScreen({ route, navigation }: any) {
       {activeTab === 'record' && (
         <ScrollView style={s.body} contentContainerStyle={s.bodyContent}>
 
-          {/* Apple Watch 배너 */}
-          <View style={s.wearBanner}>
-            <Text style={s.wearIcon}>⌚</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={s.wearTitle}>Apple Watch 연결됨</Text>
-              <Text style={s.wearSub}>걸음수·심박수 자동 동기화 중</Text>
-            </View>
-            <View style={s.wearBadge}><Text style={s.wearBadgeTxt}>연결됨</Text></View>
-          </View>
-
           {allFilled && (
             <View style={s.completeRow}>
               <Text style={{ color: '#4caf50', fontSize: 10 }}>●</Text>
@@ -367,16 +357,24 @@ export default function HealthScreen({ route, navigation }: any) {
             </View>
           )}
 
-          {/* Galaxy 연결 배너 */}
-          <View style={s.galaxyBanner}>
-            <Text style={{ fontSize: 22 }}>📱</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={s.galaxyTitle}>갤럭시 워치 / 안드로이드 연결</Text>
-              <Text style={s.galaxySub}>Samsung Health 데이터 가져오기</Text>
+          {/* 웨어러블 연결 박스 2개 */}
+          <View style={s.wearRow}>
+            <View style={s.wearBox}>
+              <Text style={s.wearBoxIcon}>⌚</Text>
+              <Text style={s.wearBoxTitle}>Apple Watch</Text>
+              <Text style={s.wearBoxSub}>{'걸음수·심박수\n자동 동기화'}</Text>
+              <TouchableOpacity style={s.wearBoxBtn}>
+                <Text style={s.wearBoxBtnTxt}>연결하기</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={s.galaxyBtn}>
-              <Text style={s.galaxyBtnTxt}>연결</Text>
-            </TouchableOpacity>
+            <View style={s.wearBox}>
+              <Text style={s.wearBoxIcon}>📱</Text>
+              <Text style={s.wearBoxTitle}>Galaxy Watch</Text>
+              <Text style={s.wearBoxSub}>{'Samsung Health\n데이터 연동'}</Text>
+              <TouchableOpacity style={s.wearBoxBtn}>
+                <Text style={s.wearBoxBtnTxt}>연결하기</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* 저장 버튼 */}
@@ -486,13 +484,16 @@ const s = StyleSheet.create({
                   padding: 13, alignItems: 'center' },
   recordBtnTxt: { fontSize: 16, fontWeight: '700', color: '#1565c0' },
 
-  // 웨어러블 배너
-  wearBanner: { backgroundColor: '#1a3a5c', borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  wearIcon:   { fontSize: 22 },
-  wearTitle:  { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 2 },
-  wearSub:    { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
-  wearBadge:  { backgroundColor: '#4caf50', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
-  wearBadgeTxt: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  // 웨어러블 박스 2개
+  wearRow:       { flexDirection: 'row', gap: 10 },
+  wearBox:       { flex: 1, backgroundColor: '#fff', borderRadius: 18, padding: 18, alignItems: 'center',
+                   borderWidth: 1, borderColor: '#DDE8F4', gap: 6 },
+  wearBoxIcon:   { fontSize: 32 },
+  wearBoxTitle:  { fontSize: 16, fontWeight: '800', color: '#16273E' },
+  wearBoxSub:    { fontSize: 13, color: '#7A90A8', textAlign: 'center', lineHeight: 18 },
+  wearBoxBtn:    { marginTop: 6, backgroundColor: '#EBF3FB', borderRadius: 12,
+                   paddingVertical: 10, paddingHorizontal: 18 },
+  wearBoxBtnTxt: { fontSize: 14, fontWeight: '700', color: '#1A4A8A' },
 
   // 완료 상태
   completeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 4 },
@@ -514,12 +515,7 @@ const s = StyleSheet.create({
   aiTitle: { fontSize: 16, fontWeight: '700', color: '#1A4A8A', marginBottom: 4 },
   aiMsg:   { fontSize: 15, color: '#546e7a', lineHeight: 22 },
 
-  // Galaxy 배너
-  galaxyBanner: { backgroundColor: '#fff', borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderColor: '#e0e0e0', borderStyle: 'dashed' },
-  galaxyTitle:  { fontSize: 15, fontWeight: '700', color: '#1A4A8A', marginBottom: 2 },
-  galaxySub:    { fontSize: 13, color: '#90a4ae' },
-  galaxyBtn:    { backgroundColor: '#1565c0', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8 },
-  galaxyBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
+
 
   // 저장 버튼
   saveBtn:    { backgroundColor: '#1a3a5c', borderRadius: 18, padding: 18, alignItems: 'center' },
