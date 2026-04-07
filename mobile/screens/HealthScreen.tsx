@@ -331,27 +331,22 @@ export default function HealthScreen({ route, navigation }: any) {
             </View>
           )}
 
-          {/* 수치 카드 그리드 */}
-          <View style={s.metricsGrid}>
+          {/* 수치 입력 리스트 */}
+          <View style={s.inputList}>
             {METRICS.map((m) => {
               const dv = displayVal(m.key);
               const st = getStatus(m.key);
               return (
-                <TouchableOpacity key={m.key} style={s.metricCard} onPress={() => setKeypadMetric(m)} activeOpacity={0.75}>
-                  <View style={s.metricHeader}>
-                    <Text style={s.metricIcon}>{m.icon}</Text>
-                    <Text style={s.metricLabel}>{m.label}</Text>
-                    <View style={[s.badge, m.auto ? s.badgeAuto : (dv ? s.badgeDone : s.badgeEmpty)]}>
-                      <Text style={[s.badgeTxt, m.auto ? s.badgeTxtAuto : (dv ? s.badgeTxtDone : s.badgeTxtEmpty)]}>
-                        {m.auto ? '⌚ 자동' : (dv ? '✓ 입력됨' : '+ 입력')}
-                      </Text>
-                    </View>
+                <TouchableOpacity key={m.key} style={s.inputRow} onPress={() => setKeypadMetric(m)} activeOpacity={0.75}>
+                  <Text style={s.inputIcon}>{m.icon}</Text>
+                  <View style={s.inputLabelWrap}>
+                    <Text style={s.inputLabel}>{m.label}</Text>
+                    {st && <Text style={[s.inputStatus, { color: st.color }]}>{st.text}</Text>}
                   </View>
-                  <Text style={s.metricVal}>
-                    {dv ? <>{dv} <Text style={s.metricUnit}>{m.unit}</Text></>
-                        : <Text style={s.metricEmpty}>탭하여 입력</Text>}
+                  <Text style={[s.inputVal, !dv && s.inputValEmpty]}>
+                    {dv ? `${dv} ${m.unit}` : '탭하여 입력'}
                   </Text>
-                  {st && <Text style={[s.metricStatus, { color: st.color }]}>{st.text}</Text>}
+                  <Text style={s.inputArrow}>›</Text>
                 </TouchableOpacity>
               );
             })}
@@ -459,7 +454,7 @@ const s = StyleSheet.create({
   alertMsg:    { fontSize: 14, color: '#8a6914', lineHeight: 20, marginBottom: 5 },
   alertAction: { fontSize: 14, color: '#1565c0', fontWeight: '600' },
 
-  // 수치 카드
+  // 수치 카드 (오늘 탭용)
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   metricCard:  { width: (width - 28 - 10) / 2, backgroundColor: '#fff', borderRadius: 14, padding: 12,
                  shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width:0, height:2 }, shadowRadius:6, elevation:2 },
@@ -471,6 +466,18 @@ const s = StyleSheet.create({
   metricUnit:  { fontSize: 13, color: '#9aabb8', fontWeight: '400' },
   metricEmpty: { fontSize: 14, color: '#b0bec5' },
   metricStatus: { fontSize: 13, fontWeight: '600' },
+
+  // 기록 탭 - 리스트형 입력
+  inputList:      { backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: '#DDE8F4' },
+  inputRow:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 20,
+                    borderBottomWidth: 1, borderBottomColor: '#EEF4FB', gap: 14 },
+  inputIcon:      { fontSize: 28, width: 36, textAlign: 'center' },
+  inputLabelWrap: { flex: 1 },
+  inputLabel:     { fontSize: 18, fontWeight: '700', color: '#16273E' },
+  inputStatus:    { fontSize: 13, fontWeight: '600', marginTop: 2 },
+  inputVal:       { fontSize: 17, fontWeight: '700', color: '#1A4A8A' },
+  inputValEmpty:  { color: '#B8CCE0', fontWeight: '400' },
+  inputArrow:     { fontSize: 22, color: '#B8CCE0' },
 
 
 
