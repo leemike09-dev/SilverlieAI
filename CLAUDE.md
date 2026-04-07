@@ -156,3 +156,25 @@ non-breaking space(\xa0) 포함 — 터미널 cd 불가
 - 웹 데모: https://leemike09-dev.github.io/SilverlieAI/
 - API: https://silverlieai.onrender.com
 - API 문서: https://silverlieai.onrender.com/docs
+
+## 2026-04-08 완료 작업
+- 카카오 로그인 버그 수정 (sessionStorage 읽기 문제 해결)
+- 내 프로필 화면 신규 (5섹션: 기본/신체/건강/생활/AI성향, 완성도%, 이유카드)
+- 중요 연락처 화면 신규 (병원/주치의/약국/응급/가족, 바로전화, DB저장)
+- 프로필 → AI 상담 연동 (개인화 시스템 프롬프트, 만성질환/복약/생활습관 반영)
+- AI 답변 4줄 구조 (공감→조언→실천→문의) + 기본 짧게 스타일
+- 전화번호 프로필 추가 (가족연결/동선파악 활용)
+- 약복용 알림 실제 연결 (처방약/영양제 분리, 스누즈 30분)
+- 가족 대시보드: 처방약만 표시 (영양제 제외)
+- 약 화면: 날짜/시간 헤더, 약 이름 강조, 종류 배지, 데모 예시 제거
+- 로그아웃 버튼 웹 호환성 수정
+
+## DB 추가 컬럼 (2026-04-08)
+- users: gender, region, blood_type, chronic_diseases, taking_medication, medication_list, exercise_frequency, sleep_hours, smoking, drinking, chat_style, phone, important_contacts (JSONB)
+- medications: med_type (처방약/영양제)
+
+## 다음 할 일
+- [ ] EAS Android/iOS 빌드
+- [ ] 카카오 로그인 네이티브 앱 지원
+- [ ] 네이버 로그인
+- [ ] 백그라운드 위치 추적 (네이티브 빌드 후)
