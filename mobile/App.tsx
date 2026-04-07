@@ -69,6 +69,7 @@ export default function App() {
           <Stack.Screen name="Medication"    component={MedicationScreen}   initialParams={DEMO} />
           <Stack.Screen name="FamilyConnect" component={FamilyConnectScreen} initialParams={DEMO} />
           <Stack.Screen name="FamilyDashboard" component={FamilyDashboardScreen} initialParams={DEMO} />
+          <Stack.Screen name="LocationMap"    component={LocationMapScreen}    initialParams={DEMO} />
         </Stack.Navigator>
       </NavigationContainer>
     </LanguageProvider>
