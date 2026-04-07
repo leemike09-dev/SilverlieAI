@@ -145,11 +145,11 @@ export default function LifeScreen({ route, navigation }: Props) {
   );
 }
 
-const GREEN = '#558b2f';
-const GREEN_LIGHT = '#7cb342';
+const GREEN = '#1A4A8A';
+const GREEN_LIGHT = '#2272B8';
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1, backgroundColor: '#f1f8e9' },
+  safe:   { flex: 1, backgroundColor: '#F0F5FB' },
   scroll: { flex: 1 },
 
   /* Header */
@@ -157,8 +157,8 @@ const styles = StyleSheet.create({
     backgroundColor: GREEN,
     paddingHorizontal: 20, paddingTop: Platform.OS === 'web' ? 16 : (StatusBar.currentHeight ?? 28) + 4, paddingBottom: 20,
   },
-  headerSub:   { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginBottom: 2 },
-  headerTitle: { color: '#fff', fontSize: 22, fontWeight: '700' },
+  headerSub:   { color: 'rgba(255,255,255,0.75)', fontSize: 14, marginBottom: 4 },
+  headerTitle: { color: '#fff', fontSize: 24, fontWeight: '800' },
   /* Hero Banner */
   heroBanner: {
     margin: 16, borderRadius: 18,
@@ -170,22 +170,22 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start', borderRadius: 12,
     paddingHorizontal: 10, paddingVertical: 4, marginBottom: 10,
   },
-  heroTagText:  { color: '#fff', fontSize: 11, fontWeight: '600' },
-  heroTitle:    { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 4 },
-  heroSub:      { color: 'rgba(255,255,255,0.9)', fontSize: 15, marginBottom: 12 },
+  heroTagText:  { color: '#fff', fontSize: 13, fontWeight: '600' },
+  heroTitle:    { color: '#fff', fontSize: 24, fontWeight: '800', marginBottom: 6 },
+  heroSub:      { color: 'rgba(255,255,255,0.9)', fontSize: 17, marginBottom: 12 },
   heroMeta:     { backgroundColor: 'rgba(0,0,0,0.12)', borderRadius: 10, padding: 8, marginBottom: 14 },
-  heroMetaText: { color: '#fff', fontSize: 11 },
+  heroMetaText: { color: '#fff', fontSize: 14 },
   heroBtn: {
     backgroundColor: '#fff',
     alignSelf: 'flex-start', borderRadius: 20,
     paddingHorizontal: 16, paddingVertical: 8,
   },
-  heroBtnText: { color: GREEN, fontWeight: '700', fontSize: 13 },
+  heroBtnText: { color: GREEN, fontWeight: '700', fontSize: 15 },
 
   /* Section header */
   sectionRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16, marginTop: 8, marginBottom: 10 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#2e7d32' },
-  sectionMore:  { fontSize: 12, color: '#7cb342' },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1A4A8A' },
+  sectionMore:  { fontSize: 14, color: '#2272B8' },
 
   /* 2×2 Grid */
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: 12, gap: 10, marginBottom: 16 },
@@ -193,13 +193,13 @@ const styles = StyleSheet.create({
     width: (width - 44) / 2,
     backgroundColor: '#fff',
     borderRadius: 16, padding: 16,
-    shadowColor: '#2e7d32', shadowOpacity: 0.08,
+    shadowColor: '#1A4A8A', shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 2 }, shadowRadius: 6,
     elevation: 3,
   },
-  gridIcon:  { fontSize: 28, marginBottom: 8 },
-  gridTitle: { fontSize: 14, fontWeight: '700', color: '#2e7d32', marginBottom: 4 },
-  gridSub:   { fontSize: 11, color: '#78909c', lineHeight: 15 },
+  gridIcon:  { fontSize: 34, marginBottom: 10 },
+  gridTitle: { fontSize: 17, fontWeight: '700', color: '#1A4A8A', marginBottom: 4 },
+  gridSub:   { fontSize: 13, color: '#7A90A8', lineHeight: 18 },
 
   /* Lecture Cards */
   lectureCard: {
@@ -214,13 +214,13 @@ const styles = StyleSheet.create({
   lectureAccent: { width: 4, borderRadius: 2, alignSelf: 'stretch', marginRight: 12 },
   lectureIconWrap: {
     width: 44, height: 44, borderRadius: 12,
-    backgroundColor: '#f1f8e9',
+    backgroundColor: '#EBF3FB',
     justifyContent: 'center', alignItems: 'center',
     marginRight: 12,
   },
   lectureIcon:  { fontSize: 22 },
   lectureText:  { flex: 1 },
-  lectureTitle: { fontSize: 14, fontWeight: '700', color: '#263238', marginBottom: 3 },
-  lectureSub:   { fontSize: 12, color: '#78909c' },
+  lectureTitle: { fontSize: 17, fontWeight: '700', color: '#16273E', marginBottom: 4 },
+  lectureSub:   { fontSize: 14, color: '#7A90A8' },
   lectureArrow: { fontSize: 22, color: '#b0bec5', marginLeft: 8 },
 });
