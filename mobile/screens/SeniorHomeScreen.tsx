@@ -244,7 +244,7 @@ const s = StyleSheet.create({
   },
   subtitle: {
     color: 'rgba(255,255,255,0.78)',
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '500',
     letterSpacing: 1.5,
   },
@@ -260,16 +260,16 @@ const s = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.16)',
     borderRadius: 18,
-    paddingVertical: 15,
-    paddingHorizontal: 18,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
     gap: 14,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.22)',
   },
-  cardIcon:  { fontSize: 28 },
+  cardIcon:  { fontSize: 32 },
   cardText:  { flex: 1 },
-  cardTitle: { color: '#ffffff', fontSize: 15, fontWeight: '700', marginBottom: 2 },
-  cardSub:   { color: 'rgba(255,255,255,0.68)', fontSize: 12, fontWeight: '400' },
+  cardTitle: { color: '#ffffff', fontSize: 19, fontWeight: '700', marginBottom: 3 },
+  cardSub:   { color: 'rgba(255,255,255,0.75)', fontSize: 15, fontWeight: '400' },
   cardArrow: { color: 'rgba(255,255,255,0.6)', fontSize: 24, fontWeight: '300' },
 
   // 위치 배지
@@ -278,5 +278,5 @@ const s = StyleSheet.create({
     borderRadius: 12, paddingHorizontal: 16, paddingVertical: 7,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
   },
-  locTxt: { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '600' },
+  locTxt: { color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: '600' },
 });
