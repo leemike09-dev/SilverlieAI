@@ -76,8 +76,19 @@ def create_user(user: UserCreate):
 class UpdateUserRequest(BaseModel):
     name: Optional[str] = None
     age: Optional[int] = None
+    gender: Optional[str] = None
+    region: Optional[str] = None
     height: Optional[float] = None
     weight: Optional[float] = None
+    blood_type: Optional[str] = None
+    chronic_diseases: Optional[List[str]] = None
+    taking_medication: Optional[bool] = None
+    medication_list: Optional[str] = None
+    exercise_frequency: Optional[str] = None
+    sleep_hours: Optional[float] = None
+    smoking: Optional[bool] = None
+    drinking: Optional[str] = None
+    chat_style: Optional[str] = None
     interests: Optional[List[str]] = None
     language: Optional[str] = None
     notification_health: Optional[bool] = None

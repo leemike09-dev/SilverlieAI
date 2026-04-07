@@ -30,6 +30,7 @@ import FamilyConnectScreen from './screens/FamilyConnectScreen';
 import FamilyDashboardScreen from './screens/FamilyDashboardScreen';
 import LocationMapScreen     from './screens/LocationMapScreen';
 import ProfileEditScreen    from './screens/ProfileEditScreen';
+import ProfileScreen       from './screens/ProfileScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -136,6 +137,7 @@ export default function App() {
           <Stack.Screen name="FamilyDashboard" component={FamilyDashboardScreen} initialParams={DEMO} />
           <Stack.Screen name="LocationMap"    component={LocationMapScreen}    initialParams={DEMO} />
           <Stack.Screen name="ProfileEdit"    component={ProfileEditScreen}    />
+          <Stack.Screen name="Profile"        component={ProfileScreen}        />
         </Stack.Navigator>
       </NavigationContainer>
     </LanguageProvider>

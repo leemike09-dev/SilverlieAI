@@ -129,9 +129,9 @@ export default function SettingsScreen({ route, navigation }: Props) {
             <Text style={styles.listValue}>118/78</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.listItem, styles.listItemLast]}
-            onPress={() => navigation.navigate('ProfileEdit', { userId, name: displayName })}>
-            <Text style={styles.listIcon}>✏️</Text>
-            <Text style={styles.listLabel}>프로필 수정</Text>
+            onPress={() => navigation.navigate('Profile', { userId, name: displayName })}>
+            <Text style={styles.listIcon}>👤</Text>
+            <Text style={styles.listLabel}>내 프로필</Text>
             <Text style={styles.listArrow}>›</Text>
           </TouchableOpacity>
         </View>
