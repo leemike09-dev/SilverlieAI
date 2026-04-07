@@ -2,18 +2,30 @@ import React, { useState } from 'react';
 import SeniorTabBar from '../components/SeniorTabBar';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  SafeAreaView, Switch, Alert,
+  SafeAreaView, Switch, Alert, Platform,
 } from 'react-native';
-import { Platform } from 'react-native';
 
 type Props = { route: any; navigation: any };
 
 const LANGUAGES = ['한국어', '中文', 'English', '日本語'];
 
+const C = {
+  blue1:   '#1A4A8A',
+  blue2:   '#2272B8',
+  blueMid: '#1A5FA0',
+  blueCard:'#EBF3FB',
+  bg:      '#F0F5FB',
+  card:    '#FFFFFF',
+  text:    '#16273E',
+  sub:     '#7A90A8',
+  line:    '#DDE8F4',
+  red:     '#E53935',
+};
+
 export default function SettingsScreen({ route, navigation }: Props) {
   const { name = '회원', userId = 'demo-user' } = route?.params ?? {};
-  const [notifOn, setNotifOn]   = useState(true);
-  const [langIdx, setLangIdx]   = useState(0);
+  const [notifOn, setNotifOn] = useState(true);
+  const [langIdx, setLangIdx] = useState(0);
 
   const handleLogout = () => {
     Alert.alert('로그아웃', '정말 로그아웃 하시겠습니까?', [
@@ -25,7 +37,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
   const cycleLang = () => setLangIdx(i => (i + 1) % LANGUAGES.length);
 
   return (
-    <View style={[styles.safe, {flex:1}]}>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
 
         {/* ─── 프로필 헤더 ─── */}
@@ -53,7 +65,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
             onPress={() => navigation.navigate('Health', { name, userId })}>
             <Text style={styles.listIcon}>🚶</Text>
             <Text style={styles.listLabel}>오늘 걸음수</Text>
-            <Text style={[styles.listValue, { color: '#1565c0', fontWeight: '700' }]}>6,240보</Text>
+            <Text style={[styles.listValue, { color: C.blue1, fontWeight: '700' }]}>6,240보</Text>
           </TouchableOpacity>
           <View style={[styles.listItem, styles.listItemLast]}>
             <Text style={styles.listIcon}>💗</Text>
@@ -76,17 +88,16 @@ export default function SettingsScreen({ route, navigation }: Props) {
             <Text style={styles.listValue}>{LANGUAGES[langIdx]}</Text>
             <Text style={styles.listArrow}>›</Text>
           </TouchableOpacity>
-          <View style={styles.listItem}>
+          <View style={[styles.listItem, styles.listItemLast]}>
             <Text style={styles.listIcon}>🔔</Text>
             <Text style={styles.listLabel}>건강 알림</Text>
             <Switch
               value={notifOn}
               onValueChange={setNotifOn}
-              trackColor={{ false: '#e0e0e0', true: '#1565c0' }}
+              trackColor={{ false: '#cdd8e8', true: C.blue2 }}
               thumbColor="#fff"
             />
           </View>
-          
         </View>
 
         {/* ─── 기타 ─── */}
@@ -104,57 +115,66 @@ export default function SettingsScreen({ route, navigation }: Props) {
           </TouchableOpacity>
           <TouchableOpacity style={[styles.listItem, styles.listItemLast]} onPress={handleLogout}>
             <Text style={styles.listIcon}>🚪</Text>
-            <Text style={[styles.listLabel, { color: '#ef5350' }]}>로그아웃</Text>
-            <Text style={[styles.listArrow, { color: '#ef5350' }]}>›</Text>
+            <Text style={[styles.listLabel, { color: C.red }]}>로그아웃</Text>
+            <Text style={[styles.listArrow, { color: C.red }]}>›</Text>
           </TouchableOpacity>
         </View>
 
       </ScrollView>
-    
+
       <SeniorTabBar navigation={navigation} activeTab="info" userId={userId} name={name} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f5f7fa' },
-
   /* 프로필 헤더 */
   profileHeader: {
-    backgroundColor: '#fff', padding: 20,
-    flexDirection: 'row', alignItems: 'center', gap: 16,
-    borderBottomWidth: 1, borderBottomColor: '#eef2f7',
+    backgroundColor: '#1A4A8A',
+    paddingTop: Platform.OS === 'web' ? 40 : 52,
+    paddingBottom: 28,
+    paddingHorizontal: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 18,
   },
   avatarWrap: {
-    width: 70, height: 70, borderRadius: 35,
-    backgroundColor: '#1565c0',
+    width: 76, height: 76, borderRadius: 38,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)',
     justifyContent: 'center', alignItems: 'center', flexShrink: 0,
   },
-  avatarText:   { fontSize: 36 },
+  avatarText:   { fontSize: 38 },
   profileInfo:  { flex: 1 },
-  profileName:  { fontSize: 20, fontWeight: '800', color: '#263238', marginBottom: 4 },
-  profileMeta:  { fontSize: 12, color: '#78909c', marginBottom: 10 },
-  tagRow:       { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  tag:          { backgroundColor: '#e3f2fd', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
-  tagText:      { fontSize: 11, fontWeight: '700', color: '#1565c0' },
+  profileName:  { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4 },
+  profileMeta:  { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginBottom: 12 },
+  tagRow:       { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  tag:          { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5 },
+  tagText:      { fontSize: 13, fontWeight: '700', color: '#fff' },
 
   /* 섹션 제목 */
   sectionTitle: {
-    fontSize: 11, color: '#b0bec5', fontWeight: '700',
-    paddingHorizontal: 18, paddingTop: Platform.OS === 'web' ? 18 : (StatusBar.currentHeight ?? 28) + 4, paddingBottom: 6,
-    letterSpacing: 1,
+    fontSize: 13, color: '#7A90A8', fontWeight: '700',
+    paddingHorizontal: 18, paddingTop: 22, paddingBottom: 8,
+    letterSpacing: 0.5,
   },
 
   /* 리스트 블록 */
-  listBlock: { backgroundColor: '#fff', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#eef2f7' },
+  listBlock: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    marginHorizontal: 14,
+    overflow: 'hidden',
+    borderWidth: 1, borderColor: '#DDE8F4',
+  },
   listItem: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    paddingHorizontal: 18, paddingVertical: 15,
-    borderBottomWidth: 1, borderBottomColor: '#f5f7fa',
+    paddingHorizontal: 18, paddingVertical: 17,
+    borderBottomWidth: 1, borderBottomColor: '#EEF4FB',
   },
   listItemLast: { borderBottomWidth: 0 },
-  listIcon:  { fontSize: 20, width: 28, textAlign: 'center' },
-  listLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: '#37474f' },
-  listValue: { fontSize: 13, color: '#90a4ae' },
-  listArrow: { fontSize: 18, color: '#cfd8dc' },
+  listIcon:  { fontSize: 22, width: 30, textAlign: 'center' },
+  listLabel: { flex: 1, fontSize: 17, fontWeight: '600', color: '#16273E' },
+  listValue: { fontSize: 15, color: '#7A90A8' },
+  listArrow: { fontSize: 20, color: '#B8CCE0' },
 });
