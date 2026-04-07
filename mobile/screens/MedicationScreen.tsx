@@ -8,20 +8,23 @@ import SeniorTabBar from '../components/SeniorTabBar';
 
 const API = 'https://silverlieai.onrender.com';
 const C = {
-  bg:      '#FDFAF6',
+  blue1:   '#1A4A8A',
+  blue2:   '#2272B8',
+  blueCard:'#EBF3FB',
+  bg:      '#F0F5FB',
   card:    '#FFFFFF',
-  sage:    '#6BAE8F',
-  sageLt:  '#EAF5EF',
-  sageDk:  '#4A8C6E',
+  sage:    '#3DAB7B',
+  sageLt:  '#E6F7EF',
+  sageDk:  '#2A8A5E',
   peach:   '#F4956A',
   peachLt: '#FEF0E8',
-  amber:   '#F5A623',
-  amberLt: '#FEF6E7',
-  sky:     '#6BA8C8',
-  skyLt:   '#E8F4FB',
-  text:    '#2C2C2C',
-  sub:     '#8A8A8A',
-  line:    '#F0EDE8',
+  amber:   '#E8960A',
+  amberLt: '#FEF6E0',
+  sky:     '#2272B8',
+  skyLt:   '#EBF3FB',
+  text:    '#16273E',
+  sub:     '#7A90A8',
+  line:    '#DDE8F4',
 };
 
 const TIMES  = ['아침 (08:00)', '점심 (12:00)', '저녁 (19:00)', '자기 전 (21:00)'];
@@ -191,7 +194,7 @@ export default function MedicationScreen({ route, navigation }: any) {
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor={C.sageDk} />
+      <StatusBar barStyle="light-content" backgroundColor={C.blue1} />
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
 
         {/* 헤더 */}
@@ -381,22 +384,24 @@ export default function MedicationScreen({ route, navigation }: any) {
 const s = StyleSheet.create({
   root:   { flex: 1, backgroundColor: C.bg },
   header: {
-    backgroundColor: C.sage,
     paddingHorizontal: 22,
     paddingTop: Platform.OS === 'web' ? 22 : (StatusBar.currentHeight ?? 28) + 10,
     paddingBottom: 18,
+    ...(Platform.OS === 'web'
+      ? { background: 'linear-gradient(135deg, #1A4A8A 0%, #2272B8 100%)' } as any
+      : { backgroundColor: '#1A4A8A' }),
   },
   headerRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  headerTitle:    { fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  headerSub:      { fontSize: 14, color: 'rgba(255,255,255,0.75)' },
+  headerTitle:    { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 4 },
+  headerSub:      { fontSize: 15, color: 'rgba(255,255,255,0.8)' },
   headerBadge:    { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' },
-  headerBadgeTxt: { fontSize: 20, fontWeight: '900', color: '#fff', lineHeight: 22 },
+  headerBadgeTxt: { fontSize: 22, fontWeight: '900', color: '#fff', lineHeight: 24 },
   headerBadgeSub: { fontSize: 10, color: 'rgba(255,255,255,0.8)' },
   progWrap:       { height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3 },
   progFill:       { height: 6, backgroundColor: '#fff', borderRadius: 3 },
 
   group:      { marginBottom: 24 },
-  groupTitle: { fontSize: 15, fontWeight: '700', color: C.sub, marginBottom: 10, marginLeft: 2 },
+  groupTitle: { fontSize: 16, fontWeight: '700', color: C.sub, marginBottom: 10, marginLeft: 2 },
 
   medCard:        { backgroundColor: C.card, borderRadius: 18, marginBottom: 10, overflow: 'hidden',
                     shadowColor:'#B8A898', shadowOpacity:0.12, shadowRadius:8, elevation:2 },
@@ -406,36 +411,36 @@ const s = StyleSheet.create({
   medInfoRow: { flexDirection: 'row', alignItems: 'center' },
   colorStripe:{ width: 5, alignSelf: 'stretch' },
   medNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 },
-  medName:    { fontSize: 17, fontWeight: '700', color: C.text },
+  medName:    { fontSize: 19, fontWeight: '700', color: C.text },
   strikethrough: { textDecorationLine: 'line-through', color: '#BABABA' },
-  medDosage:  { fontSize: 12, color: C.sub },
+  medDosage:  { fontSize: 14, color: C.sub },
 
   // 잔여량 배지
   remBadge:    { backgroundColor: C.skyLt, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
-  remBadgeTxt: { fontSize: 11, fontWeight: '700', color: C.sky },
+  remBadgeTxt: { fontSize: 13, fontWeight: '700', color: C.sky },
 
   statusIcon: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: '#E0D8D0',
                 alignItems: 'center', justifyContent: 'center', marginRight: 14 },
 
   // 액션 버튼 3개
   actionRow:   { flexDirection: 'row', gap: 8, padding: 12, paddingTop: 0 },
-  btnTake:     { flex: 2, backgroundColor: C.sageLt, borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
-  btnTakeTxt:  { fontSize: 13, fontWeight: '700', color: C.sageDk },
-  btnSnooze:   { flex: 1.5, backgroundColor: C.amberLt, borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
-  btnSnoozeTxt:{ fontSize: 12, fontWeight: '700', color: C.amber },
-  btnSkip:     { flex: 1.5, backgroundColor: C.line, borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
-  btnSkipTxt:  { fontSize: 12, fontWeight: '600', color: C.sub },
+  btnTake:     { flex: 2, backgroundColor: C.sageLt, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
+  btnTakeTxt:  { fontSize: 15, fontWeight: '700', color: C.sageDk },
+  btnSnooze:   { flex: 1.5, backgroundColor: C.amberLt, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
+  btnSnoozeTxt:{ fontSize: 14, fontWeight: '700', color: C.amber },
+  btnSkip:     { flex: 1.5, backgroundColor: C.line, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
+  btnSkipTxt:  { fontSize: 14, fontWeight: '600', color: C.sub },
 
   undoRow: { paddingHorizontal: 14, paddingBottom: 10 },
-  undoTxt: { fontSize: 12, color: C.sub, textDecorationLine: 'underline', textAlign: 'right' },
+  undoTxt: { fontSize: 14, color: C.sub, textDecorationLine: 'underline', textAlign: 'right' },
 
   empty:      { alignItems: 'center', paddingVertical: 60 },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: C.sub, marginBottom: 8 },
-  emptySub:   { fontSize: 14, color: '#BABABA' },
+  emptyTitle: { fontSize: 22, fontWeight: '700', color: C.sub, marginBottom: 8 },
+  emptySub:   { fontSize: 16, color: '#BABABA' },
 
-  addBtn:    { backgroundColor: C.peach, borderRadius: 18, paddingVertical: 18, alignItems: 'center', marginTop: 6 },
+  addBtn:    { backgroundColor: C.blue2, borderRadius: 18, paddingVertical: 18, alignItems: 'center', marginTop: 6 },
   addBtnTxt: { fontSize: 17, fontWeight: '700', color: '#fff' },
-  hint:      { textAlign: 'center', color: '#C8C0B8', fontSize: 12, marginTop: 10 },
+  hint:      { textAlign: 'center', color: '#C8C0B8', fontSize: 14, marginTop: 10 },
 
   // 모달
   overlay:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
@@ -449,16 +454,16 @@ const s = StyleSheet.create({
   qtyHint:      { fontSize: 11, color: C.sub, marginTop: 4 },
   chipRow:      { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip:         { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: C.bg, borderWidth: 2, borderColor: C.line },
-  chipOn:       { backgroundColor: C.sageLt, borderColor: C.sage },
+  chipOn:       { backgroundColor: C.blueCard, borderColor: C.blue2 },
   chipTxt:      { fontSize: 12, fontWeight: '600', color: C.sub },
-  chipTxtOn:    { color: C.sage },
+  chipTxtOn:    { color: C.blue2 },
   colorRow:     { flexDirection: 'row', gap: 12, marginTop: 4 },
   colorDot:     { width: 34, height: 34, borderRadius: 17 },
   colorDotOn:   { borderWidth: 3, borderColor: C.text },
   sheetBtns:    { flexDirection: 'row', gap: 12, marginTop: 28 },
   cancelBtn:    { flex: 1, paddingVertical: 16, borderRadius: 16, backgroundColor: C.line, alignItems: 'center' },
   cancelTxt:    { fontSize: 16, fontWeight: '700', color: C.sub },
-  saveBtn:      { flex: 1, paddingVertical: 16, borderRadius: 16, backgroundColor: C.sage, alignItems: 'center' },
+  saveBtn:      { flex: 1, paddingVertical: 16, borderRadius: 16, backgroundColor: C.blue2, alignItems: 'center' },
   saveTxt:      { fontSize: 16, fontWeight: '700', color: '#fff' },
 
   // 탭바
