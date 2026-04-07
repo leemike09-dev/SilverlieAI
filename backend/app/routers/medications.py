@@ -13,6 +13,7 @@ class Medication(BaseModel):
     times: List[str] = []
     color: Optional[str] = "#4CAF50"
     total_quantity: Optional[int] = None   # 총 수량 (정/캡슐)
+    med_type: Optional[str] = "처방약"  # 처방약 | 영양제
 
 class MedicationLog(BaseModel):
     user_id: str
@@ -41,6 +42,8 @@ def add_medication(med: Medication):
     }
     if med.total_quantity is not None:
         payload["total_quantity"] = med.total_quantity
+    if med.med_type:
+        payload["med_type"] = med.med_type
     res = db.table("medications").insert(payload).execute()
     return res.data[0] if res.data else {}
 

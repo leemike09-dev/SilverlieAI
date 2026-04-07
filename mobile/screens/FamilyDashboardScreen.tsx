@@ -209,7 +209,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
 
   const s            = status || DEMO_STATUS;
   const summary: any = s.summary || {};
-  const meds: any[]  = s.medications || [];
+  const meds: any[]  = (s.medications || []).filter((m: any) => !m.med_type || m.med_type === '처방약');
   const logs: any[]  = s.today_logs  || [];
 
   // 복용하지 않은 약 목록

@@ -4,6 +4,7 @@ import {
   Modal, TextInput, StatusBar, Platform, Alert, Animated,
 } from 'react-native';
 import { DEMO_MODE } from '../App';
+import { scheduleMedicationNotifications, cancelMedicationNotifications, snoozeNotification, requestNotificationPermission } from '../utils/notifications';
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const API = 'https://silverlieai.onrender.com';
@@ -55,6 +56,7 @@ export default function MedicationScreen({ route, navigation }: any) {
   const [selColor,    setSelColor]    = useState(COLORS[0]);
   const [totalQty,    setTotalQty]    = useState('');
   const [saving,      setSaving]      = useState(false);
+  const [selMedType,  setSelMedType]  = useState<'처방약' | '영양제'>('처방약');
   const [memo,        setMemo]        = useState('');
   const [memoSaved,   setMemoSaved]   = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -76,7 +78,10 @@ export default function MedicationScreen({ route, navigation }: any) {
       setMeds(medList);
       setLogs(Array.isArray(ld) ? ld : []);
       // 전체 복용 횟수 (잔여량 계산)
-      if (!DEMO_MODE) fetchTakenCounts(medList);
+      if (!DEMO_MODE) {
+        fetchTakenCounts(medList);
+        scheduleMedicationNotifications(medList);
+      }
       else {
         // 데모: 혈압약 18회, 당뇨약 32회 복용한 것으로 가정
         setTakenCounts({ '1': 18, '2': 32, '3': 0 });
@@ -132,9 +137,9 @@ export default function MedicationScreen({ route, navigation }: any) {
   const handleSnooze = (med: any, time: string) => {
     Alert.alert('⏰ 30분 후 알림', `${med.name} 복용 알림을 30분 후로 미룰까요?`, [
       { text: '취소', style: 'cancel' },
-      { text: '확인', onPress: () => {
+      { text: '확인', onPress: async () => {
+        await snoozeNotification(med.name, med.med_type || '처방약');
         Alert.alert('알림 설정', '30분 후에 알려드릴게요! 📲');
-        // 실제 앱에서는 expo-notifications로 스케줄링
       }},
     ]);
   };
@@ -160,25 +165,29 @@ export default function MedicationScreen({ route, navigation }: any) {
           body: JSON.stringify({
             user_id: userId, name: medName, dosage,
             times: selTimes, color: selColor,
-            total_quantity: qty,
+            total_quantity: qty, med_type: selMedType,
           }),
         });
-        fetchAll();
+        const updated = await fetchAll();
+        if (updated) scheduleMedicationNotifications(updated);
       } else {
         setMeds(p => [...p, {
           id: Date.now().toString(), name: medName, dosage,
-          times: selTimes, color: selColor, total_quantity: qty,
+          times: selTimes, color: selColor, total_quantity: qty, med_type: selMedType,
         }]);
       }
       setModal(false); setMedName(''); setDosage('1정');
-      setSelTimes(['08:00']); setSelColor(COLORS[0]); setTotalQty('');
+      setSelTimes(['08:00']); setSelColor(COLORS[0]); setTotalQty(''); setSelMedType('처방약');
     } finally { setSaving(false); }
   };
 
   const deleteMed = (med: any) => Alert.alert('약 삭제', `${med.name}을(를) 삭제할까요?`, [
     { text: '취소', style: 'cancel' },
     { text: '삭제', style: 'destructive', onPress: async () => {
-      if (!DEMO_MODE) await fetch(`${API}/medications/${med.id}`, { method: 'DELETE' });
+      if (!DEMO_MODE) {
+        await fetch(`${API}/medications/${med.id}`, { method: 'DELETE' });
+        await cancelMedicationNotifications(med.id);
+      }
       setMeds(p => p.filter(m => m.id !== med.id));
     }},
   ]);
@@ -354,9 +363,24 @@ export default function MedicationScreen({ route, navigation }: any) {
           <ScrollView>
             <View style={s.sheet}>
               <View style={s.sheetHandle} />
-              <Text style={s.sheetTitle}>새 약 추가</Text>
+              <Text style={s.sheetTitle}>새 약 / 영양제 추가</Text>
 
-              <Text style={s.label}>약 이름</Text>
+              <Text style={s.label}>종류</Text>
+              <View style={s.chipRow}>
+                <TouchableOpacity
+                  style={[s.chip, selMedType === '처방약' && s.chipOn]}
+                  onPress={() => setSelMedType('처방약')}>
+                  <Text style={[s.chipTxt, selMedType === '처방약' && s.chipTxtOn]}>💊 처방약</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[s.chip, selMedType === '영양제' && s.chipOn]}
+                  onPress={() => setSelMedType('영양제')}>
+                  <Text style={[s.chipTxt, selMedType === '영양제' && s.chipTxtOn]}>🌿 영양제</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={[s.qtyHint, { marginBottom: 8 }]}>{selMedType === '처방약' ? '처방약은 미복용 시 가족에게 알림이 갑니다' : '영양제는 본인에게만 알림이 옵니다'}</Text>
+
+              <Text style={s.label}>이름</Text>
               <TextInput style={s.input} value={medName} onChangeText={setMedName}
                 placeholder="예: 혈압약, 아모디핀" placeholderTextColor="#C8C0B8" />
 
