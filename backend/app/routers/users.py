@@ -74,7 +74,10 @@ def create_user(user: UserCreate):
 
 
 class UpdateUserRequest(BaseModel):
+    name: Optional[str] = None
     age: Optional[int] = None
+    height: Optional[float] = None
+    weight: Optional[float] = None
     interests: Optional[List[str]] = None
     language: Optional[str] = None
     notification_health: Optional[bool] = None
