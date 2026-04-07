@@ -58,16 +58,26 @@ export default function App() {
   const [kakaoCode, setKakaoCode] = useState<string | null>(null);
   const [navReady,  setNavReady]  = useState(false);
 
-  // 웹 URL에서 카카오 인가 코드 감지
+  // 웹 카카오 인가 코드 감지
+  // index.html 스크립트가 먼저 실행되어 sessionStorage에 저장 → 여기서 꺼냄
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.location?.search) {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get('code');
-      if (code) {
-        window.history.replaceState({}, '', window.location.pathname);
-        setKakaoCode(code);
-      }
+    if (typeof window === 'undefined') return;
+    let code: string | null = null;
+
+    // 1순위: sessionStorage (index.html 스크립트가 URL 클리어 전에 저장)
+    if (typeof sessionStorage !== 'undefined') {
+      code = sessionStorage.getItem('kakao_auth_code');
+      if (code) sessionStorage.removeItem('kakao_auth_code');
     }
+
+    // 2순위: URL에 아직 남아있는 경우 (로컬 개발 환경 등)
+    if (!code && window.location?.search) {
+      const params = new URLSearchParams(window.location.search);
+      code = params.get('code');
+      if (code) window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    if (code) setKakaoCode(code);
   }, []);
 
   // 코드 + 네비게이션 준비되면 로그인 처리
