@@ -24,14 +24,20 @@ const C = {
 };
 
 // 시간대별 꿀비 인사 + 오늘의 건강 추천
-function getTodayTip(): string {
+function getGreeting(): string {
   const h = new Date().getHours();
-  if (h < 9) return '좋은 아침이에요! 🌅\n오늘 하루 건강하게 시작해볼까요?\n\n✅ 아침 약 복용 잊지 마세요\n🥛 공복에 물 한 잔이 혈압 조절에 도움돼요\n🚶 오전 산책 20분을 목표로 해보세요';
-  if (h < 12) return '오전이 활기차네요! ☀️\n\n💊 아침 약은 드셨나요?\n🚶 오늘 걸음 목표: 5,000보\n🫀 가벼운 스트레칭으로 혈액순환을 도와줘요';
-  if (h < 14) return '점심 시간이에요! 🍱\n\n💊 점심 약 복용 시간을 확인해보세요\n🥗 싱겁게 드시면 혈압 관리에 좋아요\n😌 식후 10분 휴식은 소화에 도움이 돼요';
-  if (h < 18) return '오후도 건강하게! 🌤️\n\n🚶 오후 산책이 혈당 조절에 효과적이에요\n💧 물 자주 마시는 거 잊지 마세요\n🧘 5분 호흡 명상으로 스트레스를 줄여봐요';
-  if (h < 21) return '저녁이에요! 🌙\n\n💊 저녁 약 복용 시간이에요\n🍽️ 저녁은 가볍게 드시는 게 수면에 좋아요\n🚶 저녁 산책 30분은 숙면에 도움이 돼요';
-  return '잠자리에 들 준비를 해볼까요? 🌛\n\n💊 자기 전 약 복용을 확인하세요\n📱 취침 1시간 전 화면은 줄여요\n😴 일정한 취침 시간이 수면의 질을 높여요';
+  if (h < 9)  return '좋은 아침이에요! 🌅
+오늘 하루도 건강하게 시작해요';
+  if (h < 12) return '오전이 활기차네요! ☀️
+무엇이든 편하게 물어보세요';
+  if (h < 14) return '점심 시간이에요! 🍱
+건강한 하루를 보내고 계신가요?';
+  if (h < 18) return '오후도 건강하게! 🌤️
+궁금한 건강 정보가 있으신가요?';
+  if (h < 21) return '좋은 저녁이에요! 🌙
+오늘 하루 어떠셨나요?';
+  return '잠자리 준비가 되셨나요? 🌛
+편안한 밤 되세요';
 }
 
 const QUICK_CHIPS = [
@@ -67,8 +73,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
     if (isRecording) {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.3, duration: 600, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1.0, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1.3, duration: 600, useNativeDriver: false }),
+          Animated.timing(pulseAnim, { toValue: 1.0, duration: 600, useNativeDriver: false }),
         ])
       ).start();
     } else {
