@@ -9,18 +9,7 @@ import { DEMO_MODE } from '../App';
 
 const API = 'https://silverlieai.onrender.com';
 
-// ── 청진기 SVG 오버레이 (web only) ──
-const STETHOSCOPE_SVG = `
-<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-  <path d="M20 18 Q12 32 14 46 Q16 60 30 64 Q44 68 48 54"
-        stroke="#0d1a3a" stroke-width="5.5" fill="none" stroke-linecap="round"/>
-  <circle cx="48" cy="54" r="14" fill="#1a2e6e"/>
-  <circle cx="48" cy="54" r="9"  fill="#2a52c0"/>
-  <circle cx="48" cy="54" r="4"  fill="rgba(255,255,255,0.35)"/>
-  <circle cx="20" cy="15" r="4.5" fill="#1a2e6e"/>
-  <circle cx="20" cy="15" r="2.5" fill="rgba(255,255,255,0.4)"/>
-</svg>
-`;
+
 
 export default function SeniorHomeScreen({ route, navigation }: any) {
   const userId = route?.params?.userId || (DEMO_MODE ? 'demo-user' : '');
@@ -141,15 +130,10 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             style={s.beeImg}
             resizeMode="contain"
           />
-          {/* 청진기 SVG 오버레이 (web only) */}
-          {Platform.OS === 'web' && (
-            <View style={s.stethoscopeWrap}>
-              <div
-                dangerouslySetInnerHTML={{ __html: STETHOSCOPE_SVG }}
-                style={{ width: 60, height: 60 }}
-              />
-            </View>
-          )}
+          {/* 하트 오버레이 */}
+          <View style={s.heartWrap}>
+            <Text style={s.heartEmoji}>❤️</Text>
+          </View>
         </Animated.View>
 
         {/* 타이틀 */}
@@ -229,13 +213,22 @@ const s = StyleSheet.create({
     height: 110,
     borderRadius: 55,
   },
-  stethoscopeWrap: {
+  heartWrap: {
     position: 'absolute',
-    right: -6,
-    bottom: -6,
-    width: 60,
-    height: 60,
+    right: -2,
+    bottom: -2,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
+  heartEmoji: { fontSize: 20 },
 
   // 타이틀
   titleWrap: {
