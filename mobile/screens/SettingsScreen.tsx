@@ -5,6 +5,8 @@ import {
   SafeAreaView, Switch, Alert, Platform,
 } from 'react-native';
 
+import { DEMO_MODE } from '../App';
+
 type Props = { route: any; navigation: any };
 
 const LANGUAGES = ['한국어', '中文', 'English', '日本語'];
@@ -24,6 +26,7 @@ const C = {
 
 export default function SettingsScreen({ route, navigation }: Props) {
   const { name = '회원', userId = 'demo-user' } = route?.params ?? {};
+  const isGuest = !DEMO_MODE && (!userId || userId === 'demo-user');
   const [notifOn, setNotifOn] = useState(true);
   const [langIdx, setLangIdx] = useState(0);
 
@@ -48,7 +51,18 @@ export default function SettingsScreen({ route, navigation }: Props) {
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{name} 님</Text>
             <Text style={styles.profileMeta}>68세 · 서울 · 건강점수 82점</Text>
-
+            {isGuest && (
+              <View style={styles.loginRow}>
+                <TouchableOpacity style={styles.loginBtn}
+                  onPress={() => navigation.navigate('Login', { tab: 'login' })}>
+                  <Text style={styles.loginBtnTxt}>로그인</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.signupBtn}
+                  onPress={() => navigation.navigate('Login', { tab: 'signup' })}>
+                  <Text style={styles.signupBtnTxt}>회원가입</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
 
@@ -142,6 +156,11 @@ const styles = StyleSheet.create({
   profileInfo:  { flex: 1 },
   profileName:  { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4 },
   profileMeta:  { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginBottom: 12 },
+  loginRow:     { flexDirection: 'row', gap: 10, marginTop: 4 },
+  loginBtn:     { backgroundColor: '#fff', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 20 },
+  loginBtnTxt:  { fontSize: 15, fontWeight: '700', color: '#1A4A8A' },
+  signupBtn:    { borderWidth: 2, borderColor: 'rgba(255,255,255,0.7)', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 20 },
+  signupBtnTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
 
 
   /* 섹션 제목 */
