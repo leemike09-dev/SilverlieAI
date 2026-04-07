@@ -9,22 +9,22 @@ import { DEMO_MODE } from '../App';
 const API = 'https://silverlieai.onrender.com';
 
 const C = {
-  bg:       '#FDFAF6',
+  bg:       '#F0F5FB',
   card:     '#FFFFFF',
-  sage:     '#6BAE8F',
-  sageLt:   '#EAF5EF',
-  sageDk:   '#4A8C6E',
+  sage:     '#3DAB7B',
+  sageLt:   '#E6F7EF',
+  sageDk:   '#2A8A5E',
   peach:    '#F4956A',
   peachLt:  '#FEF0E8',
-  sky:      '#6BA8C8',
-  skyLt:    '#E8F4FB',
+  sky:      '#2272B8',
+  skyLt:    '#EBF3FB',
   amber:    '#F5A623',
   amberLt:  '#FEF6E7',
   red:      '#E05C5C',
   redLt:    '#FDEAEA',
   text:     '#1E2D3D',
   sub:      '#7A8FA0',
-  line:     '#F0EDE8',
+  line:     '#DDE8F4',
 };
 
 const DEMO_DATA = {
@@ -199,17 +199,17 @@ export default function DashboardScreen({ route, navigation }: any) {
 }
 
 const s = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: C.bg },
+  root:   { flex: 1, backgroundColor: '#F0F5FB' },
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: C.bg,
+    backgroundColor: '#1A4A8A',
     paddingTop: Platform.OS === 'web' ? 20 : (StatusBar.currentHeight ?? 28) + 8,
     paddingHorizontal: 22, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: C.line,
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.2)',
   },
-  headerSub:   { fontSize: 12, color: C.sub, marginBottom: 2 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: C.text },
+  headerSub:   { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginBottom: 2 },
+  headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
 
   scroll: { padding: 18, gap: 16, paddingBottom: 24 },
 
@@ -221,46 +221,46 @@ const s = StyleSheet.create({
   scoreCircle:     { width: 90, height: 90, borderRadius: 45, borderWidth: 4,
                      alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg },
   scoreNum:        { fontSize: 32, fontWeight: '900', lineHeight: 34 },
-  scoreUnit:       { fontSize: 12, color: C.sub },
+  scoreUnit:       { fontSize: 13, color: C.sub },
   scoreBadge:      { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 4 },
-  scoreBadgeTxt:   { fontSize: 12, fontWeight: '700' },
+  scoreBadgeTxt:   { fontSize: 13, fontWeight: '700' },
 
   weekChart:      { flex: 1 },
-  weekChartTitle: { fontSize: 12, color: C.sub, fontWeight: '600', marginBottom: 8 },
+  weekChartTitle: { fontSize: 14, color: C.sub, fontWeight: '600', marginBottom: 8 },
   chartBars:      { flexDirection: 'row', alignItems: 'flex-end', height: 56, gap: 3, marginBottom: 6 },
   chartCol:       { flex: 1, alignItems: 'center', gap: 3 },
   chartBarWrap:   { flex: 1, width: '100%', justifyContent: 'flex-end', borderRadius: 4, overflow: 'hidden', backgroundColor: C.line },
   chartBar:       { width: '100%', borderRadius: 4 },
-  chartDay:       { fontSize: 9, color: C.sub },
-  scoreChange:    { fontSize: 12, color: C.sage, fontWeight: '700' },
+  chartDay:       { fontSize: 11, color: C.sub },
+  scoreChange:    { fontSize: 14, color: C.sage, fontWeight: '700' },
 
   // AI 카드
   aiCard:       { backgroundColor: C.sageLt, borderRadius: 20, padding: 18, borderLeftWidth: 3, borderLeftColor: C.sage },
   aiCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
   aiCardIcon:   { fontSize: 20 },
-  aiCardTitle:  { fontSize: 15, fontWeight: '800', color: C.sageDk },
-  aiCardText:   { fontSize: 14, color: C.text, lineHeight: 22 },
+  aiCardTitle:  { fontSize: 17, fontWeight: '800', color: C.sageDk },
+  aiCardText:   { fontSize: 16, color: C.text, lineHeight: 24 },
 
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginTop: 4 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: C.text, marginTop: 4 },
 
   // 4지표
   pointsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   pointCard:  { width: '47%', borderRadius: 18, padding: 16, alignItems: 'center', gap: 6 },
   pointIcon:  { fontSize: 28 },
-  pointLabel: { fontSize: 12, color: C.sub, fontWeight: '600' },
-  pointValue: { fontSize: 18, fontWeight: '900' },
+  pointLabel: { fontSize: 14, color: C.sub, fontWeight: '600' },
+  pointValue: { fontSize: 20, fontWeight: '900' },
   pointBadge: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 3 },
-  pointBadgeTxt: { fontSize: 11, fontWeight: '700' },
+  pointBadgeTxt: { fontSize: 13, fontWeight: '700' },
 
   // 추천
   recList: { gap: 10 },
   recCard: { borderRadius: 18, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, borderLeftWidth: 4 },
   recIcon:  { fontSize: 28 },
-  recTitle: { fontSize: 15, fontWeight: '800', marginBottom: 3 },
-  recDesc:  { fontSize: 13, color: C.sub, lineHeight: 18 },
+  recTitle: { fontSize: 17, fontWeight: '800', marginBottom: 3 },
+  recDesc:  { fontSize: 15, color: C.sub, lineHeight: 22 },
 
   // AI 상담
   chatBtn:    { backgroundColor: C.sky, borderRadius: 18, paddingVertical: 16, alignItems: 'center',
                 shadowColor: C.sky, shadowOpacity: 0.3, shadowRadius: 10, elevation: 3 },
-  chatBtnTxt: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
+  chatBtnTxt: { fontSize: 18, fontWeight: '800', color: '#FFFFFF' },
 });
