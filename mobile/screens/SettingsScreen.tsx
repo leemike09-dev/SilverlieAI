@@ -26,7 +26,7 @@ const C = {
 
 export default function SettingsScreen({ route, navigation }: Props) {
   const { name = '회원', userId = 'demo-user' } = route?.params ?? {};
-  const isGuest = !DEMO_MODE && (!userId || userId === 'demo-user');
+  const isGuest = true; // 로그인 버튼 항상 표시 (출시 시: !DEMO_MODE && (!userId || userId === 'demo-user'))
   const [notifOn, setNotifOn] = useState(true);
   const [langIdx, setLangIdx] = useState(0);
 
