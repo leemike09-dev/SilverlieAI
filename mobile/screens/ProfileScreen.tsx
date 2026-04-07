@@ -285,10 +285,7 @@ export default function ProfileScreen({ navigation, route }: any) {
                 </View>
               </View>
               <View style={styles.progressRight}>
-                <Text style={styles.progressHint}>완성할수록{'
-'}AI가{'
-'}더 정확하게{'
-'}도와드려요 ✨</Text>
+                <Text style={styles.progressHint}>{`완성할수록\nAI가\n더 정확하게\n도와드려요 ✨`}</Text>
               </View>
             </View>
 
