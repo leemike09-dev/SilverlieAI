@@ -64,17 +64,19 @@ export default function SettingsScreen({ route, navigation }: Props) {
       .finally(() => setLoading(false));
   }, [userId]);
 
-  const handleLogout = () => {
-    Alert.alert('로그아웃', '정말 로그아웃 하시겠습니까?', [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '로그아웃', style: 'destructive', onPress: async () => {
-          await AsyncStorage.removeItem('userId');
-          await AsyncStorage.removeItem('userName');
-          navigation.replace('SeniorHome', { name: '홍길동', userId: 'demo-user' });
-        },
-      },
-    ]);
+  const handleLogout = async () => {
+    const confirmed = Platform.OS === 'web'
+      ? window.confirm('로그아웃 하시겠습니까?')
+      : await new Promise(resolve =>
+          Alert.alert('로그아웃', '정말 로그아웃 하시겠습니까?', [
+            { text: '취소', style: 'cancel', onPress: () => resolve(false) },
+            { text: '로그아웃', style: 'destructive', onPress: () => resolve(true) },
+          ])
+        );
+    if (!confirmed) return;
+    await AsyncStorage.removeItem('userId');
+    await AsyncStorage.removeItem('userName');
+    navigation.reset({ index: 0, routes: [{ name: 'SeniorHome', params: { name: '홍길동', userId: 'demo-user' } }] });
   };
 
   const cycleLang = () => setLangIdx(i => (i + 1) % LANGUAGES.length);
