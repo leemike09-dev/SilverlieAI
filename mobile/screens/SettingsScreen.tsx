@@ -116,18 +116,6 @@ export default function SettingsScreen({ route, navigation }: Props) {
         {/* ─── 내 정보 ─── */}
         <Text style={styles.sectionTitle}>내 정보</Text>
         <View style={styles.listBlock}>
-          <TouchableOpacity style={styles.listItem}
-            onPress={() => navigation.navigate('Health', { name: displayName, userId })}>
-            <Text style={styles.listIcon}>🚶</Text>
-            <Text style={styles.listLabel}>오늘 걸음수</Text>
-            <Text style={[styles.listValue, { color: C.blue1, fontWeight: '700' }]}>6,240보</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.listItem}
-            onPress={() => navigation.navigate('Health', { name: displayName, userId })}>
-            <Text style={styles.listIcon}>💗</Text>
-            <Text style={styles.listLabel}>최근 혈압</Text>
-            <Text style={styles.listValue}>118/78</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={[styles.listItem, styles.listItemLast]}
             onPress={() => navigation.navigate('Profile', { userId, name: displayName })}>
             <Text style={styles.listIcon}>👤</Text>
