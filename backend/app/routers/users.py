@@ -89,6 +89,7 @@ class UpdateUserRequest(BaseModel):
     smoking: Optional[bool] = None
     drinking: Optional[str] = None
     chat_style: Optional[str] = None
+    important_contacts: Optional[List[dict]] = None
     interests: Optional[List[str]] = None
     language: Optional[str] = None
     notification_health: Optional[bool] = None

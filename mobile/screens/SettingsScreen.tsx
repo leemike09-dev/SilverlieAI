@@ -116,10 +116,16 @@ export default function SettingsScreen({ route, navigation }: Props) {
         {/* ─── 내 정보 ─── */}
         <Text style={styles.sectionTitle}>내 정보</Text>
         <View style={styles.listBlock}>
-          <TouchableOpacity style={[styles.listItem, styles.listItemLast]}
+          <TouchableOpacity style={styles.listItem}
             onPress={() => navigation.navigate('Profile', { userId, name: displayName })}>
             <Text style={styles.listIcon}>👤</Text>
             <Text style={styles.listLabel}>내 프로필</Text>
+            <Text style={styles.listArrow}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.listItem, styles.listItemLast]}
+            onPress={() => navigation.navigate('ImportantContacts', { userId })}>
+            <Text style={styles.listIcon}>📋</Text>
+            <Text style={styles.listLabel}>중요 연락처</Text>
             <Text style={styles.listArrow}>›</Text>
           </TouchableOpacity>
         </View>
