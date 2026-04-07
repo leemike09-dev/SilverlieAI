@@ -7,12 +7,42 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function IntroScreen({ navigation }: any) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
+  const handleKakaoCallback = async (code: string): Promise<boolean> => {
+    try {
+      const res = await fetch('https://silverlieai.onrender.com/users/kakao-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, redirect_uri: 'https://leemike09-dev.github.io/SilverlieAI/' }),
+      });
+      const data = await res.json();
+      if (data?.id) {
+        await AsyncStorage.setItem('userId', data.id);
+        await AsyncStorage.setItem('userName', data.name);
+        navigation.replace('SeniorHome', { name: data.name, userId: data.id, isGuest: false });
+        return true;
+      }
+    } catch (e) {
+      console.error('Kakao callback error', e);
+    }
+    return false;
+  };
+
   const goHome = async () => {
     try {
+      // 카카오 OAuth 콜백 감지
+      if (typeof window !== 'undefined' && window.location?.search) {
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        if (code) {
+          window.history.replaceState({}, '', window.location.pathname);
+          const ok = await handleKakaoCallback(code);
+          if (ok) return;
+        }
+      }
       await AsyncStorage.setItem('intro_seen', '1');
       const userId   = await AsyncStorage.getItem('userId');
       const userName = await AsyncStorage.getItem('userName');
-      if (userId && userName) {
+      if (userId && userId !== 'demo-user' && userName) {
         navigation.replace('SeniorHome', { name: userName, userId, isGuest: false });
       } else {
         navigation.replace('SeniorHome', { name: '홍길동', userId: 'demo-user', isGuest: false });
@@ -23,9 +53,13 @@ export default function IntroScreen({ navigation }: any) {
   };
 
   useEffect(() => {
+    // 카카오 콜백이면 intro_seen 무시하고 바로 처리
+    if (typeof window !== 'undefined' && window.location?.search) {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('code')) { goHome(); return; }
+    }
     AsyncStorage.getItem('intro_seen').then(seen => {
       if (seen) { goHome(); return; }
-
       Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start(() => {
         setTimeout(goHome, 1500);
       });
