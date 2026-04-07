@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const API_URL = 'https://silverlieai.onrender.com';
 
 // 카카오 REST API 키 — developers.kakao.com 에서 발급 후 입력
-const KAKAO_CLIENT_ID = 'dc01adfc811ac9f5c4b0a9af22c01b0a';
+const KAKAO_CLIENT_ID = 'c102ef257f29dfc4ca9f2062a0c1442d';
 const KAKAO_REDIRECT_URI = Platform.OS === 'web'
   ? 'https://leemike09-dev.github.io/SilverlieAI/'
   : 'exp://localhost:8081';
