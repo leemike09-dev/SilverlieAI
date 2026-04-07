@@ -55,6 +55,8 @@ export default function MedicationScreen({ route, navigation }: any) {
   const [selColor,    setSelColor]    = useState(COLORS[0]);
   const [totalQty,    setTotalQty]    = useState('');
   const [saving,      setSaving]      = useState(false);
+  const [memo,        setMemo]        = useState('');
+  const [memoSaved,   setMemoSaved]   = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -181,6 +183,13 @@ export default function MedicationScreen({ route, navigation }: any) {
     }},
   ]);
 
+  const saveMemo = () => {
+    if (!memo.trim()) return;
+    setMemoSaved(true);
+    setTimeout(() => setMemoSaved(false), 2000);
+    // 실제 앱: DB 저장
+  };
+
   const grouped: Record<string, any[]> = {};
   meds.forEach(m => (m.times || []).forEach((t: string) => {
     if (!grouped[t]) grouped[t] = [];
@@ -306,6 +315,32 @@ export default function MedicationScreen({ route, navigation }: any) {
               </View>
             ))
           )}
+
+          {/* ─── 건강 메모 ─── */}
+          <View style={s.memoCard}>
+            <View style={s.memoHeader}>
+              <Text style={s.memoTitle}>📝 오늘의 건강 메모</Text>
+              <Text style={s.memoDate}>{today}</Text>
+            </View>
+            <TextInput
+              style={s.memoInput}
+              value={memo}
+              onChangeText={t => { setMemo(t); setMemoSaved(false); }}
+              placeholder={"오늘 몸 상태, 식사, 운동 등 자유롭게 기록하세요
+예) 오전에 두통이 있었어요. 점심은 가볍게 먹었어요."}
+              placeholderTextColor={C.sub}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+            <TouchableOpacity
+              style={[s.memoSaveBtn, !memo.trim() && { opacity: 0.4 }]}
+              onPress={saveMemo}
+              disabled={!memo.trim()}
+              activeOpacity={0.8}>
+              <Text style={s.memoSaveTxt}>{memoSaved ? '✓ 저장됐어요!' : '메모 저장'}</Text>
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity style={s.addBtn} onPress={() => setModal(true)} activeOpacity={0.88}>
             <Text style={s.addBtnTxt}>+ 약 추가하기</Text>
@@ -441,6 +476,17 @@ const s = StyleSheet.create({
   addBtn:    { backgroundColor: C.blue2, borderRadius: 18, paddingVertical: 18, alignItems: 'center', marginTop: 6 },
   addBtnTxt: { fontSize: 17, fontWeight: '700', color: '#fff' },
   hint:      { textAlign: 'center', color: '#C8C0B8', fontSize: 14, marginTop: 10 },
+
+  // 건강 메모
+  memoCard:     { backgroundColor: C.card, borderRadius: 18, padding: 18, marginTop: 6, marginBottom: 10,
+                  shadowColor:'#B8A898', shadowOpacity:0.10, shadowRadius:8, elevation:2 },
+  memoHeader:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  memoTitle:    { fontSize: 17, fontWeight: '700', color: C.text },
+  memoDate:     { fontSize: 13, color: C.sub },
+  memoInput:    { backgroundColor: C.bg, borderRadius: 14, padding: 14, fontSize: 15, color: C.text,
+                  borderWidth: 1, borderColor: C.line, minHeight: 100 },
+  memoSaveBtn:  { marginTop: 12, backgroundColor: C.blueCard, borderRadius: 14, paddingVertical: 13, alignItems: 'center' },
+  memoSaveTxt:  { fontSize: 15, fontWeight: '700', color: C.blue1 },
 
   // 모달
   overlay:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },

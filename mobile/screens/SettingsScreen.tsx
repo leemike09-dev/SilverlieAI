@@ -48,13 +48,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{name} 님</Text>
             <Text style={styles.profileMeta}>68세 · 서울 · 건강점수 82점</Text>
-            <View style={styles.tagRow}>
-              {['🚶 걷기', '🏌️ 골프', '🍳 요리'].map(tag => (
-                <View key={tag} style={styles.tag}>
-                  <Text style={styles.tagText}>{tag}</Text>
-                </View>
-              ))}
-            </View>
+
           </View>
         </View>
 
@@ -148,9 +142,7 @@ const styles = StyleSheet.create({
   profileInfo:  { flex: 1 },
   profileName:  { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 4 },
   profileMeta:  { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginBottom: 12 },
-  tagRow:       { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  tag:          { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5 },
-  tagText:      { fontSize: 13, fontWeight: '700', color: '#fff' },
+
 
   /* 섹션 제목 */
   sectionTitle: {
