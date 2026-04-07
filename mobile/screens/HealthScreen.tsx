@@ -444,15 +444,15 @@ export default function HealthScreen({ route, navigation }: any) {
 
 // ── 스타일 ────────────────────────────────────────────
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f4f8fc', ...(Platform.OS === 'web' ? { flex: 1 } : {}) },
+  root: { flex: 1, backgroundColor: '#F0F5FB', ...(Platform.OS === 'web' ? { flex: 1 } : {}) },
 
-  header:       { backgroundColor: '#fff', paddingTop: Platform.OS === 'web' ? 8 : (StatusBar.currentHeight ?? 28) + 4, paddingHorizontal: 18, paddingBottom: 0 },
-  headerTitle:  { fontSize: 17, fontWeight: '700', color: '#1a3a5c', textAlign: 'center', marginBottom: 10 },
-  tabRow:       { flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: '#e8edf2' },
+  header:       { paddingTop: Platform.OS === 'web' ? 14 : (StatusBar.currentHeight ?? 28) + 8, paddingHorizontal: 18, paddingBottom: 0, backgroundColor: '#1A4A8A' },
+  headerTitle:  { fontSize: 20, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 12 },
+  tabRow:       { flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: 'rgba(255,255,255,0.25)' },
   tab:          { flex: 1, alignItems: 'center', paddingVertical: 9 },
-  tabActive:    { borderBottomWidth: 2.5, borderBottomColor: '#1565c0', marginBottom: -2 },
-  tabTxt:       { fontSize: 12, fontWeight: '600', color: '#9aabb8' },
-  tabTxtActive: { color: '#1565c0' },
+  tabActive:    { borderBottomWidth: 2.5, borderBottomColor: '#fff', marginBottom: -2 },
+  tabTxt:       { fontSize: 16, fontWeight: '600', color: 'rgba(255,255,255,0.55)' },
+  tabTxtActive: { color: '#fff' },
 
   body:        { flex: 1 },
   bodyContent: { padding: 14, gap: 10, paddingBottom: 20 },
@@ -466,21 +466,21 @@ const s = StyleSheet.create({
                  alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   scoreNum:    { fontSize: 18, fontWeight: '800', color: '#fff', lineHeight: 20 },
   scoreUnit:   { fontSize: 9, color: 'rgba(255,255,255,0.7)' },
-  scoreLabel:  { fontSize: 10, color: 'rgba(255,255,255,0.7)', marginBottom: 3 },
-  scoreStatus: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
-  scoreMsg:    { fontSize: 11, color: 'rgba(255,255,255,0.85)', lineHeight: 16 },
+  scoreLabel:  { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 4 },
+  scoreStatus: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  scoreMsg:    { fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 18 },
   trendRow:    { flexDirection: 'row', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.2)', paddingTop: 10 },
   trendItem:   { flex: 1, alignItems: 'center' },
-  trendLabel:  { fontSize: 9, color: 'rgba(255,255,255,0.6)', marginBottom: 2 },
-  trendVal:    { fontSize: 13, fontWeight: '700', color: '#fff' },
+  trendLabel:  { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginBottom: 2 },
+  trendVal:    { fontSize: 16, fontWeight: '700', color: '#fff' },
 
   // AI 이상 감지
   alertCard:   { backgroundColor: '#fff3cd', borderRadius: 14, padding: 12,
                  borderLeftWidth: 4, borderLeftColor: '#ffc107', flexDirection: 'row', gap: 10 },
   alertIcon:   { fontSize: 20 },
-  alertTitle:  { fontSize: 12, fontWeight: '700', color: '#7d5a00', marginBottom: 3 },
-  alertMsg:    { fontSize: 12, color: '#8a6914', lineHeight: 18, marginBottom: 5 },
-  alertAction: { fontSize: 12, color: '#1565c0', fontWeight: '600' },
+  alertTitle:  { fontSize: 15, fontWeight: '700', color: '#7d5a00', marginBottom: 3 },
+  alertMsg:    { fontSize: 14, color: '#8a6914', lineHeight: 20, marginBottom: 5 },
+  alertAction: { fontSize: 14, color: '#1565c0', fontWeight: '600' },
 
   // 수치 카드
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -488,12 +488,12 @@ const s = StyleSheet.create({
                  shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width:0, height:2 }, shadowRadius:6, elevation:2 },
   metricHeader: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
   metricIcon:  { fontSize: 16 },
-  metricLabel: { flex: 1, fontSize: 11, color: '#546e7a', fontWeight: '600' },
+  metricLabel: { flex: 1, fontSize: 14, color: '#546e7a', fontWeight: '600' },
   metricAI:    { fontSize: 9, color: '#2196f3', fontWeight: '600' },
-  metricVal:   { fontSize: 20, fontWeight: '800', color: '#1a3a5c', marginBottom: 2 },
-  metricUnit:  { fontSize: 10, color: '#9aabb8', fontWeight: '400' },
-  metricEmpty: { fontSize: 12, color: '#b0bec5' },
-  metricStatus: { fontSize: 11, fontWeight: '600' },
+  metricVal:   { fontSize: 22, fontWeight: '800', color: '#1A4A8A', marginBottom: 2 },
+  metricUnit:  { fontSize: 13, color: '#9aabb8', fontWeight: '400' },
+  metricEmpty: { fontSize: 14, color: '#b0bec5' },
+  metricStatus: { fontSize: 13, fontWeight: '600' },
 
   // CTA 버튼
   ctaRow:         { flexDirection: 'row', gap: 8 },
@@ -501,19 +501,19 @@ const s = StyleSheet.create({
   ctaBtnPrimary:  { backgroundColor: '#1a3a5c' },
   ctaBtnSecondary: { backgroundColor: '#0d47a1' },
   ctaIcon:  { fontSize: 20, marginBottom: 4 },
-  ctaTitle: { fontSize: 12, fontWeight: '700', color: '#fff' },
-  ctaSub:   { fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  ctaTitle: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  ctaSub:   { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
 
   // 기록하기 버튼
   recordBtn:    { backgroundColor: '#fff', borderRadius: 14, borderWidth: 2, borderColor: '#1565c0',
                   padding: 13, alignItems: 'center' },
-  recordBtnTxt: { fontSize: 14, fontWeight: '700', color: '#1565c0' },
+  recordBtnTxt: { fontSize: 16, fontWeight: '700', color: '#1565c0' },
 
   // 웨어러블 배너
   wearBanner: { backgroundColor: '#1a3a5c', borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   wearIcon:   { fontSize: 22 },
-  wearTitle:  { fontSize: 13, fontWeight: '700', color: '#fff', marginBottom: 2 },
-  wearSub:    { fontSize: 11, color: 'rgba(255,255,255,0.65)' },
+  wearTitle:  { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 2 },
+  wearSub:    { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
   wearBadge:  { backgroundColor: '#4caf50', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
   wearBadgeTxt: { color: '#fff', fontSize: 11, fontWeight: '700' },
 
@@ -527,20 +527,20 @@ const s = StyleSheet.create({
   badgeAuto:   { backgroundColor: '#e8f4fd' },
   badgeDone:   { backgroundColor: '#e8f5e9' },
   badgeEmpty:  { backgroundColor: '#f5f5f5' },
-  badgeTxt:    { fontSize: 10, fontWeight: '600' },
+  badgeTxt:    { fontSize: 12, fontWeight: '600' },
   badgeTxtAuto: { color: '#1565c0' },
   badgeTxtDone: { color: '#2e7d32' },
   badgeTxtEmpty: { color: '#90a4ae' },
 
   // AI 즉시 분석
   aiBox:   { backgroundColor: '#fff', borderRadius: 16, padding: 14, flexDirection: 'row', gap: 10, borderLeftWidth: 3, borderLeftColor: '#1565c0' },
-  aiTitle: { fontSize: 13, fontWeight: '700', color: '#1a3a5c', marginBottom: 4 },
-  aiMsg:   { fontSize: 13, color: '#546e7a', lineHeight: 19 },
+  aiTitle: { fontSize: 16, fontWeight: '700', color: '#1A4A8A', marginBottom: 4 },
+  aiMsg:   { fontSize: 15, color: '#546e7a', lineHeight: 22 },
 
   // Galaxy 배너
   galaxyBanner: { backgroundColor: '#fff', borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderColor: '#e0e0e0', borderStyle: 'dashed' },
-  galaxyTitle:  { fontSize: 13, fontWeight: '700', color: '#1a3a5c', marginBottom: 2 },
-  galaxySub:    { fontSize: 11, color: '#90a4ae' },
+  galaxyTitle:  { fontSize: 15, fontWeight: '700', color: '#1A4A8A', marginBottom: 2 },
+  galaxySub:    { fontSize: 13, color: '#90a4ae' },
   galaxyBtn:    { backgroundColor: '#1565c0', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8 },
   galaxyBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
 
@@ -549,7 +549,7 @@ const s = StyleSheet.create({
   saveBtnDim: { opacity: 0.5 },
   saveBtnTxt: { color: '#fff', fontSize: 17, fontWeight: '800' },
   aiAnalysisBtn:    { backgroundColor: '#1a3a5c', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
-  aiAnalysisBtnTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  aiAnalysisBtnTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },
   homeBtn:    { backgroundColor: '#fff', borderRadius: 14, paddingVertical: 15, alignItems: 'center', borderWidth: 1.5, borderColor: '#dde3ee' },
   homeBtnTxt: { fontSize: 15, fontWeight: '700', color: '#546e7a' },
 
@@ -560,16 +560,16 @@ const s = StyleSheet.create({
 
 const kp = StyleSheet.create({
   wrap:       { padding: 20, paddingBottom: 34 },
-  title:      { fontSize: 16, fontWeight: '700', color: '#1a2a3a', marginBottom: 12 },
+  title:      { fontSize: 19, fontWeight: '700', color: '#1a2a3a', marginBottom: 12 },
   displayRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 10 },
   bigNum:     { fontSize: 52, fontWeight: '900', color: '#1a2a3a', lineHeight: 58 },
   unit:       { fontSize: 18, color: '#90a4ae', marginBottom: 8 },
   infoBox:    { backgroundColor: '#e8f4fd', borderRadius: 12, padding: 10, marginBottom: 12 },
-  infoText:   { fontSize: 12, color: '#1565c0' },
+  infoText:   { fontSize: 14, color: '#1565c0' },
   quickRow:   { flexDirection: 'row', gap: 8, marginBottom: 14 },
   quickBtn:   { flex: 1, backgroundColor: '#f0f4f8', borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
   quickBtnStar: { backgroundColor: '#1565c0' },
-  quickTxt:   { fontSize: 12, fontWeight: '600', color: '#546e7a' },
+  quickTxt:   { fontSize: 14, fontWeight: '600', color: '#546e7a' },
   quickTxtStar: { color: '#fff' },
   grid:       { flexDirection: 'row', flexWrap: 'wrap' },
   key:        { width: '33.33%', paddingVertical: 18, alignItems: 'center', borderTopWidth: 1, borderRightWidth: 1, borderColor: '#f0f4f8' },
