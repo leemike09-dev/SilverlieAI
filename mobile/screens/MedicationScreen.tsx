@@ -45,6 +45,23 @@ export default function MedicationScreen({ route, navigation }: any) {
   const userId = route?.params?.userId || (DEMO_MODE ? 'demo-user' : '');
   const name   = route?.params?.name   || '';
   const today  = new Date().toISOString().split('T')[0];
+  const [nowTime, setNowTime] = useState('');
+
+  useEffect(() => {
+    const fmt = () => {
+      const d = new Date();
+      const days = ['일','월','화','수','목','금','토'];
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      const day = days[d.getDay()];
+      const hh = String(d.getHours()).padStart(2,'0');
+      const min = String(d.getMinutes()).padStart(2,'0');
+      setNowTime(`${d.getFullYear()}.${mm}.${dd} (${day}) ${hh}:${min}`);
+    };
+    fmt();
+    const timer = setInterval(fmt, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   const [meds,        setMeds]        = useState<any[]>([]);
   const [logs,        setLogs]        = useState<any[]>([]);
@@ -219,6 +236,7 @@ export default function MedicationScreen({ route, navigation }: any) {
         <View style={s.header}>
           <View style={s.headerRow}>
             <View>
+              <Text style={s.headerDate}>{nowTime}</Text>
               <Text style={s.headerTitle}>내 약 💊</Text>
               <Text style={s.headerSub}>
                 {total > 0 ? `오늘 ${total}번 중 ${takenToday}번 복용` : '약을 등록해 주세요'}
@@ -269,7 +287,12 @@ export default function MedicationScreen({ route, navigation }: any) {
                         <View style={[s.colorStripe, { backgroundColor: med.color }]} />
                         <View style={{ flex: 1, paddingVertical: 14, paddingLeft: 14 }}>
                           <View style={s.medNameRow}>
-                            <Text style={[s.medName, (done || skipped) && s.strikethrough]}>{med.name}</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                              <Text style={[s.medName, (done || skipped) && s.strikethrough]}>{med.name}</Text>
+                              <Text style={[s.medTypeBadge, med.med_type === '영양제' && s.medTypeBadgeGreen]}>
+                                {med.med_type === '영양제' ? '🌿 영양제' : '💊 처방약'}
+                              </Text>
+                            </View>
                             {/* 잔여량 배지 */}
                             {rem && (
                               <View style={[s.remBadge, rem.days <= 7 && { backgroundColor: C.peachLt }]}>
@@ -450,6 +473,7 @@ const s = StyleSheet.create({
       : { backgroundColor: '#1A4A8A' }),
   },
   headerRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  headerDate:     { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginBottom: 6, fontWeight: '600' },
   headerTitle:    { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 4 },
   headerSub:      { fontSize: 15, color: 'rgba(255,255,255,0.8)' },
   headerBadge:    { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' },
@@ -469,7 +493,10 @@ const s = StyleSheet.create({
   medInfoRow: { flexDirection: 'row', alignItems: 'center' },
   colorStripe:{ width: 5, alignSelf: 'stretch' },
   medNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 },
-  medName:    { fontSize: 19, fontWeight: '700', color: C.text },
+  medName:    { fontSize: 21, fontWeight: '800', color: C.text },
+  medTypeBadge: { fontSize: 12, fontWeight: '700', color: '#2272B8',
+                  backgroundColor: '#EBF3FB', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  medTypeBadgeGreen: { color: '#2e7d32', backgroundColor: '#E8F5E9' },
   strikethrough: { textDecorationLine: 'line-through', color: '#BABABA' },
   medDosage:  { fontSize: 14, color: C.sub },
 
