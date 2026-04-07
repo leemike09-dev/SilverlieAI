@@ -296,22 +296,6 @@ export default function HealthScreen({ route, navigation }: any) {
             ))}
           </View>
 
-          {/* AI 상담 + 주간 리포트 CTA */}
-          <View style={s.ctaRow}>
-            <TouchableOpacity style={[s.ctaBtn, s.ctaBtnPrimary]}
-              onPress={() => navigation.navigate('AIChat', { userId, name })}>
-              <Text style={s.ctaIcon}>💬</Text>
-              <Text style={s.ctaTitle}>AI 상담</Text>
-              <Text style={s.ctaSub}>건강 질문하기</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[s.ctaBtn, s.ctaBtnSecondary]}
-              onPress={() => navigation.navigate('WeeklyReport', { userId, name })}>
-              <Text style={s.ctaIcon}>📊</Text>
-              <Text style={s.ctaTitle}>AI 주간 리포트</Text>
-              <Text style={s.ctaSub}>7일 분석 보기</Text>
-            </TouchableOpacity>
-          </View>
-
           {/* 기록하기 버튼 */}
           <TouchableOpacity style={s.recordBtn} onPress={() => setActiveTab('record')}>
             <Text style={s.recordBtnTxt}>📝 오늘 건강 기록하기</Text>
@@ -488,14 +472,7 @@ const s = StyleSheet.create({
   metricEmpty: { fontSize: 14, color: '#b0bec5' },
   metricStatus: { fontSize: 13, fontWeight: '600' },
 
-  // CTA 버튼
-  ctaRow:         { flexDirection: 'row', gap: 8 },
-  ctaBtn:         { flex: 1, borderRadius: 16, padding: 13, alignItems: 'center' },
-  ctaBtnPrimary:  { backgroundColor: '#1a3a5c' },
-  ctaBtnSecondary: { backgroundColor: '#0d47a1' },
-  ctaIcon:  { fontSize: 20, marginBottom: 4 },
-  ctaTitle: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  ctaSub:   { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+
 
   // 기록하기 버튼
   recordBtn:    { backgroundColor: '#fff', borderRadius: 14, borderWidth: 2, borderColor: '#1565c0',
