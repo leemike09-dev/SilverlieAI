@@ -10,7 +10,7 @@ const SCORES = [65, 72, 78, 70, 82, 88, 82];
 const MAX_SCORE = 100;
 const BAR_H = 80;
 
-const BAR_COLORS = ['#1a3a5c','#1e5080','#1565c0','#1e5080','#1976d2','#4fc3f7','#29b6f6'];
+const BAR_COLORS = ['#93B8DC','#6DA0D0','#4A88C4','#6DA0D0','#2272B8','#1A5FA0','#1A4A8A'];
 
 export default function WeeklyReportScreen({ route, navigation }: Props) {
   const { name = '회원', userId = 'demo-user' } = route?.params ?? {};
@@ -60,9 +60,9 @@ export default function WeeklyReportScreen({ route, navigation }: Props) {
           <View style={styles.aiTag}><Text style={styles.aiTagTxt}>AI WEEKLY SUMMARY</Text></View>
           <Text style={styles.aiText}>
             이번 주 건강점수 평균{' '}
-            <Text style={{ color: '#4fc3f7', fontWeight: '700' }}>{avg}점</Text>
+            <Text style={{ color: '#2272B8', fontWeight: '700' }}>{avg}점</Text>
             으로 지난주 대비{' '}
-            <Text style={{ color: '#69f0ae', fontWeight: '700' }}>+5점</Text>{' '}
+            <Text style={{ color: '#3DAB7B', fontWeight: '700' }}>+5점</Text>{' '}
             향상됐습니다.{'\n'}걸음수가 꾸준히 늘었고 혈압도 안정적입니다.{'\n'}다음 주는 수분 섭취를 늘려보세요 💧
           </Text>
         </View>
@@ -71,10 +71,10 @@ export default function WeeklyReportScreen({ route, navigation }: Props) {
         <View style={styles.trendBox}>
           <View style={styles.aiTag}><Text style={styles.aiTagTxt}>TREND ANALYSIS</Text></View>
           {[
-            { icon: '🚶', label: '걸음수', trend: '↑ 꾸준히 증가 중', color: '#69f0ae' },
-            { icon: '💗', label: '혈압',   trend: '→ 안정적 유지',   color: '#4fc3f7' },
-            { icon: '💓', label: '맥박',   trend: '→ 정상 범위',     color: '#4fc3f7' },
-            { icon: '🩸', label: '혈당',   trend: '↓ 약간 감소',     color: '#69f0ae' },
+            { icon: '🚶', label: '걸음수', trend: '↑ 꾸준히 증가 중', color: '#3DAB7B' },
+            { icon: '💗', label: '혈압',   trend: '→ 안정적 유지',   color: '#2272B8' },
+            { icon: '💓', label: '맥박',   trend: '→ 정상 범위',     color: '#2272B8' },
+            { icon: '🩸', label: '혈당',   trend: '↓ 약간 감소',     color: '#3DAB7B' },
           ].map((t, i) => (
             <View key={i} style={styles.trendItem}>
               <Text style={styles.trendIcon}>{t.icon}</Text>
@@ -90,37 +90,37 @@ export default function WeeklyReportScreen({ route, navigation }: Props) {
   );
 }
 
-const BG = '#0a1628'; const CARD = '#0e1e35'; const BORDER = '#1a2a3a'; const ACCENT = '#4fc3f7';
+const BG = '#F0F5FB'; const CARD = '#FFFFFF'; const BORDER = '#DDE8F4'; const ACCENT = '#2272B8';
 
 const styles = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: BG },
-  header: { backgroundColor: BG, padding: 18, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: BORDER },
-  title:  { fontSize: 18, fontWeight: '800', color: '#fff' },
-  sub:    { fontSize: 11, color: '#607d8b', marginTop: 3 },
+  header: { backgroundColor: '#1A4A8A', padding: 18, paddingTop: 52, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.2)' },
+  title:  { fontSize: 22, fontWeight: '800', color: '#fff' },
+  sub:    { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 4 },
 
-  chartBox:  { backgroundColor: CARD, padding: 18, borderBottomWidth: 1, borderBottomColor: BORDER },
-  chartLabel:{ fontSize: 10, color: '#546e7a', fontWeight: '700', letterSpacing: 1, marginBottom: 14 },
+  chartBox:  { backgroundColor: CARD, padding: 18, margin: 14, borderRadius: 18, borderWidth: 1, borderColor: BORDER },
+  chartLabel:{ fontSize: 13, color: '#7A90A8', fontWeight: '700', letterSpacing: 1, marginBottom: 14 },
   barsRow:   { flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: BAR_H + 36 },
   barWrap:   { flex: 1, alignItems: 'center', gap: 4, justifyContent: 'flex-end' },
   bar:       { width: '100%', borderRadius: 4 },
-  barVal:    { fontSize: 9, fontWeight: '700', color: ACCENT },
-  barLbl:    { fontSize: 9, color: '#546e7a' },
+  barVal:    { fontSize: 12, fontWeight: '700', color: ACCENT },
+  barLbl:    { fontSize: 12, color: '#7A90A8' },
 
-  statsRow: { flexDirection: 'row', backgroundColor: CARD, borderBottomWidth: 1, borderBottomColor: BORDER },
+  statsRow: { flexDirection: 'row', backgroundColor: CARD, marginHorizontal: 14, borderRadius: 18, marginBottom: 14, borderWidth: 1, borderColor: BORDER },
   statBox:  { flex: 1, padding: 14, alignItems: 'center' },
-  statN:    { fontSize: 15, fontWeight: '800', color: ACCENT, marginBottom: 3 },
-  statL:    { fontSize: 9, color: '#546e7a' },
+  statN:    { fontSize: 18, fontWeight: '800', color: ACCENT, marginBottom: 4 },
+  statL:    { fontSize: 13, color: '#7A90A8' },
 
-  aiBox:    { backgroundColor: BG, padding: 18, borderBottomWidth: 1, borderBottomColor: BORDER },
-  trendBox: { backgroundColor: BG, padding: 18 },
-  aiTag:    { backgroundColor: '#0d3b66', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3,
+  aiBox:    { backgroundColor: CARD, padding: 18, marginHorizontal: 14, borderRadius: 18, marginBottom: 14, borderWidth: 1, borderColor: BORDER },
+  trendBox: { backgroundColor: CARD, padding: 18, marginHorizontal: 14, borderRadius: 18, marginBottom: 14, borderWidth: 1, borderColor: BORDER },
+  aiTag:    { backgroundColor: '#EBF3FB', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3,
               alignSelf: 'flex-start', marginBottom: 12 },
-  aiTagTxt: { color: ACCENT, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-  aiText:   { color: '#b0bec5', fontSize: 13, lineHeight: 22 },
+  aiTagTxt: { color: ACCENT, fontSize: 12, fontWeight: '800', letterSpacing: 1 },
+  aiText:   { color: '#16273E', fontSize: 16, lineHeight: 26 },
 
   trendItem:  { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10,
                 borderBottomWidth: 1, borderBottomColor: BORDER },
-  trendIcon:  { fontSize: 18, width: 24 },
-  trendLabel: { flex: 1, fontSize: 13, fontWeight: '600', color: '#e3f2fd' },
-  trendVal:   { fontSize: 12, fontWeight: '700' },
+  trendIcon:  { fontSize: 22, width: 28 },
+  trendLabel: { flex: 1, fontSize: 16, fontWeight: '600', color: '#16273E' },
+  trendVal:   { fontSize: 15, fontWeight: '700' },
 });
