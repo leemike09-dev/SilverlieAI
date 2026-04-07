@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SeniorTabBar from '../components/SeniorTabBar';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  SafeAreaView, Switch, Alert, Platform,
+  SafeAreaView, Switch, Alert, Platform, ActivityIndicator,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { DEMO_MODE } from '../App';
+const API_URL = 'https://silverlieai.onrender.com';
 
 type Props = { route: any; navigation: any };
 
@@ -24,20 +25,63 @@ const C = {
   red:     '#E53935',
 };
 
+interface UserProfile {
+  id: string;
+  name: string;
+  email?: string;
+  age?: number;
+  language?: string;
+}
+
 export default function SettingsScreen({ route, navigation }: Props) {
-  const { name = '회원', userId = 'demo-user' } = route?.params ?? {};
-  const isGuest = true; // 로그인 버튼 항상 표시 (출시 시: !DEMO_MODE && (!userId || userId === 'demo-user'))
-  const [notifOn, setNotifOn] = useState(true);
-  const [langIdx, setLangIdx] = useState(0);
+  const { name: paramName = '회원', userId: paramUserId = 'demo-user' } = route?.params ?? {};
+
+  const [userId,      setUserId]      = useState<string>(paramUserId);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [loading,     setLoading]     = useState(false);
+  const [notifHealth, setNotifHealth] = useState(true);
+  const [notifMed,    setNotifMed]    = useState(true);
+  const [notifFamily, setNotifFamily] = useState(true);
+  const [langIdx,     setLangIdx]     = useState(0);
+
+  const isGuest = !userId || userId === 'demo-user';
+  const displayName = userProfile?.name ?? paramName;
+
+  useEffect(() => {
+    // AsyncStorage에서 userId 로드 (로그인 후 params가 없을 경우 대비)
+    AsyncStorage.getItem('userId').then(stored => {
+      if (stored && stored !== 'demo-user') setUserId(stored);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!userId || userId === 'demo-user') return;
+    setLoading(true);
+    fetch(`${API_URL}/users/${userId}`)
+      .then(r => r.json())
+      .then(data => { if (data?.id) setUserProfile(data); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [userId]);
 
   const handleLogout = () => {
     Alert.alert('로그아웃', '정말 로그아웃 하시겠습니까?', [
       { text: '취소', style: 'cancel' },
-      { text: '로그아웃', style: 'destructive', onPress: () => {} },
+      {
+        text: '로그아웃', style: 'destructive', onPress: async () => {
+          await AsyncStorage.removeItem('userId');
+          await AsyncStorage.removeItem('userName');
+          navigation.replace('SeniorHome', { name: '홍길동', userId: 'demo-user' });
+        },
+      },
     ]);
   };
 
   const cycleLang = () => setLangIdx(i => (i + 1) % LANGUAGES.length);
+
+  const ageLine = userProfile?.age
+    ? `${userProfile.age}세` + (userProfile.email ? `  ·  ${userProfile.email}` : '')
+    : isGuest ? '게스트 모드' : '프로필을 완성해주세요';
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -46,11 +90,14 @@ export default function SettingsScreen({ route, navigation }: Props) {
         {/* ─── 프로필 헤더 ─── */}
         <View style={styles.profileHeader}>
           <View style={styles.avatarWrap}>
-            <Text style={styles.avatarText}>👤</Text>
+            {loading
+              ? <ActivityIndicator color="#fff" size="small" />
+              : <Text style={styles.avatarText}>👤</Text>
+            }
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{name} 님</Text>
-            <Text style={styles.profileMeta}>68세 · 서울 · 건강점수 82점</Text>
+            <Text style={styles.profileName}>{displayName} 님</Text>
+            <Text style={styles.profileMeta}>{ageLine}</Text>
             {isGuest && (
               <View style={styles.loginRow}>
                 <TouchableOpacity style={styles.loginBtn}
@@ -66,59 +113,96 @@ export default function SettingsScreen({ route, navigation }: Props) {
           </View>
         </View>
 
-        {/* ─── 건강 현황 ─── */}
-        <Text style={styles.sectionTitle}>건강 현황</Text>
+        {/* ─── 내 정보 ─── */}
+        <Text style={styles.sectionTitle}>내 정보</Text>
         <View style={styles.listBlock}>
           <TouchableOpacity style={styles.listItem}
-            onPress={() => navigation.navigate('Health', { name, userId })}>
+            onPress={() => navigation.navigate('Health', { name: displayName, userId })}>
             <Text style={styles.listIcon}>🚶</Text>
             <Text style={styles.listLabel}>오늘 걸음수</Text>
             <Text style={[styles.listValue, { color: C.blue1, fontWeight: '700' }]}>6,240보</Text>
           </TouchableOpacity>
-          <View style={[styles.listItem, styles.listItemLast]}>
+          <TouchableOpacity style={styles.listItem}
+            onPress={() => navigation.navigate('Health', { name: displayName, userId })}>
             <Text style={styles.listIcon}>💗</Text>
-            <Text style={styles.listLabel}>혈압</Text>
+            <Text style={styles.listLabel}>최근 혈압</Text>
             <Text style={styles.listValue}>118/78</Text>
-          </View>
-        </View>
-
-        {/* ─── 계정 설정 ─── */}
-        <Text style={styles.sectionTitle}>계정 설정</Text>
-        <View style={styles.listBlock}>
-          <TouchableOpacity style={styles.listItem}>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.listItem, styles.listItemLast]}>
             <Text style={styles.listIcon}>✏️</Text>
             <Text style={styles.listLabel}>프로필 수정</Text>
             <Text style={styles.listArrow}>›</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.listItem} onPress={cycleLang}>
-            <Text style={styles.listIcon}>🌐</Text>
-            <Text style={styles.listLabel}>언어 설정</Text>
-            <Text style={styles.listValue}>{LANGUAGES[langIdx]}</Text>
-            <Text style={styles.listArrow}>›</Text>
-          </TouchableOpacity>
-          <View style={[styles.listItem, styles.listItemLast]}>
+        </View>
+
+        {/* ─── 알림 설정 ─── */}
+        <Text style={styles.sectionTitle}>알림 설정</Text>
+        <View style={styles.listBlock}>
+          <View style={styles.listItem}>
             <Text style={styles.listIcon}>🔔</Text>
             <Text style={styles.listLabel}>건강 알림</Text>
             <Switch
-              value={notifOn}
-              onValueChange={setNotifOn}
+              value={notifHealth}
+              onValueChange={setNotifHealth}
+              trackColor={{ false: '#cdd8e8', true: C.blue2 }}
+              thumbColor="#fff"
+            />
+          </View>
+          <View style={styles.listItem}>
+            <Text style={styles.listIcon}>💊</Text>
+            <Text style={styles.listLabel}>약복용 알림</Text>
+            <Switch
+              value={notifMed}
+              onValueChange={setNotifMed}
+              trackColor={{ false: '#cdd8e8', true: C.blue2 }}
+              thumbColor="#fff"
+            />
+          </View>
+          <View style={[styles.listItem, styles.listItemLast]}>
+            <Text style={styles.listIcon}>👨‍👩‍👧</Text>
+            <Text style={styles.listLabel}>가족 안심 알림</Text>
+            <Switch
+              value={notifFamily}
+              onValueChange={setNotifFamily}
               trackColor={{ false: '#cdd8e8', true: C.blue2 }}
               thumbColor="#fff"
             />
           </View>
         </View>
 
-        {/* ─── 기타 ─── */}
-        <Text style={styles.sectionTitle}>기타</Text>
+        {/* ─── 앱 설정 ─── */}
+        <Text style={styles.sectionTitle}>앱 설정</Text>
+        <View style={styles.listBlock}>
+          <TouchableOpacity style={styles.listItem} onPress={cycleLang}>
+            <Text style={styles.listIcon}>🌐</Text>
+            <Text style={styles.listLabel}>언어 설정</Text>
+            <Text style={styles.listValue}>{LANGUAGES[langIdx]}</Text>
+            <Text style={styles.listArrow}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.listItem, styles.listItemLast]}>
+            <Text style={styles.listIcon}>🔤</Text>
+            <Text style={styles.listLabel}>글자 크기</Text>
+            <Text style={styles.listValue}>크게</Text>
+            <Text style={styles.listArrow}>›</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ─── 보안 / 기타 ─── */}
+        <Text style={styles.sectionTitle}>보안 · 기타</Text>
         <View style={styles.listBlock}>
           <TouchableOpacity style={styles.listItem}>
             <Text style={styles.listIcon}>🔐</Text>
-            <Text style={styles.listLabel}>보안 / 비밀번호</Text>
+            <Text style={styles.listLabel}>비밀번호 변경</Text>
             <Text style={styles.listArrow}>›</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.listItem}>
             <Text style={styles.listIcon}>❓</Text>
             <Text style={styles.listLabel}>도움말 / FAQ</Text>
+            <Text style={styles.listArrow}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.listItem}>
+            <Text style={styles.listIcon}>📋</Text>
+            <Text style={styles.listLabel}>서비스 이용약관</Text>
             <Text style={styles.listArrow}>›</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.listItem, styles.listItemLast]} onPress={handleLogout}>
@@ -128,9 +212,11 @@ export default function SettingsScreen({ route, navigation }: Props) {
           </TouchableOpacity>
         </View>
 
+        <Text style={styles.versionText}>Silver Life AI v0.1.0</Text>
+
       </ScrollView>
 
-      <SeniorTabBar navigation={navigation} activeTab="info" userId={userId} name={name} />
+      <SeniorTabBar navigation={navigation} activeTab="info" userId={userId} name={displayName} />
     </View>
   );
 }
@@ -162,7 +248,6 @@ const styles = StyleSheet.create({
   signupBtn:    { borderWidth: 2, borderColor: 'rgba(255,255,255,0.7)', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 20 },
   signupBtnTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
 
-
   /* 섹션 제목 */
   sectionTitle: {
     fontSize: 13, color: '#7A90A8', fontWeight: '700',
@@ -188,4 +273,12 @@ const styles = StyleSheet.create({
   listLabel: { flex: 1, fontSize: 17, fontWeight: '600', color: '#16273E' },
   listValue: { fontSize: 15, color: '#7A90A8' },
   listArrow: { fontSize: 20, color: '#B8CCE0' },
+
+  versionText: {
+    textAlign: 'center',
+    color: '#B8CCE0',
+    fontSize: 12,
+    marginTop: 24,
+    marginBottom: 8,
+  },
 });
