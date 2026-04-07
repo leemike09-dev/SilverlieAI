@@ -72,6 +72,7 @@ export default function ProfileScreen({ navigation, route }: any) {
       .then(r => r.json())
       .then(d => {
         if (d.name)               setName(d.name);
+        if (d.phone)              setPhone(d.phone);
         if (d.age)                setAge(String(d.age));
         if (d.gender)             setGender(d.gender);
         if (d.region)             setRegion(d.region);
@@ -114,6 +115,7 @@ export default function ProfileScreen({ navigation, route }: any) {
     try {
       const body: any = {};
       if (name)              body.name = name.trim();
+      if (phone)             body.phone = phone.trim();
       if (age)               body.age = parseInt(age);
       if (gender)            body.gender = gender;
       if (region)            body.region = region.trim();
@@ -181,6 +183,10 @@ export default function ProfileScreen({ navigation, route }: any) {
           <View style={styles.chipRow}>
             {GENDER_OPTIONS.map(g => renderChip(g, gender === g, () => setGender(g)))}
           </View>
+          <Text style={styles.label}>전화번호</Text>
+          <TextInput style={styles.input} value={phone} onChangeText={setPhone}
+            placeholder="예: 010-1234-5678" placeholderTextColor={C.sub}
+            keyboardType="phone-pad" maxLength={15} />
           <Text style={styles.label}>거주 지역</Text>
           <TextInput style={styles.input} value={region} onChangeText={setRegion}
             placeholder="예: 서울 강남구" placeholderTextColor={C.sub} maxLength={20} />

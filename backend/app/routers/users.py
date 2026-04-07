@@ -75,6 +75,7 @@ def create_user(user: UserCreate):
 
 class UpdateUserRequest(BaseModel):
     name: Optional[str] = None
+    phone: Optional[str] = None
     age: Optional[int] = None
     gender: Optional[str] = None
     region: Optional[str] = None

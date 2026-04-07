@@ -29,7 +29,9 @@ def build_system_prompt(user: dict) -> str:
     gender = user.get("gender")
     region = user.get("region")
 
+    phone = user.get("phone")
     if name:  lines.append(f"이름: {name} (대화 시 이름으로 불러주세요)")
+    if phone: lines.append(f"전화번호: {phone}")
     if age:   lines.append(f"나이: {age}세")
     if gender: lines.append(f"성별: {gender}")
     if region: lines.append(f"거주지역: {region}")
