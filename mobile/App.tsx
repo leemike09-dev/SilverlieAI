@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef, createRef } from 'react';
+import { useEffect, useRef, createRef, useState } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
@@ -32,16 +32,6 @@ import LocationMapScreen     from './screens/LocationMapScreen';
 
 const Stack = createNativeStackNavigator();
 
-// 웹 OAuth 콜백 처리 (모듈 레벨 — 렌더링 전에 실행)
-let _kakaoCode: string | null = null;
-if (Platform.OS === 'web' && typeof window !== 'undefined') {
-  const _p = new URLSearchParams(window.location.search);
-  const _c = _p.get('code');
-  if (_c) {
-    _kakaoCode = _c;
-    window.history.replaceState({}, '', window.location.pathname);
-  }
-}
 const navigationRef = createNavigationContainerRef<any>();
 
 // ✅ 팀 평가용 데모 모드 — 출시 전 false로 변경
@@ -55,28 +45,46 @@ export default function App() {
     }
   }, []);
 
-  // 카카오 OAuth 콜백 처리
-  const handleNavigationReady = async () => {
-    if (!_kakaoCode) return;
-    const code = _kakaoCode;
-    _kakaoCode = null;
-    try {
-      const redirectUri = 'https://leemike09-dev.github.io/SilverlieAI/';
-      const res = await fetch('https://silverlieai.onrender.com/users/kakao-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, redirect_uri: redirectUri }),
-      });
-      const data = await res.json();
-      if (data?.id) {
-        await AsyncStorage.setItem('userId', data.id);
-        await AsyncStorage.setItem('userName', data.name);
-        navigationRef.navigate('SeniorHome', { name: data.name, userId: data.id });
+  const [kakaoCode, setKakaoCode] = useState<string | null>(null);
+  const [navReady,  setNavReady]  = useState(false);
+
+  // 웹 URL에서 카카오 인가 코드 감지
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location?.search) {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      if (code) {
+        window.history.replaceState({}, '', window.location.pathname);
+        setKakaoCode(code);
       }
-    } catch (e) {
-      console.error('Kakao login error', e);
     }
-  };
+  }, []);
+
+  // 코드 + 네비게이션 준비되면 로그인 처리
+  useEffect(() => {
+    if (!kakaoCode || !navReady) return;
+    const code = kakaoCode;
+    setKakaoCode(null);
+    (async () => {
+      try {
+        const res = await fetch('https://silverlieai.onrender.com/users/kakao-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, redirect_uri: 'https://leemike09-dev.github.io/SilverlieAI/' }),
+        });
+        const data = await res.json();
+        if (data?.id) {
+          await AsyncStorage.setItem('userId', data.id);
+          await AsyncStorage.setItem('userName', data.name);
+          navigationRef.navigate('SeniorHome', { name: data.name, userId: data.id });
+        }
+      } catch (e) {
+        console.error('Kakao login error', e);
+      }
+    })();
+  }, [kakaoCode, navReady]);
+
+  const handleNavigationReady = () => setNavReady(true);
 
   return (
     <LanguageProvider>
