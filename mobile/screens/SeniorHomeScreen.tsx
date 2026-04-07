@@ -200,7 +200,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
     paddingTop: Platform.OS === 'web' ? 24 : 40,
-    paddingBottom: 16,
+    paddingBottom: 32,
     gap: 0,
   },
 
