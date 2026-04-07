@@ -33,11 +33,7 @@ const TKEYS  = ['08:00', '12:00', '19:00', '21:00'];
 const TLABEL: Record<string,string> = { '08:00':'🌅 아침', '12:00':'☀️ 점심', '19:00':'🌆 저녁', '21:00':'🌙 자기 전' };
 const COLORS = ['#e57373','#64b5f6','#81c784','#ffb74d','#ba68c8','#4dd0e1'];
 
-const DEMO_MEDS = [
-  { id:'1', name:'혈압약',  dosage:'1정', times:['08:00','20:00'], color:'#e57373', total_quantity: 60 },
-  { id:'2', name:'당뇨약',  dosage:'1정', times:['08:00','12:00'], color:'#64b5f6', total_quantity: 90 },
-  { id:'3', name:'관절약',  dosage:'2정', times:['12:00'],         color:'#81c784', total_quantity: null },
-];
+const DEMO_MEDS: any[] = [];
 
 type LogStatus = 'taken' | 'skipped' | 'snoozed';
 
@@ -195,6 +191,7 @@ export default function MedicationScreen({ route, navigation }: any) {
       }
       setModal(false); setMedName(''); setDosage('1정');
       setSelTimes(['08:00']); setSelColor(COLORS[0]); setTotalQty(''); setSelMedType('처방약');
+      Alert.alert('✅ 등록 완료', '약이 등록되었습니다.');
     } finally { setSaving(false); }
   };
 
