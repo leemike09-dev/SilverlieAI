@@ -326,8 +326,7 @@ export default function MedicationScreen({ route, navigation }: any) {
               style={s.memoInput}
               value={memo}
               onChangeText={t => { setMemo(t); setMemoSaved(false); }}
-              placeholder={"오늘 몸 상태, 식사, 운동 등 자유롭게 기록하세요
-예) 오전에 두통이 있었어요. 점심은 가볍게 먹었어요."}
+              placeholder={"오늘 몸 상태, 식사, 운동 등 자유롭게 기록하세요\n예) 오전에 두통이 있었어요. 점심은 가볍게 먹었어요."}
               placeholderTextColor={C.sub}
               multiline
               numberOfLines={4}
