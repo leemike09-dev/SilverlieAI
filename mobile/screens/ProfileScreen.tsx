@@ -277,12 +277,19 @@ export default function ProfileScreen({ navigation, route }: any) {
           <>
             {/* 완성도 카드 */}
             <View style={styles.progressCard}>
-              <Text style={styles.progressName}>👤 {name || '이름을 입력해주세요'}</Text>
-              <Text style={styles.progressPct}>프로필 완성도 {pct}%</Text>
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: `${pct}%` as any }]} />
+              <View style={styles.progressLeft}>
+                <Text style={styles.progressName}>👤 {name || '이름을 입력해주세요'}</Text>
+                <Text style={styles.progressPct}>프로필 완성도 {pct}%</Text>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: `${pct}%` as any }]} />
+                </View>
               </View>
-              <Text style={styles.progressHint}>완성할수록 AI가 더 정확하게 도와드려요 ✨</Text>
+              <View style={styles.progressRight}>
+                <Text style={styles.progressHint}>완성할수록{'
+'}AI가{'
+'}더 정확하게{'
+'}도와드려요 ✨</Text>
+              </View>
             </View>
 
             {/* 섹션 탭 */}
@@ -329,12 +336,18 @@ const styles = StyleSheet.create({
   progressCard: {
     backgroundColor: '#1A4A8A', borderRadius: 16,
     padding: 20, marginBottom: 16,
+    flexDirection: 'row', alignItems: 'center',
   },
-  progressName: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 8 },
-  progressPct:  { color: 'rgba(255,255,255,0.85)', fontSize: 16, marginBottom: 8 },
-  progressBar:  { height: 8, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 4, marginBottom: 8 },
+  progressLeft:  { flex: 1, marginRight: 12 },
+  progressRight: {
+    width: 110, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 12, padding: 10,
+  },
+  progressName: { color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 6 },
+  progressPct:  { color: 'rgba(255,255,255,0.85)', fontSize: 15, marginBottom: 8 },
+  progressBar:  { height: 8, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 4 },
   progressFill: { height: 8, backgroundColor: '#fff', borderRadius: 4 },
-  progressHint: { color: 'rgba(255,255,255,0.7)', fontSize: 15 },
+  progressHint: { color: '#fff', fontSize: 16, fontWeight: '700', textAlign: 'center', lineHeight: 24 },
 
   tabScroll: { marginBottom: 14 },
   tabRow:    { flexDirection: 'row', gap: 8, paddingHorizontal: 2 },
