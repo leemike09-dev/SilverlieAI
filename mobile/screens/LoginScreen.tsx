@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
+  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = 'https://silverlieai.onrender.com';
+
+// 카카오 REST API 키 — developers.kakao.com 에서 발급 후 입력
+const KAKAO_CLIENT_ID = 'YOUR_KAKAO_REST_API_KEY';
+const KAKAO_REDIRECT_URI = Platform.OS === 'web'
+  ? 'https://leemike09-dev.github.io/SilverlieAI/'
+  : 'exp://localhost:8081';
 
 export default function LoginScreen({ navigation, route }: any) {
   const initTab = route?.params?.tab === 'signup' ? 'register' : 'login';
@@ -56,6 +62,19 @@ export default function LoginScreen({ navigation, route }: any) {
 
   const goHome = () =>
     navigation.replace('SeniorHome', { name: '게스트', userId: '', isGuest: true });
+
+  const handleKakaoLogin = () => {
+    if (KAKAO_CLIENT_ID === 'YOUR_KAKAO_REST_API_KEY') {
+      alert('카카오 로그인 준비 중입니다.\n이메일로 로그인해 주세요.');
+      return;
+    }
+    const url = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT_URI)}&response_type=code`;
+    if (Platform.OS === 'web') {
+      (window as any).location.href = url;
+    } else {
+      Linking.openURL(url);
+    }
+  };
 
   return (
     <View style={s.root}>
@@ -140,7 +159,7 @@ export default function LoginScreen({ navigation, route }: any) {
               <View style={s.divLine} />
             </View>
             <View style={s.socialRow}>
-              <TouchableOpacity style={[s.socialBtn, { backgroundColor: '#FEE500' }]}>
+              <TouchableOpacity style={[s.socialBtn, { backgroundColor: '#FEE500' }]} onPress={handleKakaoLogin}>
                 <Text style={s.socialTxt}>카카오</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[s.socialBtn, { backgroundColor: '#03C75A' }]}>

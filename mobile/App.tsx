@@ -1,7 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useRef, createRef } from 'react';
 import { Platform } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LanguageProvider } from './i18n/LanguageContext';
 import { scheduleDailyHealthReminder } from './utils/notifications';
@@ -31,6 +32,18 @@ import LocationMapScreen     from './screens/LocationMapScreen';
 
 const Stack = createNativeStackNavigator();
 
+// 웹 OAuth 콜백 처리 (모듈 레벨 — 렌더링 전에 실행)
+let _kakaoCode: string | null = null;
+if (Platform.OS === 'web' && typeof window !== 'undefined') {
+  const _p = new URLSearchParams(window.location.search);
+  const _c = _p.get('code');
+  if (_c) {
+    _kakaoCode = _c;
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+}
+const navigationRef = createNavigationContainerRef<any>();
+
 // ✅ 팀 평가용 데모 모드 — 출시 전 false로 변경
 export const DEMO_MODE = true;
 const DEMO = { name: '홍길동', userId: 'demo-user', isGuest: false };
@@ -42,9 +55,32 @@ export default function App() {
     }
   }, []);
 
+  // 카카오 OAuth 콜백 처리
+  const handleNavigationReady = async () => {
+    if (!_kakaoCode) return;
+    const code = _kakaoCode;
+    _kakaoCode = null;
+    try {
+      const redirectUri = 'https://leemike09-dev.github.io/SilverlieAI/';
+      const res = await fetch('https://silverlieai.onrender.com/users/kakao-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, redirect_uri: redirectUri }),
+      });
+      const data = await res.json();
+      if (data?.id) {
+        await AsyncStorage.setItem('userId', data.id);
+        await AsyncStorage.setItem('userName', data.name);
+        navigationRef.navigate('SeniorHome', { name: data.name, userId: data.id });
+      }
+    } catch (e) {
+      console.error('Kakao login error', e);
+    }
+  };
+
   return (
     <LanguageProvider>
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef} onReady={handleNavigationReady}>
         <StatusBar style="auto" />
         <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Intro">
           <Stack.Screen name="Intro"       component={IntroScreen}       />
