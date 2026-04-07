@@ -146,7 +146,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             <View style={s.stethoscopeWrap}>
               <div
                 dangerouslySetInnerHTML={{ __html: STETHOSCOPE_SVG }}
-                style={{ width: 80, height: 80 }}
+                style={{ width: 60, height: 60 }}
               />
             </View>
           )}
@@ -231,10 +231,10 @@ const s = StyleSheet.create({
   },
   stethoscopeWrap: {
     position: 'absolute',
-    right: -4,
-    bottom: 4,
-    width: 80,
-    height: 80,
+    right: -6,
+    bottom: -6,
+    width: 60,
+    height: 60,
   },
 
   // 타이틀
