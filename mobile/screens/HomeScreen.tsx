@@ -240,7 +240,7 @@ const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? { flex: 1 } : {}),
   },
   // 헤더
-  header:       { backgroundColor: '#fff', paddingHorizontal: 18, paddingTop: Platform.OS === 'web' ? 12 : (StatusBar.currentHeight ?? 28) + 4, paddingBottom: 14 },
+  header:       { backgroundColor: '#fff', paddingHorizontal: 18, paddingTop: Platform.OS === 'web' ? 12 : (0 ?? 28) + 4, paddingBottom: 14 },
   headerTop:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   appName:      { fontSize: 20, fontWeight: '800', color: '#1a5fbc' },
   headerBtns:   { flexDirection: 'row', gap: 8 },

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import SeniorTabBar from '../components/SeniorTabBar';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  Alert, ActivityIndicator, StatusBar, Modal, Dimensions, Platform,
+  Alert, ActivityIndicator, Modal, Dimensions, Platform,
 } from 'react-native';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -209,7 +209,7 @@ export default function HealthScreen({ route, navigation }: any) {
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a3a5c" />
+      
 
       {/* 헤더 */}
       <View style={s.header}>
@@ -423,7 +423,7 @@ export default function HealthScreen({ route, navigation }: any) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F0F5FB', ...(Platform.OS === 'web' ? { flex: 1 } : {}) },
 
-  header:       { paddingTop: Platform.OS === 'web' ? 14 : (StatusBar.currentHeight ?? 28) + 8, paddingHorizontal: 18, paddingBottom: 0, backgroundColor: '#1A4A8A' },
+  header:       { paddingTop: Platform.OS === 'web' ? 14 : (0 ?? 28) + 8, paddingHorizontal: 18, paddingBottom: 0, backgroundColor: '#1A4A8A' },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 12 },
 
   headerTitle:    { fontSize: 20, fontWeight: '800', color: '#fff' },

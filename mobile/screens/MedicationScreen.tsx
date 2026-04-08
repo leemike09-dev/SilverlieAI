@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  Modal, TextInput, StatusBar, Platform, Alert, Animated,
+  Modal, TextInput, Platform, Alert, Animated,
 } from 'react-native';
 import { DEMO_MODE } from '../App';
 import { scheduleMedicationNotifications, cancelMedicationNotifications, snoozeNotification, requestNotificationPermission } from '../utils/notifications';
@@ -463,7 +463,7 @@ const s = StyleSheet.create({
   root:   { flex: 1, backgroundColor: C.bg },
   header: {
     paddingHorizontal: 22,
-    paddingTop: Platform.OS === 'web' ? 22 : (StatusBar.currentHeight ?? 28) + 10,
+    paddingTop: Platform.OS === 'web' ? 22 : (0 ?? 28) + 10,
     paddingBottom: 18,
     ...(Platform.OS === 'web'
       ? { background: 'linear-gradient(135deg, #1A4A8A 0%, #2272B8 100%)' } as any

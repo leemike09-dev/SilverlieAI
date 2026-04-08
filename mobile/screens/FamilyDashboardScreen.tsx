@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, StatusBar, Platform, Animated, Alert,
+  ScrollView, Platform, Animated, Alert,
 } from 'react-native';
 import { DEMO_MODE } from '../App';
 import SeniorTabBar from '../components/SeniorTabBar';
@@ -382,7 +382,7 @@ const ss = StyleSheet.create({
   scroll: { padding: 16, paddingBottom: 16 },
 
   // 헤더
-  header:       { paddingTop: Platform.OS==='web' ? 20 : (StatusBar.currentHeight??28)+8,
+  header:       { paddingTop: Platform.OS==='web' ? 20 : (0??28)+8,
                   paddingHorizontal: 18, paddingBottom: 12 },
   headerTop:    { flexDirection:'row', alignItems:'center', marginBottom: 4, gap: 10 },
   backBtn:      { width:36, height:36, alignItems:'center', justifyContent:'center' },

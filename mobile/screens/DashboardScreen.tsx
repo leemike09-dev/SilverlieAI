@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Platform, StatusBar, Animated, ActivityIndicator,
+  Platform, Animated, ActivityIndicator,
 } from 'react-native';
 import SeniorTabBar from '../components/SeniorTabBar';
 import { DEMO_MODE } from '../App';
@@ -87,7 +87,7 @@ export default function DashboardScreen({ route, navigation }: any) {
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+      
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
 
         {/* 헤더 */}
@@ -204,7 +204,7 @@ const s = StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: '#1A4A8A',
-    paddingTop: Platform.OS === 'web' ? 20 : (StatusBar.currentHeight ?? 28) + 8,
+    paddingTop: Platform.OS === 'web' ? 20 : (0 ?? 28) + 8,
     paddingHorizontal: 22, paddingBottom: 14,
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.2)',
   },

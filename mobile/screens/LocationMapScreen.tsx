@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Platform, StatusBar, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, StyleSheet } from 'react-native';
 import { DEMO_MODE } from '../App';
 
 const C = {
@@ -125,7 +125,7 @@ export default function LocationMapScreen({ route, navigation }: any) {
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+      
 
       {/* 헤더 */}
       <View style={s.header}>

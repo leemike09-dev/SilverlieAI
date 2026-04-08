@@ -286,7 +286,7 @@ const s = StyleSheet.create({
 
   // 헤더
   header:       { flexDirection:'row', alignItems:'center',
-                  paddingTop: Platform.OS==='web' ? 20 : (StatusBar.currentHeight??28)+8,
+                  paddingTop: Platform.OS==='web' ? 20 : (0??28)+8,
                   paddingHorizontal: 18, paddingBottom: 14, gap: 12 },
   backBtn:      { width:36, height:36, alignItems:'center', justifyContent:'center' },
   backTxt:      { color:'#fff', fontSize:28, fontWeight:'300', lineHeight:32 },

@@ -54,7 +54,7 @@ export default function HealthNewsScreen({ navigation, route }: any) {
 
   useEffect(() => {
     fetchNewsWithIP();
-    return () => { // Speech.stop(); };
+    return () => {};
   }, []);
 
   // 뉴스 로드 완료 → 카드 순차 슬라이드업
@@ -119,13 +119,8 @@ export default function HealthNewsScreen({ navigation, route }: any) {
       ko: 'ko-KR', en: 'en-US', ja: 'ja-JP', zh: 'zh-CN',
     };
     setSpeaking(key);
-    // Speech.speak(`${item.title}. ${item.summary}`, {
-      language: langMap[item.language] || 'ko-KR',
-      pitch: isFemale ? 1.2 : 0.8,
-      rate: 0.9,
-      onDone:  () => setSpeaking(null),
-      onError: () => setSpeaking(null),
-    });
+    // Speech 기능 비활성화
+    setSpeaking(null);
   };
 
   const goNext = async () => {
