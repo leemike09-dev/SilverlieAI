@@ -1,8 +1,13 @@
-// 웹에서는 푸시 알림 미지원 — 빈 구현
+import { Platform } from 'react-native';
+
 export async function requestNotificationPermission(): Promise<boolean> {
   return false;
 }
 
-export async function scheduleDailyHealthReminder(): Promise<void> {
-  // 웹에서는 동작하지 않음
-}
+export async function scheduleDailyHealthReminder() {}
+
+export async function scheduleMedicationNotifications(meds: any[]) {}
+
+export async function cancelMedicationNotifications(medId: string) {}
+
+export async function snoozeNotification(medName: string, medType: string) {}

@@ -52,14 +52,7 @@ export const DEMO_MODE = true;
 const DEMO = { name: '홍길동', userId: 'demo-user', isGuest: false };
 
 export default function App() {
-  useEffect(() => {
-    if (Platform.OS !== 'web') {
-      try {
-        const { scheduleDailyHealthReminder } = require('./utils/notifications');
-        scheduleDailyHealthReminder();
-      } catch (e) {}
-    }
-  }, []);
+  useEffect(() => {}, []);
 
   const [kakaoCode, setKakaoCode] = useState<string | null>(null);
   const [navReady,  setNavReady]  = useState(false);

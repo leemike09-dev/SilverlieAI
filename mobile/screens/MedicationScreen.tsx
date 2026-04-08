@@ -4,9 +4,7 @@ import {
   Modal, TextInput, StatusBar, Platform, Alert, Animated,
 } from 'react-native';
 import { DEMO_MODE } from '../App';
-const getNotifications = () => {
-  try { return require('../utils/notifications'); } catch (e) { return {}; }
-};
+import { scheduleMedicationNotifications, cancelMedicationNotifications, snoozeNotification, requestNotificationPermission } from '../utils/notifications';
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const API = 'https://silverlieai.onrender.com';
@@ -95,7 +93,7 @@ export default function MedicationScreen({ route, navigation }: any) {
       // 전체 복용 횟수 (잔여량 계산)
       if (!DEMO_MODE) {
         fetchTakenCounts(medList);
-        getNotifications().scheduleMedicationNotifications?.(medList);
+        scheduleMedicationNotifications(medList);
       }
       else {
         // 데모: 혈압약 18회, 당뇨약 32회 복용한 것으로 가정
@@ -153,7 +151,7 @@ export default function MedicationScreen({ route, navigation }: any) {
     Alert.alert('⏰ 30분 후 알림', `${med.name} 복용 알림을 30분 후로 미룰까요?`, [
       { text: '취소', style: 'cancel' },
       { text: '확인', onPress: async () => {
-        await getNotifications().snoozeNotification?.(med.name, med.med_type || '처방약');
+        await snoozeNotification(med.name, med.med_type || '처방약');
         Alert.alert('알림 설정', '30분 후에 알려드릴게요! 📲');
       }},
     ]);
@@ -184,7 +182,7 @@ export default function MedicationScreen({ route, navigation }: any) {
           }),
         });
         const updated = await fetchAll();
-        if (updated) getNotifications().scheduleMedicationNotifications?.(updated);
+        if (updated) scheduleMedicationNotifications(updated);
       } else {
         setMeds(p => [...p, {
           id: Date.now().toString(), name: medName, dosage,
@@ -202,7 +200,7 @@ export default function MedicationScreen({ route, navigation }: any) {
     { text: '삭제', style: 'destructive', onPress: async () => {
       if (!DEMO_MODE) {
         await fetch(`${API}/medications/${med.id}`, { method: 'DELETE' });
-        await getNotifications().cancelMedicationNotifications?.(med.id);
+        await cancelMedicationNotifications(med.id);
       }
       setMeds(p => p.filter(m => m.id !== med.id));
     }},
