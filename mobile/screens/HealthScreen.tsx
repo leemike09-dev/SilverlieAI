@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Pedometer } from 'expo-sensors';
+
 import SeniorTabBar from '../components/SeniorTabBar';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
@@ -135,20 +135,23 @@ export default function HealthScreen({ route, navigation }: any) {
   useEffect(() => {
     if (Platform.OS === 'web') return;
     let sub: any = null;
-    Pedometer.isAvailableAsync().then(avail => {
-      setPedometerAvail(avail);
-      if (!avail) return;
-      const now = new Date();
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-      Pedometer.getStepCountAsync(start, now).then(res => {
-        setPedometerSteps(res.steps);
-        setValues(v => ({ ...v, steps: String(res.steps) }));
+    try {
+      const { Pedometer } = require('expo-sensors');
+      Pedometer.isAvailableAsync().then((avail: boolean) => {
+        setPedometerAvail(avail);
+        if (!avail) return;
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        Pedometer.getStepCountAsync(start, now).then((res: any) => {
+          setPedometerSteps(res.steps);
+          setValues(v => ({ ...v, steps: String(res.steps) }));
+        }).catch(() => {});
+        sub = Pedometer.watchStepCount((res: any) => {
+          setPedometerSteps(res.steps);
+          setValues(v => ({ ...v, steps: String(res.steps) }));
+        });
       }).catch(() => {});
-      sub = Pedometer.watchStepCount(res => {
-        setPedometerSteps(res.steps);
-        setValues(v => ({ ...v, steps: String(res.steps) }));
-      });
-    }).catch(() => {});
+    } catch (e) {}
     return () => { if (sub) sub.remove(); };
   }, []);
 
