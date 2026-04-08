@@ -178,3 +178,22 @@ non-breaking space(\xa0) 포함 — 터미널 cd 불가
 - [ ] 카카오 로그인 네이티브 앱 지원
 - [ ] 네이버 로그인
 - [ ] 백그라운드 위치 추적 (네이티브 빌드 후)
+
+## 2026-04-08 추가 작업 (오후)
+- Expo Go 갤럭시 테스트 환경 구축
+- StatusBar (react-native) 전체 제거 → Expo Go 호환
+- expo-notifications, expo-speech 완전 제거 (크래시 원인)
+- AI 답변 인사말 간결화 (자기소개 금지 규칙 추가)
+- 회원가입 역할 선택: 시니어→본인 변경
+- 꿀비 이미지 AIChatScreen에서 제거됨 (다음 세션 복원 필요)
+
+## Expo Go 테스트 방법
+1. mobile 폴더로 이동 (App.tsx 있는 폴더)
+2. npx expo start --clear
+3. 갤럭시 Expo Go 앱으로 QR 스캔
+4. Mac과 갤럭시 같은 WiFi 필요
+
+## Render.com 절전 문제
+- 무료 플랜: 15분 미사용 시 자동 절전
+- 해결: dashboard.render.com → Manual Deploy
+- 출시 전 /월 유료 플랜 전환 권장
