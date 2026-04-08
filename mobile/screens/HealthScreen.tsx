@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import SeniorTabBar from '../components/SeniorTabBar';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  Alert, ActivityIndicator, StatusBar, Modal, Dimensions, Platform, Image,
+  Alert, ActivityIndicator, StatusBar, Modal, Dimensions, Platform,
 } from 'react-native';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -214,11 +214,7 @@ export default function HealthScreen({ route, navigation }: any) {
       {/* 헤더 */}
       <View style={s.header}>
         <View style={s.headerTitleRow}>
-          <Image
-            source={require('../assets/EDFA500D-1920-4E9B-A3CA-5C105D320158_1_105_c.jpeg')}
-            style={s.headerBeeImg}
-            resizeMode="cover"
-          />
+<Text style={{fontSize:24}}>🫀</Text>
           <Text style={s.headerTitle}>건강</Text>
         </View>
         <View style={s.tabRow}>
@@ -429,7 +425,7 @@ const s = StyleSheet.create({
 
   header:       { paddingTop: Platform.OS === 'web' ? 14 : (StatusBar.currentHeight ?? 28) + 8, paddingHorizontal: 18, paddingBottom: 0, backgroundColor: '#1A4A8A' },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 12 },
-  headerBeeImg:   { width: 36, height: 36, borderRadius: 18 },
+
   headerTitle:    { fontSize: 20, fontWeight: '800', color: '#fff' },
   tabRow:       { flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: 'rgba(255,255,255,0.25)' },
   tab:          { flex: 1, alignItems: 'center', paddingVertical: 9 },
