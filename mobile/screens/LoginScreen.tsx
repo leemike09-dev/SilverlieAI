@@ -106,7 +106,7 @@ export default function LoginScreen({ navigation, route }: any) {
                   <TouchableOpacity
                     style={[s.roleBtn, role === 'senior' && s.roleBtnOn]}
                     onPress={() => setRole('senior')}>
-                    <Text style={[s.roleTxt, role === 'senior' && s.roleTxtOn]}>👴 시니어 (본인)</Text>
+                    <Text style={[s.roleTxt, role === 'senior' && s.roleTxtOn]}>👤 본인</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[s.roleBtn, role === 'family' && s.roleBtnOn]}
