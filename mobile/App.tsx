@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LanguageProvider } from './i18n/LanguageContext';
-import { scheduleDailyHealthReminder } from './utils/notifications';
+
 import IntroScreen from './screens/IntroScreen';
 import HomeScreen from './screens/HomeScreen';
 import LoginScreen from './screens/LoginScreen';
@@ -54,7 +54,10 @@ const DEMO = { name: '홍길동', userId: 'demo-user', isGuest: false };
 export default function App() {
   useEffect(() => {
     if (Platform.OS !== 'web') {
-      scheduleDailyHealthReminder();
+      try {
+        const { scheduleDailyHealthReminder } = require('./utils/notifications');
+        scheduleDailyHealthReminder();
+      } catch (e) {}
     }
   }, []);
 
