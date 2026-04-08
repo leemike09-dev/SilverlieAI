@@ -170,7 +170,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
             <View style={s.welcomeArea}>
               <View style={s.beeWrap}>
                 <Image
-                  source={require('../assets/EDFA500D-1920-4E9B-A3CA-5C105D320158_1_105_c.jpeg')}
+                  source={{uri: 'https://via.placeholder.com/36'}}
                   style={s.beeImg}
                   resizeMode="cover"
                 />
@@ -185,7 +185,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
               <View key={i} style={s.aiRow}>
                 {/* 작은 꿀비 아바타 */}
                 <Image
-                  source={require('../assets/EDFA500D-1920-4E9B-A3CA-5C105D320158_1_105_c.jpeg')}
+                  source={{uri: 'https://via.placeholder.com/36'}}
                   style={s.aiAvatar}
                   resizeMode="cover"
                 />
@@ -206,7 +206,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
           {loading && (
             <View style={s.aiRow}>
               <Image
-                source={require('../assets/EDFA500D-1920-4E9B-A3CA-5C105D320158_1_105_c.jpeg')}
+                source={{uri: 'https://via.placeholder.com/36'}}
                 style={s.aiAvatar}
                 resizeMode="cover"
               />

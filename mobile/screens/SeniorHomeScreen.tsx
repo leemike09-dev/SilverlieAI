@@ -126,7 +126,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           transform: [{ translateY: charY }],
         }]}>
           <Image
-            source={require('../assets/EDFA500D-1920-4E9B-A3CA-5C105D320158_1_105_c.jpeg')}
+            source={{uri: 'https://via.placeholder.com/36'}}
             style={s.beeImg}
             resizeMode="contain"
           />
