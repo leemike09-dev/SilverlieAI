@@ -226,7 +226,7 @@ export default function MedicationScreen({ route, navigation }: any) {
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor={C.blue1} />
+
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
 
         {/* 헤더 */}
