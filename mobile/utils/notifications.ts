@@ -1,13 +1,15 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+} catch (e) {}
 
 export async function requestNotificationPermission(): Promise<boolean> {
   if (Platform.OS === 'web') return false;
