@@ -34,7 +34,8 @@
         "android.permission.health.WRITE_HEART_RATE",
         "android.permission.health.WRITE_BLOOD_PRESSURE",
         "android.permission.health.WRITE_WEIGHT",
-        "android.permission.health.WRITE_BLOOD_GLUCOSE"
+        "android.permission.health.WRITE_BLOOD_GLUCOSE",
+        "android.permission.ACTIVITY_RECOGNITION"
       ]
     },
     "web": {
