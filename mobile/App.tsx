@@ -25,13 +25,13 @@ import LifeDetailScreen from './screens/LifeDetailScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import HealthNewsScreen from './screens/HealthNewsScreen';
 import SeniorHomeScreen from './screens/SeniorHomeScreen';
-// import MedicationScreen from './screens/MedicationScreen';
+import MedicationScreen from './screens/MedicationScreen';
 import FamilyConnectScreen from './screens/FamilyConnectScreen';
 import FamilyDashboardScreen from './screens/FamilyDashboardScreen';
 import LocationMapScreen     from './screens/LocationMapScreen';
 import ProfileEditScreen    from './screens/ProfileEditScreen';
-// import ProfileScreen             from './screens/ProfileScreen';
-// import ImportantContactsScreen  from './screens/ImportantContactsScreen';
+import ProfileScreen from './screens/ProfileScreen';
+import ImportantContactsScreen from './screens/ImportantContactsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -129,13 +129,13 @@ export default function App() {
           <Stack.Screen name="HealthInfo" component={HealthInfoScreen} />
         <Stack.Screen name="HealthNews"     component={HealthNewsScreen}   initialParams={DEMO} />
           <Stack.Screen name="SeniorHome"    component={SeniorHomeScreen}   initialParams={DEMO} />
-          // <Stack.Screen name="Medication"    component={MedicationScreen}   initialParams={DEMO} />
+          <Stack.Screen name="Medication"    component={MedicationScreen}   initialParams={DEMO} />
           <Stack.Screen name="FamilyConnect" component={FamilyConnectScreen} initialParams={DEMO} />
           <Stack.Screen name="FamilyDashboard" component={FamilyDashboardScreen} initialParams={DEMO} />
           <Stack.Screen name="LocationMap"    component={LocationMapScreen}    initialParams={DEMO} />
           <Stack.Screen name="ProfileEdit"    component={ProfileEditScreen}    />
-          // <Stack.Screen name="Profile"              component={ProfileScreen}             />
-          // <Stack.Screen name="ImportantContacts"  component={ImportantContactsScreen}  />
+          <Stack.Screen name="Profile"              component={ProfileScreen}             />
+          <Stack.Screen name="ImportantContacts"  component={ImportantContactsScreen}  />
         </Stack.Navigator>
       </NavigationContainer>
     </LanguageProvider>
