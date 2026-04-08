@@ -23,7 +23,7 @@ import WearableScreen from './screens/WearableScreen';
 import LifeScreen from './screens/LifeScreen';
 import LifeDetailScreen from './screens/LifeDetailScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
-// import HealthNewsScreen from './screens/HealthNewsScreen';
+import HealthNewsScreen from './screens/HealthNewsScreen';
 import SeniorHomeScreen from './screens/SeniorHomeScreen';
 // import MedicationScreen from './screens/MedicationScreen';
 import FamilyConnectScreen from './screens/FamilyConnectScreen';
@@ -127,7 +127,7 @@ export default function App() {
           <Stack.Screen name="LifeDetail"   component={LifeDetailScreen}  initialParams={DEMO} />
           <Stack.Screen name="Onboarding"  component={OnboardingScreen}  />
           <Stack.Screen name="HealthInfo" component={HealthInfoScreen} />
-        // <Stack.Screen name="HealthNews"     component={HealthNewsScreen}   initialParams={DEMO} />
+        <Stack.Screen name="HealthNews"     component={HealthNewsScreen}   initialParams={DEMO} />
           <Stack.Screen name="SeniorHome"    component={SeniorHomeScreen}   initialParams={DEMO} />
           // <Stack.Screen name="Medication"    component={MedicationScreen}   initialParams={DEMO} />
           <Stack.Screen name="FamilyConnect" component={FamilyConnectScreen} initialParams={DEMO} />
