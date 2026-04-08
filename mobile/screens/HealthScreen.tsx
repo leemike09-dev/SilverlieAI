@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Pedometer } from 'expo-sensors';
 import SeniorTabBar from '../components/SeniorTabBar';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
@@ -118,6 +119,8 @@ export default function HealthScreen({ route, navigation }: any) {
   const [values, setValues] = useState({ steps:'', heart_rate:'', bp_sys:'', bp_dia:'', blood_sugar:'' });
   const [keypadMetric, setKeypadMetric] = useState<typeof METRICS[0] | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pedometerSteps, setPedometerSteps] = useState<number | null>(null);
+  const [pedometerAvail, setPedometerAvail] = useState(false);
 
   useEffect(() => {
     if (!userId || userId === 'demo-user') { setLoadingToday(false); return; }
@@ -127,6 +130,27 @@ export default function HealthScreen({ route, navigation }: any) {
       .catch(() => {})
       .finally(() => setLoadingToday(false));
   }, [userId]);
+
+  // 만보계 자동 측정
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    let sub: any = null;
+    Pedometer.isAvailableAsync().then(avail => {
+      setPedometerAvail(avail);
+      if (!avail) return;
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+      Pedometer.getStepCountAsync(start, now).then(res => {
+        setPedometerSteps(res.steps);
+        setValues(v => ({ ...v, steps: String(res.steps) }));
+      }).catch(() => {});
+      sub = Pedometer.watchStepCount(res => {
+        setPedometerSteps(res.steps);
+        setValues(v => ({ ...v, steps: String(res.steps) }));
+      });
+    }).catch(() => {});
+    return () => { if (sub) sub.remove(); };
+  }, []);
 
   const score = calcScore(todayRecord);
   const scoreStatus = score >= 85 ? { text: '건강 상태 양호', color: '#a5d6a7' }
