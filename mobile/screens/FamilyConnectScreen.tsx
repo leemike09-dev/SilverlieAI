@@ -71,7 +71,6 @@ export default function FamilyConnectScreen({ route, navigation }: any) {
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor={C.sky} />
 
       {/* 헤더 */}
       <View style={s.header}>

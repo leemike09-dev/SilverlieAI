@@ -143,7 +143,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor={C.blue1} />
 
       {/* ── 헤더 ── */}
       <View style={[s.header, webBg]}>

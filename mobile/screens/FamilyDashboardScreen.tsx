@@ -234,7 +234,6 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
 
   return (
     <View style={ss.root}>
-      <StatusBar barStyle="light-content" backgroundColor={C.blue1} />
 
       {/* ── 헤더 ── */}
       <View style={[ss.header, webHeaderBg]}>

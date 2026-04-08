@@ -104,7 +104,6 @@ export default function HomeScreen({ route, navigation }: any) {
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" translucent={false} />
 
       {/* ── 헤더 (고정) ── */}
       <View style={s.header}>

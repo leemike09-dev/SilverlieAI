@@ -108,7 +108,6 @@ export default function App() {
   return (
     <LanguageProvider>
       <NavigationContainer ref={navigationRef} onReady={handleNavigationReady}>
-        <StatusBar style="auto" />
         <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Intro">
           <Stack.Screen name="Intro"       component={IntroScreen}       />
           <Stack.Screen name="Home"        component={HomeScreen}        initialParams={DEMO} />

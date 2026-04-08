@@ -64,7 +64,6 @@ export default function OnboardingScreen({ navigation, route }: any) {
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a5fbc" />
       <SafeAreaView style={s.header}>
         <Text style={s.headerIcon}>🤖</Text>
         <Text style={s.headerTitle}>AI 맞춤 설정</Text>

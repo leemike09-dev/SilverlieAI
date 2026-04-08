@@ -108,7 +108,6 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
 
       {/* 배경 */}
       <View style={[StyleSheet.absoluteFill, webBg]} />
