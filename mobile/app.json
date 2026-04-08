@@ -53,6 +53,14 @@
     "updates": {
       "url": "https://u.expo.dev/2220b18b-fc03-4ccd-9e62-49dda3b0793f"
     },
-    "plugins": []
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#1A4A8A"
+        }
+      ]
+    ]
   }
 }
