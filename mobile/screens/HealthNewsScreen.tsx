@@ -10,7 +10,7 @@ import {
   Animated,
   Platform,
 } from 'react-native';
-import * as Speech from 'expo-speech';
+
 import { HEADER_PADDING_TOP } from '../utils/layout';
 import { useLanguage } from '../i18n/LanguageContext';
 import BottomTabBar from '../components/BottomTabBar';
@@ -54,7 +54,7 @@ export default function HealthNewsScreen({ navigation, route }: any) {
 
   useEffect(() => {
     fetchNewsWithIP();
-    return () => { Speech.stop(); };
+    return () => { // Speech.stop(); };
   }, []);
 
   // 뉴스 로드 완료 → 카드 순차 슬라이드업
@@ -110,16 +110,16 @@ export default function HealthNewsScreen({ navigation, route }: any) {
   const speak = (item: NewsItem, index: number) => {
     const key = String(index);
     if (speaking === key) {
-      Speech.stop();
+      // Speech.stop();
       setSpeaking(null);
       return;
     }
-    Speech.stop();
+    // Speech.stop();
     const langMap: Record<string, string> = {
       ko: 'ko-KR', en: 'en-US', ja: 'ja-JP', zh: 'zh-CN',
     };
     setSpeaking(key);
-    Speech.speak(`${item.title}. ${item.summary}`, {
+    // Speech.speak(`${item.title}. ${item.summary}`, {
       language: langMap[item.language] || 'ko-KR',
       pitch: isFemale ? 1.2 : 0.8,
       rate: 0.9,
@@ -129,7 +129,7 @@ export default function HealthNewsScreen({ navigation, route }: any) {
   };
 
   const goNext = async () => {
-    Speech.stop();
+    // Speech.stop();
     navigation.replace('Login');
   };
 
