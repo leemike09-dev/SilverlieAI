@@ -197,14 +197,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#EBF3FB', borderRadius: 12, padding: 16,
     marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#1A4A8A',
   },
-  infoText: { fontSize: 17, color: '#1A4A8A', lineHeight: 24, fontWeight: '600' },
+  infoText: { fontSize: 20, color: '#1A4A8A', lineHeight: 28, fontWeight: '600' },
 
   emptyBox: {
     backgroundColor: '#fff', borderRadius: 16, padding: 40,
     alignItems: 'center', marginBottom: 16,
     borderWidth: 1, borderColor: '#DDE8F4',
   },
-  emptyText: { fontSize: 18, color: '#7A90A8', textAlign: 'center', lineHeight: 26 },
+  emptyText: { fontSize: 22, color: '#7A90A8', textAlign: 'center', lineHeight: 30 },
 
   listBlock: {
     backgroundColor: '#fff', borderRadius: 16,
@@ -216,14 +216,14 @@ const styles = StyleSheet.create({
   },
   contactIcon: { fontSize: 28, width: 36, textAlign: 'center' },
   contactInfo: { flex: 1 },
-  contactType:  { fontSize: 15, color: '#7A90A8', fontWeight: '600', marginBottom: 2 },
-  contactName:  { fontSize: 18, fontWeight: '800', color: '#16273E', marginBottom: 2 },
-  contactPhone: { fontSize: 17, color: '#2272B8', fontWeight: '600' },
+  contactType:  { fontSize: 18, color: '#7A90A8', fontWeight: '600', marginBottom: 2 },
+  contactName:  { fontSize: 22, fontWeight: '800', color: '#16273E', marginBottom: 2 },
+  contactPhone: { fontSize: 20, color: '#2272B8', fontWeight: '600' },
   callBtn: {
     backgroundColor: '#1A4A8A', borderRadius: 10,
     paddingVertical: 8, paddingHorizontal: 12,
   },
-  callBtnTxt: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  callBtnTxt: { color: '#fff', fontSize: 19, fontWeight: '700' },
   deleteBtn: { padding: 8 },
   deleteBtnTxt: { fontSize: 18, color: '#B8CCE0', fontWeight: '700' },
 
@@ -231,35 +231,35 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', borderRadius: 16, padding: 20,
     borderWidth: 1, borderColor: '#DDE8F4', marginBottom: 16,
   },
-  formTitle: { fontSize: 20, fontWeight: '800', color: '#16273E', marginBottom: 16 },
-  formLabel: { fontSize: 16, fontWeight: '700', color: '#16273E', marginBottom: 8, marginTop: 12 },
+  formTitle: { fontSize: 24, fontWeight: '800', color: '#16273E', marginBottom: 16 },
+  formLabel: { fontSize: 20, fontWeight: '700', color: '#16273E', marginBottom: 8, marginTop: 12 },
   input: {
     backgroundColor: '#F0F5FB', borderRadius: 12,
     paddingHorizontal: 16, paddingVertical: 14,
-    fontSize: 17, color: '#16273E',
+    fontSize: 20, color: '#16273E',
     borderWidth: 1, borderColor: '#DDE8F4',
   },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip:    { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20,
              backgroundColor: '#F0F5FB', borderWidth: 1, borderColor: '#DDE8F4' },
   chipOn:  { backgroundColor: '#1A4A8A', borderColor: '#1A4A8A' },
-  chipTxt:   { fontSize: 16, fontWeight: '600', color: '#7A90A8' },
+  chipTxt:   { fontSize: 19, fontWeight: '600', color: '#7A90A8' },
   chipTxtOn: { color: '#fff' },
   formBtns: { flexDirection: 'row', gap: 12, marginTop: 20 },
   cancelBtn: {
     flex: 1, borderRadius: 12, paddingVertical: 15,
     alignItems: 'center', borderWidth: 2, borderColor: '#DDE8F4',
   },
-  cancelTxt: { fontSize: 17, fontWeight: '700', color: '#7A90A8' },
+  cancelTxt: { fontSize: 20, fontWeight: '700', color: '#7A90A8' },
   addConfirmBtn: {
     flex: 1, backgroundColor: '#1A4A8A', borderRadius: 12,
     paddingVertical: 15, alignItems: 'center',
   },
-  addConfirmTxt: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  addConfirmTxt: { fontSize: 20, fontWeight: '700', color: '#fff' },
 
   addBtn: {
     backgroundColor: '#fff', borderRadius: 16, paddingVertical: 18,
     alignItems: 'center', borderWidth: 2, borderColor: '#1A4A8A',
   },
-  addBtnTxt: { fontSize: 18, fontWeight: '800', color: '#1A4A8A' },
+  addBtnTxt: { fontSize: 22, fontWeight: '800', color: '#1A4A8A' },
 });
