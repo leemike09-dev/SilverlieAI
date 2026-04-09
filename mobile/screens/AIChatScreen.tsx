@@ -9,6 +9,7 @@ import SeniorTabBar from '../components/SeniorTabBar';
 const API_URL = 'https://silverlieai.onrender.com';
 type Props = { route: any; navigation: any };
 type Msg = { role: 'ai' | 'user'; text: string };
+type HistoryItem = { role: 'user' | 'assistant'; content: string };
 
 const C = {
   blue1:   '#1A4A8A',
@@ -23,7 +24,6 @@ const C = {
   sageLt:  '#E6F7EF',
 };
 
-// 시간대별 꿀비 인사 + 오늘의 건강 추천
 function getGreeting(): string {
   const h = new Date().getHours();
   if (h < 9)  return '좋은 아침이에요! 🌅\n오늘 하루도 건강하게 시작해요';
@@ -47,10 +47,10 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
   const welcomeMsg: Msg = {
     role: 'ai',
-    text: `${getGreeting()}
-건강에 대해 편하게 물어보세요 😊`,
+    text: `${getGreeting()}\n건강에 대해 편하게 물어보세요 😊`,
   };
   const [msgs, setMsgs] = useState<Msg[]>([welcomeMsg]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -62,7 +62,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
     scrollRef.current?.scrollToEnd({ animated: true });
   }, [msgs]);
 
-  // 마이크 펄스 애니메이션
   useEffect(() => {
     if (isRecording) {
       Animated.loop(
@@ -83,17 +82,23 @@ export default function AIChatScreen({ route, navigation }: Props) {
     setInput('');
     setMsgs(prev => [...prev, { role: 'user', text: msg }]);
     setLoading(true);
+
+    const newHistory: HistoryItem[] = [...history, { role: 'user', content: msg }];
+
     try {
       const res = await fetch(`${API_URL}/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, message: msg }),
+        body: JSON.stringify({
+          user_id: userId,
+          message: msg,
+          history: history.slice(-10),
+        }),
       });
       const data = await res.json();
-      setMsgs(prev => [...prev, {
-        role: 'ai',
-        text: data.reply ?? data.response ?? '죄송합니다, 다시 시도해주세요.',
-      }]);
+      const reply = data.reply ?? data.response ?? '죄송합니다, 다시 시도해주세요.';
+      setMsgs(prev => [...prev, { role: 'ai', text: reply }]);
+      setHistory([...newHistory, { role: 'assistant', content: reply }]);
     } catch {
       setMsgs(prev => [...prev, {
         role: 'ai',
@@ -104,7 +109,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
     }
   };
 
-  // 음성 입력 (Web Speech API)
   const toggleVoice = () => {
     if (Platform.OS !== 'web') return;
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -112,19 +116,16 @@ export default function AIChatScreen({ route, navigation }: Props) {
       setMsgs(prev => [...prev, { role: 'ai', text: '이 브라우저는 음성 인식을 지원하지 않아요.\nChrome을 사용해 주세요.' }]);
       return;
     }
-
     if (isRecording && recognitionRef.current) {
       recognitionRef.current.stop();
       setIsRecording(false);
       return;
     }
-
     const recognition = new SR();
     recognition.lang = 'ko-KR';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
     recognitionRef.current = recognition;
-
     recognition.onstart  = () => setIsRecording(true);
     recognition.onend    = () => setIsRecording(false);
     recognition.onerror  = () => setIsRecording(false);
@@ -144,7 +145,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   return (
     <View style={s.root}>
 
-      {/* ── 헤더 ── */}
+      {/* 헤더 */}
       <View style={[s.header, webBg]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
           <Text style={s.backTxt}>‹</Text>
@@ -156,6 +157,11 @@ export default function AIChatScreen({ route, navigation }: Props) {
         <View style={s.onlineDot} />
       </View>
 
+      {/* 의료 고지 배너 */}
+      <View style={s.disclaimer}>
+        <Text style={s.disclaimerTxt}>⚕️ AI 답변은 참고용입니다. 정확한 진단은 의사 선생님께 확인하세요.</Text>
+      </View>
+
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
 
         <ScrollView
@@ -164,7 +170,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
           contentContainerStyle={s.chatContent}
           showsVerticalScrollIndicator={false}>
 
-          {/* ── 꿀비 웰컴 영역 (첫 메시지일 때만 크게 표시) ── */}
           {showChips && (
             <View style={s.welcomeArea}>
               <View style={s.beeWrap}>
@@ -178,11 +183,9 @@ export default function AIChatScreen({ route, navigation }: Props) {
             </View>
           )}
 
-          {/* ── 메시지 목록 ── */}
           {msgs.map((m, i) => (
             m.role === 'ai' ? (
               <View key={i} style={s.aiRow}>
-                {/* 작은 꿀비 아바타 */}
                 <Image
                   source={{uri: 'https://via.placeholder.com/36'}}
                   style={s.aiAvatar}
@@ -201,7 +204,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
             )
           ))}
 
-          {/* 로딩 */}
           {loading && (
             <View style={s.aiRow}>
               <Image
@@ -217,7 +219,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
             </View>
           )}
 
-          {/* ── 빠른 질문 칩 ── */}
           {showChips && (
             <View style={s.chipsWrap}>
               <Text style={s.chipsLabel}>자주 묻는 질문</Text>
@@ -240,7 +241,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
           <View style={{ height: 8 }} />
         </ScrollView>
 
-        {/* ── 입력창 ── */}
+        {/* 입력창 */}
         <View style={s.inputWrap}>
           <View style={s.inputRow}>
             <TextInput
@@ -252,8 +253,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
               multiline
               maxLength={300}
             />
-
-            {/* 마이크 버튼 */}
             <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
               <TouchableOpacity
                 style={[s.micBtn, isRecording && s.micBtnActive]}
@@ -262,8 +261,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
                 <Text style={s.micIcon}>{isRecording ? '⏹' : '🎤'}</Text>
               </TouchableOpacity>
             </Animated.View>
-
-            {/* 전송 버튼 */}
             <TouchableOpacity
               style={[s.sendBtn, (!input.trim() || loading) && s.sendBtnOff]}
               onPress={() => send()}
@@ -283,7 +280,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
 const s = StyleSheet.create({
   root:     { flex: 1, backgroundColor: C.bg },
 
-  // 헤더
   header:       { flexDirection:'row', alignItems:'center',
                   paddingTop: Platform.OS==='web' ? 20 : (StatusBar.currentHeight??28)+8,
                   paddingHorizontal: 18, paddingBottom: 14, gap: 12 },
@@ -295,11 +291,13 @@ const s = StyleSheet.create({
   onlineDot:    { width:10, height:10, borderRadius:5, backgroundColor:'#3DAB7B',
                   shadowColor:'#3DAB7B', shadowRadius:4, shadowOpacity:0.8 },
 
-  // 채팅 영역
+  disclaimer:    { backgroundColor:'#FFF8E1', paddingHorizontal:16, paddingVertical:8,
+                   borderBottomWidth:1, borderBottomColor:'#FFE082' },
+  disclaimerTxt: { fontSize:13, color:'#795548', textAlign:'center', lineHeight:18 },
+
   chatArea:    { flex:1, backgroundColor: C.bg },
   chatContent: { padding:16, paddingBottom:8 },
 
-  // 웰컴
   welcomeArea: { alignItems:'center', marginBottom:20, marginTop:4 },
   beeWrap:     { width:96, height:96, borderRadius:48, overflow:'hidden',
                  borderWidth:3, borderColor:'#fff',
@@ -309,7 +307,6 @@ const s = StyleSheet.create({
   beeImg:      { width:96, height:96 },
   welcomeName: { fontSize:22, fontWeight:'700', color:C.text },
 
-  // AI 메시지
   aiRow:    { flexDirection:'row', gap:10, marginBottom:14, alignItems:'flex-start' },
   aiAvatar: { width:36, height:36, borderRadius:18, flexShrink:0 },
   aiBubble: { backgroundColor:C.card, borderRadius:4, borderTopLeftRadius:18,
@@ -319,17 +316,14 @@ const s = StyleSheet.create({
               shadowOffset:{width:0,height:2}, elevation:2 },
   aiText:   { fontSize:18, color:C.text, lineHeight:28 },
 
-  // 사용자 메시지
   userRow:    { flexDirection:'row', justifyContent:'flex-end', marginBottom:14 },
   userBubble: { backgroundColor:C.blue2, borderRadius:18, borderBottomRightRadius:4,
                 padding:14, maxWidth:'78%' },
   userText:   { fontSize:18, color:'#fff', lineHeight:28 },
 
-  // 로딩 점
   typingDots: { flexDirection:'row', gap:5, paddingVertical:4 },
   dot:        { width:8, height:8, borderRadius:4, backgroundColor:C.line },
 
-  // 빠른 질문 칩
   chipsWrap:  { marginTop:4, marginBottom:8 },
   chipsLabel: { fontSize:15, fontWeight:'700', color:C.sub, marginBottom:10, textAlign:'center' },
   chips:      { flexDirection:'row', flexWrap:'wrap', gap:8, justifyContent:'center', marginBottom:12 },
@@ -342,7 +336,6 @@ const s = StyleSheet.create({
   chipTxt:    { fontSize:16, color:C.text, fontWeight:'600' },
   chipsHint:  { fontSize:15, color:C.sub, textAlign:'center', lineHeight:22 },
 
-  // 입력창
   inputWrap: { backgroundColor:C.card,
                borderTopWidth:1, borderTopColor:C.line,
                paddingHorizontal:12, paddingVertical:10 },
