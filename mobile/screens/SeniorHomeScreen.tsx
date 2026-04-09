@@ -90,16 +90,17 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       <Animated.View style={[s.beeWrap, { opacity: fadeAnim }]}>
         <Image source={beeSource} style={s.beeImg} resizeMode="cover" />
         {/* 하단 페이드 오버레이 */}
-        <View style={s.beeFade} />
-        {/* 우측 페이드 오버레이 */}
+        <View style={s.beeFadeBottom} />
         <View style={s.beeFadeRight} />
+        <View style={s.beeFadeTop} />
+        <View style={s.beeFadeLeft} />
       </Animated.View>
 
       {/* ── 본문 ── */}
       <View style={[s.inner, { paddingTop: insets.top + (Platform.OS === 'web' ? 16 : 12) }]}>
 
         {/* 상단 여백 (꿀비 영역) */}
-        <View style={{ height: width * 0.28 }} />
+        <View style={{ height: Platform.OS === 'web' ? Math.min(width * 0.34, 120) : width * 0.34 }} />
 
         {/* 타이틀 */}
         <Animated.View style={[s.titleWrap, { opacity: titleAnim }]}>
@@ -142,28 +143,45 @@ const s = StyleSheet.create({
   beeWrap: {
     position: 'absolute',
     top: 0, left: 0,
-    width: width * 0.48,
-    height: width * 0.48,
+    width: Platform.OS === 'web' ? Math.min(width * 0.62, 200) : width * 0.62,
+    height: Platform.OS === 'web' ? Math.min(width * 0.62, 200) : width * 0.62,
+    opacity: 0.88,
   },
   beeImg: {
     width: '100%',
     height: '100%',
   },
-  beeFade: {
+  beeFadeBottom: {
     position: 'absolute',
     bottom: 0, left: 0, right: 0,
-    height: '55%',
+    height: '65%',
     ...(Platform.OS === 'web'
-      ? { background: 'linear-gradient(to bottom, transparent, #0d2a4a)' } as any
-      : { backgroundColor: 'rgba(13,42,74,0.85)' }),
+      ? { background: 'linear-gradient(to bottom, transparent 0%, #0d2a4a 100%)' } as any
+      : { backgroundColor: 'rgba(13,42,74,0.92)' }),
   },
   beeFadeRight: {
     position: 'absolute',
     top: 0, right: 0, bottom: 0,
-    width: '40%',
+    width: '52%',
     ...(Platform.OS === 'web'
-      ? { background: 'linear-gradient(to right, transparent, #0d2a4a)' } as any
-      : { backgroundColor: 'rgba(13,42,74,0.75)' }),
+      ? { background: 'linear-gradient(to right, transparent 0%, #0d2a4a 100%)' } as any
+      : { backgroundColor: 'rgba(13,42,74,0.88)' }),
+  },
+  beeFadeTop: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: '22%',
+    ...(Platform.OS === 'web'
+      ? { background: 'linear-gradient(to top, transparent 0%, #0d2a4a 100%)' } as any
+      : { backgroundColor: 'rgba(13,42,74,0.7)' }),
+  },
+  beeFadeLeft: {
+    position: 'absolute',
+    top: 0, left: 0, bottom: 0,
+    width: '12%',
+    ...(Platform.OS === 'web'
+      ? { background: 'linear-gradient(to left, transparent 0%, #0d2a4a 100%)' } as any
+      : { backgroundColor: 'rgba(13,42,74,0.6)' }),
   },
 
   inner: {
