@@ -40,6 +40,7 @@ export default function ProfileScreen({ navigation, route }: any) {
   const [age,    setAge]    = useState('');
   const [gender, setGender] = useState('');
   const [region, setRegion] = useState('');
+  const [phone,  setPhone]  = useState('');
 
   // 신체정보
   const [height,    setHeight]    = useState('');
