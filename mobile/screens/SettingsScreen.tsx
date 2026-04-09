@@ -139,30 +139,20 @@ export default function SettingsScreen({ route, navigation }: Props) {
         <View style={styles.listBlock}>
           <View style={styles.listItem}>
             <Text style={styles.listIcon}>🔔</Text>
-            <Text style={styles.listLabel}>건강 알림</Text>
+            <Text style={styles.listLabel}>알림</Text>
             <Switch
               value={notifHealth}
-              onValueChange={setNotifHealth}
-              trackColor={{ false: '#cdd8e8', true: C.blue2 }}
-              thumbColor="#fff"
-            />
-          </View>
-          <View style={styles.listItem}>
-            <Text style={styles.listIcon}>💊</Text>
-            <Text style={styles.listLabel}>약복용 알림</Text>
-            <Switch
-              value={notifMed}
-              onValueChange={setNotifMed}
+              onValueChange={(v) => { setNotifHealth(v); setNotifFamily(v); }}
               trackColor={{ false: '#cdd8e8', true: C.blue2 }}
               thumbColor="#fff"
             />
           </View>
           <View style={[styles.listItem, styles.listItemLast]}>
-            <Text style={styles.listIcon}>👨‍👩‍👧</Text>
-            <Text style={styles.listLabel}>가족 안심 알림</Text>
+            <Text style={styles.listIcon}>💊</Text>
+            <Text style={styles.listLabel}>약복용 알림</Text>
             <Switch
-              value={notifFamily}
-              onValueChange={setNotifFamily}
+              value={notifMed}
+              onValueChange={setNotifMed}
               trackColor={{ false: '#cdd8e8', true: C.blue2 }}
               thumbColor="#fff"
             />
