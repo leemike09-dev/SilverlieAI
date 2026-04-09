@@ -80,20 +80,17 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   ];
 
   const beeSource = Platform.OS === 'web'
-    ? { uri: 'https://raw.githubusercontent.com/leemike09-dev/SilverlieAI/main/mobile/assets/EDFA500D-1920-4E9B-A3CA-5C105D320158_1_105_c.jpeg' }
-    : require('../assets/EDFA500D-1920-4E9B-A3CA-5C105D320158_1_105_c.jpeg');
+    ? { uri: 'https://raw.githubusercontent.com/leemike09-dev/SilverlieAI/main/mobile/assets/bee_nobg.png' }
+    : require('../assets/bee_nobg.png');
 
   return (
     <View style={[s.root, webBg]}>
 
       {/* ── 꿀비 배경 (상단 좌측, 페이드 아웃) ── */}
       <Animated.View style={[s.beeWrap, { opacity: fadeAnim }]}>
-        <Image source={beeSource} style={s.beeImg} resizeMode="cover" />
+        <Image source={beeSource} style={s.beeImg} resizeMode="contain" />
         {/* 하단 페이드 오버레이 */}
-        <View style={s.beeFadeBottom} />
-        <View style={s.beeFadeRight} />
-        <View style={s.beeFadeTop} />
-        <View style={s.beeFadeLeft} />
+
       </Animated.View>
 
       {/* ── 본문 ── */}
