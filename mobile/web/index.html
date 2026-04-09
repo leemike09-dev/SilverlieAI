@@ -57,6 +57,10 @@
         if (code) {
           sessionStorage.setItem('kakao_auth_code', code);
           window.history.replaceState({}, '', window.location.pathname);
+          // 네이티브 앱으로 리다이렉트 시도 (APK 카카오 로그인)
+          setTimeout(function() {
+            window.location.href = 'silverliveai://oauth?code=' + encodeURIComponent(code);
+          }, 200);
         }
       }
     })();

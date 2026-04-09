@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, createRef, useState } from 'react';
 import { Platform } from 'react-native';
+import * as Linking from 'expo-linking';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
@@ -53,7 +54,31 @@ export const DEMO_MODE = true;
 const DEMO = { name: '홍길동', userId: 'demo-user', isGuest: false };
 
 export default function App() {
-  useEffect(() => {}, []);
+  // 네이티브 카카오 로그인: silverliveai://oauth?code=xxx 딥링크 처리
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const sub = Linking.addEventListener('url', async ({ url }) => {
+      try {
+        const parsed = Linking.parse(url);
+        const code = parsed.queryParams?.code as string | undefined;
+        if (parsed.path === 'oauth' && code) {
+          const redirectUri = 'https://leemike09-dev.github.io/SilverlieAI/';
+          const res = await fetch('https://silverlieai.onrender.com/users/kakao-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, redirect_uri: redirectUri }),
+          });
+          const data = await res.json();
+          if (data?.id) {
+            await AsyncStorage.setItem('userId', String(data.id));
+            await AsyncStorage.setItem('userName', data.name || '');
+            navigationRef.navigate('SeniorHome', { name: data.name, userId: data.id });
+          }
+        }
+      } catch (e) { console.error('Native Kakao login error', e); }
+    });
+    return () => sub.remove();
+  }, []);
 
   const [kakaoCode, setKakaoCode] = useState<string | null>(null);
   const [navReady,  setNavReady]  = useState(false);

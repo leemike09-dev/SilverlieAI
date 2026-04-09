@@ -1,3 +1,4 @@
+import * as WebBrowser from 'expo-web-browser';
 import React, { useState } from 'react';
 import { StatusBar,
   View, Text, TextInput, TouchableOpacity, StyleSheet,
@@ -9,9 +10,7 @@ const API_URL = 'https://silverlieai.onrender.com';
 
 // 카카오 REST API 키 — developers.kakao.com 에서 발급 후 입력
 const KAKAO_CLIENT_ID = 'c102ef257f29dfc4ca9f2062a0c1442d';
-const KAKAO_REDIRECT_URI = Platform.OS === 'web'
-  ? 'https://leemike09-dev.github.io/SilverlieAI/'
-  : 'exp://localhost:8081';
+const KAKAO_REDIRECT_URI = 'https://leemike09-dev.github.io/SilverlieAI/';
 
 export default function LoginScreen({ navigation, route }: any) {
   const initTab = route?.params?.tab === 'signup' ? 'register' : 'login';
@@ -69,6 +68,10 @@ export default function LoginScreen({ navigation, route }: any) {
       return;
     }
     const url = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT_URI)}&response_type=code`;
+    if (Platform.OS !== 'web') {
+      await WebBrowser.openBrowserAsync(url);
+      return;
+    }
     if (Platform.OS === 'web') {
       (window as any).location.href = url;
     } else {
