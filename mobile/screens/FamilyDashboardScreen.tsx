@@ -44,6 +44,10 @@ const DEMO_STATUS = {
     { medication_id:'2', scheduled_time:'12:00', taken: false, status:'skipped' },
   ],
   summary: { total: 4, taken: 2, skipped: 1, missed: [{ med_name:'혈압약', time:'20:00' }], alert_level:'warn', pct: 50 },
+  low_stock: [
+    { name:'혈압약', med_type:'처방약', remaining_qty: 4, days_left: 2, color:'#e57373' },
+    { name:'당뇨약', med_type:'처방약', remaining_qty:14, days_left: 7, color:'#64b5f6' },
+  ],
 };
 
 const DEMO_LOGS = {
@@ -211,6 +215,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
   const summary: any = s.summary || {};
   const meds: any[]  = (s.medications || []).filter((m: any) => !m.med_type || m.med_type === '처방약');
   const logs: any[]  = s.today_logs  || [];
+  const lowStock: any[] = s.low_stock || [];
 
   // 복용하지 않은 약 목록
   const notTaken = meds.flatMap(med =>
@@ -347,6 +352,28 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
             )}
           </View>
 
+          {/* ── 약 재고 부족 경고 ── */}
+          {lowStock.length > 0 && (
+            <View style={[ss.card, { borderLeftWidth: 4, borderLeftColor: C.red }]}>
+              <Text style={ss.cardTitle}>💊 약 재고 부족 알림</Text>
+              {lowStock.map((item: any, i: number) => (
+                <View key={i} style={ss.stockRow}>
+                  <View style={[ss.stockDot, { backgroundColor: item.color }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={ss.stockName}>{item.name}</Text>
+                    <Text style={ss.stockSub}>{item.remaining_qty}정 남음</Text>
+                  </View>
+                  <View style={[ss.stockBadge, item.days_left <= 3 && { backgroundColor: C.redLt }]}>
+                    <Text style={[ss.stockBadgeTxt, item.days_left <= 3 && { color: C.red }]}>
+                      {item.days_left === 0 ? '⚠️ 오늘 소진' : `${item.days_left}일치 남음`}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+              <Text style={ss.stockHint}>처방약 리필이 필요합니다. 병원/약국 방문을 확인해 주세요.</Text>
+            </View>
+          )}
+
           {/* ── 빠른 연락 ── */}
           <View style={ss.card}>
             <Text style={ss.cardTitle}>📲 빠른 연락</Text>
@@ -427,6 +454,16 @@ const ss = StyleSheet.create({
   mapEmptySub:  { fontSize:16, color:'#BABABA' },
   fullMapBtn:   { backgroundColor: C.blueCard, borderRadius:12, paddingVertical:11, alignItems:'center' },
   fullMapBtnTxt:{ fontSize:19, fontWeight:'700', color: C.blue2 },
+
+  // 재고 부족
+  stockRow:     { flexDirection:'row', alignItems:'center', gap:12, paddingVertical:10,
+                  borderBottomWidth:1, borderBottomColor: C.line },
+  stockDot:     { width:12, height:12, borderRadius:6 },
+  stockName:    { fontSize:18, fontWeight:'700', color: C.text },
+  stockSub:     { fontSize:15, color: C.sub, marginTop:2 },
+  stockBadge:   { backgroundColor: C.amberLt, borderRadius:10, paddingHorizontal:10, paddingVertical:4 },
+  stockBadgeTxt:{ fontSize:15, fontWeight:'700', color: C.amber },
+  stockHint:    { fontSize:14, color: C.sub, marginTop:10, lineHeight:20 },
 
   // 연락
   contactRow:   { flexDirection:'row', gap:10 },
