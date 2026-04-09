@@ -69,6 +69,7 @@
       "url": "https://u.expo.dev/2220b18b-fc03-4ccd-9e62-49dda3b0793f"
     },
     "plugins": [
+      "react-native-webview",
       "expo-font",
       "expo-web-browser"
     ],
