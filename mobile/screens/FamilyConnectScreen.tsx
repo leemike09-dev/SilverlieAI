@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   StatusBar, Platform, TextInput,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DEMO_MODE } from '../App';
 import SeniorTabBar from '../components/SeniorTabBar';
 
@@ -22,8 +23,8 @@ const C = {
 };
 
 export default function FamilyConnectScreen({ route, navigation }: any) {
-  const userId = route?.params?.userId || (DEMO_MODE ? 'demo-user' : '');
-  const name   = route?.params?.name   || '';
+  const [userId, setUserId] = useState<string>(route?.params?.userId || (DEMO_MODE ? 'demo-user' : ''));
+  const [name,   setName]   = useState<string>(route?.params?.name   || '');
 
   const [myCode,   setMyCode]   = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState('');
@@ -32,7 +33,19 @@ export default function FamilyConnectScreen({ route, navigation }: any) {
   const [loading,  setLoading]  = useState(false);
   const [msg,      setMsg]      = useState('');
 
-  useEffect(() => { fetchLinks(); }, []);
+  useEffect(() => {
+    // AsyncStorage에서 실제 로그인 유저 정보 로드
+    const loadUser = async () => {
+      const storedId   = await AsyncStorage.getItem('userId');
+      const storedName = await AsyncStorage.getItem('userName');
+      if (storedId && storedId !== 'demo-user') {
+        setUserId(storedId);
+        if (storedName) setName(storedName);
+      }
+    };
+    if (!DEMO_MODE) loadUser();
+    fetchLinks();
+  }, []);
 
   const fetchLinks = async () => {
     try {
