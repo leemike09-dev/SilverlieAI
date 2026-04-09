@@ -414,7 +414,7 @@ export default function HealthScreen({ route, navigation }: any) {
         </TouchableOpacity>
       </Modal>
     
-      <SeniorTabBar navigation={navigation} activeTab="health" userId={userId} name={name} />
+      <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={name} />
     </View>
   );
 }
