@@ -174,10 +174,10 @@ non-breaking space(\xa0) 포함 — 터미널 cd 불가
 - medications: med_type (처방약/영양제)
 
 ## 다음 할 일
-- [ ] EAS Android/iOS 빌드
-- [ ] 카카오 로그인 네이티브 앱 지원
 - [ ] 네이버 로그인
 - [ ] 백그라운드 위치 추적 (네이티브 빌드 후)
+- [ ] EAS iOS 빌드 (TestFlight)
+- [ ] Safari 백지 문제 수정
 
 ## 2026-04-08 추가 작업 (오후)
 - Expo Go 갤럭시 테스트 환경 구축
@@ -197,3 +197,21 @@ non-breaking space(\xa0) 포함 — 터미널 cd 불가
 - 무료 플랜: 15분 미사용 시 자동 절전
 - 해결: dashboard.render.com → Manual Deploy
 - 출시 전 /월 유료 플랜 전환 권장
+
+## 2026-04-09 완료 작업
+- 꿀비 이미지 복원 (웹: GitHub raw URL / APK: require 로컬 번들)
+- 전체 화면 SafeAreaProvider 추가 (App.tsx)
+- 전체 화면 StatusBar.currentHeight 기반 paddingTop 수정 (10개 화면)
+- SeniorTabBar 하단 Android 내비게이션바 insets 적용
+- expo-font 누락 패키지 추가 (EAS 빌드 오류 원인)
+- package-lock.json 동기화 (EAS npm ci 오류 해결)
+- 네이티브 카카오 로그인 구현 (expo-web-browser + silverliveai:// 딥링크)
+  - app.json scheme: silverliveai 추가
+  - index.html: 카카오 콜백 시 앱 딥링크 리다이렉트 추가
+  - LoginScreen: handleKakaoLogin async + WebBrowser.openBrowserAsync
+  - App.tsx: Linking.addEventListener로 카카오 코드 수신 후 로그인 처리
+- ProfileScreen phone 상태변수 누락 크래시 수정
+
+## 최신 APK (2026-04-09)
+- https://expo.dev/artifacts/eas/tUyyFy89y7pT6JUhjPHHUu.apk
+- 빌드 ID: e1fd7ce1-adbc-425e-9edb-e20efc99b840
