@@ -138,8 +138,8 @@ const s = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: -width * 0.05,
-    width: Platform.OS === 'web' ? 180 : width * 0.58,
-    height: Platform.OS === 'web' ? 180 : width * 0.58,
+    width: Platform.OS === 'web' ? 220 : width * 0.75,
+    height: Platform.OS === 'web' ? 220 : width * 0.75,
     opacity: 0.88,
   },
   beeImg: {
