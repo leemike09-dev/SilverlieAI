@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
+  View, Text, TouchableOpacity, StyleSheet, StatusBar,
   ScrollView, Platform, Animated, Alert,
 } from 'react-native';
 import { DEMO_MODE } from '../App';
@@ -381,7 +381,7 @@ const ss = StyleSheet.create({
   scroll: { padding: 16, paddingBottom: 16 },
 
   // 헤더
-  header:       { paddingTop: Platform.OS==='web' ? 20 : (0??28)+8,
+  header:       { paddingTop: Platform.OS==='web' ? 20 : (StatusBar.currentHeight??28)+8,
                   paddingHorizontal: 18, paddingBottom: 12 },
   headerTop:    { flexDirection:'row', alignItems:'center', marginBottom: 4, gap: 10 },
   backBtn:      { width:36, height:36, alignItems:'center', justifyContent:'center' },
@@ -426,12 +426,12 @@ const ss = StyleSheet.create({
   mapEmptyTxt:  { fontSize:18, color: C.sub, fontWeight:'600' },
   mapEmptySub:  { fontSize:16, color:'#BABABA' },
   fullMapBtn:   { backgroundColor: C.blueCard, borderRadius:12, paddingVertical:11, alignItems:'center' },
-  fullMapBtnTxt:{ fontSize:17, fontWeight:'700', color: C.blue2 },
+  fullMapBtnTxt:{ fontSize:19, fontWeight:'700', color: C.blue2 },
 
   // 연락
   contactRow:   { flexDirection:'row', gap:10 },
   contactBtn:   { flex:1, alignItems:'center', paddingVertical:14, borderRadius:16,
                   borderWidth:1.5, gap:5 },
   contactIcon:  { fontSize:22 },
-  contactLabel: { fontSize:15, fontWeight:'700' },
+  contactLabel: { fontSize:18, fontWeight:'700' },
 });
