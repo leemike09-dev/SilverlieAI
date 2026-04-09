@@ -285,13 +285,13 @@ const s = StyleSheet.create({
 
   // 헤더
   header:       { flexDirection:'row', alignItems:'center',
-                  paddingTop: Platform.OS==='web' ? 20 : (0??28)+8,
+                  paddingTop: Platform.OS==='web' ? 20 : (StatusBar.currentHeight??28)+8,
                   paddingHorizontal: 18, paddingBottom: 14, gap: 12 },
   backBtn:      { width:36, height:36, alignItems:'center', justifyContent:'center' },
   backTxt:      { color:'#fff', fontSize:28, fontWeight:'300', lineHeight:32 },
   headerCenter: { flex: 1 },
-  headerTitle:  { fontSize:22, fontWeight:'800', color:'#fff' },
-  headerSub:    { fontSize:14, color:'rgba(255,255,255,0.7)', marginTop:2 },
+  headerTitle:  { fontSize:26, fontWeight:'800', color:'#fff' },
+  headerSub:    { fontSize:16, color:'rgba(255,255,255,0.7)', marginTop:2 },
   onlineDot:    { width:10, height:10, borderRadius:5, backgroundColor:'#3DAB7B',
                   shadowColor:'#3DAB7B', shadowRadius:4, shadowOpacity:0.8 },
 
