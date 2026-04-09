@@ -1,14 +1,15 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, Animated, Platform,
-  Image, Dimensions,
+  Image, Dimensions, TouchableOpacity,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 export default function IntroScreen({ navigation }: any) {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim   = useRef(new Animated.Value(0)).current;
+  const slideAnim  = useRef(new Animated.Value(30)).current;
 
   const handleKakaoCallback = async (code: string): Promise<boolean> => {
     try {
@@ -30,14 +31,6 @@ export default function IntroScreen({ navigation }: any) {
 
   const goHome = async () => {
     try {
-      const kakaoCode = typeof sessionStorage !== 'undefined'
-        ? sessionStorage.getItem('kakao_auth_code') : null;
-      if (kakaoCode) {
-        sessionStorage.removeItem('kakao_auth_code');
-        const ok = await handleKakaoCallback(kakaoCode);
-        if (ok) return;
-      }
-      await AsyncStorage.setItem('intro_seen', '1');
       const userId   = await AsyncStorage.getItem('userId');
       const userName = await AsyncStorage.getItem('userName');
       if (userId && userId !== 'demo-user' && userName) {
@@ -51,23 +44,26 @@ export default function IntroScreen({ navigation }: any) {
   };
 
   useEffect(() => {
+    // 카카오 콜백 감지
     if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('kakao_auth_code')) {
-      goHome(); return;
+      const code = sessionStorage.getItem('kakao_auth_code')!;
+      sessionStorage.removeItem('kakao_auth_code');
+      handleKakaoCallback(code);
+      return;
     }
-    AsyncStorage.getItem('intro_seen').then(seen => {
-      if (seen) { goHome(); return; }
-      Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: true }).start(() => {
-        setTimeout(goHome, 2500);
-      });
-    });
+    // 페이드 + 슬라이드 인 애니메이션
+    Animated.parallel([
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 700, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
+    ]).start();
   }, []);
 
   const webOverlay: any = Platform.OS === 'web'
-    ? { background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(10,30,15,0.55) 55%, rgba(10,40,20,0.88) 100%)' }
+    ? { background: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(10,30,15,0.55) 50%, rgba(10,40,20,0.92) 100%)' }
     : {};
 
   return (
-    <Animated.View style={[s.root, { opacity: fadeAnim }]}>
+    <View style={s.root}>
       {/* 배경 이미지 */}
       <Image
         source={require('../assets/317F4D3D-D1AB-4AF4-A73A-3F265C3C19AE_1_105_c.jpeg')}
@@ -81,20 +77,21 @@ export default function IntroScreen({ navigation }: any) {
         : <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(10,40,20,0.52)' }]} />
       }
 
-      {/* 텍스트 */}
-      <View style={s.textArea}>
+      {/* 텍스트 + 버튼 */}
+      <Animated.View style={[s.textArea, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
         <View style={s.badge}>
           <Text style={s.badgeTxt}>✦ Silver Life AI</Text>
         </View>
         <Text style={s.title}>{'건강한 나,\n안심한 가족'}</Text>
         <Text style={s.sub}>AI 건강 동반자</Text>
-        <View style={s.dotsRow}>
-          {[0, 1, 2].map(i => (
-            <View key={i} style={[s.dot, i === 1 && s.dotActive]} />
-          ))}
-        </View>
-      </View>
-    </Animated.View>
+
+        {/* 시작하기 버튼 */}
+        <TouchableOpacity style={s.startBtn} onPress={goHome} activeOpacity={0.85}>
+          <Text style={s.startBtnTxt}>시작하기</Text>
+          <Text style={s.startArrow}>›</Text>
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -102,7 +99,7 @@ const s = StyleSheet.create({
   root:   { flex: 1, backgroundColor: '#1a2a1a' },
   bgImg:  { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
   textArea: {
-    position: 'absolute', left: 0, right: 0, bottom: 100,
+    position: 'absolute', left: 0, right: 0, bottom: 80,
     paddingHorizontal: 32, alignItems: 'center',
   },
   badge: {
@@ -112,17 +109,24 @@ const s = StyleSheet.create({
   },
   badgeTxt: { color: '#ffffff', fontSize: 15, fontWeight: '700', letterSpacing: 0.5 },
   title: {
-    color: '#ffffff', fontSize: 38, fontWeight: '800',
-    textAlign: 'center', lineHeight: 52, marginBottom: 12,
+    color: '#ffffff', fontSize: 40, fontWeight: '800',
+    textAlign: 'center', lineHeight: 54, marginBottom: 12,
     textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8,
   },
   sub: {
-    color: 'rgba(255,255,255,0.82)', fontSize: 16,
+    color: 'rgba(255,255,255,0.82)', fontSize: 17,
     textAlign: 'center', fontWeight: '500',
-    letterSpacing: 1.5, marginBottom: 28,
+    letterSpacing: 1.5, marginBottom: 40,
   },
-  dotsRow:   { flexDirection: 'row', gap: 8 },
-  dot:       { width: 8,  height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.35)' },
-  dotActive: { width: 22, height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.9)' },
+  startBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 30, paddingVertical: 16, paddingHorizontal: 48,
+    gap: 8, width: '100%',
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }, elevation: 6,
+  },
+  startBtnTxt: { color: '#1a3a2a', fontSize: 20, fontWeight: '800', letterSpacing: 0.5 },
+  startArrow:  { color: '#1a3a2a', fontSize: 26, fontWeight: '700' },
 });
