@@ -96,9 +96,6 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       {/* ── 본문 ── */}
       <View style={[s.inner, { paddingTop: insets.top + (Platform.OS === 'web' ? 16 : 12) }]}>
 
-        {/* 상단 여백 (꿀비 영역) */}
-        <View style={{ height: Platform.OS === 'web' ? Math.min(width * 0.34, 120) : width * 0.34 }} />
-
         {/* 타이틀 */}
         <Animated.View style={[s.titleWrap, { opacity: titleAnim }]}>
           <Text style={s.mainTitle}>{'건강한 나,\n안심한 가족'}</Text>
@@ -185,10 +182,12 @@ const s = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 22,
     paddingBottom: 8,
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
   },
 
   // 타이틀
-  titleWrap: { marginBottom: 14 },
+  titleWrap: { alignItems: 'center', marginBottom: 0 },
   mainTitle: {
     color: '#ffffff',
     fontSize: 30,
@@ -207,7 +206,7 @@ const s = StyleSheet.create({
   },
 
   // 카드
-  cards:     { gap: 8 },
+  cards:     { gap: 8, width: '100%' },
   card: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.13)',
