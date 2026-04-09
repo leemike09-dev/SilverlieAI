@@ -187,24 +187,24 @@ const s = StyleSheet.create({
   },
 
   // 타이틀
-  titleWrap: { alignSelf: 'flex-end', alignItems: 'flex-end', marginBottom: 0, paddingRight: 4 },
+  titleWrap: { alignItems: 'center', marginBottom: 0 },
   mainTitle: {
     color: '#ffffff',
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: '800',
-    lineHeight: 42,
+    lineHeight: 46,
     marginBottom: 8,
-    textAlign: 'right',
+    textAlign: 'center',
     textShadowColor: 'rgba(0,0,20,0.4)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
   },
   subtitle: {
     color: 'rgba(255,255,255,0.75)',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '500',
     letterSpacing: 1.5,
-    textAlign: 'right',
+    textAlign: 'center',
   },
 
   // 카드
