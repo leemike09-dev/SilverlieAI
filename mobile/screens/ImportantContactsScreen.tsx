@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, Platform, Alert, Linking, ActivityIndicator,
+  ScrollView, Platform, Alert, Linking, ActivityIndicator, StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -184,12 +184,12 @@ export default function ImportantContactsScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   header: {
     backgroundColor: '#1A4A8A',
-    paddingTop: Platform.OS === 'web' ? 30 : 52,
+    paddingTop: Platform.OS === 'web' ? 30 : (StatusBar.currentHeight ?? 28) + 8,
     paddingBottom: 16, paddingHorizontal: 16,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  backTxt:     { color: '#fff', fontSize: 16, fontWeight: '600' },
-  headerTitle: { color: '#fff', fontSize: 24, fontWeight: '800' },
+  backTxt:     { color: '#fff', fontSize: 18, fontWeight: '600' },
+  headerTitle: { color: '#fff', fontSize: 28, fontWeight: '800' },
 
   body: { padding: 16, paddingBottom: 60 },
 
@@ -197,14 +197,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#EBF3FB', borderRadius: 12, padding: 16,
     marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#1A4A8A',
   },
-  infoText: { fontSize: 15, color: '#1A4A8A', lineHeight: 22, fontWeight: '600' },
+  infoText: { fontSize: 17, color: '#1A4A8A', lineHeight: 24, fontWeight: '600' },
 
   emptyBox: {
     backgroundColor: '#fff', borderRadius: 16, padding: 40,
     alignItems: 'center', marginBottom: 16,
     borderWidth: 1, borderColor: '#DDE8F4',
   },
-  emptyText: { fontSize: 16, color: '#7A90A8', textAlign: 'center', lineHeight: 26 },
+  emptyText: { fontSize: 18, color: '#7A90A8', textAlign: 'center', lineHeight: 26 },
 
   listBlock: {
     backgroundColor: '#fff', borderRadius: 16,
@@ -216,14 +216,14 @@ const styles = StyleSheet.create({
   },
   contactIcon: { fontSize: 28, width: 36, textAlign: 'center' },
   contactInfo: { flex: 1 },
-  contactType:  { fontSize: 13, color: '#7A90A8', fontWeight: '600', marginBottom: 2 },
+  contactType:  { fontSize: 15, color: '#7A90A8', fontWeight: '600', marginBottom: 2 },
   contactName:  { fontSize: 18, fontWeight: '800', color: '#16273E', marginBottom: 2 },
-  contactPhone: { fontSize: 15, color: '#2272B8', fontWeight: '600' },
+  contactPhone: { fontSize: 17, color: '#2272B8', fontWeight: '600' },
   callBtn: {
     backgroundColor: '#1A4A8A', borderRadius: 10,
     paddingVertical: 8, paddingHorizontal: 12,
   },
-  callBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  callBtnTxt: { color: '#fff', fontSize: 16, fontWeight: '700' },
   deleteBtn: { padding: 8 },
   deleteBtnTxt: { fontSize: 18, color: '#B8CCE0', fontWeight: '700' },
 
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   chip:    { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20,
              backgroundColor: '#F0F5FB', borderWidth: 1, borderColor: '#DDE8F4' },
   chipOn:  { backgroundColor: '#1A4A8A', borderColor: '#1A4A8A' },
-  chipTxt:   { fontSize: 14, fontWeight: '600', color: '#7A90A8' },
+  chipTxt:   { fontSize: 16, fontWeight: '600', color: '#7A90A8' },
   chipTxtOn: { color: '#fff' },
   formBtns: { flexDirection: 'row', gap: 12, marginTop: 20 },
   cancelBtn: {
