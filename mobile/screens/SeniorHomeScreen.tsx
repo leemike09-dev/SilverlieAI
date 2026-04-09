@@ -99,7 +99,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       <View style={[s.inner, { paddingTop: insets.top + (Platform.OS === 'web' ? 16 : 12) }]}>
 
         {/* 상단 여백 (꿀비 영역) */}
-        <View style={{ height: width * 0.45 }} />
+        <View style={{ height: width * 0.28 }} />
 
         {/* 타이틀 */}
         <Animated.View style={[s.titleWrap, { opacity: titleAnim }]}>
@@ -142,8 +142,8 @@ const s = StyleSheet.create({
   beeWrap: {
     position: 'absolute',
     top: 0, left: 0,
-    width: width * 0.72,
-    height: width * 0.72,
+    width: width * 0.48,
+    height: width * 0.48,
   },
   beeImg: {
     width: '100%',
