@@ -157,8 +157,8 @@ const styles = StyleSheet.create({
     backgroundColor: GREEN,
     paddingHorizontal: 20, paddingTop: Platform.OS === 'web' ? 16 : (StatusBar.currentHeight ?? 28) + 4, paddingBottom: 20,
   },
-  headerSub:   { color: 'rgba(255,255,255,0.75)', fontSize: 14, marginBottom: 4 },
-  headerTitle: { color: '#fff', fontSize: 24, fontWeight: '800' },
+  headerSub:   { color: 'rgba(255,255,255,0.75)', fontSize: 16, marginBottom: 4 },
+  headerTitle: { color: '#fff', fontSize: 28, fontWeight: '800' },
   /* Hero Banner */
   heroBanner: {
     margin: 16, borderRadius: 18,
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start', borderRadius: 12,
     paddingHorizontal: 10, paddingVertical: 4, marginBottom: 10,
   },
-  heroTagText:  { color: '#fff', fontSize: 13, fontWeight: '600' },
+  heroTagText:  { color: '#fff', fontSize: 15, fontWeight: '600' },
   heroTitle:    { color: '#fff', fontSize: 24, fontWeight: '800', marginBottom: 6 },
   heroSub:      { color: 'rgba(255,255,255,0.9)', fontSize: 17, marginBottom: 12 },
   heroMeta:     { backgroundColor: 'rgba(0,0,0,0.12)', borderRadius: 10, padding: 8, marginBottom: 14 },
@@ -184,8 +184,8 @@ const styles = StyleSheet.create({
 
   /* Section header */
   sectionRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16, marginTop: 8, marginBottom: 10 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1A4A8A' },
-  sectionMore:  { fontSize: 14, color: '#2272B8' },
+  sectionTitle: { fontSize: 20, fontWeight: '700', color: '#1A4A8A' },
+  sectionMore:  { fontSize: 16, color: '#2272B8' },
 
   /* 2×2 Grid */
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: 12, gap: 10, marginBottom: 16 },
@@ -198,8 +198,8 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   gridIcon:  { fontSize: 34, marginBottom: 10 },
-  gridTitle: { fontSize: 17, fontWeight: '700', color: '#1A4A8A', marginBottom: 4 },
-  gridSub:   { fontSize: 13, color: '#7A90A8', lineHeight: 18 },
+  gridTitle: { fontSize: 19, fontWeight: '700', color: '#1A4A8A', marginBottom: 4 },
+  gridSub:   { fontSize: 15, color: '#7A90A8', lineHeight: 20 },
 
   /* Lecture Cards */
   lectureCard: {
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   },
   lectureIcon:  { fontSize: 22 },
   lectureText:  { flex: 1 },
-  lectureTitle: { fontSize: 17, fontWeight: '700', color: '#16273E', marginBottom: 4 },
-  lectureSub:   { fontSize: 14, color: '#7A90A8' },
+  lectureTitle: { fontSize: 19, fontWeight: '700', color: '#16273E', marginBottom: 4 },
+  lectureSub:   { fontSize: 16, color: '#7A90A8' },
   lectureArrow: { fontSize: 22, color: '#b0bec5', marginLeft: 8 },
 });
