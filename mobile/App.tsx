@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, createRef, useState } from 'react';
 import { Platform } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -106,6 +107,7 @@ export default function App() {
   const handleNavigationReady = () => setNavReady(true);
 
   return (
+    <SafeAreaProvider>
     <LanguageProvider>
       <NavigationContainer ref={navigationRef} onReady={handleNavigationReady}>
         <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Intro">
@@ -138,5 +140,6 @@ export default function App() {
         </Stack.Navigator>
       </NavigationContainer>
     </LanguageProvider>
+    </SafeAreaProvider>
   );
 }

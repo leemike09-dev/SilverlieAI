@@ -1,3 +1,4 @@
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,9 +20,10 @@ const TABS: { icon: keyof typeof Ionicons.glyphMap; lbl: string; screen: string;
 ];
 
 export default function SeniorTabBar({ navigation, activeTab, userId, name }: Props) {
+  const insets = useSafeAreaInsets();
   return (
     <View style={{ flexDirection: 'row', backgroundColor: '#FFFFFF',
-      borderTopWidth: 1, borderTopColor: '#F0EDE8', paddingTop: 10, paddingBottom: 14 }}>
+      borderTopWidth: 1, borderTopColor: '#F0EDE8', paddingTop: 10, paddingBottom: Math.max(14, insets.bottom + 6) }}>
       {TABS.map(tab => {
         const active = tab.key === activeTab;
         return (

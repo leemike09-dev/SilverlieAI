@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import SeniorTabBar from '../components/SeniorTabBar';
-import {
+import { StatusBar,
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, SafeAreaView, Dimensions, Linking, ActivityIndicator, Platform,
 } from 'react-native';
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
   /* Header */
   header: {
     backgroundColor: GREEN,
-    paddingHorizontal: 20, paddingTop: Platform.OS === 'web' ? 16 : (0 ?? 28) + 4, paddingBottom: 20,
+    paddingHorizontal: 20, paddingTop: Platform.OS === 'web' ? 16 : (StatusBar.currentHeight ?? 28) + 4, paddingBottom: 20,
   },
   headerSub:   { color: 'rgba(255,255,255,0.75)', fontSize: 14, marginBottom: 4 },
   headerTitle: { color: '#fff', fontSize: 24, fontWeight: '800' },

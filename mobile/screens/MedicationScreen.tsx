@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
+import { StatusBar,
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   Modal, TextInput, Platform, Alert, Animated,
 } from 'react-native';
@@ -463,7 +463,7 @@ const s = StyleSheet.create({
   root:   { flex: 1, backgroundColor: C.bg },
   header: {
     paddingHorizontal: 22,
-    paddingTop: Platform.OS === 'web' ? 22 : (0 ?? 28) + 10,
+    paddingTop: Platform.OS === 'web' ? 22 : (StatusBar.currentHeight ?? 28) + 10,
     paddingBottom: 18,
     ...(Platform.OS === 'web'
       ? { background: 'linear-gradient(135deg, #1A4A8A 0%, #2272B8 100%)' } as any

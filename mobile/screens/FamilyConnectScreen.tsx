@@ -190,7 +190,7 @@ export default function FamilyConnectScreen({ route, navigation }: any) {
 const s = StyleSheet.create({
   root:          { flex: 1, backgroundColor: C.bg },
   header:        { backgroundColor: C.sky, paddingHorizontal: 22,
-                   paddingTop: Platform.OS === 'web' ? 22 : (0 ?? 28) + 10,
+                   paddingTop: Platform.OS === 'web' ? 22 : (StatusBar.currentHeight ?? 28) + 10,
                    paddingBottom: 24 },
   headerTitle:   { fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 4 },
   headerSub:     { fontSize: 14, color: 'rgba(255,255,255,0.75)' },

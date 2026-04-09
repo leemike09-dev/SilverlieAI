@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import {
+import { StatusBar,
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Linking,
 } from 'react-native';
@@ -198,7 +198,7 @@ const s = StyleSheet.create({
   },
   scroll:      { flexGrow: 1 },
   // 헤더
-  header:      { backgroundColor: '#1a5fbc', paddingTop: Platform.OS === 'web' ? 20 : (0 ?? 28) + 8, paddingBottom: 28, paddingHorizontal: 22, alignItems: 'center' },
+  header:      { backgroundColor: '#1a5fbc', paddingTop: Platform.OS === 'web' ? 20 : (StatusBar.currentHeight ?? 28) + 8, paddingBottom: 28, paddingHorizontal: 22, alignItems: 'center' },
   appName:     { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 4 },
   appSub:      { fontSize: 13, color: 'rgba(255,255,255,0.72)' },
   // 바디
