@@ -136,10 +136,10 @@ const s = StyleSheet.create({
   // 꿀비 배경
   beeWrap: {
     position: 'absolute',
-    top: 0, left: 0,
-    width: Platform.OS === 'web' ? Math.min(width * 0.62, 200) : width * 0.62,
-    height: Platform.OS === 'web' ? Math.min(width * 0.62, 200) : width * 0.62,
-    opacity: 0.92,
+    top: 0, left: -width * 0.08,
+    width: Platform.OS === 'web' ? Math.min(width * 0.55, 180) : width * 0.55,
+    height: Platform.OS === 'web' ? Math.min(width * 0.55, 180) : width * 0.55,
+    opacity: 0.90,
   },
   beeImg: {
     width: '100%',
@@ -187,37 +187,39 @@ const s = StyleSheet.create({
   },
 
   // 타이틀
-  titleWrap: { alignItems: 'center', marginBottom: 0 },
+  titleWrap: { alignSelf: 'flex-end', alignItems: 'flex-end', marginBottom: 0, paddingRight: 4 },
   mainTitle: {
     color: '#ffffff',
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: '800',
-    lineHeight: 38,
-    marginBottom: 6,
+    lineHeight: 42,
+    marginBottom: 8,
+    textAlign: 'right',
     textShadowColor: 'rgba(0,0,20,0.4)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
   },
   subtitle: {
     color: 'rgba(255,255,255,0.75)',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '500',
     letterSpacing: 1.5,
+    textAlign: 'right',
   },
 
   // 카드
-  cards:     { gap: 8, width: '100%' },
+  cards:     { gap: 10, width: '100%' },
   card: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.13)',
-    borderRadius: 16, paddingVertical: 12, paddingHorizontal: 16,
-    gap: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 20, paddingVertical: 16, paddingHorizontal: 20,
+    gap: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
   },
-  cardIcon:  { fontSize: 28 },
+  cardIcon:  { fontSize: 34 },
   cardText:  { flex: 1 },
-  cardTitle: { color: '#ffffff', fontSize: 17, fontWeight: '700', marginBottom: 2 },
-  cardSub:   { color: 'rgba(255,255,255,0.7)', fontSize: 13 },
-  cardArrow: { color: 'rgba(255,255,255,0.5)', fontSize: 24 },
+  cardTitle: { color: '#ffffff', fontSize: 20, fontWeight: '700', marginBottom: 4 },
+  cardSub:   { color: 'rgba(255,255,255,0.75)', fontSize: 15 },
+  cardArrow: { color: 'rgba(255,255,255,0.5)', fontSize: 28 },
 
   // 위치 배지
   locBadge: {
