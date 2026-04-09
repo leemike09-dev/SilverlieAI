@@ -2,7 +2,7 @@ import * as WebBrowser from 'expo-web-browser';
 import React, { useState } from 'react';
 import { StatusBar,
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Linking,
+  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -82,7 +82,7 @@ export default function LoginScreen({ navigation, route }: any) {
 
           {/* 헤더 */}
           <View style={s.header}>
-<Text style={s.appName}>🌿 Silver Life</Text>
+            <Text style={s.appName}>🌿 Silver Life</Text>
             <Text style={s.appSub}>시니어를 위한 AI 건강 파트너</Text>
           </View>
 
@@ -115,7 +115,7 @@ export default function LoginScreen({ navigation, route }: any) {
                 </View>
               </View>
             )}
-        {mode === 'register' && (
+            {mode === 'register' && (
               <View style={s.fieldWrap}>
                 <Text style={s.label}>이름</Text>
                 <TextInput style={s.input} placeholder="이름을 입력하세요" placeholderTextColor="#b0bec5"
@@ -198,40 +198,40 @@ const s = StyleSheet.create({
   scroll:      { flexGrow: 1 },
   // 헤더
   header:      { backgroundColor: '#1a5fbc', paddingTop: Platform.OS === 'web' ? 20 : (StatusBar.currentHeight ?? 28) + 8, paddingBottom: 28, paddingHorizontal: 22, alignItems: 'center' },
-  appName:     { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  appSub:      { fontSize: 13, color: 'rgba(255,255,255,0.72)' },
+  appName:     { fontSize: 32, fontWeight: '800', color: '#fff', marginBottom: 6 },
+  appSub:      { fontSize: 17, color: 'rgba(255,255,255,0.72)' },
   // 바디
   body:        { padding: 22, paddingTop: 20 },
   // 탭
   tabs:        { flexDirection: 'row', backgroundColor: '#e8ecf5', borderRadius: 14, padding: 3, marginBottom: 20 },
-  tab:         { flex: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 11 },
+  tab:         { flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 11 },
   tabActive:   { backgroundColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
-  tabTxt:      { fontSize: 15, fontWeight: '700', color: '#90a4ae' },
+  tabTxt:      { fontSize: 18, fontWeight: '700', color: '#90a4ae' },
   tabTxtActive:{ color: '#1a5fbc' },
   // 필드
-  fieldWrap:   { marginBottom: 14 },
-  label:       { fontSize: 12, fontWeight: '700', color: '#1a5fbc', marginBottom: 6 },
-  input:       { backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e0e8f8', borderRadius: 13, padding: 14, fontSize: 15, color: '#1a2a3a' },
-  errorBox:    { backgroundColor: '#fee2e2', borderRadius: 10, padding: 12, marginBottom: 10 },
-  errorTxt:    { color: '#c0392b', fontSize: 13, textAlign: 'center' },
+  fieldWrap:   { marginBottom: 16 },
+  label:       { fontSize: 15, fontWeight: '700', color: '#1a5fbc', marginBottom: 8 },
+  input:       { backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e0e8f8', borderRadius: 13, padding: 16, fontSize: 18, color: '#1a2a3a' },
+  errorBox:    { backgroundColor: '#fee2e2', borderRadius: 10, padding: 14, marginBottom: 12 },
+  errorTxt:    { color: '#c0392b', fontSize: 16, textAlign: 'center' },
   // 버튼
-  mainBtn:     { backgroundColor: '#1a5fbc', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 18, shadowColor: '#1a5fbc', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 5 },
-  mainBtnTxt:  { fontSize: 16, fontWeight: '800', color: '#fff' },
+  mainBtn:     { backgroundColor: '#1a5fbc', borderRadius: 14, paddingVertical: 18, alignItems: 'center', marginBottom: 18, shadowColor: '#1a5fbc', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 5 },
+  mainBtnTxt:  { fontSize: 20, fontWeight: '800', color: '#fff' },
   // 소셜
   divider:     { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
   divLine:     { flex: 1, height: 1, backgroundColor: '#dde3ee' },
-  divTxt:      { fontSize: 11, color: '#b0bec5' },
+  divTxt:      { fontSize: 14, color: '#b0bec5' },
   socialRow:   { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  socialBtn:   { flex: 1, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
-  socialTxt:   { fontSize: 13, fontWeight: '700', color: '#333' },
+  socialBtn:   { flex: 1, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+  socialTxt:   { fontSize: 16, fontWeight: '700', color: '#333' },
   // 찾기
   findRow:     { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
-  findTxt:     { fontSize: 13, color: '#78909c' },
-  findSep:     { fontSize: 13, color: '#dde3ee' },
-  homeBtn:     { marginTop: 14, backgroundColor: '#f0f2f7', borderRadius: 14, paddingVertical: 15, alignItems: 'center', borderWidth: 1.5, borderColor: '#dde3ee' },
-  homeBtnTxt:  { fontSize: 15, fontWeight: '700', color: '#546e7a' },
-  roleBtn:    { flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: '#f0f4f8', alignItems: 'center', borderWidth: 2, borderColor: '#f0f4f8' },
+  findTxt:     { fontSize: 16, color: '#78909c' },
+  findSep:     { fontSize: 16, color: '#dde3ee' },
+  homeBtn:     { marginTop: 14, backgroundColor: '#f0f2f7', borderRadius: 14, paddingVertical: 17, alignItems: 'center', borderWidth: 1.5, borderColor: '#dde3ee' },
+  homeBtnTxt:  { fontSize: 18, fontWeight: '700', color: '#546e7a' },
+  roleBtn:    { flex: 1, paddingVertical: 14, borderRadius: 10, backgroundColor: '#f0f4f8', alignItems: 'center', borderWidth: 2, borderColor: '#f0f4f8' },
   roleBtnOn:  { backgroundColor: '#e8f0fe', borderColor: '#1a5fbc' },
-  roleTxt:    { fontSize: 14, fontWeight: '600', color: '#666' },
+  roleTxt:    { fontSize: 17, fontWeight: '600', color: '#666' },
   roleTxtOn:  { color: '#1a5fbc' },
 });
