@@ -2,7 +2,7 @@ import os
 import anthropic
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from dotenv import load_dotenv
 from ..database import get_supabase
 
@@ -10,7 +10,7 @@ load_dotenv()
 
 router = APIRouter()
 
-BASE_SYSTEM = """당신은 Silver Life AI의 건강 도우미입니다.
+BASE_SYSTEM = """당신은 Silver Life AI의 건강 도우미 '꿀비'입니다.
 60세 이상 시니어를 위한 건강 모니터링과 생활 조언을 제공합니다.
 
 답변 규칙 (반드시 준수):
@@ -18,8 +18,25 @@ BASE_SYSTEM = """당신은 Silver Life AI의 건강 도우미입니다.
 2. 인사말에는 한 줄로만 반갑게 답하고 바로 끝내세요.
 3. 건강 질문 구조: 공감 한 줄 → 핵심 조언 한 줄 → 실천 방법 한 줄 → "더 궁금한 점 있으시면 말씀해주세요 😊"
 4. 쉽고 친근한 언어, 어려운 의학 용어 사용 금지.
-5. 의학적 진단은 하지 않으며, 심각한 증상이면 의사 상담을 권유하세요.
-6. 자기소개, 장황한 설명 절대 금지."""
+5. 자기소개, 장황한 설명 절대 금지.
+
+💬 공감 표현 다양화 (매번 같은 표현 반복 금지):
+- "그러셨군요, 많이 불편하셨겠어요"
+- "오래 그러셨다면 신경이 많이 쓰이셨겠네요"
+- "그런 증상이 있으시면 걱정되셨을 것 같아요"
+- "말씀해 주셔서 잘하셨어요, 함께 살펴볼게요"
+- "자주 그런 느낌이 드시면 몸이 신호를 보내는 거예요"
+- "몸이 많이 피곤하셨군요, 잘 쉬시는 게 중요해요"
+- "그 나이에 그런 증상은 주의가 필요해요"
+- "작은 변화도 놓치지 않고 물어봐 주셔서 좋아요"
+- 같은 대화에서 같은 공감 표현은 두 번 쓰지 마세요.
+
+⚠️ 의료 안전 규칙 (최우선):
+- 흉통, 호흡곤란, 갑작스러운 마비/저림, 심한 두통, 의식 저하 → 즉시 "119에 전화하세요!" 안내
+- 진단, 처방, 약물 용량 변경은 절대 하지 말 것
+- 증상이 2일 이상 지속되거나 악화되면 반드시 병원 방문 권유
+- 모든 의료 조언 끝에: "⚕️ 정확한 진단은 의사 선생님께 꼭 확인하세요"
+- AI의 답변은 참고용이며 의료 행위를 대체할 수 없음을 항상 인지"""
 
 
 def build_system_prompt(user: dict) -> str:
@@ -73,10 +90,16 @@ def build_system_prompt(user: dict) -> str:
     return "\n".join(lines)
 
 
+class HistoryMessage(BaseModel):
+    role: str   # "user" or "assistant"
+    content: str
+
+
 class ChatRequest(BaseModel):
     message: str
     user_id: Optional[str] = None
     language: str = "ko"
+    history: Optional[List[HistoryMessage]] = []
 
 
 @router.post("/chat")
@@ -94,15 +117,20 @@ def chat(request: ChatRequest):
             if result.data:
                 system_prompt = build_system_prompt(result.data[0])
         except Exception:
-            pass  # 프로필 조회 실패해도 기본 프롬프트로 계속
+            pass
+
+    # 대화 히스토리 구성 (최대 10개)
+    history = request.history or []
+    messages = [{"role": m.role, "content": m.content} for m in history[-10:]]
+    messages.append({"role": "user", "content": request.message})
 
     try:
         client = anthropic.Anthropic(api_key=api_key)
         response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model="claude-sonnet-4-6",
             max_tokens=1024,
             system=system_prompt,
-            messages=[{"role": "user", "content": request.message}],
+            messages=messages,
         )
         return {"reply": response.content[0].text}
     except Exception as e:
