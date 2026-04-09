@@ -145,7 +145,7 @@ const s = StyleSheet.create({
     top: 0, left: 0,
     width: Platform.OS === 'web' ? Math.min(width * 0.62, 200) : width * 0.62,
     height: Platform.OS === 'web' ? Math.min(width * 0.62, 200) : width * 0.62,
-    opacity: 0.88,
+    opacity: 0.92,
   },
   beeImg: {
     width: '100%',
