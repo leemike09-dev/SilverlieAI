@@ -186,8 +186,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 22,
     paddingBottom: 8,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 20,
+    justifyContent: 'flex-end',
+    gap: 16,
+    paddingBottom: 24,
   },
 
   // 타이틀
