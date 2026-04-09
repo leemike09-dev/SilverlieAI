@@ -193,7 +193,7 @@ export default function DashboardScreen({ route, navigation }: any) {
         </ScrollView>
       </Animated.View>
 
-      <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={name} />
+      <SeniorTabBar navigation={navigation} activeTab="health" userId={userId} name={name} />
     </View>
   );
 }
@@ -208,8 +208,8 @@ const s = StyleSheet.create({
     paddingHorizontal: 22, paddingBottom: 14,
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.2)',
   },
-  headerSub:   { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginBottom: 2 },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
+  headerSub:   { fontSize: 16, color: 'rgba(255,255,255,0.75)', marginBottom: 2 },
+  headerTitle: { fontSize: 28, fontWeight: '800', color: '#fff' },
 
   scroll: { padding: 18, gap: 16, paddingBottom: 24 },
 
@@ -226,13 +226,13 @@ const s = StyleSheet.create({
   scoreBadgeTxt:   { fontSize: 13, fontWeight: '700' },
 
   weekChart:      { flex: 1 },
-  weekChartTitle: { fontSize: 14, color: C.sub, fontWeight: '600', marginBottom: 8 },
+  weekChartTitle: { fontSize: 16, color: C.sub, fontWeight: '600', marginBottom: 8 },
   chartBars:      { flexDirection: 'row', alignItems: 'flex-end', height: 56, gap: 3, marginBottom: 6 },
   chartCol:       { flex: 1, alignItems: 'center', gap: 3 },
   chartBarWrap:   { flex: 1, width: '100%', justifyContent: 'flex-end', borderRadius: 4, overflow: 'hidden', backgroundColor: C.line },
   chartBar:       { width: '100%', borderRadius: 4 },
-  chartDay:       { fontSize: 11, color: C.sub },
-  scoreChange:    { fontSize: 14, color: C.sage, fontWeight: '700' },
+  chartDay:       { fontSize: 13, color: C.sub },
+  scoreChange:    { fontSize: 15, color: C.sage, fontWeight: '700' },
 
   // AI 카드
   aiCard:       { backgroundColor: C.sageLt, borderRadius: 20, padding: 18, borderLeftWidth: 3, borderLeftColor: C.sage },
@@ -247,10 +247,10 @@ const s = StyleSheet.create({
   pointsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   pointCard:  { width: '47%', borderRadius: 18, padding: 16, alignItems: 'center', gap: 6 },
   pointIcon:  { fontSize: 28 },
-  pointLabel: { fontSize: 14, color: C.sub, fontWeight: '600' },
-  pointValue: { fontSize: 20, fontWeight: '900' },
+  pointLabel: { fontSize: 16, color: C.sub, fontWeight: '600' },
+  pointValue: { fontSize: 22, fontWeight: '900' },
   pointBadge: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 3 },
-  pointBadgeTxt: { fontSize: 13, fontWeight: '700' },
+  pointBadgeTxt: { fontSize: 15, fontWeight: '700' },
 
   // 추천
   recList: { gap: 10 },
