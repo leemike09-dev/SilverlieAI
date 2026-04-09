@@ -214,7 +214,7 @@ export default function HealthScreen({ route, navigation }: any) {
       {/* 헤더 */}
       <View style={s.header}>
         <View style={s.headerTitleRow}>
-<Text style={{fontSize:24}}>🫀</Text>
+          <Text style={{ fontSize: 28 }}>🫀</Text>
           <Text style={s.headerTitle}>건강</Text>
         </View>
         <View style={s.tabRow}>
@@ -414,7 +414,7 @@ export default function HealthScreen({ route, navigation }: any) {
         </TouchableOpacity>
       </Modal>
     
-      <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={name} />
+      <SeniorTabBar navigation={navigation} activeTab="health" userId={userId} name={name} />
     </View>
   );
 }
@@ -426,11 +426,11 @@ const s = StyleSheet.create({
   header:       { paddingTop: Platform.OS === 'web' ? 14 : (StatusBar.currentHeight ?? 28) + 8, paddingHorizontal: 18, paddingBottom: 0, backgroundColor: '#1A4A8A' },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 12 },
 
-  headerTitle:    { fontSize: 20, fontWeight: '800', color: '#fff' },
+  headerTitle:    { fontSize: 26, fontWeight: '800', color: '#fff' },
   tabRow:       { flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: 'rgba(255,255,255,0.25)' },
-  tab:          { flex: 1, alignItems: 'center', paddingVertical: 9 },
+  tab:          { flex: 1, alignItems: 'center', paddingVertical: 12 },
   tabActive:    { borderBottomWidth: 2.5, borderBottomColor: '#fff', marginBottom: -2 },
-  tabTxt:       { fontSize: 16, fontWeight: '600', color: 'rgba(255,255,255,0.55)' },
+  tabTxt:       { fontSize: 18, fontWeight: '600', color: 'rgba(255,255,255,0.55)' },
   tabTxtActive: { color: '#fff' },
 
   body:        { flex: 1 },
@@ -490,8 +490,8 @@ const s = StyleSheet.create({
 
   // 기록하기 버튼
   recordBtn:    { backgroundColor: '#fff', borderRadius: 14, borderWidth: 2, borderColor: '#1565c0',
-                  padding: 13, alignItems: 'center' },
-  recordBtnTxt: { fontSize: 16, fontWeight: '700', color: '#1565c0' },
+                  padding: 15, alignItems: 'center' },
+  recordBtnTxt: { fontSize: 18, fontWeight: '700', color: '#1565c0' },
 
   // 웨어러블 박스 2개
   wearRow:       { flexDirection: 'row', gap: 10 },
