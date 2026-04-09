@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  StatusBar, Platform, Animated, Image, ScrollView,
+  Platform, Animated, Image, ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SeniorTabBar from '../components/SeniorTabBar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DEMO_MODE } from '../App';
 
 const API = 'https://silverlieai.onrender.com';
@@ -12,6 +13,7 @@ const API = 'https://silverlieai.onrender.com';
 
 
 export default function SeniorHomeScreen({ route, navigation }: any) {
+  const insets = useSafeAreaInsets();
   const userId = route?.params?.userId || (DEMO_MODE ? 'demo-user' : '');
   const name   = route?.params?.name   || (DEMO_MODE ? '홍길동' : '');
 
@@ -117,7 +119,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       <View style={s.circleSmall} />
 
       <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
-      <Animated.View style={[s.inner, { opacity: fadeAnim }]}>
+      <Animated.View style={[s.inner, { opacity: fadeAnim, paddingTop: insets.top + (Platform.OS === 'web' ? 16 : 8) }]}>
 
         {/* 꿀비 캐릭터 */}
         <Animated.View style={[s.charWrap, {
@@ -125,7 +127,9 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           transform: [{ translateY: charY }],
         }]}>
           <Image
-            source={{uri: 'https://via.placeholder.com/36'}}
+            source={Platform.OS === 'web'
+              ? { uri: 'https://raw.githubusercontent.com/leemike09-dev/SilverlieAI/main/mobile/assets/EDFA500D-1920-4E9B-A3CA-5C105D320158_1_105_c.jpeg' }
+              : require('../assets/EDFA500D-1920-4E9B-A3CA-5C105D320158_1_105_c.jpeg')}
             style={s.beeImg}
             resizeMode="contain"
           />
@@ -193,7 +197,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'web' ? 16 : 24,
+    paddingTop: 0,
     paddingBottom: 16,
     gap: 0,
   },
