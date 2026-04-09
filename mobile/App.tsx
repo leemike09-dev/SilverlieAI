@@ -28,7 +28,6 @@ import MedicationScreen from './screens/MedicationScreen';
 import FamilyConnectScreen from './screens/FamilyConnectScreen';
 import FamilyDashboardScreen from './screens/FamilyDashboardScreen';
 import LocationMapScreen     from './screens/LocationMapScreen';
-import ProfileEditScreen    from './screens/ProfileEditScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import ImportantContactsScreen from './screens/ImportantContactsScreen';
 
@@ -153,7 +152,6 @@ export default function App() {
           <Stack.Screen name="FamilyConnect" component={FamilyConnectScreen} initialParams={DEMO} />
           <Stack.Screen name="FamilyDashboard" component={FamilyDashboardScreen} initialParams={DEMO} />
           <Stack.Screen name="LocationMap"    component={LocationMapScreen}    initialParams={DEMO} />
-          <Stack.Screen name="ProfileEdit"    component={ProfileEditScreen}    />
           <Stack.Screen name="Profile"              component={ProfileScreen}             />
           <Stack.Screen name="ImportantContacts"  component={ImportantContactsScreen}  />
         </Stack.Navigator>
