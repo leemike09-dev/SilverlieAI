@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
+  TextInput, KeyboardAvoidingView, Platform,
   StatusBar, Image, Animated,
 } from 'react-native';
 import SeniorTabBar from '../components/SeniorTabBar';
@@ -57,6 +57,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const scrollRef = useRef<ScrollView>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const recognitionRef = useRef<any>(null);
+  const silenceTimerRef = useRef<any>(null);
+  const interimTextRef = useRef<string>('');
 
   useEffect(() => {
     scrollRef.current?.scrollToEnd({ animated: true });
@@ -109,30 +111,53 @@ export default function AIChatScreen({ route, navigation }: Props) {
     }
   };
 
+  const stopVoice = () => {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    if (recognitionRef.current) recognitionRef.current.stop();
+    setIsRecording(false);
+  };
+
   const toggleVoice = () => {
     if (Platform.OS !== 'web') return;
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) {
-      setMsgs(prev => [...prev, { role: 'ai', text: '이 브라우저는 음성 인식을 지원하지 않아요.\nChrome을 사용해 주세요.' }]);
+      setMsgs((prev: Msg[]) => [...prev, { role: 'ai', text: '이 브라우저는 음성 인식을 지원하지 않아요.\nChrome을 사용해 주세요.' }]);
       return;
     }
-    if (isRecording && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-      return;
-    }
+    if (isRecording) { stopVoice(); return; }
+
+    interimTextRef.current = '';
     const recognition = new SR();
     recognition.lang = 'ko-KR';
-    recognition.interimResults = false;
+    recognition.continuous = true;       // 한 문장 끝나도 계속 듣기
+    recognition.interimResults = true;   // 중간 결과도 받기
     recognition.maxAlternatives = 1;
     recognitionRef.current = recognition;
-    recognition.onstart  = () => setIsRecording(true);
-    recognition.onend    = () => setIsRecording(false);
-    recognition.onerror  = () => setIsRecording(false);
+
+    recognition.onstart = () => setIsRecording(true);
+    recognition.onend   = () => setIsRecording(false);
+    recognition.onerror = () => { setIsRecording(false); };
+
     recognition.onresult = (e: any) => {
-      const transcript = e.results[0][0].transcript;
-      setInput(transcript);
+      let finalText = '';
+      let interimText = '';
+      for (let i = 0; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          finalText += e.results[i][0].transcript;
+        } else {
+          interimText += e.results[i][0].transcript;
+        }
+      }
+      const combined = (finalText + interimText).trim();
+      if (combined) setInput(combined);
+
+      // 말이 멈추면 1.5초 후 자동 종료
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = setTimeout(() => {
+        stopVoice();
+      }, 1500);
     };
+
     recognition.start();
   };
 
