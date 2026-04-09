@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, Platform, Alert, ActivityIndicator,
+  ScrollView, Platform, Alert, ActivityIndicator, StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -324,12 +324,12 @@ export default function ProfileScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   header: {
     backgroundColor: '#1A4A8A',
-    paddingTop: Platform.OS === 'web' ? 30 : 52,
+    paddingTop: Platform.OS === 'web' ? 30 : (StatusBar.currentHeight ?? 28) + 8,
     paddingBottom: 16, paddingHorizontal: 16,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  backTxt:     { color: '#fff', fontSize: 16, fontWeight: '600' },
-  headerTitle: { color: '#fff', fontSize: 24, fontWeight: '800' },
+  backTxt:     { color: '#fff', fontSize: 18, fontWeight: '600' },
+  headerTitle: { color: '#fff', fontSize: 28, fontWeight: '800' },
 
   body: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 60 },
 
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     padding: 20, marginBottom: 16,
   },
   progressName: { color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 6 },
-  progressPct:  { color: 'rgba(255,255,255,0.85)', fontSize: 15, marginBottom: 8 },
+  progressPct:  { color: 'rgba(255,255,255,0.85)', fontSize: 17, marginBottom: 8 },
   progressBar:  { height: 8, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 4, marginBottom: 12 },
   progressFill: { height: 8, backgroundColor: '#fff', borderRadius: 4 },
   progressHint: { color: '#fff', fontSize: 16, fontWeight: '700', textAlign: 'center',
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
   tab:       { paddingHorizontal: 18, paddingVertical: 11, borderRadius: 20,
                backgroundColor: '#fff', borderWidth: 1, borderColor: '#DDE8F4' },
   tabActive: { backgroundColor: '#1A4A8A', borderColor: '#1A4A8A' },
-  tabTxt:    { fontSize: 16, fontWeight: '600', color: '#7A90A8' },
+  tabTxt:    { fontSize: 18, fontWeight: '600', color: '#7A90A8' },
   tabTxtActive: { color: '#fff' },
 
   card: {
