@@ -118,7 +118,6 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       <View style={s.circleBig} />
       <View style={s.circleSmall} />
 
-      <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
       <Animated.View style={[s.inner, { opacity: fadeAnim, paddingTop: insets.top + (Platform.OS === 'web' ? 16 : 8) }]}>
 
         {/* 꿀비 캐릭터 */}
@@ -167,7 +166,6 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         )}
 
       </Animated.View>
-      </ScrollView>
 
       {/* 탭바 */}
       <SeniorTabBar navigation={navigation} activeTab="home" userId={userId} name={name} />
@@ -189,32 +187,28 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)',
   },
 
-  scrollContent: {
-    flexGrow: 1,
-  },
   inner: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-evenly',
     paddingHorizontal: 24,
     paddingTop: 0,
-    paddingBottom: 16,
-    gap: 0,
+    paddingBottom: 8,
   },
 
   // 캐릭터
   charWrap: {
-    width: 110,
-    height: 110,
-    marginBottom: 6,
+    width: 82,
+    height: 82,
+    marginBottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   beeImg: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
+    width: 82,
+    height: 82,
+    borderRadius: 41,
   },
   heartWrap: {
     position: 'absolute',
@@ -236,14 +230,14 @@ const s = StyleSheet.create({
   // 타이틀
   titleWrap: {
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 4,
   },
   mainTitle: {
     color: '#ffffff',
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: '800',
     textAlign: 'center',
-    lineHeight: 40,
+    lineHeight: 34,
     marginBottom: 6,
     textShadowColor: 'rgba(0,0,20,0.3)',
     textShadowOffset: { width: 0, height: 2 },
@@ -251,7 +245,7 @@ const s = StyleSheet.create({
   },
   subtitle: {
     color: 'rgba(255,255,255,0.78)',
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '500',
     letterSpacing: 1.5,
   },
@@ -259,24 +253,24 @@ const s = StyleSheet.create({
   // 카드
   cards: {
     width: '100%',
-    gap: 8,
-    marginBottom: 10,
+    gap: 6,
+    marginBottom: 0,
   },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.16)',
     borderRadius: 18,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     gap: 14,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.22)',
   },
-  cardIcon:  { fontSize: 32 },
+  cardIcon:  { fontSize: 28 },
   cardText:  { flex: 1 },
-  cardTitle: { color: '#ffffff', fontSize: 19, fontWeight: '700', marginBottom: 3 },
-  cardSub:   { color: 'rgba(255,255,255,0.75)', fontSize: 15, fontWeight: '400' },
+  cardTitle: { color: '#ffffff', fontSize: 17, fontWeight: '700', marginBottom: 3 },
+  cardSub:   { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: '400' },
   cardArrow: { color: 'rgba(255,255,255,0.6)', fontSize: 24, fontWeight: '300' },
 
   // 위치 배지
