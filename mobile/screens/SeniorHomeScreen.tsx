@@ -137,12 +137,10 @@ const s = StyleSheet.create({
   beeWrap: {
     position: 'absolute',
     top: 0,
-    alignSelf: 'center',
-    left: '50%',
-    marginLeft: Platform.OS === 'web' ? -90 : -width * 0.30,
-    width: Platform.OS === 'web' ? 180 : width * 0.60,
-    height: Platform.OS === 'web' ? 180 : width * 0.60,
-    opacity: 0.22,
+    right: -width * 0.05,
+    width: Platform.OS === 'web' ? 180 : width * 0.58,
+    height: Platform.OS === 'web' ? 180 : width * 0.58,
+    opacity: 0.88,
   },
   beeImg: {
     width: '100%',
@@ -184,22 +182,21 @@ const s = StyleSheet.create({
   inner: {
     flex: 1,
     paddingHorizontal: 22,
-    paddingBottom: 8,
-    alignItems: 'center',
+    paddingBottom: 24,
+    alignItems: 'flex-start',
     justifyContent: 'flex-end',
     gap: 16,
-    paddingBottom: 24,
   },
 
   // 타이틀
-  titleWrap: { alignItems: 'center', marginBottom: 0 },
+  titleWrap: { alignItems: 'flex-start', marginBottom: 0 },
   mainTitle: {
     color: '#ffffff',
     fontSize: 36,
     fontWeight: '800',
     lineHeight: 46,
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: 'left',
     textShadowColor: 'rgba(0,0,20,0.4)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
@@ -209,11 +206,11 @@ const s = StyleSheet.create({
     fontSize: 18,
     fontWeight: '500',
     letterSpacing: 1.5,
-    textAlign: 'center',
+    textAlign: 'left',
   },
 
   // 카드
-  cards:     { gap: 10, width: '100%' },
+  cards:     { gap: 10, width: '100%', alignSelf: 'stretch' },
   card: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.15)',
