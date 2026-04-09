@@ -62,20 +62,16 @@ export default function LoginScreen({ navigation, route }: any) {
   const goHome = () =>
     navigation.replace('SeniorHome', { name: '게스트', userId: '', isGuest: true });
 
-  const handleKakaoLogin = () => {
+  const handleKakaoLogin = async () => {
     if (KAKAO_CLIENT_ID === 'YOUR_KAKAO_REST_API_KEY') {
       alert('카카오 로그인 준비 중입니다.\n이메일로 로그인해 주세요.');
       return;
     }
     const url = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT_URI)}&response_type=code`;
-    if (Platform.OS !== 'web') {
-      await WebBrowser.openBrowserAsync(url);
-      return;
-    }
     if (Platform.OS === 'web') {
       (window as any).location.href = url;
     } else {
-      Linking.openURL(url);
+      await WebBrowser.openBrowserAsync(url);
     }
   };
 
