@@ -81,9 +81,11 @@ export default function SettingsScreen({ route, navigation }: Props) {
 
   const cycleLang = () => setLangIdx(i => (i + 1) % LANGUAGES.length);
 
-  const ageLine = userProfile?.age
-    ? `${userProfile.age}세` + (userProfile.email ? `  ·  ${userProfile.email}` : '')
-    : isGuest ? '게스트 모드' : '프로필을 완성해주세요';
+  const ageLine = isGuest
+    ? '게스트 모드'
+    : userProfile?.region
+      ? userProfile.region
+      : '오늘도 건강한 하루 되세요 😊';
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
