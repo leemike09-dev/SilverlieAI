@@ -193,7 +193,7 @@ export default function DashboardScreen({ route, navigation }: any) {
         </ScrollView>
       </Animated.View>
 
-      <SeniorTabBar navigation={navigation} activeTab="health" userId={userId} name={name} />
+      <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={name} />
     </View>
   );
 }
