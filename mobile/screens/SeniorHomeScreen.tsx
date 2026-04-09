@@ -136,10 +136,13 @@ const s = StyleSheet.create({
   // 꿀비 배경
   beeWrap: {
     position: 'absolute',
-    top: 0, left: -width * 0.08,
-    width: Platform.OS === 'web' ? Math.min(width * 0.55, 180) : width * 0.55,
-    height: Platform.OS === 'web' ? Math.min(width * 0.55, 180) : width * 0.55,
-    opacity: 0.90,
+    top: 0,
+    alignSelf: 'center',
+    left: '50%',
+    marginLeft: Platform.OS === 'web' ? -90 : -width * 0.30,
+    width: Platform.OS === 'web' ? 180 : width * 0.60,
+    height: Platform.OS === 'web' ? 180 : width * 0.60,
+    opacity: 0.22,
   },
   beeImg: {
     width: '100%',
@@ -183,7 +186,8 @@ const s = StyleSheet.create({
     paddingHorizontal: 22,
     paddingBottom: 8,
     alignItems: 'center',
-    justifyContent: 'space-evenly',
+    justifyContent: 'center',
+    gap: 20,
   },
 
   // 타이틀
