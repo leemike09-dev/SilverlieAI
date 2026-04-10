@@ -1,6 +1,6 @@
 import * as WebBrowser from 'expo-web-browser';
 import React, { useState } from 'react';
-import { StatusBar,
+import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
@@ -197,7 +197,7 @@ const s = StyleSheet.create({
   },
   scroll:      { flexGrow: 1 },
   // 헤더
-  header:      { backgroundColor: '#1a5fbc', paddingTop: Platform.OS === 'web' ? 20 : (StatusBar.currentHeight ?? 28) + 8, paddingBottom: 28, paddingHorizontal: 22, alignItems: 'center' },
+  header:      { backgroundColor: '#1a5fbc', paddingTop: Platform.OS === 'web' ? 20 : 28, paddingBottom: 28, paddingHorizontal: 22, alignItems: 'center' },
   appName:     { fontSize: 32, fontWeight: '800', color: '#fff', marginBottom: 6 },
   appSub:      { fontSize: 17, color: 'rgba(255,255,255,0.72)' },
   // 바디

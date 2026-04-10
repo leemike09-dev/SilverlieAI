@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  StatusBar, Modal, Animated, Platform, ScrollView,
+  Modal, Animated, Platform, Dimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomTabBar from '../components/BottomTabBar';
 import { DEMO_MODE } from '../App';
 
 const API_URL = 'https://silverlieai.onrender.com';
+const { width } = Dimensions.get('window');
 
 const HEALTH_TILES = [
   { icon: '🫀', label: '심혈관 건강', sub: '혈압·콜레스테롤' },
@@ -17,9 +18,9 @@ const HEALTH_TILES = [
 ];
 
 const TICKERS = [
-  { text: '여행 일정이 필요하신가요?',   btn: '라이프로',   target: 'Life' },
-  { text: '건강에 좋은 레시피 →',        btn: '라이프로',   target: 'Life' },
-  { text: '게시판에서 건강 정보 확인하기', btn: '게시판으로', target: 'Board' },
+  { text: '여행 일정이 필요하신가요?',    btn: '라이프로', target: 'Life' },
+  { text: '건강에 좋은 레시피 →',         btn: '라이프로', target: 'Life' },
+  { text: '게시판에서 건강 정보 확인하기', btn: '커뮤니티', target: 'Board' },
 ];
 
 function getTodayStr() {
@@ -46,10 +47,9 @@ export default function HomeScreen({ route, navigation }: any) {
   const [showPopup,    setShowPopup]    = useState(false);
   const [tickerIdx,    setTickerIdx]    = useState(0);
   const popupAnim  = useRef(new Animated.Value(300)).current;
-  const tickerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (DEMO_MODE) return;  // 데모 모드: 로그인 체크 스킵
+    if (DEMO_MODE) return;
     const checkLogin = async () => {
       const storedId   = await AsyncStorage.getItem('userId');
       const storedName = await AsyncStorage.getItem('userName');
@@ -77,9 +77,7 @@ export default function HomeScreen({ route, navigation }: any) {
 
   useEffect(() => {
     const id = setInterval(() => {
-      Animated.timing(tickerAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(
-        () => setTickerIdx(i => (i + 1) % TICKERS.length)
-      );
+      setTickerIdx(i => (i + 1) % TICKERS.length);
     }, 4000);
     return () => clearInterval(id);
   }, []);
@@ -101,11 +99,12 @@ export default function HomeScreen({ route, navigation }: any) {
 
   const score  = calcScore(record);
   const ticker = TICKERS[tickerIdx];
+  const tileW = (width - 32 - 10) / 2;
 
   return (
     <View style={s.root}>
 
-      {/* ── 헤더 (고정) ── */}
+      {/* ── 헤더 ── */}
       <View style={s.header}>
         <View style={s.headerTop}>
           <Text style={s.appName}>Silver Life</Text>
@@ -121,7 +120,7 @@ export default function HomeScreen({ route, navigation }: any) {
               </>
             )}
             <TouchableOpacity onPress={() => navigation.navigate('Notifications', { userId, name })}>
-              <Text style={{ fontSize: 22 }}>🔔</Text>
+              <Text style={{ fontSize: 26 }}>🔔</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -130,13 +129,9 @@ export default function HomeScreen({ route, navigation }: any) {
         <View style={s.wave1} /><View style={s.wave2} />
       </View>
 
-      {/* ── 스크롤 콘텐츠 (헤더~탭바 사이) ── */}
-      <ScrollView
-        style={s.scroll}
-        contentContainerStyle={s.scrollContent}
-        showsVerticalScrollIndicator={false}
-        bounces={true}
-      >
+      {/* ── 본문 (flex:1, 스크롤 없음) ── */}
+      <View style={s.body}>
+
         {/* 건강 점수 카드 */}
         <TouchableOpacity style={s.scoreCard}
           onPress={() => requireLogin(() => navigation.navigate('Dashboard', { userId, name }))}
@@ -150,26 +145,20 @@ export default function HomeScreen({ route, navigation }: any) {
               <>
                 <Text style={s.scoreTitle}>건강점수 확인하기 🔒</Text>
                 <Text style={s.scoreSub}>로그인 후 AI 건강 분석 제공</Text>
-                <Text style={s.scoreHint}>👆 탭하여 AI 분석 보기</Text>
               </>
             ) : (
               <>
                 <Text style={s.scoreTitle}>건강점수 좋아요! ▲2점</Text>
                 <Text style={s.scoreSub}>지난주보다 상승 · 상위 20%</Text>
-                <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
-                  <View style={s.badge}><Text style={s.badgeTxt}>혈압 120/80</Text></View>
-                  <View style={s.badge}><Text style={s.badgeTxt}>걸음 7.2k</Text></View>
-                </View>
-                <Text style={s.scoreHint}>👆 탭하여 AI 분석 보기</Text>
               </>
             )}
+            <Text style={s.scoreHint}>👆 탭하여 AI 분석 보기</Text>
           </View>
         </TouchableOpacity>
 
         {/* 오늘 운동 */}
-        <TouchableOpacity style={s.exCard} onPress={() => requireLogin()} activeOpacity={0.9}>
+        <View style={s.exCard}>
           <Text style={s.exTitle}>오늘 운동 하셨나요? 🏃</Text>
-          <Text style={s.exSub}>오늘 목표: 30분 걷기</Text>
           <View style={s.exBtns}>
             <TouchableOpacity style={[s.exBtn, s.exBtnYes, exerciseDone === true && s.exBtnYesActive]}
               onPress={() => requireLogin(() => setExerciseDone(true))}>
@@ -180,13 +169,13 @@ export default function HomeScreen({ route, navigation }: any) {
               <Text style={s.exBtnNoTxt}>✗ 아직요</Text>
             </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </View>
 
-        {/* 건강 정보 */}
+        {/* 건강 정보 2x2 그리드 */}
         <Text style={s.sectionLabel}>건강 정보</Text>
         <View style={s.grid}>
           {HEALTH_TILES.map((tile, i) => (
-            <TouchableOpacity key={i} style={s.tile}
+            <TouchableOpacity key={i} style={[s.tile, { width: tileW }]}
               onPress={() => navigation.navigate('HealthInfo', { userId, name, category: tile.label })}>
               <Text style={s.tileIcon}>{tile.icon}</Text>
               <Text style={s.tileLabel}>{tile.label}</Text>
@@ -203,20 +192,20 @@ export default function HomeScreen({ route, navigation }: any) {
           <View style={s.tickerBtn}><Text style={s.tickerBtnTxt}>{ticker.btn}</Text></View>
         </TouchableOpacity>
 
-        <View style={{ height: 12 }} />
-      </ScrollView>
+      </View>
 
-      {/* ── 탭바 (항상 하단 고정) ── */}
-      <BottomTabBar navigation={navigation} activeTab="Home" userId={userId} name={name} onGuestPress={openPopup} />
+      {/* ── 탭바 ── */}
+      <BottomTabBar navigation={navigation} activeTab=Home userId={userId} name={name} onGuestPress={openPopup} />
 
       {/* ── 로그인 팝업 ── */}
-      <Modal visible={showPopup} transparent animationType="none" onRequestClose={closePopup}>
+      <Modal visible={showPopup} transparent animationType=none onRequestClose={closePopup}>
         <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={closePopup} />
         <Animated.View style={[s.sheet, { transform: [{ translateY: popupAnim }] }]}>
           <View style={s.sheetHandle} />
           <Text style={s.sheetIcon}>🔐</Text>
           <Text style={s.sheetTitle}>로그인이 필요해요</Text>
-          <Text style={s.sheetSub}>{'AI 건강 분석, 기록, 커뮤니티는\n로그인 후 이용하실 수 있습니다'}</Text>
+          <Text style={s.sheetSub}>{'AI 건강 분석, 기록, 커뮤니티는
+로그인 후 이용하실 수 있습니다'}</Text>
           <TouchableOpacity style={s.sheetLogin} onPress={goLogin}>
             <Text style={s.sheetLoginTxt}>로그인</Text>
           </TouchableOpacity>
@@ -233,70 +222,69 @@ export default function HomeScreen({ route, navigation }: any) {
 }
 
 const s = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#f0f2f7',
-    ...(Platform.OS === 'web' ? { flex: 1 } : {}),
-  },
+  root: { flex: 1, backgroundColor: '#f0f2f7' },
+
   // 헤더
-  header:       { backgroundColor: '#fff', paddingHorizontal: 18, paddingTop: Platform.OS === 'web' ? 12 : (StatusBar.currentHeight ?? 28) + 4, paddingBottom: 14 },
-  headerTop:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  appName:      { fontSize: 20, fontWeight: '800', color: '#1a5fbc' },
-  headerBtns:   { flexDirection: 'row', gap: 8 },
-  btnLogin:     { borderWidth: 2, borderColor: '#1a5fbc', borderRadius: 20, paddingVertical: 5, paddingHorizontal: 14 },
-  btnLoginTxt:  { fontSize: 13, fontWeight: '700', color: '#1a5fbc' },
-  btnSignup:    { backgroundColor: '#1a5fbc', borderRadius: 20, paddingVertical: 6, paddingHorizontal: 14 },
-  btnSignupTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  greeting:     { fontSize: 20, fontWeight: '800', color: '#1a2a3a' },
-  dateText:     { fontSize: 12, color: '#90a4ae', marginTop: 2, marginBottom: 8 },
+  header:       { backgroundColor: '#fff', paddingHorizontal: 18, paddingTop: Platform.OS === 'web' ? 14 : 28, paddingBottom: 12 },
+  headerTop:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  appName:      { fontSize: 24, fontWeight: '800', color: '#1a5fbc' },
+  headerBtns:   { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  btnLogin:     { borderWidth: 2, borderColor: '#1a5fbc', borderRadius: 20, paddingVertical: 6, paddingHorizontal: 16 },
+  btnLoginTxt:  { fontSize: 15, fontWeight: '700', color: '#1a5fbc' },
+  btnSignup:    { backgroundColor: '#1a5fbc', borderRadius: 20, paddingVertical: 7, paddingHorizontal: 16 },
+  btnSignupTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  greeting:     { fontSize: 22, fontWeight: '800', color: '#1a2a3a' },
+  dateText:     { fontSize: 14, color: '#90a4ae', marginTop: 2, marginBottom: 8 },
   wave1:        { height: 3, backgroundColor: '#bbdefb', borderRadius: 2, opacity: 0.5, marginBottom: 2 },
   wave2:        { height: 3, backgroundColor: '#90caf9', borderRadius: 2, opacity: 0.7 },
-  // 스크롤
-  scroll:       { flex: 1 },
-  scrollContent:{ padding: 14, paddingTop: 10, gap: 10 },
-  // 건강 점수
-  scoreCard:    { backgroundColor: '#1a5fbc', borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 14 },
-  scoreRing:    { width: 58, height: 58, borderRadius: 29, borderWidth: 3, borderColor: 'rgba(255,255,255,0.55)', backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  scoreNum:     { fontSize: 20, fontWeight: '800', color: '#fff', lineHeight: 22 },
-  scoreUnit:    { fontSize: 10, color: 'rgba(255,255,255,0.8)' },
-  scoreTitle:   { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 2 },
-  scoreSub:     { fontSize: 11, color: 'rgba(255,255,255,0.8)' },
-  scoreHint:    { fontSize: 10, color: 'rgba(255,255,255,0.6)', marginTop: 5, fontStyle: 'italic' },
-  badge:        { backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 10, paddingVertical: 3, paddingHorizontal: 8 },
-  badgeTxt:     { fontSize: 10, color: '#fff', fontWeight: '600' },
-  // 운동
-  exCard:       { backgroundColor: '#fff', borderRadius: 14, padding: 14 },
-  exTitle:      { fontSize: 15, fontWeight: '800', color: '#1a2a3a', marginBottom: 2 },
-  exSub:        { fontSize: 11, color: '#90a4ae', marginBottom: 10 },
+
+  // 본문
+  body: { flex: 1, padding: 16, gap: 12 },
+
+  // 건강 점수 카드
+  scoreCard:  { backgroundColor: '#1a5fbc', borderRadius: 18, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 16 },
+  scoreRing:  { width: 70, height: 70, borderRadius: 35, borderWidth: 3, borderColor: 'rgba(255,255,255,0.55)', backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  scoreNum:   { fontSize: 24, fontWeight: '800', color: '#fff', lineHeight: 26 },
+  scoreUnit:  { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
+  scoreTitle: { fontSize: 17, fontWeight: '800', color: '#fff', marginBottom: 3 },
+  scoreSub:   { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
+  scoreHint:  { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 6, fontStyle: 'italic' },
+
+  // 운동 카드
+  exCard:       { backgroundColor: '#fff', borderRadius: 16, padding: 14 },
+  exTitle:      { fontSize: 18, fontWeight: '800', color: '#1a2a3a', marginBottom: 10 },
   exBtns:       { flexDirection: 'row', gap: 10 },
-  exBtn:        { flex: 1, borderRadius: 11, paddingVertical: 11, alignItems: 'center' },
+  exBtn:        { flex: 1, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
   exBtnYes:     { borderWidth: 2, borderColor: '#1a5fbc' },
-  exBtnYesActive:{ backgroundColor: '#1a5fbc' },
+  exBtnYesActive: { backgroundColor: '#1a5fbc' },
   exBtnNo:      { borderWidth: 2, borderColor: '#e0e0e0' },
-  exBtnTxt:     { fontSize: 13, fontWeight: '700', color: '#1a5fbc' },
-  exBtnNoTxt:   { fontSize: 13, fontWeight: '700', color: '#90a4ae' },
+  exBtnTxt:     { fontSize: 16, fontWeight: '700', color: '#1a5fbc' },
+  exBtnNoTxt:   { fontSize: 16, fontWeight: '700', color: '#90a4ae' },
+
   // 건강 정보
-  sectionLabel: { fontSize: 13, fontWeight: '700', color: '#1a2a3a' },
-  grid:         { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tile:         { width: '47.5%', backgroundColor: '#fff', borderRadius: 13, padding: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
-  tileIcon:     { fontSize: 24, marginBottom: 5 },
-  tileLabel:    { fontSize: 12, fontWeight: '700', color: '#1a2a3a' },
-  tileSub:      { fontSize: 10, color: '#90a4ae', marginTop: 2 },
+  sectionLabel: { fontSize: 16, fontWeight: '700', color: '#1a2a3a' },
+  grid:         { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  tile:         { backgroundColor: '#fff', borderRadius: 14, padding: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  tileIcon:     { fontSize: 28, marginBottom: 6 },
+  tileLabel:    { fontSize: 16, fontWeight: '700', color: '#1a2a3a' },
+  tileSub:      { fontSize: 13, color: '#90a4ae', marginTop: 2 },
+
   // 티커
-  ticker:       { backgroundColor: '#e8f0fe', borderRadius: 13, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  tickerText:   { flex: 1, fontSize: 12, fontWeight: '700', color: '#1a3a6c' },
-  tickerBtn:    { backgroundColor: '#1a5fbc', borderRadius: 9, paddingVertical: 7, paddingHorizontal: 12 },
-  tickerBtnTxt: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  ticker:       { backgroundColor: '#e8f0fe', borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  tickerText:   { flex: 1, fontSize: 15, fontWeight: '700', color: '#1a3a6c' },
+  tickerBtn:    { backgroundColor: '#1a5fbc', borderRadius: 10, paddingVertical: 9, paddingHorizontal: 16 },
+  tickerBtnTxt: { fontSize: 14, fontWeight: '700', color: '#fff' },
+
   // 팝업
-  overlay:      { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
-  sheet:        { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 22, paddingBottom: 40, alignItems: 'center' },
-  sheetHandle:  { width: 36, height: 4, backgroundColor: '#e0e0e0', borderRadius: 2, marginBottom: 18 },
-  sheetIcon:    { fontSize: 36, marginBottom: 10 },
-  sheetTitle:   { fontSize: 18, fontWeight: '800', color: '#1a2a3a', marginBottom: 6 },
-  sheetSub:     { fontSize: 13, color: '#90a4ae', textAlign: 'center', marginBottom: 20, lineHeight: 20 },
-  sheetLogin:   { width: '100%', backgroundColor: '#1a5fbc', borderRadius: 13, paddingVertical: 14, alignItems: 'center', marginBottom: 10 },
-  sheetLoginTxt:{ fontSize: 16, fontWeight: '800', color: '#fff' },
-  sheetSignup:  { width: '100%', borderWidth: 2, borderColor: '#1a5fbc', borderRadius: 13, paddingVertical: 13, alignItems: 'center', marginBottom: 14 },
-  sheetSignupTxt:{ fontSize: 16, fontWeight: '800', color: '#1a5fbc' },
-  sheetCancel:  { fontSize: 13, color: '#90a4ae' },
+  overlay:       { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
+  sheet:         { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 22, paddingBottom: 40, alignItems: 'center' },
+  sheetHandle:   { width: 36, height: 4, backgroundColor: '#e0e0e0', borderRadius: 2, marginBottom: 18 },
+  sheetIcon:     { fontSize: 40, marginBottom: 10 },
+  sheetTitle:    { fontSize: 20, fontWeight: '800', color: '#1a2a3a', marginBottom: 6 },
+  sheetSub:      { fontSize: 15, color: '#90a4ae', textAlign: 'center', marginBottom: 20, lineHeight: 22 },
+  sheetLogin:    { width: '100%', backgroundColor: '#1a5fbc', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 10 },
+  sheetLoginTxt: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  sheetSignup:   { width: '100%', borderWidth: 2, borderColor: '#1a5fbc', borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginBottom: 14 },
+  sheetSignupTxt:{ fontSize: 18, fontWeight: '800', color: '#1a5fbc' },
+  sheetCancel:   { fontSize: 15, color: '#90a4ae' },
 });
