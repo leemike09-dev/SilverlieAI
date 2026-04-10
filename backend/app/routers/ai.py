@@ -35,6 +35,38 @@ CAT_KEYWORDS = {
 }
 
 EMERGENCY_WORDS = ['흉통','가슴통증','호흡곤란','숨막','마비','의식','쓰러','졸도','심정지']
+WARNING_WORDS   = ['계속 아프','3일','2일 이상','점점','악화','지속되','반복','심해']
+
+DEFAULT_FOLLOWUP = [
+    "이 증상이 생긴 정확한 시점을 의사에게 말씀드리세요.",
+    "병원 방문 전 증상 기록을 적어두면 도움이 돼요.",
+    "복용 중인 약이 있다면 이름과 용량을 미리 메모하세요.",
+]
+
+
+def detect_risk(message: str, reply: str) -> str:
+    combined = message + reply
+    if any(w in combined for w in EMERGENCY_WORDS):
+        return "emergency"
+    if any(w in combined for w in WARNING_WORDS):
+        return "warning"
+    return "normal"
+
+
+def get_suggested_questions(relevant_qa: List[dict]) -> List[str]:
+    questions: List[str] = []
+    for qa in relevant_qa:
+        dqs = qa.get('answer_template', {}).get('doctor_questions', [])
+        for q in dqs:
+            if q not in questions:
+                questions.append(q)
+            if len(questions) >= 3:
+                return questions
+    if not questions:
+        return DEFAULT_FOLLOWUP
+    while len(questions) < 3:
+        questions.append(DEFAULT_FOLLOWUP[len(questions) % len(DEFAULT_FOLLOWUP)])
+    return questions[:3]
 
 
 def find_relevant_qa(message: str, top_k: int = 2) -> List[dict]:
@@ -180,6 +212,13 @@ def chat(request: ChatRequest):
             system=system_prompt,
             messages=messages,
         )
-        return {"reply": response.content[0].text}
+        reply_text = response.content[0].text
+        risk = detect_risk(request.message, reply_text)
+        suggestions = get_suggested_questions(relevant_qa)
+        return {
+            "reply": reply_text,
+            "risk_level": risk,
+            "suggested_questions": suggestions,
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI 오류: {str(e)}")
