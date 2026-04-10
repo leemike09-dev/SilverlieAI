@@ -11,7 +11,6 @@ const API_URL = 'https://silverlieai.onrender.com';
 // 카카오 REST API 키 — developers.kakao.com 에서 발급 후 입력
 const KAKAO_CLIENT_ID = 'c102ef257f29dfc4ca9f2062a0c1442d';
 const KAKAO_REDIRECT_URI = 'https://leemike09-dev.github.io/SilverlieAI/';
-const stateToken = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
 
 export default function LoginScreen({ navigation, route }: any) {
   const initTab = route?.params?.tab === 'signup' ? 'register' : 'login';
@@ -64,35 +63,11 @@ export default function LoginScreen({ navigation, route }: any) {
     navigation.replace('SeniorHome', { name: '게스트', userId: '', isGuest: true });
 
   const handleKakaoLogin = async () => {
-    const url = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT_URI)}&response_type=code&state=${stateToken}`;
+    const url = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT_URI)}&response_type=code`;
     if (Platform.OS === 'web') {
       (window as any).location.href = url;
-      return;
-    }
-    // 브라우저 열기 (await 없이 — 동시에 폴링 시작)
-    WebBrowser.openBrowserAsync(url);
-    // 백엔드 폴링: GitHub Pages → 백엔드에 코드 저장 → 앱이 감지
-    for (let i = 0; i < 60; i++) {
-      await new Promise(r => setTimeout(r, 1500));
-      try {
-        const pollRes = await fetch(`${API_URL}/users/kakao-poll/${stateToken}`);
-        const pollData = await pollRes.json();
-        if (pollData.code) {
-          WebBrowser.dismissBrowser();
-          const res = await fetch(`${API_URL}/users/kakao-login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code: pollData.code, redirect_uri: KAKAO_REDIRECT_URI }),
-          });
-          const data = await res.json();
-          if (data?.id) {
-            await AsyncStorage.setItem('userId', String(data.id));
-            await AsyncStorage.setItem('userName', data.name || '');
-            navigation.replace('SeniorHome', { name: data.name, userId: data.id });
-          }
-          return;
-        }
-      } catch {}
+    } else {
+      await WebBrowser.openBrowserAsync(url);
     }
   };
 
