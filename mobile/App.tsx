@@ -1,5 +1,4 @@
-import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef, createRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import * as Linking from 'expo-linking';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -19,8 +18,6 @@ import WeeklyReportScreen from './screens/WeeklyReportScreen';
 import AIChatScreen from './screens/AIChatScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import WearableScreen from './screens/WearableScreen';
-import LifeScreen from './screens/LifeScreen';
-import LifeDetailScreen from './screens/LifeDetailScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import HealthNewsScreen from './screens/HealthNewsScreen';
 import SeniorHomeScreen from './screens/SeniorHomeScreen';
@@ -53,7 +50,7 @@ export default function App() {
   // 네이티브 카카오 로그인: silverliveai://oauth?code=xxx 딥링크 처리
   useEffect(() => {
     if (Platform.OS === 'web') return;
-    const sub = Linking.addEventListener('url', async ({ url }) => {
+    const sub = Linking.addEventListener('url', async ({ url }: { url: string }) => {
       try {
         const parsed = Linking.parse(url);
         const code = parsed.queryParams?.code as string | undefined;
@@ -142,8 +139,6 @@ export default function App() {
           <Stack.Screen name="Settings"    component={SettingsScreen}    initialParams={DEMO} />
           <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} initialParams={DEMO} />
           <Stack.Screen name="Wearable"    component={WearableScreen}    initialParams={DEMO} />
-          <Stack.Screen name="Life"        component={LifeScreen}        initialParams={DEMO} />
-          <Stack.Screen name="LifeDetail"   component={LifeDetailScreen}  initialParams={DEMO} />
           <Stack.Screen name="Onboarding"  component={OnboardingScreen}  />
           <Stack.Screen name="HealthInfo" component={HealthInfoScreen} />
         <Stack.Screen name="HealthNews"     component={HealthNewsScreen}   initialParams={DEMO} />

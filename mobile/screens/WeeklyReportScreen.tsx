@@ -1,8 +1,6 @@
 import React from 'react';
 import SeniorTabBar from '../components/SeniorTabBar';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, Dimensions } from 'react-native';
-
-const { width } = Dimensions.get('window');
+import { View, Text, StyleSheet, ScrollView, Platform, StatusBar } from 'react-native';
 type Props = { route: any; navigation: any };
 
 const DAYS = ['월','화','수','목','금','토','일'];
@@ -94,7 +92,7 @@ const BG = '#F0F5FB'; const CARD = '#FFFFFF'; const BORDER = '#DDE8F4'; const AC
 
 const styles = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: BG },
-  header: { backgroundColor: '#1A4A8A', padding: 18, paddingTop: 52, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.2)' },
+  header: { backgroundColor: '#1A4A8A', padding: 18, paddingTop: Platform.OS === 'web' ? 20 : (StatusBar.currentHeight ?? 28) + 8, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.2)' },
   title:  { fontSize: 26, fontWeight: '800', color: '#fff' },
   sub:    { fontSize: 16, color: 'rgba(255,255,255,0.75)', marginTop: 4 },
 

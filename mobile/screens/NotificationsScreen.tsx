@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import SeniorTabBar from '../components/SeniorTabBar';
 import { StatusBar,
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, SafeAreaView,
+  ScrollView, ActivityIndicator,
 } from 'react-native';
 import { Platform } from 'react-native';
 
@@ -25,7 +25,7 @@ const DEMO_NOTIFS: Notification[] = [
 export default function NotificationsScreen({ navigation, route }: any) {
   const { userId = 'demo-user', name = '회원' } = route?.params ?? {};
   const [notifications, setNotifications] = useState<Notification[]>(DEMO_NOTIFS);
-  const [loading, setLoading] = useState(false);
+  const loading = false;
 
   useEffect(() => {
     fetch(`${API_URL}/notifications/${userId}`)

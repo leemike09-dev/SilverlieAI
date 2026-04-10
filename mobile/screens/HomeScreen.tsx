@@ -18,9 +18,9 @@ const HEALTH_TILES = [
 ];
 
 const TICKERS = [
-  { text: '여행 일정이 필요하신가요?',    btn: '라이프로', target: 'Life' },
-  { text: '건강에 좋은 레시피 →',         btn: '라이프로', target: 'Life' },
-  { text: '게시판에서 건강 정보 확인하기', btn: '커뮤니티', target: 'Board' },
+  { text: '오늘 건강 기록을 입력해보세요', btn: '건강으로', target: 'Health' },
+  { text: 'AI 상담으로 건강 궁금증 해결',  btn: 'AI 상담', target: 'AIChat' },
+  { text: '약 복용 시간을 확인하세요',      btn: '내 약',   target: 'Medication' },
 ];
 
 function getTodayStr() {
@@ -195,17 +195,16 @@ export default function HomeScreen({ route, navigation }: any) {
       </View>
 
       {/* ── 탭바 ── */}
-      <BottomTabBar navigation={navigation} activeTab=Home userId={userId} name={name} onGuestPress={openPopup} />
+      <BottomTabBar navigation={navigation} activeTab="Home" userId={userId} name={name} onGuestPress={openPopup} />
 
       {/* ── 로그인 팝업 ── */}
-      <Modal visible={showPopup} transparent animationType=none onRequestClose={closePopup}>
+      <Modal visible={showPopup} transparent animationType="none" onRequestClose={closePopup}>
         <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={closePopup} />
         <Animated.View style={[s.sheet, { transform: [{ translateY: popupAnim }] }]}>
           <View style={s.sheetHandle} />
           <Text style={s.sheetIcon}>🔐</Text>
           <Text style={s.sheetTitle}>로그인이 필요해요</Text>
-          <Text style={s.sheetSub}>{'AI 건강 분석, 기록, 커뮤니티는
-로그인 후 이용하실 수 있습니다'}</Text>
+          <Text style={s.sheetSub}>{'AI 건강 분석, 기록, 커뮤니티는\n로그인 후 이용하실 수 있습니다'}</Text>
           <TouchableOpacity style={s.sheetLogin} onPress={goLogin}>
             <Text style={s.sheetLoginTxt}>로그인</Text>
           </TouchableOpacity>
