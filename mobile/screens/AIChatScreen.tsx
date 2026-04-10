@@ -240,7 +240,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
                   {/* 위험도 배너 */}
                   {m.riskLevel === 'emergency' && (
                     <TouchableOpacity style={s.emergencyBanner} onPress={() => setShowEmergency(true)}>
-                      <Text style={s.emergencyBannerTxt}>🚨 응급 상황일 수 있습니다 — 119 바로 전화</Text>
+                      <Text style={s.emergencyBannerTxt}>🚨 주의 필요 — 119 또는 가족에게 연락하세요</Text>
                     </TouchableOpacity>
                   )}
                   {m.riskLevel === 'warning' && (
@@ -355,11 +355,11 @@ export default function AIChatScreen({ route, navigation }: Props) {
         onRequestClose={() => setShowEmergency(false)}>
         <View style={s.modalOverlay}>
           <View style={s.modalBox}>
-            <Text style={s.modalTitle}>🚨 응급 상황 감지</Text>
+            <Text style={s.modalTitle}>🚨 주의가 필요합니다</Text>
             <Text style={s.modalDesc}>
-              증상이 응급 상황일 수 있습니다.{'\n'}
-              지금 바로 119에 전화하거나{'\n'}
-              가까운 분께 도움을 요청하세요.
+              AI가 즉각적인 도움이 필요할 수 있다고 판단했습니다.{'\n\n'}
+              본인이 괜찮다면 닫기를 눌러주세요.{'\n'}
+              불안하다면 119 또는 가족에게 연락하세요.
             </Text>
 
             <TouchableOpacity style={s.btn119} onPress={call119} activeOpacity={0.85}>

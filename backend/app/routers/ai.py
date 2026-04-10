@@ -35,20 +35,21 @@ CAT_KEYWORDS = {
 }
 
 EMERGENCY_WORDS = ['흉통','가슴통증','호흡곤란','숨막','마비','의식','쓰러','졸도','심정지']
-WARNING_WORDS   = ['계속 아프','3일','2일 이상','점점','악화','지속되','반복','심해']
-
 DEFAULT_FOLLOWUP = [
     "이 증상이 생긴 정확한 시점을 의사에게 말씀드리세요.",
     "병원 방문 전 증상 기록을 적어두면 도움이 돼요.",
     "복용 중인 약이 있다면 이름과 용량을 미리 메모하세요.",
 ]
 
+# Claude 답변 내용 기반 판단 — 맥락 이해가 되므로 오판 최소화
+EMERGENCY_REPLY_SIGNALS = ['119', '즉시 응급', '지금 바로 응급', '응급실로']
+WARNING_REPLY_SIGNALS   = ['병원 방문', '진료를 받', '의사에게 확인', '검사를 받', '빨리 병원']
+
 
 def detect_risk(message: str, reply: str) -> str:
-    combined = message + reply
-    if any(w in combined for w in EMERGENCY_WORDS):
+    if any(w in reply for w in EMERGENCY_REPLY_SIGNALS):
         return "emergency"
-    if any(w in combined for w in WARNING_WORDS):
+    if any(w in reply for w in WARNING_REPLY_SIGNALS):
         return "warning"
     return "normal"
 
