@@ -4,7 +4,6 @@ import { StatusBar,
   Platform, Animated, ActivityIndicator,
 } from 'react-native';
 import SeniorTabBar from '../components/SeniorTabBar';
-import { DEMO_MODE } from '../App';
 
 const API = 'https://silverlieai.onrender.com';
 
@@ -65,7 +64,7 @@ export default function DashboardScreen({ route, navigation }: any) {
   const fetchAnalysis = async () => {
     setLoading(true);
     try {
-      const [hr, ar] = await Promise.all([
+      const [, ar] = await Promise.all([
         fetch(`${API}/health/history/${userId}?days=1`),
         fetch(`${API}/health/analyze`, {
           method: 'POST',
@@ -73,7 +72,6 @@ export default function DashboardScreen({ route, navigation }: any) {
           body: JSON.stringify({ user_id: userId }),
         }),
       ]);
-      const hd = await hr.json();
       const ad = await ar.json();
       if (ad.score) setData(prev => ({ ...prev, score: ad.score, aiAnalysis: ad.analysis || prev.aiAnalysis }));
     } catch {
@@ -208,7 +206,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 22, paddingBottom: 14,
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.2)',
   },
-  headerSub:   { fontSize: 16, color: 'rgba(255,255,255,0.75)', marginBottom: 2 },
+  headerSub:   { fontSize: 18, color: 'rgba(255,255,255,0.75)', marginBottom: 2 },
   headerTitle: { fontSize: 28, fontWeight: '800', color: '#fff' },
 
   scroll: { padding: 18, gap: 16, paddingBottom: 24 },
@@ -221,43 +219,43 @@ const s = StyleSheet.create({
   scoreCircle:     { width: 90, height: 90, borderRadius: 45, borderWidth: 4,
                      alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg },
   scoreNum:        { fontSize: 32, fontWeight: '900', lineHeight: 34 },
-  scoreUnit:       { fontSize: 13, color: C.sub },
+  scoreUnit:       { fontSize: 15, color: C.sub },
   scoreBadge:      { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 4 },
-  scoreBadgeTxt:   { fontSize: 13, fontWeight: '700' },
+  scoreBadgeTxt:   { fontSize: 15, fontWeight: '700' },
 
   weekChart:      { flex: 1 },
-  weekChartTitle: { fontSize: 16, color: C.sub, fontWeight: '600', marginBottom: 8 },
+  weekChartTitle: { fontSize: 17, color: C.sub, fontWeight: '600', marginBottom: 8 },
   chartBars:      { flexDirection: 'row', alignItems: 'flex-end', height: 56, gap: 3, marginBottom: 6 },
   chartCol:       { flex: 1, alignItems: 'center', gap: 3 },
   chartBarWrap:   { flex: 1, width: '100%', justifyContent: 'flex-end', borderRadius: 4, overflow: 'hidden', backgroundColor: C.line },
   chartBar:       { width: '100%', borderRadius: 4 },
-  chartDay:       { fontSize: 13, color: C.sub },
-  scoreChange:    { fontSize: 15, color: C.sage, fontWeight: '700' },
+  chartDay:       { fontSize: 14, color: C.sub },
+  scoreChange:    { fontSize: 16, color: C.sage, fontWeight: '700' },
 
   // AI 카드
   aiCard:       { backgroundColor: C.sageLt, borderRadius: 20, padding: 18, borderLeftWidth: 3, borderLeftColor: C.sage },
   aiCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  aiCardIcon:   { fontSize: 20 },
-  aiCardTitle:  { fontSize: 17, fontWeight: '800', color: C.sageDk },
-  aiCardText:   { fontSize: 16, color: C.text, lineHeight: 24 },
+  aiCardIcon:   { fontSize: 22 },
+  aiCardTitle:  { fontSize: 19, fontWeight: '800', color: C.sageDk },
+  aiCardText:   { fontSize: 18, color: C.text, lineHeight: 28 },
 
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: C.text, marginTop: 4 },
+  sectionTitle: { fontSize: 20, fontWeight: '700', color: C.text, marginTop: 4 },
 
   // 4지표
   pointsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   pointCard:  { width: '47%', borderRadius: 18, padding: 16, alignItems: 'center', gap: 6 },
-  pointIcon:  { fontSize: 28 },
-  pointLabel: { fontSize: 16, color: C.sub, fontWeight: '600' },
-  pointValue: { fontSize: 22, fontWeight: '900' },
+  pointIcon:  { fontSize: 30 },
+  pointLabel: { fontSize: 17, color: C.sub, fontWeight: '600' },
+  pointValue: { fontSize: 24, fontWeight: '900' },
   pointBadge: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 3 },
-  pointBadgeTxt: { fontSize: 15, fontWeight: '700' },
+  pointBadgeTxt: { fontSize: 16, fontWeight: '700' },
 
   // 추천
   recList: { gap: 10 },
   recCard: { borderRadius: 18, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, borderLeftWidth: 4 },
-  recIcon:  { fontSize: 28 },
-  recTitle: { fontSize: 17, fontWeight: '800', marginBottom: 3 },
-  recDesc:  { fontSize: 15, color: C.sub, lineHeight: 22 },
+  recIcon:  { fontSize: 30 },
+  recTitle: { fontSize: 19, fontWeight: '800', marginBottom: 3 },
+  recDesc:  { fontSize: 17, color: C.sub, lineHeight: 24 },
 
   // AI 상담
   chatBtn:    { backgroundColor: C.sky, borderRadius: 18, paddingVertical: 16, alignItems: 'center',

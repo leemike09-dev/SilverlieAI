@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import SeniorTabBar from '../components/SeniorTabBar';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  SafeAreaView, Switch, Alert, Platform, ActivityIndicator,
+  Switch, Alert, Platform, ActivityIndicator, StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -31,6 +31,7 @@ interface UserProfile {
   email?: string;
   age?: number;
   language?: string;
+  region?: string;
 }
 
 export default function SettingsScreen({ route, navigation }: Props) {
@@ -41,7 +42,6 @@ export default function SettingsScreen({ route, navigation }: Props) {
   const [loading,     setLoading]     = useState(false);
   const [notifHealth, setNotifHealth] = useState(true);
   const [notifMed,    setNotifMed]    = useState(true);
-  const [notifFamily, setNotifFamily] = useState(true);
   const [langIdx,     setLangIdx]     = useState(0);
 
   const isGuest = !userId || userId === 'demo-user';
@@ -142,7 +142,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
             <Text style={styles.listLabel}>알림</Text>
             <Switch
               value={notifHealth}
-              onValueChange={(v) => { setNotifHealth(v); setNotifFamily(v); }}
+              onValueChange={setNotifHealth}
               trackColor={{ false: '#cdd8e8', true: C.blue2 }}
               thumbColor="#fff"
             />
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   /* 프로필 헤더 */
   profileHeader: {
     backgroundColor: '#1A4A8A',
-    paddingTop: Platform.OS === 'web' ? 40 : 52,
+    paddingTop: Platform.OS === 'web' ? 40 : (StatusBar.currentHeight ?? 28) + 12,
     paddingBottom: 28,
     paddingHorizontal: 22,
     flexDirection: 'row',
