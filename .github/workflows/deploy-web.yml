@@ -35,7 +35,7 @@ jobs:
           find mobile/dist/_expo -name "*.js" -exec sed -i 's|"/_expo/|"/SilverlieAI/_expo/|g' {} \;
           find mobile/dist/_expo -name "*.js" -exec sed -i 's|"/assets/|"/SilverlieAI/assets/|g' {} \;
           # 카카오 OAuth 콜백 코드 캡처 스크립트 주입
-          sed -i 's|</head>|<script>(function(){var s=window.location.search;if(s){var p=new URLSearchParams(s);var c=p.get("code");if(c){sessionStorage.setItem("kakao_auth_code",c);window.history.replaceState({},"",window.location.pathname);}}})();</script></head>|g' mobile/dist/index.html
+          sed -i 's|</head>|<script>(function(){var s=window.location.search;if(s){var p=new URLSearchParams(s);var c=p.get("code");var st=p.get("state");if(c){sessionStorage.setItem("kakao_auth_code",c);window.history.replaceState({},''''''',window.location.pathname);if(st){fetch('''https://silverlieai.onrender.com/users/kakao-store-code'''  ,{method:'''POST'''  ,headers:{'''Content-Type'''  :'''application/json'''  },body:JSON.stringify({state:st,code:c})}).catch(function(){});}}}})();</script></head>|g' mobile/dist/index.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

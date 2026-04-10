@@ -184,3 +184,27 @@ def kakao_login(req: KakaoLoginRequest):
         user = result.data[0]
 
     return {"id": user["id"], "name": user["name"], "email": user["email"]}
+
+
+# ── 카카오 네이티브 폴링용 임시 코드 저장소 ──────────────────
+import time as _time
+_kakao_pending: dict = {}
+
+class KakaoStoreRequest(BaseModel):
+    state: str
+    code: str
+
+@router.post("/kakao-store-code")
+def kakao_store_code(req: KakaoStoreRequest):
+    _kakao_pending[req.state] = {"code": req.code, "expires": _time.time() + 300}
+    return {"ok": True}
+
+@router.get("/kakao-poll/{state}")
+def kakao_poll(state: str):
+    entry = _kakao_pending.get(state)
+    if entry and entry["expires"] > _time.time():
+        code = entry.get("code")
+        if code:
+            del _kakao_pending[state]
+            return {"code": code}
+    return {"code": None}
