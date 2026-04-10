@@ -4,10 +4,9 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   Alert, ActivityIndicator, Modal, Dimensions, Platform,
 } from 'react-native';
-import { useLanguage } from '../i18n/LanguageContext';
 
 const API_URL = 'https://silverlieai.onrender.com';
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const METRICS = [
   { key: 'steps',       icon: '🚶', label: '걸음수',  unit: '보',    auto: true,
@@ -105,7 +104,7 @@ function Keypad({ metric, onConfirm, onClose }: {
 
 export default function HealthScreen({ route, navigation }: any) {
   const { name = '회원', userId = 'demo-user' } = route?.params ?? {};
-  const { t } = useLanguage();
+
 
   const [activeTab, setActiveTab] = useState<'today'|'record'>('today');
   const [todayRecord, setTodayRecord] = useState<any>(null);

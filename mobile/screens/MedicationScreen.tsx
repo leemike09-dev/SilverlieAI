@@ -4,7 +4,7 @@ import { StatusBar,
   Modal, TextInput, Platform, Alert, Animated,
 } from 'react-native';
 import { DEMO_MODE } from '../App';
-import { scheduleMedicationNotifications, cancelMedicationNotifications, snoozeNotification, requestNotificationPermission } from '../utils/notifications';
+import { scheduleMedicationNotifications, cancelMedicationNotifications, snoozeNotification } from '../utils/notifications';
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const API = 'https://silverlieai.onrender.com';
@@ -125,9 +125,6 @@ export default function MedicationScreen({ route, navigation }: any) {
     return (log.status as LogStatus) || (log.taken ? 'taken' : null);
   };
 
-  const isTaken   = (id: string, t: string) => getLogStatus(id, t) === 'taken';
-  const isSkipped = (id: string, t: string) => getLogStatus(id, t) === 'skipped';
-
   const saveLog = async (med: any, time: string, status: LogStatus) => {
     const taken = status === 'taken';
     setLogs(prev => [
@@ -147,7 +144,7 @@ export default function MedicationScreen({ route, navigation }: any) {
     }
   };
 
-  const handleSnooze = (med: any, time: string) => {
+  const handleSnooze = (med: any) => {
     Alert.alert('⏰ 30분 후 알림', `${med.name} 복용 알림을 30분 후로 미룰까요?`, [
       { text: '취소', style: 'cancel' },
       { text: '확인', onPress: async () => {
@@ -181,8 +178,7 @@ export default function MedicationScreen({ route, navigation }: any) {
             total_quantity: qty, med_type: selMedType,
           }),
         });
-        const updated = await fetchAll();
-        if (updated) scheduleMedicationNotifications(updated);
+        await fetchAll();
       } else {
         setMeds(p => [...p, {
           id: Date.now().toString(), name: medName, dosage,
@@ -321,7 +317,7 @@ export default function MedicationScreen({ route, navigation }: any) {
                             <Text style={s.btnTakeTxt}>✅ 복용 완료</Text>
                           </TouchableOpacity>
                           <TouchableOpacity style={s.btnSnooze}
-                            onPress={() => handleSnooze(med, time)} activeOpacity={0.8}>
+                            onPress={() => handleSnooze(med)} activeOpacity={0.8}>
                             <Text style={s.btnSnoozeTxt}>⏰ 30분 후</Text>
                           </TouchableOpacity>
                           <TouchableOpacity style={s.btnSkip}
