@@ -1,4 +1,5 @@
 import os
+import json
 import anthropic
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -7,62 +8,121 @@ from dotenv import load_dotenv
 from ..database import get_supabase
 
 load_dotenv()
-
 router = APIRouter()
 
+# Lumina 500 Q&A 지식베이스 로드
+_QA_DB: List[dict] = []
+try:
+    _qa_path = os.path.join(os.path.dirname(__file__), '..', 'lumina_health_500.json')
+    with open(_qa_path, 'r', encoding='utf-8') as _f:
+        _QA_DB = json.load(_f)
+    print(f'[QA DB] {len(_QA_DB)}개 로드 완료')
+except Exception as _e:
+    print(f'[WARNING] QA DB 로드 실패: {_e}')
+
+
+CAT_KEYWORDS = {
+    '약물':        ['약','복용','먹','처방','부작용','약물'],
+    '당뇨':        ['혈당','당뇨','인슐린','혈당'],
+    '심혈관':      ['혈압','심장','맥박','콜레스테롤','흉통','가슴'],
+    '관절/근골격': ['관절','무릎','허리','뼈','근육','통증'],
+    '수면':        ['수면','잠','불면','피로','졸림'],
+    '소화기':      ['소화','위','장','변비','설사','속쓰림'],
+    '신경/기억력': ['기억','치매','두통','어지럼','어지럽'],
+    '정신건강':    ['우울','불안','스트레스','기분','외로'],
+    '생활습관':    ['운동','식단','체중','금연','음주','걷기'],
+    '병원준비':    ['병원','검사','진료','의사','예약'],
+}
+
+EMERGENCY_WORDS = ['흉통','가슴통증','호흡곤란','숨막','마비','의식','쓰러','졸도','심정지']
+
+
+def find_relevant_qa(message: str, top_k: int = 2) -> List[dict]:
+    if not _QA_DB:
+        return []
+    scored = []
+    for item in _QA_DB:
+        score = 0
+        if item.get('emergency_flag') and any(w in message for w in EMERGENCY_WORDS):
+            score += 100
+        for tag in item.get('tags', []):
+            if tag in message:
+                score += 10
+        cat = item.get('category_ko', '')
+        for kw in CAT_KEYWORDS.get(cat, []):
+            if kw in message:
+                score += 5
+                break
+        if score > 0:
+            scored.append((score, item))
+    scored.sort(key=lambda x: -x[0])
+    return [item for _, item in scored[:top_k]]
+
+
 BASE_SYSTEM = """당신은 Silver Life AI의 건강 도우미 '꿀비'입니다.
-60세 이상 시니어를 위한 건강 모니터링과 생활 조언을 제공합니다.
+60세 이상 시니어를 위한 건강 상담을 제공합니다.
 
-답변 규칙 (반드시 준수):
-1. 반드시 4줄 이내로 짧게 답변하세요. 절대 그 이상 쓰지 마세요.
-2. 인사말에는 한 줄로만 반갑게 답하고 바로 끝내세요.
-3. 건강 질문 구조: 공감 한 줄 → 핵심 조언 한 줄 → 실천 방법 한 줄 → "더 궁금한 점 있으시면 말씀해주세요 😊"
-4. 쉽고 친근한 언어, 어려운 의학 용어 사용 금지.
-5. 자기소개, 장황한 설명 절대 금지.
+응급 최우선 규칙:
+- 흉통, 호흡곤란, 갑작스러운 마비/저림, 심한 두통, 의식 저하 -> 즉시 "119에 전화하세요!" 첫 줄에 표시
+- 진단, 처방, 약물 용량 변경은 절대 금지
 
-💬 공감 표현 원칙:
-- 사용자가 말한 내용에 직접 반응하는 공감을 쓰세요. (예: "혈압이 높다" → "혈압이 신경 쓰이시겠네요")
-- 미리 정해진 표현을 끼워 넣지 말고, 그 상황에만 맞는 한 줄로 자연스럽게 공감하세요.
-- 같은 공감 표현을 대화 중 반복하지 마세요.
-- 칭찬하거나 평가하는 말투는 금지입니다. (예: "잘하셨어요", "좋아요" 등)
+답변 형식 (6가지 항목으로 구성):
+1. 한 줄 요약: 지금 상황을 한 줄로
+2. 지금 할 일: 2~3가지 (짧게)
+3. 이럴 때 병원: 위험 신호 1~2가지
+4. 의사에게: 진료 시 꼭 말할 한 문장
+5. 물어볼 질문: 의사에게 물어볼 1~2가지
+6. 가족에게: 가족이 알아야 할 한 줄
 
-⚠️ 의료 안전 규칙 (최우선):
-- 흉통, 호흡곤란, 갑작스러운 마비/저림, 심한 두통, 의식 저하 → 즉시 "119에 전화하세요!" 안내
-- 진단, 처방, 약물 용량 변경은 절대 하지 말 것
-- 증상이 2일 이상 지속되거나 악화되면 반드시 병원 방문 권유
-- 모든 의료 조언 끝에: "⚕️ 정확한 진단은 의사 선생님께 꼭 확인하세요"
-- AI의 답변은 참고용이며 의료 행위를 대체할 수 없음을 항상 인지"""
+규칙:
+- 각 항목은 1~3줄로 짧게
+- 쉽고 친근한 말투, 어려운 의학 용어 금지
+- 단순 안부/일상 질문은 형식 없이 친근하게 2~3줄만 답변
+- 모든 의료 답변 끝에: "이 내용은 참고용이며 정확한 진단은 의사 선생님께 확인하세요"
+- 칭찬/평가 금지"""
 
 
-def build_system_prompt(user: dict) -> str:
-    lines = [BASE_SYSTEM, "\n=== 사용자 개인 정보 (반드시 참고) ==="]
+def build_qa_context(relevant_qa: List[dict]) -> str:
+    if not relevant_qa:
+        return ""
+    lines = ["\n=== 관련 의료 지식 (참고) ==="]
+    for qa in relevant_qa:
+        lines.append(f"\n[{qa['category_ko']} | 위험도: {qa['risk_level']}]")
+        lines.append(f"유사 질문: {qa['question']}")
+        tmpl = qa.get('answer_template', {})
+        if tmpl.get('what_to_do_now'):
+            lines.append("권장 행동: " + " / ".join(tmpl['what_to_do_now'][:2]))
+        if tmpl.get('danger_signs'):
+            lines.append("위험 신호: " + " / ".join(tmpl['danger_signs'][:2]))
+        if tmpl.get('doctor_questions'):
+            lines.append("의사 질문: " + " / ".join(tmpl['doctor_questions'][:2]))
+        if qa.get('doctor_visit_needed'):
+            lines.append("-> 의사 방문 필요")
+    return "\n".join(lines)
 
+
+def build_system_prompt(user: dict, relevant_qa: List[dict]) -> str:
+    lines = [BASE_SYSTEM]
+    lines.append("\n=== 사용자 개인 정보 ===")
     name = user.get("name")
     age  = user.get("age")
     gender = user.get("gender")
     region = user.get("region")
-
-    phone = user.get("phone")
-    if name:  lines.append(f"이름: {name} (대화 시 이름으로 불러주세요)")
-    if phone: lines.append(f"전화번호: {phone}")
-    if age:   lines.append(f"나이: {age}세")
+    if name:   lines.append(f"이름: {name}")
+    if age:    lines.append(f"나이: {age}세")
     if gender: lines.append(f"성별: {gender}")
     if region: lines.append(f"거주지역: {region}")
-
     h = user.get("height")
     w = user.get("weight")
     if h and w:
         bmi = round(w / ((h/100)**2), 1)
         lines.append(f"키: {h}cm / 몸무게: {w}kg / BMI: {bmi}")
-
     diseases = user.get("chronic_diseases")
     if diseases:
-        lines.append(f"만성질환: {', '.join(diseases)} — 이 질환에 맞지 않는 조언은 제외하세요")
-
+        lines.append(f"만성질환: {', '.join(diseases)}")
     if user.get("taking_medication"):
         meds = user.get("medication_list", "")
-        lines.append(f"복용 중인 약: {meds if meds else '있음'} — 약 상호작용 주의")
-
+        lines.append(f"복용 중인 약: {meds if meds else '있음'}")
     ex = user.get("exercise_frequency")
     sleep = user.get("sleep_hours")
     smoking = user.get("smoking")
@@ -71,22 +131,15 @@ def build_system_prompt(user: dict) -> str:
     if sleep:   lines.append(f"평균수면: {sleep}시간")
     if smoking is not None: lines.append(f"흡연: {'흡연 중' if smoking else '비흡연'}")
     if drinking: lines.append(f"음주: {drinking}")
-
     interests = user.get("interests")
     if interests:
         lines.append(f"관심분야: {', '.join(interests)}")
-
-    chat_style = user.get("chat_style", "짧고 핵심만")
-    if chat_style == "자세하게":
-        lines.append("\n답변 스타일: 사용자가 자세한 설명을 원합니다. 조금 더 풍부하게 설명하되 6줄을 넘기지 마세요.")
-    else:
-        lines.append("\n답변 스타일: 핵심만 4줄 이내로 짧게 답변하세요.")
-
+    lines.append(build_qa_context(relevant_qa))
     return "\n".join(lines)
 
 
 class HistoryMessage(BaseModel):
-    role: str   # "user" or "assistant"
+    role: str
     content: str
 
 
@@ -103,18 +156,18 @@ def chat(request: ChatRequest):
     if not api_key:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY가 설정되지 않았습니다.")
 
-    # 프로필 조회
-    system_prompt = BASE_SYSTEM
+    relevant_qa = find_relevant_qa(request.message)
+
+    system_prompt = BASE_SYSTEM + build_qa_context(relevant_qa)
     if request.user_id and request.user_id != "demo-user":
         try:
             db = get_supabase()
             result = db.table("users").select("*").eq("id", request.user_id).execute()
             if result.data:
-                system_prompt = build_system_prompt(result.data[0])
+                system_prompt = build_system_prompt(result.data[0], relevant_qa)
         except Exception:
             pass
 
-    # 대화 히스토리 구성 (최대 10개)
     history = request.history or []
     messages = [{"role": m.role, "content": m.content} for m in history[-10:]]
     messages.append({"role": "user", "content": request.message})
@@ -123,7 +176,7 @@ def chat(request: ChatRequest):
         client = anthropic.Anthropic(api_key=api_key)
         response = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=1024,
+            max_tokens=1500,
             system=system_prompt,
             messages=messages,
         )
