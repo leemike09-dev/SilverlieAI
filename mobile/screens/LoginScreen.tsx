@@ -63,15 +63,33 @@ export default function LoginScreen({ navigation, route }: any) {
     navigation.replace('SeniorHome', { name: '게스트', userId: '', isGuest: true });
 
   const handleKakaoLogin = async () => {
-    if (KAKAO_CLIENT_ID === 'YOUR_KAKAO_REST_API_KEY') {
-      alert('카카오 로그인 준비 중입니다.\n이메일로 로그인해 주세요.');
-      return;
-    }
     const url = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT_URI)}&response_type=code`;
     if (Platform.OS === 'web') {
       (window as any).location.href = url;
-    } else {
-      await WebBrowser.openBrowserAsync(url);
+      return;
+    }
+    const result = await WebBrowser.openAuthSessionAsync(url, 'silverliveai://oauth');
+    if (result.type === 'success' && result.url) {
+      try {
+        const parsed = new URL(result.url);
+        const code = parsed.searchParams.get('code');
+        if (!code) return;
+        const res = await fetch(`${API_URL}/users/kakao-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, redirect_uri: KAKAO_REDIRECT_URI }),
+        });
+        const data = await res.json();
+        if (data?.id) {
+          await AsyncStorage.setItem('userId', String(data.id));
+          await AsyncStorage.setItem('userName', data.name || '');
+          navigation.replace('SeniorHome', { name: data.name, userId: data.id });
+        } else {
+          alert('카카오 로그인에 실패했습니다. 이메일로 로그인해 주세요.');
+        }
+      } catch (e) {
+        alert('로그인 오류가 발생했습니다.');
+      }
     }
   };
 
