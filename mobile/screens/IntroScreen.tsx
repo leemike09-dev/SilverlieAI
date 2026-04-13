@@ -7,6 +7,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
+const beeSource = Platform.OS === 'web'
+  ? { uri: 'https://raw.githubusercontent.com/leemike09-dev/SilverlieAI/main/mobile/assets/bee_nobg.png' }
+  : require('../assets/bee_nobg.png');
+
 const GREETINGS = [
   '안녕하세요! 저는 꿀비예요 🐝',
   '오늘도 건강한 하루 보내세요!',
@@ -124,9 +128,9 @@ export default function IntroScreen({ navigation }: any) {
             <Animated.View style={[s.ring, ringStyle(ring2)]} />
             <Animated.View style={[s.ring, ringStyle(ring3)]} />
 
-            {/* 꿀비 이모지 + 부유 */}
+            {/* 꿀비 이미지 + 부유 */}
             <Animated.View style={{ transform: [{ translateY: floatAnim }] }}>
-              <Text style={s.beeEmoji}>🐝</Text>
+              <Image source={beeSource} style={s.beeImg} resizeMode="contain" />
             </Animated.View>
           </View>
 
@@ -221,7 +225,7 @@ const s = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.6)',
   },
-  beeEmoji: { fontSize: 62 },
+  beeImg: { width: 100, height: 100 },
 
   /* 앱 이름 */
   appName: {
