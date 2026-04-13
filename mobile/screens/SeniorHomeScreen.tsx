@@ -113,32 +113,15 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           ))}
         </View>
 
-        {/* 동선 카드 */}
-        <Text style={s.sectionTitle}>오늘의 동선 · 걸음수</Text>
-        <TouchableOpacity style={s.motionCard} onPress={goFamily} activeOpacity={0.88}>
-          <View style={s.miniMap}>
-            <Text style={s.miniMapTxt}>🗺️</Text>
-            <Text style={s.miniMapLabel}>동선 지도</Text>
+        {/* 동선 한 줄 버튼 — 섹션 타이틀 없이 바로 */}
+        <TouchableOpacity style={s.motionRow} onPress={goFamily} activeOpacity={0.85}>
+          <Text style={s.motionRowIcon}>🗺️</Text>
+          <Text style={s.motionRowLabel}>오늘 동선 확인</Text>
+          <View style={s.motionRowSteps}>
+            <Text style={s.motionRowStepNum}>4,820</Text>
+            <Text style={s.motionRowStepUnit}>걸음</Text>
           </View>
-          <View style={s.motionStats}>
-            <View style={s.motionStat}>
-              <Text style={s.motionNum}>2.4</Text>
-              <Text style={s.motionUnit}>km</Text>
-              <Text style={s.motionLabel}>이동거리</Text>
-            </View>
-            <View style={s.motionDivider} />
-            <View style={s.motionStat}>
-              <Text style={s.motionNum}>47</Text>
-              <Text style={s.motionUnit}>분</Text>
-              <Text style={s.motionLabel}>활동시간</Text>
-            </View>
-            <View style={s.motionDivider} />
-            <View style={s.motionStat}>
-              <Text style={s.motionNum}>68</Text>
-              <Text style={s.motionUnit}>%</Text>
-              <Text style={s.motionLabel}>달성률</Text>
-            </View>
-          </View>
+          <Text style={s.motionRowArrow}>›</Text>
         </TouchableOpacity>
 
         {/* SOS + AI 버튼 */}
@@ -216,11 +199,14 @@ const s = StyleSheet.create({
   healthValue:    { fontSize: 22, fontWeight: '800', lineHeight: 26 },
   healthUnit:     { fontSize: 12, fontWeight: '600', paddingBottom: 1 },
 
-  /* 동선 카드 */
-  motionCard: {
+  /* 동선 한 줄 버튼 */
+  motionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 6,
@@ -228,23 +214,12 @@ const s = StyleSheet.create({
     elevation: 2,
     gap: 10,
   },
-  miniMap: {
-    height: 70,
-    backgroundColor: '#E8EEF8',
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  miniMapTxt:   { fontSize: 24 },
-  miniMapLabel: { fontSize: 14, color: '#8E8E93', fontWeight: '500' },
-  motionStats:  { flexDirection: 'row', alignItems: 'center' },
-  motionStat:   { flex: 1, alignItems: 'center', gap: 1 },
-  motionDivider:{ width: 1, height: 36, backgroundColor: '#E5E5EA' },
-  motionNum:    { fontSize: 24, fontWeight: '800', color: '#1A4A8A' },
-  motionUnit:   { fontSize: 13, fontWeight: '600', color: '#2272B8' },
-  motionLabel:  { fontSize: 12, color: '#8E8E93', fontWeight: '500' },
+  motionRowIcon:    { fontSize: 22 },
+  motionRowLabel:   { flex: 1, fontSize: 17, fontWeight: '600', color: '#1C1C1E' },
+  motionRowSteps:   { flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
+  motionRowStepNum: { fontSize: 20, fontWeight: '800', color: '#1A4A8A' },
+  motionRowStepUnit:{ fontSize: 13, fontWeight: '600', color: '#2272B8', paddingBottom: 1 },
+  motionRowArrow:   { fontSize: 22, color: '#C0C0C0', marginLeft: 2 },
 
   /* SOS + AI */
   actionRow: { flexDirection: 'row', gap: 10 },
