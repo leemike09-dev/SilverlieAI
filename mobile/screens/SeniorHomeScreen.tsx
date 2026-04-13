@@ -18,10 +18,10 @@ const beeSource = Platform.OS === 'web'
   : require('../assets/bee_nobg.png');
 
 const HEALTH_CARDS = [
-  { emoji: '🫀', label: '혈압',  value: '120/80', unit: 'mmHg', color: '#F57C00', bg: '#FFF3E0' },
-  { emoji: '💉', label: '혈당',  value: '98',     unit: 'mg/dL', color: '#C2185B', bg: '#FCE4EC' },
-  { emoji: '🌡️', label: '체온',  value: '36.5',   unit: '°C',   color: '#1565C0', bg: '#E3F2FD' },
-  { emoji: '⚖️', label: '체중',  value: '68.2',   unit: 'kg',   color: '#2E7D32', bg: '#E8F5E9' },
+  { emoji: '🫀', label: '혈압',  value: '120/80', unit: 'mmHg', color: '#fff', bg: '#F57C00' },
+  { emoji: '💉', label: '혈당',  value: '98',     unit: 'mg/dL', color: '#fff', bg: '#C2185B' },
+  { emoji: '🌡️', label: '체온',  value: '36.5',   unit: '°C',   color: '#fff', bg: '#1565C0' },
+  { emoji: '⚖️', label: '체중',  value: '68.2',   unit: 'kg',   color: '#fff', bg: '#2E7D32' },
 ];
 
 export default function SeniorHomeScreen({ route, navigation }: any) {
@@ -94,7 +94,6 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       <View style={s.body}>
 
         {/* 건강 카드 2×2 */}
-        <Text style={s.sectionTitle}>오늘의 건강 상태</Text>
         <View style={s.healthGrid}>
           {HEALTH_CARDS.map(card => (
             <TouchableOpacity
@@ -113,7 +112,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           ))}
         </View>
 
-        {/* 동선 한 줄 버튼 — 섹션 타이틀 없이 바로 */}
+        {/* 동선 한 줄 버튼 */}
         <TouchableOpacity style={s.motionRow} onPress={goFamily} activeOpacity={0.85}>
           <Text style={s.motionRowIcon}>🗺️</Text>
           <Text style={s.motionRowLabel}>오늘 동선 확인</Text>
@@ -159,8 +158,8 @@ const s = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingBottom: 14 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerText: { flex: 1 },
-  greeting:  { color: 'rgba(255,255,255,0.80)', fontSize: 15, fontWeight: '500', marginBottom: 2 },
-  userName:  { color: '#fff', fontSize: 24, fontWeight: '800', marginBottom: 2 },
+  greeting:  { color: 'rgba(255,255,255,0.80)', fontSize: 16, fontWeight: '500', marginBottom: 2 },
+  userName:  { color: '#fff', fontSize: 28, fontWeight: '800', marginBottom: 2 },
   locTxt:    { color: 'rgba(255,255,255,0.80)', fontSize: 13, fontWeight: '500' },
   beeLogo:   { width: 60, height: 60, marginLeft: 10 },
 
@@ -168,36 +167,28 @@ const s = StyleSheet.create({
   body: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 14,
+    paddingTop: 12,
     paddingBottom: 8,
-    justifyContent: 'space-between',
-  },
-
-  /* 섹션 타이틀 */
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#1C1C1E',
-    marginBottom: 6,
+    gap: 8,
   },
 
   /* 건강 카드 2×2 */
-  healthGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: CARD_GAP },
+  healthGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   healthCard: {
     width: CARD_W,
     borderRadius: 16,
-    padding: 12,
+    padding: 20,
     shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    shadowOpacity: 0.10,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
-  healthEmoji:    { fontSize: 24, marginBottom: 6 },
-  healthLabel:    { fontSize: 12, fontWeight: '700', marginBottom: 4 },
-  healthValueRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
-  healthValue:    { fontSize: 22, fontWeight: '800', lineHeight: 26 },
-  healthUnit:     { fontSize: 12, fontWeight: '600', paddingBottom: 1 },
+  healthEmoji:    { fontSize: 26, marginBottom: 8 },
+  healthLabel:    { fontSize: 13, fontWeight: '700', marginBottom: 6, color: 'rgba(255,255,255,0.85)' },
+  healthValueRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4 },
+  healthValue:    { fontSize: 28, fontWeight: '800', lineHeight: 32 },
+  healthUnit:     { fontSize: 13, fontWeight: '600', paddingBottom: 2 },
 
   /* 동선 한 줄 버튼 */
   motionRow: {
