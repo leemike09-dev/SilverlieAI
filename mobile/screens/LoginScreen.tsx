@@ -48,7 +48,7 @@ export default function LoginScreen({ navigation, route }: any) {
       await AsyncStorage.setItem('userName', data.name);
 
       if (mode === 'register') {
-        navigation.replace('Onboarding', { name: data.name, userId: data.id });
+        navigation.replace('ProfileSetup', { name: data.name, userId: data.id });
       } else {
         navigation.replace('SeniorHome', { name: data.name, userId: data.id, isGuest: false });
       }

@@ -18,6 +18,7 @@ import WeeklyReportScreen from './screens/WeeklyReportScreen';
 import AIChatScreen from './screens/AIChatScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
+import ProfileSetupScreen from './screens/ProfileSetupScreen';
 import SeniorHomeScreen from './screens/SeniorHomeScreen';
 import MedicationScreen from './screens/MedicationScreen';
 import FamilyConnectScreen from './screens/FamilyConnectScreen';
@@ -136,7 +137,8 @@ export default function App() {
           <Stack.Screen name="Notifications" component={NotificationsScreen} initialParams={DEMO} />
           <Stack.Screen name="Settings"    component={SettingsScreen}    initialParams={DEMO} />
           <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} initialParams={DEMO} />
-          <Stack.Screen name="Onboarding"  component={OnboardingScreen}  />
+          <Stack.Screen name="Onboarding"   component={OnboardingScreen}   />
+          <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
           <Stack.Screen name="HealthInfo"  component={HealthInfoScreen}  />
           <Stack.Screen name="SeniorHome"    component={SeniorHomeScreen}   initialParams={DEMO} />
           <Stack.Screen name="Medication"    component={MedicationScreen}   initialParams={DEMO} />
