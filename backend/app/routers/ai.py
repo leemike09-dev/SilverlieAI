@@ -1,9 +1,11 @@
 import os
+import re
 import json
 import anthropic
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
+from datetime import date
 from dotenv import load_dotenv
 from ..database import get_supabase
 
@@ -41,17 +43,22 @@ DEFAULT_FOLLOWUP = [
     "복용 중인 약이 있다면 이름과 용량을 미리 메모하세요.",
 ]
 
-# Claude 답변 내용 기반 판단 — 맥락 이해가 되므로 오판 최소화
-EMERGENCY_REPLY_SIGNALS = ['119', '즉시 응급', '지금 바로 응급', '응급실로']
-WARNING_REPLY_SIGNALS   = ['병원 방문', '진료를 받', '의사에게 확인', '검사를 받', '빨리 병원']
+# Claude 답변에 포함된 [RISK:X] 토큰을 파싱하여 단계 판단
+_RISK_PATTERN = re.compile(r'\[RISK:(LOW|MEDIUM|HIGH|CRITICAL)\]', re.IGNORECASE)
+_RISK_MAP = {'LOW': 'low', 'MEDIUM': 'medium', 'HIGH': 'high', 'CRITICAL': 'critical'}
 
 
-def detect_risk(message: str, reply: str) -> str:
-    if any(w in reply for w in EMERGENCY_REPLY_SIGNALS):
-        return "emergency"
-    if any(w in reply for w in WARNING_REPLY_SIGNALS):
-        return "warning"
-    return "normal"
+def detect_risk(reply: str) -> str:
+    """Claude 답변에서 [RISK:X] 토큰 추출. 없으면 'normal' 반환."""
+    m = _RISK_PATTERN.search(reply)
+    if m:
+        return _RISK_MAP.get(m.group(1).upper(), 'normal')
+    return 'normal'
+
+
+def strip_risk_token(reply: str) -> str:
+    """사용자에게 보여줄 답변에서 [RISK:X] 토큰 제거."""
+    return _RISK_PATTERN.sub('', reply).strip()
 
 
 def get_suggested_questions(relevant_qa: List[dict]) -> List[str]:
@@ -95,24 +102,36 @@ def find_relevant_qa(message: str, top_k: int = 2) -> List[dict]:
 BASE_SYSTEM = """당신은 Silver Life AI의 건강 도우미 '꿀비'입니다.
 60세 이상 시니어를 위한 건강 상담을 제공합니다.
 
-응급 최우선 규칙:
-- 흉통, 호흡곤란, 갑작스러운 마비/저림, 심한 두통, 의식 저하 -> 즉시 "119에 전화하세요!" 첫 줄에 표시
-- 진단, 처방, 약물 용량 변경은 절대 금지
+== 단계적 위험도 판단 규칙 ==
 
-답변 형식 (6가지 항목으로 구성):
-1. 한 줄 요약: 지금 상황을 한 줄로
-2. 지금 할 일: 2~3가지 (짧게)
-3. 이럴 때 병원: 위험 신호 1~2가지
-4. 의사에게: 진료 시 꼭 말할 한 문장
-5. 물어볼 질문: 의사에게 물어볼 1~2가지
-6. 가족에게: 가족이 알아야 할 한 줄
+1단계 (증상 첫 보고):
+- 바로 판단하지 말고 핵심 질문 1~2개를 먼저 한다
+- 예: "언제부터 그러셨나요?", "다른 증상도 함께 있나요?", "얼마나 심한가요?"
+- 이 단계에서는 [RISK] 토큰 없이 질문만 한다
+
+2단계 (충분한 정보 수집 후):
+- 답변 마지막에 반드시 아래 중 하나를 붙인다:
+  [RISK:LOW]      — 경미, 만성적, 일상에 지장 없음 → 일반 생활 조언
+  [RISK:MEDIUM]   — 지속 시 병원 필요, 당장 응급 아님 → 병원 권고
+  [RISK:HIGH]     — 오늘 내 병원 방문 필요, 빠른 조치 필요 → 강력 권고
+  [RISK:CRITICAL] — 즉시 119 또는 응급실 (의식저하·마비·심한 흉통·호흡곤란 등) → 119 안내
+
+판단 기준:
+- LOW: 가벼운 피로, 가벼운 근육통, 만성 소화불량, 일반 안부
+- MEDIUM: 며칠 지속되는 두통, 혈압 약간 높음, 소화 불량 반복
+- HIGH: 흉통(경미하나 새로운 증상), 1주 이상 지속 증상, 복용약 부작용 의심
+- CRITICAL: 갑작스러운 심한 흉통, 호흡곤란, 팔다리 마비, 의식 저하, 심한 두통
+
+== 답변 형식 ==
+- 질문 단계: 친근하게 1~2줄 + 핵심 질문 1~2개
+- 판단 단계: 한 줄 요약 → 지금 할 일 2~3가지 → 병원 가야 할 신호 → [RISK:X]
+- 단순 안부/일상은 형식 없이 2~3줄, [RISK] 토큰 생략
 
 규칙:
-- 각 항목은 1~3줄로 짧게
 - 쉽고 친근한 말투, 어려운 의학 용어 금지
-- 단순 안부/일상 질문은 형식 없이 친근하게 2~3줄만 답변
-- 모든 의료 답변 끝에: "이 내용은 참고용이며 정확한 진단은 의사 선생님께 확인하세요"
-- 칭찬/평가 금지"""
+- 진단·처방·약물 용량 변경 절대 금지
+- 모든 의료 답변 끝(토큰 앞)에: "이 내용은 참고용이며 정확한 진단은 의사 선생님께 확인하세요"
+- 칭찬/평가 금지, 자기소개 금지"""
 
 
 def build_qa_context(relevant_qa: List[dict]) -> str:
@@ -213,9 +232,22 @@ def chat(request: ChatRequest):
             system=system_prompt,
             messages=messages,
         )
-        reply_text = response.content[0].text
-        risk = detect_risk(request.message, reply_text)
+        reply_raw  = response.content[0].text
+        risk       = detect_risk(reply_raw)
+        reply_text = strip_risk_token(reply_raw)
         suggestions = get_suggested_questions(relevant_qa)
+
+        # AI 상담 기록 DB 저장 (게스트/데모 제외)
+        if request.user_id and request.user_id not in ("demo-user", "guest"):
+            try:
+                db = get_supabase()
+                db.table("ai_chat_logs").insert([
+                    {"user_id": request.user_id, "role": "user",      "message": request.message, "risk_level": "normal"},
+                    {"user_id": request.user_id, "role": "assistant", "message": reply_text,       "risk_level": risk},
+                ]).execute()
+            except Exception as save_err:
+                print(f"[ai_chat_logs] save error: {save_err}")
+
         return {
             "reply": reply_text,
             "risk_level": risk,
@@ -223,3 +255,85 @@ def chat(request: ChatRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI 오류: {str(e)}")
+
+
+# ── AI 상담 기록 조회 ──────────────────────────────────────────
+@router.get("/history/{user_id}")
+def get_chat_history(user_id: str, limit: int = 20):
+    db = get_supabase()
+    result = (
+        db.table("ai_chat_logs")
+        .select("id,role,message,risk_level,created_at")
+        .eq("user_id", user_id)
+        .order("created_at", desc=False)
+        .limit(limit)
+        .execute()
+    )
+    return result.data
+
+
+# ── 오늘 상담 요약 생성 (AI) ──────────────────────────────────
+@router.post("/summary/{user_id}")
+def generate_summary(user_id: str):
+    db = get_supabase()
+    today_str = date.today().isoformat()
+
+    result = (
+        db.table("ai_chat_logs")
+        .select("role,message,risk_level")
+        .eq("user_id", user_id)
+        .gte("created_at", f"{today_str}T00:00:00")
+        .execute()
+    )
+    logs = result.data
+    if not logs:
+        raise HTTPException(status_code=404, detail="오늘 상담 기록이 없습니다")
+
+    conv_text = "\n".join([f"[{'이용자' if l['role']=='user' else 'AI'}] {l['message']}" for l in logs])
+    has_risk = any(l.get("risk_level") in ("warning", "emergency") for l in logs)
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    client = anthropic.Anthropic(api_key=api_key)
+    summary_res = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=400,
+        messages=[{
+            "role": "user",
+            "content": (
+                "아래 건강 상담 대화를 가족이 볼 수 있도록 3줄 이내로 한국어로 요약하세요.\n"
+                "핵심 증상/질문, AI 권고사항, 위험 여부를 간결하게 포함하세요.\n"
+                "형식: 오늘 상담 내용 요약\n\n" + conv_text
+            ),
+        }],
+    )
+    summary_text = summary_res.content[0].text
+
+    # 오늘 날짜 요약이 이미 있으면 업데이트, 없으면 삽입
+    existing = (
+        db.table("ai_chat_summaries")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("date", today_str)
+        .execute()
+    )
+    if existing.data:
+        db.table("ai_chat_summaries").update({"summary": summary_text, "has_risk": has_risk}).eq("id", existing.data[0]["id"]).execute()
+    else:
+        db.table("ai_chat_summaries").insert({"user_id": user_id, "summary": summary_text, "date": today_str, "has_risk": has_risk}).execute()
+
+    return {"summary": summary_text, "date": today_str, "has_risk": has_risk}
+
+
+# ── AI 상담 요약 목록 조회 ─────────────────────────────────────
+@router.get("/summaries/{user_id}")
+def get_summaries(user_id: str, limit: int = 7):
+    db = get_supabase()
+    result = (
+        db.table("ai_chat_summaries")
+        .select("id,summary,date,has_risk,created_at")
+        .eq("user_id", user_id)
+        .order("date", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return result.data

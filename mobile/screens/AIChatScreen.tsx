@@ -8,10 +8,11 @@ import SeniorTabBar from '../components/SeniorTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
 type Props = { route: any; navigation: any };
+type RiskLevel = 'normal' | 'low' | 'medium' | 'high' | 'critical';
 type Msg = {
   role: 'ai' | 'user';
   text: string;
-  riskLevel?: 'normal' | 'warning' | 'emergency';
+  riskLevel?: RiskLevel;
   suggestedQuestions?: string[];
 };
 type HistoryItem = { role: 'user' | 'assistant'; content: string };
@@ -69,6 +70,29 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<any>(null);
 
+  // 이전 상담 기록 불러오기 (로그인 회원만)
+  useEffect(() => {
+    if (!userId || userId === 'demo-user') return;
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/ai/history/${userId}?limit=20`);
+        if (!res.ok) return;
+        const logs: { role: string; message: string; risk_level: string }[] = await res.json();
+        if (!logs.length) return;
+        const loadedMsgs: Msg[] = logs.map(l => ({
+          role: l.role === 'assistant' ? 'ai' : 'user',
+          text: l.message,
+          riskLevel: (l.risk_level ?? 'normal') as RiskLevel,
+        }));
+        setMsgs([welcomeMsg, ...loadedMsgs]);
+        setHistory(logs.map(l => ({
+          role: l.role === 'assistant' ? 'assistant' : 'user',
+          content: l.message,
+        })));
+      } catch { /* 기록 없으면 무시 */ }
+    })();
+  }, [userId]);
+
   useEffect(() => {
     scrollRef.current?.scrollToEnd({ animated: true });
   }, [msgs]);
@@ -119,7 +143,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       }]);
       setHistory([...newHistory, { role: 'assistant', content: reply }]);
 
-      if (riskLevel === 'emergency') {
+      if (riskLevel === 'critical') {
         setShowEmergency(true);
       }
     } catch {
@@ -237,15 +261,20 @@ export default function AIChatScreen({ route, navigation }: Props) {
                   resizeMode="cover"
                 />
                 <View style={{ flex: 1 }}>
-                  {/* 위험도 배너 */}
-                  {m.riskLevel === 'emergency' && (
-                    <TouchableOpacity style={s.emergencyBanner} onPress={() => setShowEmergency(true)}>
-                      <Text style={s.emergencyBannerTxt}>🚨 주의 필요 — 119 또는 가족에게 연락하세요</Text>
+                  {/* 위험도 배너 — 4단계 */}
+                  {m.riskLevel === 'critical' && (
+                    <TouchableOpacity style={s.bannerCritical} onPress={() => setShowEmergency(true)}>
+                      <Text style={s.bannerCriticalTxt}>🚨 즉시 119 또는 응급실이 필요합니다 — 탭하여 확인</Text>
                     </TouchableOpacity>
                   )}
-                  {m.riskLevel === 'warning' && (
-                    <View style={s.warningBanner}>
-                      <Text style={s.warningBannerTxt}>⚠️ 증상이 지속되면 병원 방문을 권장합니다</Text>
+                  {m.riskLevel === 'high' && (
+                    <View style={s.bannerHigh}>
+                      <Text style={s.bannerHighTxt}>🔴 오늘 안에 병원 방문을 강력히 권고합니다</Text>
+                    </View>
+                  )}
+                  {m.riskLevel === 'medium' && (
+                    <View style={s.bannerMedium}>
+                      <Text style={s.bannerMediumTxt}>⚠️ 증상이 지속되면 병원 방문을 권장합니다</Text>
                     </View>
                   )}
 
@@ -440,17 +469,24 @@ const s = StyleSheet.create({
   },
   aiText: { fontSize: 20, color: C.text, lineHeight: 32 },
 
-  emergencyBanner: {
-    backgroundColor: C.emBg, borderRadius: 10, borderWidth: 1.5, borderColor: C.emRed,
-    paddingHorizontal: 12, paddingVertical: 8, marginBottom: 6,
+  // 위험도 배너 4단계
+  bannerCritical: {
+    backgroundColor: C.emBg, borderRadius: 10, borderWidth: 2, borderColor: C.emRed,
+    paddingHorizontal: 12, paddingVertical: 10, marginBottom: 6,
   },
-  emergencyBannerTxt: { fontSize: 16, color: C.emRed, fontWeight: '700', textAlign: 'center' },
+  bannerCriticalTxt: { fontSize: 16, color: C.emRed, fontWeight: '800', textAlign: 'center' },
 
-  warningBanner: {
+  bannerHigh: {
+    backgroundColor: '#FFF0E0', borderRadius: 10, borderWidth: 2, borderColor: '#E65100',
+    paddingHorizontal: 12, paddingVertical: 10, marginBottom: 6,
+  },
+  bannerHighTxt: { fontSize: 16, color: '#E65100', fontWeight: '700', textAlign: 'center' },
+
+  bannerMedium: {
     backgroundColor: C.warnBg, borderRadius: 10, borderWidth: 1.5, borderColor: C.warn,
     paddingHorizontal: 12, paddingVertical: 8, marginBottom: 6,
   },
-  warningBannerTxt: { fontSize: 16, color: C.warn, fontWeight: '700', textAlign: 'center' },
+  bannerMediumTxt: { fontSize: 16, color: C.warn, fontWeight: '700', textAlign: 'center' },
 
   followupWrap: { marginTop: 8, paddingLeft: 4 },
   followupLabel: { fontSize: 15, color: C.sub, fontWeight: '600', marginBottom: 6 },
