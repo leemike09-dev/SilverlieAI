@@ -106,11 +106,10 @@ export default function IntroScreen({ navigation }: any) {
         </Animated.View>
       </View>
 
-      {/* ══ 웨이브 구분선 ══
-           블루 배경 위에 흰 아치 2개를 어긋나게 배치해 물결 모양 연출 */}
-      <View style={s.waveOuter}>
-        <View style={s.waveArch1} />
-        <View style={s.waveArch2} />
+      {/* ══ 웨이브 구분선: 블루 스트립 안에 흰 아치 2개 ══ */}
+      <View style={s.waveBridge}>
+        <View style={s.waveLeft} />
+        <View style={s.waveRight} />
       </View>
 
       {/* ══ 하단 흰 섹션 ══ */}
@@ -204,34 +203,30 @@ const s = StyleSheet.create({
   },
 
   /* ── 웨이브 구분선 ──
-     blueOuter: 블루 배경 컨테이너 (높이 52)
-     waveArch1: 흰 타원 — 왼쪽 낮게
-     waveArch2: 흰 타원 — 오른쪽 높게 (어긋나게)
-     두 아치가 겹쳐 물결처럼 보임 */
-  waveOuter: {
-    height: 52,
+     블루 스트립(64px) 안에 흰 아치 2개를 높이 다르게 배치
+     → 좌측 아치(높음) + 우측 아치(낮음) = S자 물결 */
+  waveBridge: {
+    height: 64,
     backgroundColor: '#1A4A8A',
     overflow: 'hidden',
   },
-  waveArch1: {
+  waveLeft: {
     position: 'absolute',
     bottom: 0,
-    left: -width * 0.08,
-    width: width * 0.65,
-    height: 100,
+    left: 0,
+    width: width * 0.62,
+    height: 64,
     backgroundColor: '#fff',
-    borderTopRightRadius: width * 0.5,
-    borderTopLeftRadius: 32,
+    borderTopRightRadius: 64,
   },
-  waveArch2: {
+  waveRight: {
     position: 'absolute',
     bottom: 0,
-    right: -width * 0.08,
-    width: width * 0.65,
-    height: 80,
+    right: 0,
+    width: width * 0.56,
+    height: 44,
     backgroundColor: '#fff',
-    borderTopLeftRadius: width * 0.5,
-    borderTopRightRadius: 32,
+    borderTopLeftRadius: 44,
   },
 
   /* 하단 */
