@@ -18,17 +18,16 @@ const GREETINGS = [
 ];
 
 export default function IntroScreen({ navigation }: any) {
-  const fadeAnim    = useRef(new Animated.Value(0)).current;
-  const slideAnim   = useRef(new Animated.Value(30)).current;
-  const floatAnim   = useRef(new Animated.Value(0)).current;
-  const ring1       = useRef(new Animated.Value(0)).current;
-  const ring2       = useRef(new Animated.Value(0)).current;
-  const ring3       = useRef(new Animated.Value(0)).current;
+  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  const ring1     = useRef(new Animated.Value(0)).current;
+  const ring2     = useRef(new Animated.Value(0)).current;
+  const ring3     = useRef(new Animated.Value(0)).current;
 
   const [greetIdx] = useState(0);
   const [dotIdx]   = useState(0);
 
-  /* ── 카카오 콜백 처리 ── */
   const handleKakaoCallback = async (code: string): Promise<boolean> => {
     try {
       const res = await fetch('https://silverlieai.onrender.com/users/kakao-login', {
@@ -47,12 +46,8 @@ export default function IntroScreen({ navigation }: any) {
     return false;
   };
 
-  /* ── 시작하기 → Onboarding ── */
-  const handleStart = () => {
-    navigation.replace('Onboarding');
-  };
+  const handleStart = () => navigation.replace('Onboarding');
 
-  /* ── 애니메이션 ── */
   useEffect(() => {
     if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('kakao_auth_code')) {
       const code = sessionStorage.getItem('kakao_auth_code')!;
@@ -61,13 +56,11 @@ export default function IntroScreen({ navigation }: any) {
       return;
     }
 
-    // 페이드 인
     Animated.parallel([
       Animated.timing(fadeAnim,  { toValue: 1, duration: 700, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
     ]).start();
 
-    // 꿀비 부유 애니메이션
     Animated.loop(
       Animated.sequence([
         Animated.timing(floatAnim, { toValue: -12, duration: 1400, useNativeDriver: true }),
@@ -75,15 +68,12 @@ export default function IntroScreen({ navigation }: any) {
       ])
     ).start();
 
-    // 음성 파동 링 (stagger)
     const makeRing = (anim: Animated.Value, delay: number) =>
       Animated.loop(
         Animated.sequence([
           Animated.delay(delay),
-          Animated.parallel([
-            Animated.timing(anim, { toValue: 1, duration: 1800, useNativeDriver: true }),
-          ]),
-          Animated.timing(anim, { toValue: 0, duration: 0, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 1, duration: 1800, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 0, duration: 0,    useNativeDriver: true }),
         ])
       );
 
@@ -93,51 +83,46 @@ export default function IntroScreen({ navigation }: any) {
   }, []);
 
   const ringStyle = (anim: Animated.Value) => ({
-    transform: [{
-      scale: anim.interpolate({ inputRange: [0, 1], outputRange: [1, 2.2] }),
-    }],
-    opacity: anim.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.5, 0.25, 0] }),
+    transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [1, 2.2] }) }],
+    opacity:   anim.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.5, 0.25, 0] }),
   });
 
   return (
     <View style={s.root}>
 
-      {/* ══ 상단 블루 섹션 ══ */}
+      {/* ══ 상단 블루 섹션 (44%) — 시니어 이미지 없음 ══ */}
       <View style={s.topSection}>
-        {/* kkulbi.png 배경 워터마크 */}
-        <Image
-          source={require('../assets/kkulbi.png')}
-          style={s.bgWatermark}
-          resizeMode="cover"
-        />
-
         <Animated.View style={[s.topContent, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-          {/* 음성 파동 링 3개 */}
           <View style={s.ringWrap}>
             <Animated.View style={[s.ring, ringStyle(ring1)]} />
             <Animated.View style={[s.ring, ringStyle(ring2)]} />
             <Animated.View style={[s.ring, ringStyle(ring3)]} />
-
-            {/* 꿀비 이미지 + 부유 */}
             <Animated.View style={{ transform: [{ translateY: floatAnim }] }}>
               <Image source={beeSource} style={s.beeImg} resizeMode="contain" />
             </Animated.View>
           </View>
-
-          {/* 앱 이름 */}
           <Text style={s.appName}>Silver Life AI</Text>
           <Text style={s.appSub}>어르신의 건강한 삶을 함께합니다</Text>
         </Animated.View>
       </View>
 
-      {/* 웨이브 구분선 */}
-      <View style={s.waveWrap}>
-        <View style={s.waveLeft}  />
-        <View style={s.waveRight} />
+      {/* ══ 웨이브 구분선 ══
+           블루 배경 위에 흰 아치 2개를 어긋나게 배치해 물결 모양 연출 */}
+      <View style={s.waveOuter}>
+        <View style={s.waveArch1} />
+        <View style={s.waveArch2} />
       </View>
 
       {/* ══ 하단 흰 섹션 ══ */}
       <View style={s.bottomSection}>
+
+        {/* 시니어 케어 이미지 — 하단 전체 배경 */}
+        <Image
+          source={require('../assets/kkulbi.png')}
+          style={s.elderlyBg}
+          resizeMode="cover"
+        />
+
         <Animated.View style={[s.bottomContent, { opacity: fadeAnim }]}>
           {/* 꿀비 말풍선 */}
           <View style={s.bubble}>
@@ -146,19 +131,15 @@ export default function IntroScreen({ navigation }: any) {
             <View style={s.bubbleTail} />
           </View>
 
-          {/* 시니어 이미지 — 버튼 위, 오른쪽 정렬 */}
-          <Image
-            source={require('../assets/kkulbi.png')}
-            style={s.elderlyImg}
-            resizeMode="contain"
-          />
+          {/* 여백 → 버튼을 하단으로 */}
+          <View style={{ flex: 1 }} />
 
           {/* 시작하기 버튼 */}
           <TouchableOpacity style={s.startBtn} onPress={handleStart} activeOpacity={0.85}>
             <Text style={s.startBtnTxt}>시작하기</Text>
           </TouchableOpacity>
 
-          {/* 온보딩 인디케이터 점 3개 */}
+          {/* 인디케이터 점 */}
           <View style={s.dots}>
             {[0, 1, 2].map(i => (
               <View key={i} style={[s.dot, dotIdx === i && s.dotActive]} />
@@ -176,25 +157,16 @@ const RING_SIZE = 160;
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#fff' },
 
-  /* 상단 */
+  /* 상단 (44%) — 완전 평면 바닥 */
   topSection: {
-    height: height * 0.56,
+    height: height * 0.44,
     backgroundColor: '#1A4A8A',
-    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
-  },
-  bgWatermark: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.15,
-    width: '100%',
-    height: '100%',
   },
   topContent: {
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 20 : 8,
+    paddingTop: Platform.OS === 'ios' ? 16 : 6,
   },
 
   /* 파동 링 */
@@ -203,7 +175,7 @@ const s = StyleSheet.create({
     height: RING_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: 14,
   },
   ring: {
     position: 'absolute',
@@ -221,7 +193,7 @@ const s = StyleSheet.create({
     fontSize: 34,
     fontWeight: '900',
     letterSpacing: 0.5,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   appSub: {
     color: 'rgba(255,255,255,0.80)',
@@ -231,20 +203,35 @@ const s = StyleSheet.create({
     paddingHorizontal: 32,
   },
 
-  /* 웨이브 구분선 */
-  waveWrap: {
-    flexDirection: 'row',
-    height: 0,
-  },
-  waveLeft: {
-    flex: 1, height: 28,
+  /* ── 웨이브 구분선 ──
+     blueOuter: 블루 배경 컨테이너 (높이 52)
+     waveArch1: 흰 타원 — 왼쪽 낮게
+     waveArch2: 흰 타원 — 오른쪽 높게 (어긋나게)
+     두 아치가 겹쳐 물결처럼 보임 */
+  waveOuter: {
+    height: 52,
     backgroundColor: '#1A4A8A',
-    borderBottomRightRadius: 40,
+    overflow: 'hidden',
   },
-  waveRight: {
-    flex: 1, height: 28,
+  waveArch1: {
+    position: 'absolute',
+    bottom: 0,
+    left: -width * 0.08,
+    width: width * 0.65,
+    height: 100,
     backgroundColor: '#fff',
-    borderTopLeftRadius: 40,
+    borderTopRightRadius: width * 0.5,
+    borderTopLeftRadius: 32,
+  },
+  waveArch2: {
+    position: 'absolute',
+    bottom: 0,
+    right: -width * 0.08,
+    width: width * 0.65,
+    height: 80,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: width * 0.5,
+    borderTopRightRadius: 32,
   },
 
   /* 하단 */
@@ -253,18 +240,16 @@ const s = StyleSheet.create({
     backgroundColor: '#fff',
     overflow: 'hidden',
   },
-  elderlyImg: {
-    alignSelf: 'flex-end',
-    height: 180,
-    width: width * 0.58,
-    opacity: 0.92,
-    marginBottom: 8,
+  elderlyBg: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+    opacity: 0.12,
   },
   bottomContent: {
     flex: 1,
     paddingHorizontal: 28,
     paddingTop: 20,
-    justifyContent: 'space-between',
     paddingBottom: 36,
   },
 
@@ -276,22 +261,16 @@ const s = StyleSheet.create({
     borderColor: '#C8D8F8',
     padding: 18,
     alignSelf: 'flex-start',
-    maxWidth: '65%',
-    position: 'relative',
+    maxWidth: '72%',
   },
   bubbleName: { fontSize: 14, fontWeight: '700', color: '#1A4A8A', marginBottom: 6 },
   bubbleMsg:  { fontSize: 22, fontWeight: '700', color: '#1C1C1E', lineHeight: 32 },
   bubbleTail: {
     position: 'absolute',
-    bottom: -10,
-    left: 20,
-    width: 0,
-    height: 0,
-    borderLeftWidth: 10,
-    borderRightWidth: 10,
-    borderTopWidth: 10,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
+    bottom: -10, left: 20,
+    width: 0, height: 0,
+    borderLeftWidth: 10, borderRightWidth: 10, borderTopWidth: 10,
+    borderLeftColor: 'transparent', borderRightColor: 'transparent',
     borderTopColor: '#C8D8F8',
   },
 
@@ -311,7 +290,7 @@ const s = StyleSheet.create({
   startBtnTxt: { color: '#fff', fontSize: 24, fontWeight: '900' },
 
   /* 점 인디케이터 */
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 4 },
-  dot:  { width: 8, height: 8, borderRadius: 4, backgroundColor: '#D0D8E8' },
+  dots:      { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 14 },
+  dot:       { width: 8, height: 8, borderRadius: 4, backgroundColor: '#D0D8E8' },
   dotActive: { backgroundColor: '#1A4A8A', width: 24, borderRadius: 4 },
 });
