@@ -227,25 +227,29 @@ export default function MedicationScreen({ route, navigation }: any) {
 
         {/* 헤더 */}
         <View style={s.header}>
-          <View style={s.headerRow}>
-            <View>
-              <Text style={s.headerDate}>{nowTime}</Text>
-              <Text style={s.headerTitle}>내 약 💊</Text>
-              <Text style={s.headerSub}>
-                {total > 0 ? `오늘 ${total}번 중 ${takenToday}번 복용` : '약을 등록해 주세요'}
-              </Text>
-            </View>
-            {total > 0 && (
-              <View style={s.headerBadge}>
-                <Text style={s.headerBadgeTxt}>{pct}%</Text>
-                <Text style={s.headerBadgeSub}>완료</Text>
-              </View>
-            )}
-          </View>
+          <Text style={s.headerDate}>{nowTime}</Text>
+          <Text style={s.headerTitle}>내 약 💊</Text>
           {/* 진행 바 */}
           {total > 0 && (
             <View style={s.progWrap}>
               <View style={[s.progFill, { width: `${pct}%` as any }]} />
+            </View>
+          )}
+          {/* 3개 요약 카드 */}
+          {total > 0 && (
+            <View style={s.summaryRow}>
+              <View style={[s.summaryCard, { borderTopColor: C.sage }]}>
+                <Text style={s.summaryNum}>{takenToday}</Text>
+                <Text style={s.summaryLabel}>✅ 완료</Text>
+              </View>
+              <View style={[s.summaryCard, { borderTopColor: C.amber }]}>
+                <Text style={s.summaryNum}>{total - takenToday}</Text>
+                <Text style={s.summaryLabel}>💊 남은 약</Text>
+              </View>
+              <View style={[s.summaryCard, { borderTopColor: C.blue2 }]}>
+                <Text style={s.summaryNum}>{pct}%</Text>
+                <Text style={s.summaryLabel}>📊 달성률</Text>
+              </View>
             </View>
           )}
         </View>
@@ -472,8 +476,14 @@ const s = StyleSheet.create({
   headerBadge:    { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' },
   headerBadgeTxt: { fontSize: 22, fontWeight: '900', color: '#fff', lineHeight: 24 },
   headerBadgeSub: { fontSize: 10, color: 'rgba(255,255,255,0.8)' },
-  progWrap:       { height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3 },
+  progWrap:       { height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, marginBottom: 12 },
   progFill:       { height: 6, backgroundColor: '#fff', borderRadius: 3 },
+
+  summaryRow:    { flexDirection: 'row', gap: 8, marginTop: 4 },
+  summaryCard:   { flex: 1, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 14,
+                   paddingVertical: 10, alignItems: 'center', borderTopWidth: 3 },
+  summaryNum:    { fontSize: 26, fontWeight: '900', color: '#fff', lineHeight: 30 },
+  summaryLabel:  { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '600', marginTop: 2 },
 
   group:      { marginBottom: 24 },
   groupTitle: { fontSize: 16, fontWeight: '700', color: C.sub, marginBottom: 10, marginLeft: 2 },

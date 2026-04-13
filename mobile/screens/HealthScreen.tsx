@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import SeniorTabBar from '../components/SeniorTabBar';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Alert, ActivityIndicator, Modal, Dimensions, Platform,
+  Alert, ActivityIndicator, Modal, Dimensions, Platform, TextInput,
 } from 'react-native';
 
 const API_URL = 'https://silverlieai.onrender.com';
@@ -110,7 +110,8 @@ export default function HealthScreen({ route, navigation }: any) {
   const [todayRecord, setTodayRecord] = useState<any>(null);
   const [loadingToday, setLoadingToday] = useState(true);
 
-  const [values, setValues] = useState({ steps:'', heart_rate:'', bp_sys:'', bp_dia:'', blood_sugar:'' });
+  const [values, setValues] = useState({ steps:'', heart_rate:'', bp_sys:'', bp_dia:'', blood_sugar:'', temperature:'', weight:'' });
+  const [bsTiming, setBsTiming] = useState<'공복' | '식후'>('공복');
   const [keypadMetric, setKeypadMetric] = useState<typeof METRICS[0] | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -175,13 +176,17 @@ export default function HealthScreen({ route, navigation }: any) {
           blood_pressure_systolic: parseInt(values.bp_sys),
           blood_pressure_diastolic: parseInt(values.bp_dia),
           blood_sugar: parseInt(values.blood_sugar),
+          blood_sugar_timing: bsTiming,
+          temperature: values.temperature ? parseFloat(values.temperature) : null,
+          weight: values.weight ? parseFloat(values.weight) : null,
           source: 'manual',
         }),
       });
       if (res.ok) {
         const saved = await res.json();
         setTodayRecord(saved);
-        setValues({ steps:'', heart_rate:'', bp_sys:'', bp_dia:'', blood_sugar:'' });
+        setValues({ steps:'', heart_rate:'', bp_sys:'', bp_dia:'', blood_sugar:'', temperature:'', weight:'' });
+        setBsTiming('공복');
         Alert.alert('저장 완료 ✓', '오늘 건강 기록이 저장됐습니다.', [
           { text: '확인', onPress: () => setActiveTab('today') }
         ]);
@@ -313,6 +318,50 @@ export default function HealthScreen({ route, navigation }: any) {
             })}
           </View>
 
+          {/* 혈당 공복/식후 선택 */}
+          {values.blood_sugar !== '' && (
+            <View style={s.bsTimingRow}>
+              <Text style={s.bsTimingLabel}>측정 시점</Text>
+              <View style={s.bsTimingChips}>
+                {(['공복', '식후'] as const).map(t => (
+                  <TouchableOpacity key={t}
+                    style={[s.bsTimingChip, bsTiming === t && s.bsTimingChipOn]}
+                    onPress={() => setBsTiming(t)}>
+                    <Text style={[s.bsTimingChipTxt, bsTiming === t && s.bsTimingChipTxtOn]}>{t}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* 체온 / 체중 나란히 */}
+          <View style={s.tempWeightRow}>
+            <View style={s.inputCell}>
+              <Text style={s.cellLabel}>🌡️ 체온</Text>
+              <TextInput
+                style={s.cellInput}
+                value={values.temperature}
+                onChangeText={v => setValues(prev => ({ ...prev, temperature: v }))}
+                keyboardType="decimal-pad"
+                placeholder="36.5"
+                placeholderTextColor="#B8CCE0"
+              />
+              <Text style={s.cellUnit}>°C</Text>
+            </View>
+            <View style={s.inputCell}>
+              <Text style={s.cellLabel}>⚖️ 체중</Text>
+              <TextInput
+                style={s.cellInput}
+                value={values.weight}
+                onChangeText={v => setValues(prev => ({ ...prev, weight: v }))}
+                keyboardType="decimal-pad"
+                placeholder="68"
+                placeholderTextColor="#B8CCE0"
+              />
+              <Text style={s.cellUnit}>kg</Text>
+            </View>
+          </View>
+
           {/* 하단 버튼들 */}
           <View style={s.bottomBtns}>
             <TouchableOpacity style={[s.saveBtn, !allFilled && s.saveBtnDim]} onPress={saveRecord} disabled={saving}>
@@ -426,6 +475,26 @@ const s = StyleSheet.create({
   // 모달
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   modalSheet:   { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+
+  // 혈당 공복/식후 선택
+  bsTimingRow:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12,
+                       backgroundColor: '#EBF3FB', borderTopWidth: 1, borderTopColor: '#EEF4FB' },
+  bsTimingLabel:     { fontSize: 16, color: '#546e7a', fontWeight: '600', marginRight: 12 },
+  bsTimingChips:     { flexDirection: 'row', gap: 8 },
+  bsTimingChip:      { paddingHorizontal: 18, paddingVertical: 8, borderRadius: 14,
+                       backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#DDE8F4' },
+  bsTimingChipOn:    { backgroundColor: '#1A4A8A', borderColor: '#1A4A8A' },
+  bsTimingChipTxt:   { fontSize: 16, fontWeight: '600', color: '#546e7a' },
+  bsTimingChipTxtOn: { color: '#fff' },
+
+  // 체온/체중 나란히
+  tempWeightRow: { flexDirection: 'row', gap: 12 },
+  inputCell:     { flex: 1, backgroundColor: '#fff', borderRadius: 20, padding: 16,
+                   borderWidth: 1, borderColor: '#DDE8F4', alignItems: 'center',
+                   shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 1 },
+  cellLabel:     { fontSize: 17, fontWeight: '700', color: '#546e7a', marginBottom: 8 },
+  cellInput:     { fontSize: 30, fontWeight: '800', color: '#1A4A8A', textAlign: 'center', width: '100%' },
+  cellUnit:      { fontSize: 15, color: '#9aabb8', marginTop: 4 },
 });
 
 const kp = StyleSheet.create({

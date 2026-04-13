@@ -92,6 +92,18 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
   const [locData,    setLocData]   = useState<any>(null);
   const [refreshing, setRefreshing]= useState(false);
   const [mapReady,   setMapReady]  = useState(false);
+  const [healthData, setHealthData]= useState<any>(null);
+  const [selMember,  setSelMember] = useState(0);
+
+  const FAMILY_MEMBERS = [
+    { name: seniorName || '홍길동', relation: '부모님', avatar: '👴' },
+    { name: '이영희',  relation: '배우자',  avatar: '👵' },
+  ];
+
+  const DEMO_HEALTH = {
+    blood_pressure_systolic: 128, blood_pressure_diastolic: 82,
+    blood_sugar: 105, steps: 4200,
+  };
 
   const fadeAnim     = useRef(new Animated.Value(0)).current;
   const inlineMapRef = useRef<any>(null);
@@ -260,6 +272,72 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
 
       <Animated.View style={[{ flex: 1 }, { opacity: fadeAnim }]}>
         <ScrollView contentContainerStyle={ss.scroll} showsVerticalScrollIndicator={false}>
+
+          {/* ── 가족 멤버 선택 ── */}
+          <View style={ss.memberRow}>
+            {FAMILY_MEMBERS.map((m, i) => (
+              <TouchableOpacity key={i}
+                style={[ss.memberChip, selMember === i && ss.memberChipOn]}
+                onPress={() => setSelMember(i)}
+                activeOpacity={0.8}>
+                <Text style={ss.memberAvatar}>{m.avatar}</Text>
+                <View>
+                  <Text style={[ss.memberName, selMember === i && ss.memberNameOn]}>{m.name}</Text>
+                  <Text style={ss.memberRelation}>{m.relation}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* ── 건강 수치 4개 카드 ── */}
+          {(() => {
+            const hd = healthData || DEMO_HEALTH;
+            const medPct = summary?.pct ?? 0;
+            const HEALTH_CARDS = [
+              { icon: '💗', label: '혈압',   value: `${hd.blood_pressure_systolic}/${hd.blood_pressure_diastolic}`, unit: 'mmHg',
+                color: hd.blood_pressure_systolic >= 140 ? C.red : C.sage,
+                bg:    hd.blood_pressure_systolic >= 140 ? C.redLt : C.sageLt },
+              { icon: '🩸', label: '혈당',   value: `${hd.blood_sugar}`, unit: 'mg/dL',
+                color: hd.blood_sugar >= 126 ? C.red : C.sage,
+                bg:    hd.blood_sugar >= 126 ? C.redLt : C.sageLt },
+              { icon: '🚶', label: '걸음수', value: hd.steps?.toLocaleString() ?? '—', unit: '보',
+                color: (hd.steps ?? 0) >= 5000 ? C.sage : C.amber,
+                bg:    (hd.steps ?? 0) >= 5000 ? C.sageLt : C.amberLt },
+              { icon: '💊', label: '복약률', value: `${medPct}`, unit: '%',
+                color: medPct >= 80 ? C.sage : medPct >= 50 ? C.amber : C.red,
+                bg:    medPct >= 80 ? C.sageLt : medPct >= 50 ? C.amberLt : C.redLt },
+            ];
+            return (
+              <View style={ss.healthGrid}>
+                {HEALTH_CARDS.map((card, i) => (
+                  <View key={i} style={[ss.healthCard, { backgroundColor: card.bg, borderColor: card.color }]}>
+                    <Text style={ss.healthCardIcon}>{card.icon}</Text>
+                    <Text style={ss.healthCardLabel}>{card.label}</Text>
+                    <Text style={[ss.healthCardValue, { color: card.color }]}>{card.value}</Text>
+                    <Text style={ss.healthCardUnit}>{card.unit}</Text>
+                  </View>
+                ))}
+              </View>
+            );
+          })()}
+
+          {/* ── AI 건강 조언 카드 ── */}
+          <View style={[ss.card, ss.aiCard]}>
+            <View style={ss.aiCardHeader}>
+              <Text style={ss.aiCardIcon}>🤖</Text>
+              <Text style={ss.cardTitle}>AI 건강 조언</Text>
+            </View>
+            <Text style={ss.aiCardText}>
+              {(() => {
+                const hd = healthData || DEMO_HEALTH;
+                const bp = hd.blood_pressure_systolic ?? 0;
+                const steps = hd.steps ?? 0;
+                if (bp >= 140) return `혈압이 ${bp}mmHg로 높습니다. 오늘은 가볍게 산책하시고 짠 음식을 피해주세요.`;
+                if (steps < 3000) return `오늘 걸음수가 ${steps?.toLocaleString()}보로 적습니다. 10분 산책만으로도 큰 도움이 됩니다.`;
+                return `오늘 건강 상태가 전반적으로 양호합니다. 수분 섭취와 규칙적인 약 복용을 유지해 주세요.`;
+              })()}
+            </Text>
+          </View>
 
           {/* ── 복용 상태 배너 ── */}
           <TouchableOpacity
@@ -471,4 +549,32 @@ const ss = StyleSheet.create({
                   borderWidth:1.5, gap:5 },
   contactIcon:  { fontSize:22 },
   contactLabel: { fontSize:18, fontWeight:'700' },
+
+  // 가족 멤버 선택
+  memberRow:      { flexDirection:'row', gap:10, marginBottom:14 },
+  memberChip:     { flex:1, flexDirection:'row', alignItems:'center', gap:10,
+                    backgroundColor: C.card, borderRadius:16, padding:12,
+                    borderWidth:1.5, borderColor: C.line,
+                    shadowColor:'#2272B8', shadowOpacity:0.06, shadowRadius:8, elevation:2 },
+  memberChipOn:   { backgroundColor: C.blueCard, borderColor: C.blue2 },
+  memberAvatar:   { fontSize:32 },
+  memberName:     { fontSize:18, fontWeight:'800', color: C.text },
+  memberNameOn:   { color: C.blue1 },
+  memberRelation: { fontSize:14, color: C.sub, marginTop:2 },
+
+  // 건강 수치 4카드
+  healthGrid:      { flexDirection:'row', flexWrap:'wrap', gap:10, marginBottom:14 },
+  healthCard:      { width:'47%', borderRadius:20, borderWidth:1.5,
+                     padding:14, alignItems:'center',
+                     shadowColor:'#000', shadowOpacity:0.05, shadowRadius:6, elevation:1 },
+  healthCardIcon:  { fontSize:28, marginBottom:4 },
+  healthCardLabel: { fontSize:15, fontWeight:'700', color: C.sub, marginBottom:4 },
+  healthCardValue: { fontSize:28, fontWeight:'900', lineHeight:32 },
+  healthCardUnit:  { fontSize:13, color: C.sub, marginTop:2 },
+
+  // AI 건강 조언 카드
+  aiCard:       { backgroundColor: '#EBF3FB', borderWidth:1.5, borderColor: C.blue2 },
+  aiCardHeader: { flexDirection:'row', alignItems:'center', gap:8, marginBottom:10 },
+  aiCardIcon:   { fontSize:22 },
+  aiCardText:   { fontSize:18, color: C.text, lineHeight:28 },
 });
