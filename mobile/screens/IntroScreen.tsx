@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 const beeSource = Platform.OS === 'web'
   ? { uri: 'https://raw.githubusercontent.com/leemike09-dev/SilverlieAI/main/mobile/assets/bee_nobg.png' }
@@ -90,8 +90,8 @@ export default function IntroScreen({ navigation }: any) {
   return (
     <View style={s.root}>
 
-      {/* ══ 상단 블루 섹션 (44%) — 시니어 이미지 없음 ══ */}
-      <View style={s.topSection}>
+      {/* ══ 상단 블루 섹션 (44%) ══ */}
+      <View style={[s.topSection, Platform.OS !== 'web' && s.topSectionNative]}>
         <Animated.View style={[s.topContent, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
           <View style={s.ringWrap}>
             <Animated.View style={[s.ring, ringStyle(ring1)]} />
@@ -104,12 +104,15 @@ export default function IntroScreen({ navigation }: any) {
           <Text style={s.appName}>Silver Life AI</Text>
           <Text style={s.appSub}>어르신의 건강한 삶을 함께합니다</Text>
         </Animated.View>
-      </View>
 
-      {/* ══ 웨이브 구분선: 블루 스트립 안에 흰 아치 2개 ══ */}
-      <View style={s.waveBridge}>
-        <View style={s.waveLeft} />
-        <View style={s.waveRight} />
+        {/* 웹 전용 SVG 웨이브 */}
+        {Platform.OS === 'web' && (
+          // @ts-ignore
+          <svg viewBox="0 0 375 60" style={{ position: 'absolute', bottom: -1, left: 0, right: 0, width: '100%', display: 'block' }}>
+            {/* @ts-ignore */}
+            <path d="M0 60 Q94 0 188 30 Q282 60 375 10 L375 60 Z" fill="white" />
+          </svg>
+        )}
       </View>
 
       {/* ══ 하단 흰 섹션 ══ */}
@@ -156,12 +159,18 @@ const RING_SIZE = 160;
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#fff' },
 
-  /* 상단 (44%) — 완전 평면 바닥 */
+  /* 상단 (44%) */
   topSection: {
     height: height * 0.44,
     backgroundColor: '#1A4A8A',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'visible',
+  },
+  /* 네이티브 전용: 하단 border radius로 웨이브 */
+  topSectionNative: {
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
   },
   topContent: {
     alignItems: 'center',
@@ -202,32 +211,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 32,
   },
 
-  /* ── 웨이브 구분선 ──
-     블루 스트립(64px) 안에 흰 아치 2개를 높이 다르게 배치
-     → 좌측 아치(높음) + 우측 아치(낮음) = S자 물결 */
-  waveBridge: {
-    height: 64,
-    backgroundColor: '#1A4A8A',
-    overflow: 'hidden',
-  },
-  waveLeft: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    width: width * 0.62,
-    height: 64,
-    backgroundColor: '#fff',
-    borderTopRightRadius: 64,
-  },
-  waveRight: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: width * 0.56,
-    height: 44,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 44,
-  },
 
   /* 하단 */
   bottomSection: {
