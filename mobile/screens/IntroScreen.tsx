@@ -25,9 +25,8 @@ export default function IntroScreen({ navigation }: any) {
   const ring2       = useRef(new Animated.Value(0)).current;
   const ring3       = useRef(new Animated.Value(0)).current;
 
-  const [greetIdx,  setGreetIdx]  = useState(0);
-  const [dotIdx,    setDotIdx]    = useState(0);
-  const [pressing,  setPressing]  = useState(false);
+  const [greetIdx] = useState(0);
+  const [dotIdx]   = useState(0);
 
   /* ── 카카오 콜백 처리 ── */
   const handleKakaoCallback = async (code: string): Promise<boolean> => {
@@ -48,18 +47,9 @@ export default function IntroScreen({ navigation }: any) {
     return false;
   };
 
-  /* ── 시작하기: 인사말 순환 → Onboarding ── */
+  /* ── 시작하기 → Onboarding ── */
   const handleStart = () => {
-    if (pressing) return;
-    const next = greetIdx + 1;
-    if (next < GREETINGS.length) {
-      setPressing(true);
-      setGreetIdx(next);
-      setDotIdx(next);
-      setTimeout(() => setPressing(false), 600);
-    } else {
-      navigation.replace('Onboarding');
-    }
+    navigation.replace('Onboarding');
   };
 
   /* ── 애니메이션 ── */
@@ -148,13 +138,6 @@ export default function IntroScreen({ navigation }: any) {
 
       {/* ══ 하단 흰 섹션 ══ */}
       <View style={s.bottomSection}>
-        {/* kkulbi.png 하단 오른쪽 */}
-        <Image
-          source={require('../assets/kkulbi.png')}
-          style={s.elderlyImg}
-          resizeMode="contain"
-        />
-
         <Animated.View style={[s.bottomContent, { opacity: fadeAnim }]}>
           {/* 꿀비 말풍선 */}
           <View style={s.bubble}>
@@ -163,11 +146,16 @@ export default function IntroScreen({ navigation }: any) {
             <View style={s.bubbleTail} />
           </View>
 
+          {/* 시니어 이미지 — 버튼 위, 오른쪽 정렬 */}
+          <Image
+            source={require('../assets/kkulbi.png')}
+            style={s.elderlyImg}
+            resizeMode="contain"
+          />
+
           {/* 시작하기 버튼 */}
           <TouchableOpacity style={s.startBtn} onPress={handleStart} activeOpacity={0.85}>
-            <Text style={s.startBtnTxt}>
-              {greetIdx < GREETINGS.length - 1 ? '다음 ›' : '시작하기 →'}
-            </Text>
+            <Text style={s.startBtnTxt}>시작하기</Text>
           </TouchableOpacity>
 
           {/* 온보딩 인디케이터 점 3개 */}
@@ -183,7 +171,7 @@ export default function IntroScreen({ navigation }: any) {
   );
 }
 
-const RING_SIZE = 90;
+const RING_SIZE = 160;
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#fff' },
@@ -225,19 +213,19 @@ const s = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.6)',
   },
-  beeImg: { width: 100, height: 100 },
+  beeImg: { width: 160, height: 160 },
 
   /* 앱 이름 */
   appName: {
     color: '#fff',
-    fontSize: 30,
-    fontWeight: '800',
+    fontSize: 34,
+    fontWeight: '900',
     letterSpacing: 0.5,
     marginBottom: 10,
   },
   appSub: {
     color: 'rgba(255,255,255,0.80)',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '500',
     textAlign: 'center',
     paddingHorizontal: 32,
@@ -266,17 +254,16 @@ const s = StyleSheet.create({
     overflow: 'hidden',
   },
   elderlyImg: {
-    position: 'absolute',
-    bottom: 0,
-    right: -10,
-    height: 200,
+    alignSelf: 'flex-end',
+    height: 180,
     width: width * 0.58,
     opacity: 0.92,
+    marginBottom: 8,
   },
   bottomContent: {
     flex: 1,
     paddingHorizontal: 28,
-    paddingTop: 24,
+    paddingTop: 20,
     justifyContent: 'space-between',
     paddingBottom: 36,
   },
@@ -293,7 +280,7 @@ const s = StyleSheet.create({
     position: 'relative',
   },
   bubbleName: { fontSize: 14, fontWeight: '700', color: '#1A4A8A', marginBottom: 6 },
-  bubbleMsg:  { fontSize: 16, fontWeight: '500', color: '#1C1C1E', lineHeight: 24 },
+  bubbleMsg:  { fontSize: 22, fontWeight: '700', color: '#1C1C1E', lineHeight: 32 },
   bubbleTail: {
     position: 'absolute',
     bottom: -10,
@@ -321,7 +308,7 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
-  startBtnTxt: { color: '#fff', fontSize: 22, fontWeight: '800' },
+  startBtnTxt: { color: '#fff', fontSize: 24, fontWeight: '900' },
 
   /* 점 인디케이터 */
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 4 },
