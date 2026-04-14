@@ -10,8 +10,8 @@ import { DEMO_MODE } from '../App';
 const API   = 'https://silverlieai.onrender.com';
 const { width } = Dimensions.get('window');
 
-const CARD_GAP = 10;
-const CARD_W   = (width - 32 - CARD_GAP) / 2;
+const CARD_GAP = 8;
+const CARD_W   = (width - 24 - CARD_GAP) / 2;  // 24 = paddingHorizontal 12 × 2
 
 const beeSource = Platform.OS === 'web'
   ? { uri: 'https://raw.githubusercontent.com/leemike09-dev/SilverlieAI/main/mobile/assets/bee_nobg.png' }
@@ -166,9 +166,9 @@ const s = StyleSheet.create({
   /* 본문 */
   body: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 6,
     gap: 8,
   },
 
@@ -177,7 +177,7 @@ const s = StyleSheet.create({
   healthCard: {
     width: CARD_W,
     borderRadius: 16,
-    padding: 20,
+    padding: 14,
     shadowColor: '#000',
     shadowOpacity: 0.10,
     shadowRadius: 8,
