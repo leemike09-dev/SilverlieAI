@@ -3,7 +3,6 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   Animated, Linking, Platform, StatusBar,
 } from 'react-native';
-import * as Speech from 'expo-speech';
 
 type Props = { navigation: any; route: any };
 
@@ -30,14 +29,10 @@ export default function SOSScreen({ navigation, route }: Props) {
 
     // 화면 진입 시 음성 안내
     setTimeout(() => {
-      Speech.speak('큰 버튼을 누르면 119에 자동 연결됩니다. 침착하게 계세요.', {
-        language: 'ko-KR', rate: 0.85,
-      });
     }, 500);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      Speech.stop();
     };
   }, []);
 
@@ -45,7 +40,6 @@ export default function SOSScreen({ navigation, route }: Props) {
     if (counting) return;
     setCounting(true);
     setCount(5);
-    Speech.speak('5초 후 119에 자동 연결됩니다.', { language: 'ko-KR', rate: 0.85 });
 
     let c = 5;
     timerRef.current = setInterval(() => {
@@ -53,7 +47,6 @@ export default function SOSScreen({ navigation, route }: Props) {
       setCount(c);
       if (c <= 0) {
         clearInterval(timerRef.current);
-        Speech.speak('119에 연결합니다. 침착하게 계세요.', { language: 'ko-KR', rate: 0.85 });
         Linking.openURL('tel:119');
         setCounting(false);
         setCount(5);
