@@ -415,7 +415,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
         </View>
       </Modal>
 
-      <SeniorTabBar navigation={navigation} activeTab="ai" userId={userId} name={name} />
+      <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={name} />
     </View>
   );
 }

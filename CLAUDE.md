@@ -215,3 +215,116 @@ non-breaking space(\xa0) 포함 — 터미널 cd 불가
 ## 최신 APK (2026-04-09)
 - https://expo.dev/artifacts/eas/tUyyFy89y7pT6JUhjPHHUu.apk
 - 빌드 ID: e1fd7ce1-adbc-425e-9edb-e20efc99b840
+
+
+## 신규 디자인 시스템 (2026-04-13 확정)
+
+### 전체 화면 흐름
+```
+IntroScreen → OnboardingScreen (3장) → LoginScreen → SeniorHomeScreen
+```
+
+### 신규/변경 화면 목록
+| 화면 | 파일 | 상태 |
+|------|------|------|
+| 인트로 | IntroScreen.tsx | 신규 (꿀비+노부부 일러스트) |
+| 온보딩 | OnboardingScreen.tsx | 신규 (3슬라이드) |
+| 시니어홈 | SeniorHomeScreen.tsx | 변경 (4카드+동선지도+SOS버튼) |
+| SOS | SOSScreen.tsx | 신규 (전용 빨간화면+카운트다운) |
+| 탭바 | SeniorTabBar.tsx | 변경 (4개→아이콘 28px) |
+
+### 탭바 구성 (4개로 확정)
+```
+🏠 홈 / 📊 건강기록 / 💊 약관리 / 👨‍👩‍👧 가족
+```
+- 아이콘 크기: 28px (시니어 접근성)
+- 활성 색상: #1A4A8A
+
+### 꿀비 캐릭터
+- 현재: 이모지 임시 사용 (🐝)
+- 교체 예정: assets/kkulbi.png (전문 일러스트 의뢰)
+- 노부부 일러스트: assets/elderly_couple.png (Storyset/AI생성)
+
+### 음성 시스템 (TTS)
+- 한국/글로벌: Google Cloud TTS (ko-KR-Neural2-A)
+- 중국: Azure TTS (zh-CN-XiaoxiaoNeural)
+- 임시: expo-speech (개발 단계)
+- 패키지: expo-speech (이미 설치 여부 확인 필요)
+
+### 디자인 토큰
+```typescript
+const C = {
+  blue1: '#1A4A8A',   // 메인 딥블루
+  blue2: '#2272B8',   // 서브 블루
+  bg:    '#F4F7FC',   // 전체 배경
+  card:  '#FFFFFF',   // 카드 배경
+  text:  '#1C1C1E',   // 본문 텍스트
+  sub:   '#8E8E93',   // 서브 텍스트
+  line:  '#E5E5EA',   // 구분선
+}
+```
+
+### 건강 카드 컬러코딩
+```
+혈압   #F57C00 (오렌지)
+혈당   #C2185B (핑크)
+체온   #1565C0 (블루)
+체중   #2E7D32 (그린)
+```
+
+### SOS 화면 사양
+- 배경: #C62828 (빨간)
+- SOS 버튼: 흰색 원 180px, 5초 카운트다운
+- 가족연락 버튼: 딸/아들/119 직접 3개
+- 음성 안내: 진입 즉시 TTS 안내
+- AI 보조 링크: 하단 (메인 아닌 보조)
+- 위치 전송: 가족에게 자동
+
+### 중국 진출 계획
+- 위챗 미니프로그램 우선
+- 언어 선택: 온보딩에서 1회 설정 (인트로에 없음)
+- TTS: Azure 중국 리전으로 전환
+- 로그인: 위챗 OAuth 추가 예정
+
+### 패키지 추가 필요
+```bash
+npx expo install expo-speech
+npx expo install expo-location
+```
+
+
+### 개념
+위험도 스코어링 결과에 따라 Claude 모델을 자동 선택.
+비용은 낮게 유지하면서 응급 상황에서만 최고 성능 사용.
+
+### 모델 선택 기준
+| 위험도 | 모델 | 이유 |
+|--------|------|------|
+| CRITICAL / HIGH | claude-opus-4-6 | 응급 → 정확도 최우선 |
+| MEDIUM | claude-sonnet-4-6 | 주의 → 속도+성능 균형 |
+| LOW / NORMAL | claude-haiku-4-5-20251001 | 일반 → 속도/비용 효율 |
+
+### 구현 위치
+- backend/app/routers/ai.py
+- select_model(risk_level) 함수 추가
+
+### 예상 코드
+```python
+def select_model(risk_level: str) -> str:
+    if risk_level in ["critical", "high"]:
+        return "claude-opus-4-6"
+    elif risk_level == "medium":
+        return "claude-sonnet-4-6"
+    else:
+        return "claude-haiku-4-5-20251001"
+```
+
+### 예상 비용 구조
+- 일반 상담 80% → Haiku (저렴)
+- 주의 상담 15% → Sonnet (중간)
+- 응급 상담  5% → Opus (비쌈)
+- 결과: 전체 비용 최소화 + 응급 시 최고 성능
+
+### 구현 시점
+- 현재: Sonnet 4.6 단일 모델로 운영
+- 진보된 버전 준비 시 위험도 기반 자동 선택 추가

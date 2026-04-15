@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Animated, Platform,
-  Image, Dimensions, TouchableOpacity,
+  View, Text, StyleSheet, TouchableOpacity, Image,
+  Animated, Platform, StatusBar, Dimensions,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Speech from 'expo-speech';
 
 const { height } = Dimensions.get('window');
 
@@ -28,34 +28,13 @@ export default function IntroScreen({ navigation }: any) {
   const [greetIdx] = useState(0);
   const [dotIdx]   = useState(0);
 
-  const handleKakaoCallback = async (code: string): Promise<boolean> => {
-    try {
-      const res = await fetch('https://silverlieai.onrender.com/users/kakao-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, redirect_uri: 'https://leemike09-dev.github.io/SilverlieAI/' }),
-      });
-      const data = await res.json();
-      if (data?.id) {
-        await AsyncStorage.setItem('userId', data.id);
-        await AsyncStorage.setItem('userName', data.name);
-        navigation.replace('SeniorHome', { name: data.name, userId: data.id, isGuest: false });
-        return true;
-      }
-    } catch (e) {}
-    return false;
-  };
+const TTS_SCRIPT = '안녕하세요! 저는 꿀비예요. 건강을 함께 지켜드릴게요!';
 
   const handleStart = () => navigation.replace('Onboarding');
 
+  // 꿀비 부유 애니메이션
   useEffect(() => {
-    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('kakao_auth_code')) {
-      const code = sessionStorage.getItem('kakao_auth_code')!;
-      sessionStorage.removeItem('kakao_auth_code');
-      handleKakaoCallback(code);
-      return;
-    }
-
+    // 카카오 인증 코드는 App.tsx에서 처리
     Animated.parallel([
       Animated.timing(fadeAnim,  { toValue: 1, duration: 700, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 700, useNativeDriver: true }),

@@ -1,185 +1,118 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, SafeAreaView,
+  View, Text, StyleSheet, TouchableOpacity,
+  ScrollView, Dimensions, Platform,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'https://silverlieai.onrender.com';
+const { width } = Dimensions.get('window');
+type Props = { navigation: any };
 
-const INTERESTS = [
-  { key: 'health',   icon: '🫀', label: '건강·의료' },
-  { key: 'sports',   icon: '🏃', label: '스포츠·운동' },
-  { key: 'diet',     icon: '🥗', label: '식단·영양' },
-  { key: 'arts',     icon: '🎨', label: '예술·문화' },
-  { key: 'it',       icon: '💻', label: 'IT·스마트기기' },
-  { key: 'travel',   icon: '✈️', label: '여행·나들이' },
-  { key: 'brain',    icon: '🧠', label: '치매예방·두뇌' },
-  { key: 'garden',   icon: '🌿', label: '원예·반려식물' },
+const SLIDES = [
+  {
+    icon: '🏥',
+    title: '건강을 기록하세요',
+    desc: '혈압, 혈당, 체온, 체중을\n매일 쉽게 기록하고\nAI가 분석해드려요',
+    color: '#1A4A8A',
+  },
+  {
+    icon: '💊',
+    title: '약을 잊지 마세요',
+    desc: '복약 시간을 알려드리고\n복용 여부를 기록해\n가족에게 전달해요',
+    color: '#00695C',
+  },
+  {
+    icon: '👨‍👩‍👧',
+    title: '가족과 함께해요',
+    desc: '실시간 건강 상태와\n오늘 동선을 가족이\n언제든 확인할 수 있어요',
+    color: '#4A148C',
+  },
 ];
 
-export default function OnboardingScreen({ navigation, route }: any) {
-  const { name = '', userId = '' } = route?.params ?? {};
+export default function OnboardingScreen({ navigation }: Props) {
+  const [idx, setIdx] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
 
-  const [age,      setAge]      = useState('');
-  const [height,   setHeight]   = useState('');
-  const [weight,   setWeight]   = useState('');
-  const [selected, setSelected] = useState<string[]>([]);
-  const [custom,   setCustom]   = useState('');
-  const [saving,   setSaving]   = useState(false);
-
-  const toggleInterest = (key: string) => {
-    setSelected(prev =>
-      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
-    );
+  const goNext = () => {
+    if (idx < SLIDES.length - 1) {
+      const next = idx + 1;
+      setIdx(next);
+      scrollRef.current?.scrollTo({ x: width * next, animated: true });
+    } else {
+      navigation.replace('Login');
+    }
   };
 
-  const handleComplete = async () => {
-    setSaving(true);
-    try {
-      const interests = [...selected, ...(custom.trim() ? [custom.trim()] : [])];
-      if (userId && userId !== 'demo-user') {
-        await fetch(`${API_URL}/users/${userId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            age:       age ? parseInt(age) : null,
-            height:    height ? parseFloat(height) : null,
-            weight:    weight ? parseFloat(weight) : null,
-            interests: interests.join(','),
-          }),
-        });
-      }
-      await AsyncStorage.setItem('onboarded', 'true');
-    } catch { /* 저장 실패해도 홈으로 이동 */ }
-    finally { setSaving(false); }
-    navigation.replace('SeniorHome', { name, userId, isGuest: false });
+  const onScroll = (e: any) => {
+    const x = e.nativeEvent.contentOffset.x;
+    setIdx(Math.round(x / width));
   };
 
-  const handleSkip = () => {
-    navigation.replace('SeniorHome', { name, userId, isGuest: false });
-  };
-
-  const step = age || height || weight ? 2 : 1;
+  const slide = SLIDES[idx];
 
   return (
     <View style={s.root}>
-      <SafeAreaView style={s.header}>
-        <Text style={s.headerIcon}>🤖</Text>
-        <Text style={s.headerTitle}>AI 맞춤 설정</Text>
-        <Text style={s.headerSub}>더 정확한 건강 추천을 위해</Text>
-      </SafeAreaView>
 
-      <ScrollView style={s.body} contentContainerStyle={s.bodyContent} showsVerticalScrollIndicator={false}>
-
-        {/* 진행 단계 */}
-        <View style={s.stepRow}>
-          <View style={[s.stepDot, { backgroundColor: '#1a5fbc' }]}><Text style={s.stepNum}>1</Text></View>
-          <View style={[s.stepLine, { backgroundColor: step >= 2 ? '#1a5fbc' : '#dde3ee' }]} />
-          <View style={[s.stepDot, { backgroundColor: step >= 2 ? '#1a5fbc' : '#dde3ee' }]}><Text style={[s.stepNum, step < 2 && { color: '#90a4ae' }]}>2</Text></View>
-          <View style={[s.stepLine, { backgroundColor: '#dde3ee' }]} />
-          <View style={[s.stepDot, { backgroundColor: '#dde3ee' }]}><Text style={[s.stepNum, { color: '#90a4ae' }]}>3</Text></View>
-        </View>
-
-        {/* AI 안내 배너 */}
-        <View style={s.aiBanner}>
-          <Text style={s.aiBannerIcon}>🤖</Text>
-          <Text style={s.aiBannerTxt}>
-            안녕하세요 <Text style={s.aiBannerHl}>{name || '회원'}님</Text>! AI 맞춤 추천을 위해 기본 정보를 알려주세요. 건너뛰어도 됩니다.
-          </Text>
-        </View>
-
-        {/* 신체 정보 */}
-        <Text style={s.sectionTitle}>📏 기본 신체 정보</Text>
-        <View style={s.bodyRow}>
-          <View style={s.bodyField}>
-            <TextInput style={s.bodyInput} placeholder="65" value={age} onChangeText={setAge} keyboardType="numeric" maxLength={3} />
-            <Text style={s.bodyUnit}>세</Text>
-            <Text style={s.bodyLabel}>나이</Text>
+      {/* 슬라이드 영역 */}
+      <ScrollView
+        ref={scrollRef}
+        horizontal pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={onScroll}
+        style={{ flex: 1 }}>
+        {SLIDES.map((sl, i) => (
+          <View key={i} style={[s.slide, { width }]}>
+            <View style={[s.iconWrap, { backgroundColor: sl.color + '18' }]}>
+              <Text style={s.icon}>{sl.icon}</Text>
+            </View>
+            <Text style={[s.title, { color: sl.color }]}>{sl.title}</Text>
+            <Text style={s.desc}>{sl.desc}</Text>
           </View>
-          <View style={s.bodyField}>
-            <TextInput style={s.bodyInput} placeholder="168" value={height} onChangeText={setHeight} keyboardType="numeric" maxLength={3} />
-            <Text style={s.bodyUnit}>cm</Text>
-            <Text style={s.bodyLabel}>키</Text>
-          </View>
-          <View style={s.bodyField}>
-            <TextInput style={s.bodyInput} placeholder="68" value={weight} onChangeText={setWeight} keyboardType="numeric" maxLength={3} />
-            <Text style={s.bodyUnit}>kg</Text>
-            <Text style={s.bodyLabel}>체중</Text>
-          </View>
-        </View>
-
-        {/* 관심사항 */}
-        <Text style={s.sectionTitle}>🎯 관심 분야 선택 (복수 가능)</Text>
-        <View style={s.interestGrid}>
-          {INTERESTS.map(item => {
-            const on = selected.includes(item.key);
-            return (
-              <TouchableOpacity key={item.key} style={[s.interestChip, on && s.interestChipOn]}
-                onPress={() => toggleInterest(item.key)} activeOpacity={0.75}>
-                <Text style={s.interestIcon}>{item.icon}</Text>
-                <Text style={[s.interestLabel, on && s.interestLabelOn]}>{item.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* 직접 입력 */}
-        <TextInput
-          style={s.customInput}
-          placeholder="✏️ 직접 입력 (예: 바둑, 낚시, 합창...)"
-          value={custom}
-          onChangeText={setCustom}
-          placeholderTextColor="#b0bec5"
-        />
-
-        {/* 버튼 */}
-        <View style={s.btnRow}>
-          <TouchableOpacity style={s.skipBtn} onPress={handleSkip}>
-            <Text style={s.skipTxt}>건너뛰기</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={s.completeBtn} onPress={handleComplete} disabled={saving} activeOpacity={0.85}>
-            <Text style={s.completeTxt}>{saving ? '저장 중...' : '설정 완료 →'}</Text>
-          </TouchableOpacity>
-        </View>
-
+        ))}
       </ScrollView>
+
+      {/* 하단 영역 */}
+      <View style={s.bottom}>
+        {/* 점 인디케이터 */}
+        <View style={s.dots}>
+          {SLIDES.map((_, i) => (
+            <View key={i} style={[s.dot, i === idx && { ...s.dotOn, backgroundColor: slide.color }]} />
+          ))}
+        </View>
+
+        {/* 다음 버튼 */}
+        <TouchableOpacity
+          style={[s.btn, { backgroundColor: slide.color }]}
+          onPress={goNext} activeOpacity={0.85}>
+          <Text style={s.btnTxt}>{idx < SLIDES.length - 1 ? '다음' : '시작하기'}</Text>
+        </TouchableOpacity>
+
+        {/* 건너뛰기 */}
+        {idx < SLIDES.length - 1 && (
+          <TouchableOpacity onPress={() => navigation.replace('Login')}>
+            <Text style={s.skip}>건너뛰기</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  root:          { flex: 1, backgroundColor: '#f0f2f7' },
-  header:        { backgroundColor: '#1a5fbc', alignItems: 'center', paddingTop: 12, paddingBottom: 24 },
-  headerIcon:    { fontSize: 30, marginBottom: 6 },
-  headerTitle:   { fontSize: 20, fontWeight: '800', color: '#fff' },
-  headerSub:     { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 3 },
-  body:          { flex: 1 },
-  bodyContent:   { padding: 18, gap: 14, paddingBottom: 40 },
-  stepRow:       { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  stepDot:       { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  stepNum:       { fontSize: 13, fontWeight: '800', color: '#fff' },
-  stepLine:      { flex: 1, height: 3, borderRadius: 2 },
-  aiBanner:      { backgroundColor: '#1a3a5c', borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  aiBannerIcon:  { fontSize: 22 },
-  aiBannerTxt:   { flex: 1, fontSize: 13, color: '#c5dff0', lineHeight: 20 },
-  aiBannerHl:    { color: '#ffd700', fontWeight: '700' },
-  sectionTitle:  { fontSize: 13, fontWeight: '700', color: '#1a2a3a' },
-  bodyRow:       { flexDirection: 'row', gap: 10 },
-  bodyField:     { flex: 1, backgroundColor: '#fff', borderRadius: 13, padding: 12, alignItems: 'center', borderWidth: 1.5, borderColor: '#e0e8f8' },
-  bodyInput:     { fontSize: 20, fontWeight: '800', color: '#1a2a3a', textAlign: 'center', width: '100%' },
-  bodyUnit:      { fontSize: 11, color: '#90a4ae', marginTop: 2 },
-  bodyLabel:     { fontSize: 11, color: '#78909c', marginTop: 2 },
-  interestGrid:  { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  interestChip:  { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e0e8f8', borderRadius: 12, paddingVertical: 9, paddingHorizontal: 12 },
-  interestChipOn:{ backgroundColor: '#e8f0fe', borderColor: '#1a5fbc' },
-  interestIcon:  { fontSize: 16 },
-  interestLabel: { fontSize: 12, fontWeight: '600', color: '#546e7a' },
-  interestLabelOn:{ color: '#1a5fbc' },
-  customInput:   { backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e0e8f8', borderStyle: 'dashed', borderRadius: 13, padding: 14, fontSize: 13, color: '#1a2a3a' },
-  btnRow:        { flexDirection: 'row', gap: 10, marginTop: 4 },
-  skipBtn:       { paddingVertical: 14, paddingHorizontal: 20 },
-  skipTxt:       { fontSize: 13, color: '#90a4ae', borderBottomWidth: 1, borderBottomColor: '#cfd8dc' },
-  completeBtn:   { flex: 1, backgroundColor: '#1a5fbc', borderRadius: 13, paddingVertical: 15, alignItems: 'center', shadowColor: '#1a5fbc', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
-  completeTxt:   { fontSize: 15, fontWeight: '800', color: '#fff' },
+  root:  { flex: 1, backgroundColor: '#fff' },
+  slide: { alignItems: 'center', justifyContent: 'center', padding: 32 },
+
+  iconWrap: { width: 160, height: 160, borderRadius: 80,
+              alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
+  icon:  { fontSize: 80 },
+  title: { fontSize: 30, fontWeight: '900', textAlign: 'center', marginBottom: 16 },
+  desc:  { fontSize: 20, color: '#555', textAlign: 'center', lineHeight: 32 },
+
+  bottom: { padding: 24, paddingBottom: 36, alignItems: 'center', gap: 16 },
+  dots:   { flexDirection: 'row', gap: 8 },
+  dot:    { width: 10, height: 10, borderRadius: 5, backgroundColor: '#D0E4F7' },
+  dotOn:  { width: 26, borderRadius: 5 },
+
+  btn:    { width: '100%', paddingVertical: 20, borderRadius: 22, alignItems: 'center' },
+  btnTxt: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: 1 },
+  skip:   { fontSize: 16, color: '#B0BEC5', textDecorationLine: 'underline' },
 });

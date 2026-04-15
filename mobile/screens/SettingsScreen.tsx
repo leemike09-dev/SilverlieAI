@@ -205,7 +205,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
 
       </ScrollView>
 
-      <SeniorTabBar navigation={navigation} activeTab="info" userId={userId} name={displayName} />
+      <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={displayName} />
     </View>
   );
 }

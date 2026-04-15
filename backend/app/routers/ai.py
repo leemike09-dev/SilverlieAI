@@ -202,6 +202,49 @@ class ChatRequest(BaseModel):
     history: Optional[List[HistoryMessage]] = []
 
 
+EMERGENCY_KEYWORDS = [
+    '흉통','가슴통증','호흡곤란','숨막','숨이 안','마비','의식','쓰러','졸도',
+    '심정지','뇌졸중','119','응급','심한 두통','갑자기 말이','한쪽 팔','한쪽 다리'
+]
+
+WARNING_KEYWORDS = [
+    '계속 아프','2일 이상','3일째','일주일','점점','악화','심해','못 걷','쓰러질 것'
+]
+
+def detect_risk(message: str, reply: str) -> str:
+    combined = message + reply
+    if any(w in combined for w in EMERGENCY_KEYWORDS):
+        return "emergency"
+    if any(w in combined for w in WARNING_KEYWORDS):
+        return "warning"
+    return "normal"
+
+def get_suggested_questions(relevant_qa: List[dict], category: str) -> List[str]:
+    suggestions = []
+    for qa in relevant_qa:
+        for item in qa.get('checklist_template', [])[:2]:
+            suggestions.append(item + "을 알려주세요" if not item.endswith('?') else item)
+    # 카테고리별 기본 추천
+    defaults = {
+        '약물':        ["언제부터 증상이 시작됐나요?", "현재 복용 중인 약을 모두 알려주세요", "증상이 얼마나 자주 나타나나요?"],
+        '심혈관':      ["혈압 수치가 어떻게 되나요?", "가슴 통증이 있나요?", "언제부터 시작됐나요?"],
+        '당뇨':        ["최근 혈당 수치는 얼마인가요?", "식사 후에 더 심해지나요?", "인슐린을 맞고 계신가요?"],
+        '관절/근골격': ["어느 부위가 아프신가요?", "통증 강도는 10점 중 몇 점인가요?", "움직일 때 더 아픈가요?"],
+        '수면':        ["하루에 몇 시간 주무시나요?", "잠들기 어렵나요, 자다가 깨나요?", "낮에 많이 졸리신가요?"],
+        '소화기':      ["식사 후에 더 심해지나요?", "얼마나 자주 증상이 있나요?", "체중이 줄었나요?"],
+        '신경/기억력': ["언제부터 기억력이 나빠졌나요?", "가족 중 치매가 있으신가요?", "수면은 어떤가요?"],
+        '정신건강':    ["얼마나 오래됐나요?", "잠은 잘 자고 계신가요?", "식욕은 어떤가요?"],
+        '생활습관':    ["현재 운동은 어떻게 하고 계신가요?", "식사는 규칙적으로 하시나요?", "하루 걸음수가 어떻게 되나요?"],
+        '병원준비':    ["어떤 증상으로 가시나요?", "언제부터였나요?", "이전에 같은 증상으로 진료받은 적 있나요?"],
+    }
+    cat = relevant_qa[0].get('category_ko', '') if relevant_qa else category
+    base = defaults.get(cat, ["증상이 얼마나 됐나요?", "다른 불편한 점도 있나요?", "평소 드시는 약이 있나요?"])
+    for q in base:
+        if q not in suggestions:
+            suggestions.append(q)
+    return suggestions[:3]
+
+
 @router.post("/chat")
 def chat(request: ChatRequest):
     api_key = os.getenv("ANTHROPIC_API_KEY")
@@ -209,6 +252,7 @@ def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY가 설정되지 않았습니다.")
 
     relevant_qa = find_relevant_qa(request.message)
+    detected_category = relevant_qa[0].get('category_ko', '') if relevant_qa else ''
 
     system_prompt = BASE_SYSTEM + build_qa_context(relevant_qa)
     if request.user_id and request.user_id != "demo-user":
