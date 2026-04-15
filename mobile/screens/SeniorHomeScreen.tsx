@@ -29,7 +29,9 @@ const HEALTH_CARDS = [
 const CARD_W = (width - 24 - 8) / 2; // paddingHorizontal 12×2 + gap 8
 
 export default function SeniorHomeScreen({ route, navigation }: Props) {
-  const { name = '회원', userId = 'demo-user' } = route?.params ?? {};
+  // name이 빈 문자열('')로 넘어오는 경우도 기본값 처리
+  const userId = route?.params?.userId || 'demo-user';
+  const name   = route?.params?.name   || '회원';
 
   const webBg: any = Platform.OS === 'web'
     ? { background: 'linear-gradient(155deg, #1A4A8A 0%, #2272B8 100%)' }
@@ -51,6 +53,16 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
     if (h < 18) return '좋은 오후예요 🌤️';
     if (h < 21) return '좋은 저녁이에요 🌙';
     return '편안한 밤 되세요 🌛';
+  };
+
+  const goMotion = () => {
+    if (!userId || userId === '') {
+      navigation.navigate('Login');
+    } else {
+      navigation.navigate('FamilyDashboard', {
+        seniorId: userId, seniorName: name, userId, name,
+      });
+    }
   };
 
   return (
@@ -77,7 +89,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
             <TouchableOpacity
               key={card.key}
               style={[s.healthCard, { backgroundColor: card.color }]}
-              onPress={() => navigation.navigate('Health')}
+              onPress={() => navigation.navigate('Health', { userId, name })}
               activeOpacity={0.85}>
               <Text style={s.cardEmoji}>{card.emoji}</Text>
               <Text style={s.cardLabel}>{card.label}</Text>
@@ -87,32 +99,15 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
           ))}
         </View>
 
-        {/* 동선 + 걸음수 통합 카드 */}
-        <View style={s.mapCard}>
-          <View style={s.mapTop}>
-            <Text style={s.mapTitle}>🗺️ 오늘 동선</Text>
-            <Text style={s.mapSteps}>5,420<Text style={s.mapStepsUnit}> 걸음</Text></Text>
+        {/* 동선 한 줄 버튼 */}
+        <TouchableOpacity style={s.motionRow} onPress={goMotion} activeOpacity={0.85}>
+          <Text style={s.motionIcon}>🗺️</Text>
+          <Text style={s.motionLabel}>오늘 동선 확인</Text>
+          <View style={s.motionRight}>
+            <Text style={s.motionSteps}>5,420걸음</Text>
+            <Text style={s.motionArrow}>›</Text>
           </View>
-
-          {Platform.OS === 'web' ? (
-            <svg width="100%" height="70" viewBox="0 0 280 70" style={{ display: 'block' }}>
-              <rect width="280" height="70" fill="#EEF3EE" />
-              <polyline points="20,58 68,42 128,26 184,30 252,14"
-                stroke="#1A4A8A" strokeWidth="2.5" fill="none"
-                strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="20" cy="58" r="5" fill="#F57C00" />
-              <text x="20" y="68" fontSize="8" fill="#555" textAnchor="middle">집</text>
-              <circle cx="128" cy="26" r="4" fill="#1565C0" />
-              <text x="128" y="18" fontSize="8" fill="#555" textAnchor="middle">공원</text>
-              <circle cx="252" cy="14" r="5" fill="#2E7D32" />
-              <text x="252" y="8" fontSize="8" fill="#555" textAnchor="middle">현재</text>
-            </svg>
-          ) : (
-            <View style={s.mapPlaceholder}>
-              <Text style={s.mapPlaceholderTxt}>🗺️ 지도 로딩 중...</Text>
-            </View>
-          )}
-        </View>
+        </TouchableOpacity>
 
         {/* SOS + AI 상담 버튼 행 */}
         <View style={s.actionRow}>
@@ -159,7 +154,7 @@ const s = StyleSheet.create({
   greeting:   { fontSize: 18, color: 'rgba(255,255,255,0.75)' },
   name:       { fontSize: 32, fontWeight: '900', color: '#fff', marginTop: 2 },
   subtitle:   { fontSize: 16, color: 'rgba(255,255,255,0.70)', marginTop: 3 },
-  beeLogo:    { width: 52, height: 52, marginLeft: 10 },
+  beeLogo:    { width: 56, height: 56, marginLeft: 10 },
 
   /* 본문 */
   body: {
@@ -180,17 +175,22 @@ const s = StyleSheet.create({
   cardVal:    { fontSize: 28, fontWeight: '900', color: '#fff', marginTop: 2 },
   cardUnit:   { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
 
-  /* 동선 카드 */
-  mapCard:          { backgroundColor: C.card, borderRadius: 16, overflow: 'hidden' },
-  mapTop:           {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8,
+  /* 동선 한 줄 버튼 */
+  motionRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.card,
+    borderRadius: 16,
+    borderWidth: 1.5, borderColor: '#D0E4F7',
+    paddingVertical: 14, paddingHorizontal: 16,
+    gap: 10,
+    shadowColor: '#1A4A8A', shadowOpacity: 0.06, shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
-  mapTitle:         { fontSize: 15, fontWeight: '700', color: C.text },
-  mapSteps:         { fontSize: 18, fontWeight: '900', color: '#7B1FA2' },
-  mapStepsUnit:     { fontSize: 12, fontWeight: '400', color: '#888' },
-  mapPlaceholder:   { height: 70, backgroundColor: '#EEF3EE', alignItems: 'center', justifyContent: 'center' },
-  mapPlaceholderTxt:{ fontSize: 14, color: '#888' },
+  motionIcon:  { fontSize: 22 },
+  motionLabel: { flex: 1, fontSize: 17, fontWeight: '700', color: C.text },
+  motionRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  motionSteps: { fontSize: 15, fontWeight: '800', color: C.blue1 },
+  motionArrow: { fontSize: 22, color: '#C0C0C0', marginLeft: 2 },
 
   /* SOS + AI 행 */
   actionRow: { flexDirection: 'row', gap: 8 },
