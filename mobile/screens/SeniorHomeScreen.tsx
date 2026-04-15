@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Platform, StatusBar, Dimensions,
+  Platform, StatusBar, Dimensions, Image,
 } from 'react-native';
 import SeniorTabBar from '../components/SeniorTabBar';
 
@@ -41,7 +41,10 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
           <Text style={s.name}>{name}</Text>
           <Text style={s.headerSub}>오늘도 건강한 하루 되세요</Text>
         </View>
-        <Text style={s.beeEmoji}>🐝</Text>
+        <Image
+          source={require('../assets/kkulbi.png')}
+          style={{ width: 100, height: 100, resizeMode: 'contain', position: 'absolute', right: 12, bottom: -30, zIndex: 10 }}
+        />
       </View>
       <View style={s.content}>
         <Text style={s.sectionTitle}>오늘의 건강 기록</Text>
@@ -54,7 +57,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
               activeOpacity={0.85}>
               <Text style={s.cardEmoji}>{card.emoji}</Text>
               <Text style={s.cardLabel}>{card.label}</Text>
-              <Text style={[s.cardValue, card.label === '혈압' && { fontSize: 20 }]}>{card.value}</Text>
+              <Text style={[s.cardValue, card.label === '혈압' && { fontSize: 22 }]}>{card.value}</Text>
               <Text style={s.cardUnit}>{card.unit} · {card.status}</Text>
             </TouchableOpacity>
           ))}
@@ -82,7 +85,8 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
             onPress={() => navigation.navigate('AIChat', { userId, name })}
             activeOpacity={0.85}>
             <Text style={{ fontSize: 28 }}>🐝</Text>
-            <Text style={s.aiTxt}>AI{'\n'}상담</Text>
+            <Text style={s.aiTxt}>AI{'
+'}상담</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -91,31 +95,31 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
   );
 }
 
-const CARD_SIZE = (width - 48) / 2;
+const CARD_SIZE = (width - 56) / 2;
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F4F7FC' },
   header: {
     paddingTop: Platform.OS === 'web' ? 24 : (StatusBar.currentHeight ?? 28) + 12,
     paddingHorizontal: 20, paddingBottom: 20,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    overflow: 'visible',
   },
   headerLeft: { flex: 1 },
   greeting:  { fontSize: 18, color: 'rgba(255,255,255,0.8)', fontWeight: '500' },
   name:      { fontSize: 34, fontWeight: '900', color: '#fff', marginTop: 3 },
   headerSub: { fontSize: 16, color: 'rgba(255,255,255,0.7)', marginTop: 4 },
-  beeEmoji:  { fontSize: 80 },
   content: {
-    flex: 1, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10,
+    flex: 1, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 16,
     justifyContent: 'space-between',
   },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#555' },
   cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
   card:      { width: CARD_SIZE, height: CARD_SIZE, borderRadius: CARD_SIZE / 2,
-               alignItems: 'center', justifyContent: 'center' },
-  cardEmoji: { fontSize: 22, marginBottom: 4 },
-  cardLabel: { fontSize: 11, color: 'rgba(255,255,255,0.85)', fontWeight: '600', marginBottom: 2 },
-  cardValue: { fontSize: 26, fontWeight: '900', color: '#fff' },
-  cardUnit:  { fontSize: 10, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+               alignItems: 'center', justifyContent: 'center', gap: 4 },
+  cardEmoji: { fontSize: 22 },
+  cardLabel: { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
+  cardValue: { fontSize: 30, fontWeight: '900', color: '#fff' },
+  cardUnit:  { fontSize: 11, color: 'rgba(255,255,255,0.75)' },
   mapBtn: {
     backgroundColor: '#fff', borderRadius: 16,
     paddingVertical: 16, paddingHorizontal: 18,
@@ -127,7 +131,7 @@ const s = StyleSheet.create({
   actionRow: { flexDirection: 'row', gap: 10 },
   sosBtn: {
     flex: 1, backgroundColor: '#D32F2F', borderRadius: 18,
-    paddingVertical: 18, paddingHorizontal: 16,
+    paddingVertical: 14, paddingHorizontal: 16, minHeight: 72,
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
   sosIco: { fontSize: 28 },
