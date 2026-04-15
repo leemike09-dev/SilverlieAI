@@ -6,6 +6,7 @@ import {
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const { width } = Dimensions.get('window');
+const CARD_SIZE = (width - 48) / 2;
 type Props = { route: any; navigation: any };
 
 export default function SeniorHomeScreen({ route, navigation }: Props) {
@@ -27,9 +28,9 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
 
   const CARDS = [
     { label: '혈압', emoji: '🩸', value: '128/82', unit: 'mmHg', status: '정상 범위', color: '#F57C00' },
-    { label: '혈당', emoji: '💧', value: '105',    unit: 'mg/dL', status: '공복 정상', color: '#C2185B' },
-    { label: '체온', emoji: '🌡️', value: '36.5',  unit: '°C',   status: '정상',     color: '#1565C0' },
-    { label: '체중', emoji: '⚖️', value: '68.2',  unit: 'kg',   status: 'BMI 24.1', color: '#2E7D32' },
+    { label: '혁당', emoji: '💧',  value: '105',    unit: 'mg/dL', status: '공복 정상', color: '#C2185B' },
+    { label: '체온', emoji: '🌡️', value: '36.5',   unit: '°C', status: '정상', color: '#1565C0' },
+    { label: '체중', emoji: '⚖️', value: '68.2',   unit: 'kg', status: 'BMI 24.1', color: '#2E7D32' },
   ];
 
   return (
@@ -84,8 +85,8 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
             style={s.aiBtn}
             onPress={() => navigation.navigate('AIChat', { userId, name })}
             activeOpacity={0.85}>
-            <Text style={{ fontSize: 28 }}>🐝</Text>
-            <Text style={s.aiTxt}>AI{'\n'}상담</Text>
+            <Text style={ fontSize: 26 }>🐝</Text>
+            <Text style={s.aiTxt}>AI 상담</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -94,7 +95,6 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
   );
 }
 
-const CARD_SIZE = (width - 48) / 2;
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F4F7FC' },
   header: {
@@ -113,8 +113,10 @@ const s = StyleSheet.create({
   },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#555' },
   cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
-  card:     { width: CARD_SIZE, height: CARD_SIZE, borderRadius: 24,
-              alignItems: 'center', justifyContent: 'center', gap: 4 },
+  card: {
+    width: CARD_SIZE, height: CARD_SIZE, borderRadius: 24,
+    alignItems: 'center', justifyContent: 'center', gap: 4,
+  },
   cardEmoji: { fontSize: 20 },
   cardLabel: { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
   cardValue: { fontSize: 26, fontWeight: '900', color: '#fff' },
@@ -138,7 +140,7 @@ const s = StyleSheet.create({
   sosSub: { fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   aiBtn: {
     backgroundColor: '#1A4A8A', borderRadius: 18,
-    width: 74, alignItems: 'center', justifyContent: 'center', gap: 4,
+    width: 74, alignItems: 'center', justifyContent: 'center', gap: 6,
   },
   aiTxt: { fontSize: 13, fontWeight: '700', color: '#fff', textAlign: 'center' },
 });
