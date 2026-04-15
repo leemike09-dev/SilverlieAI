@@ -20,7 +20,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
 
   const CARDS = [
     { label: '혈압', emoji: '🩸', value: '128/82', unit: 'mmHg', status: '정상 범위', color: '#F57C00' },
-    { label: '혈당', emoji: '💧',  value: '105',    unit: 'mg/dL', status: '공복 정상', color: '#C2185B' },
+    { label: '혈당', emoji: '💧',  value: '105',    unit: 'mg/dL', status: '공복 정상', color: '#7B1FA2' },
     { label: '체온', emoji: '🌡️', value: '36.5',   unit: '°C', status: '정상', color: '#1565C0' },
     { label: '체중', emoji: '⚖️', value: '68.2',   unit: 'kg', status: 'BMI 24.1', color: '#2E7D32' },
   ];
@@ -35,7 +35,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
         </View>
         <Image
           source={require('../assets/bee_nobg.png')}
-          style={{ width: 150, height: 150, resizeMode: 'contain', position: 'absolute', right: 8, bottom: -45, zIndex: 10 }}
+          style={{ width: 180, height: 180, resizeMode: 'contain', position: 'absolute', right: 8, bottom: -60, zIndex: 10 }}
         />
       </View>
       <View style={s.content}>
@@ -89,7 +89,7 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F4F7FC' },
   header: {
     paddingTop: Platform.OS === 'web' ? 24 : (StatusBar.currentHeight ?? 28) + 12,
-    paddingHorizontal: 20, paddingBottom: 20,
+    paddingHorizontal: 20, paddingBottom: 60,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     overflow: 'visible',
   },
@@ -97,21 +97,21 @@ const s = StyleSheet.create({
   name:      { fontSize: 36, fontWeight: '900', color: '#fff', marginTop: 3 },
   headerSub: { fontSize: 20, color: 'rgba(255,255,255,0.7)', marginTop: 6 },
   content: {
-    flex: 1, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 16,
+    flex: 1, paddingHorizontal: 14, paddingTop: 70, paddingBottom: 16,
     justifyContent: 'space-between',
   },
   cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
   card: {
-    width: CARD_SIZE, height: CARD_H, borderRadius: 24,
+    width: CARD_SIZE, height: CARD_H, maxHeight: 120, borderRadius: 24,
     alignItems: 'center', justifyContent: 'center', gap: 4,
   },
-  cardEmoji: { fontSize: 28 },
+  cardEmoji: { fontSize: 26 },
   cardLabel: { fontSize: 18, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
-  cardValue: { fontSize: 32, fontWeight: '900', color: '#fff' },
+  cardValue: { fontSize: 30, fontWeight: '900', color: '#fff' },
   cardUnit:  { fontSize: 14, color: 'rgba(255,255,255,0.75)' },
   mapBtn: {
     backgroundColor: '#fff', borderRadius: 16,
-    paddingVertical: 16, paddingHorizontal: 18,
+    paddingVertical: 20, paddingHorizontal: 18,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     borderWidth: 1.5, borderColor: '#D0E4F7',
   },
@@ -120,11 +120,11 @@ const s = StyleSheet.create({
   actionRow: { flexDirection: 'row', gap: 10 },
   sosBtn: {
     flex: 1, backgroundColor: '#D32F2F', borderRadius: 18,
-    paddingVertical: 14, paddingHorizontal: 16, minHeight: 72,
+    paddingVertical: 20, paddingHorizontal: 16, minHeight: 80,
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
   sosIco: { fontSize: 28 },
-  sosTxt: { fontSize: 20, fontWeight: '900', color: '#fff' },
+  sosTxt: { fontSize: 22, fontWeight: '900', color: '#fff' },
   sosSub: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   aiBtn: {
     backgroundColor: '#1A4A8A', borderRadius: 18,
