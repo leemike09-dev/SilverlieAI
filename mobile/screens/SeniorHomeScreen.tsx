@@ -54,7 +54,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
               activeOpacity={0.85}>
               <Text style={s.cardEmoji}>{card.emoji}</Text>
               <Text style={s.cardLabel}>{card.label}</Text>
-              <Text style={s.cardValue}>{card.value}</Text>
+              <Text style={[s.cardValue, card.label === '혈압' && { fontSize: 20 }]}>{card.value}</Text>
               <Text style={s.cardUnit}>{card.unit} · {card.status}</Text>
             </TouchableOpacity>
           ))}
@@ -91,7 +91,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
   );
 }
 
-const CARD_W = (width - 36) / 2;
+const CARD_SIZE = (width - 48) / 2;
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F4F7FC' },
   header: {
@@ -109,12 +109,13 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#555' },
-  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  card:      { width: CARD_W, borderRadius: 18, padding: 16 },
-  cardEmoji: { fontSize: 24, marginBottom: 6 },
-  cardLabel: { fontSize: 14, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
-  cardValue: { fontSize: 28, fontWeight: '900', color: '#fff', marginTop: 2 },
-  cardUnit:  { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
+  card:      { width: CARD_SIZE, height: CARD_SIZE, borderRadius: CARD_SIZE / 2,
+               alignItems: 'center', justifyContent: 'center' },
+  cardEmoji: { fontSize: 22, marginBottom: 4 },
+  cardLabel: { fontSize: 11, color: 'rgba(255,255,255,0.85)', fontWeight: '600', marginBottom: 2 },
+  cardValue: { fontSize: 26, fontWeight: '900', color: '#fff' },
+  cardUnit:  { fontSize: 10, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
   mapBtn: {
     backgroundColor: '#fff', borderRadius: 16,
     paddingVertical: 16, paddingHorizontal: 18,
