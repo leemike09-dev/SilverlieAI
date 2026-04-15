@@ -32,22 +32,6 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
     { label: '체중', emoji: '⚖️', value: '68.2',  unit: 'kg',   status: 'BMI 24.1', color: '#2E7D32' },
   ];
 
-  const row1 = CARDS.slice(0, 2);
-  const row2 = CARDS.slice(2, 4);
-
-  const renderCard = (card: typeof CARDS[0]) => (
-    <TouchableOpacity
-      key={card.label}
-      style={[s.card, { backgroundColor: card.color }]}
-      onPress={() => navigation.navigate('Health')}
-      activeOpacity={0.85}>
-      <Text style={s.cardEmoji}>{card.emoji}</Text>
-      <Text style={s.cardLabel}>{card.label}</Text>
-      <Text style={[s.cardValue, card.label === '혈압' && { fontSize: 20 }]}>{card.value}</Text>
-      <Text style={s.cardUnit}>{card.unit} · {card.status}</Text>
-    </TouchableOpacity>
-  );
-
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
@@ -65,8 +49,18 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
       <View style={s.content}>
         <Text style={s.sectionTitle}>오늘의 건강 기록</Text>
         <View style={s.cardGrid}>
-          <View style={s.cardRow}>{row1.map(renderCard)}</View>
-          <View style={s.cardRow}>{row2.map(renderCard)}</View>
+          {CARDS.map(card => (
+            <TouchableOpacity
+              key={card.label}
+              style={[s.card, { backgroundColor: card.color }]}
+              onPress={() => navigation.navigate('Health')}
+              activeOpacity={0.85}>
+              <Text style={s.cardEmoji}>{card.emoji}</Text>
+              <Text style={s.cardLabel}>{card.label}</Text>
+              <Text style={[s.cardValue, card.label === '혈압' && { fontSize: 20 }]}>{card.value}</Text>
+              <Text style={s.cardUnit}>{card.unit} · {card.status}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
         <TouchableOpacity
           style={s.mapBtn}
@@ -100,6 +94,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
   );
 }
 
+const CARD_SIZE = (width - 48) / 2;
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F4F7FC' },
   header: {
@@ -117,9 +112,8 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#555' },
-  cardGrid: { flex: 1, gap: 10, marginVertical: 10 },
-  cardRow:  { flex: 1, flexDirection: 'row', gap: 10 },
-  card:     { flex: 1, borderRadius: 24,
+  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
+  card:     { width: CARD_SIZE, height: CARD_SIZE, borderRadius: 24,
               alignItems: 'center', justifyContent: 'center', gap: 4 },
   cardEmoji: { fontSize: 20 },
   cardLabel: { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
