@@ -91,8 +91,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
             onPress={() => navigation.navigate('AIChat', { userId, name })}
             activeOpacity={0.85}>
             <Text style={{ fontSize: 28 }}>🐝</Text>
-            <Text style={s.aiTxt}>AI{'
-'}상담</Text>
+            <Text style={s.aiTxt}>AI{'\n'}상담</Text>
           </TouchableOpacity>
         </View>
       </View>
