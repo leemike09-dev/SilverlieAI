@@ -42,8 +42,8 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
           <Text style={s.headerSub}>오늘도 건강한 하루 되세요</Text>
         </View>
         <Image
-          source={require('../assets/kkulbi.png')}
-          style={{ width: 100, height: 100, resizeMode: 'contain', position: 'absolute', right: 12, bottom: -30, zIndex: 10 }}
+          source={require('../assets/bee_nobg.png')}
+          style={{ width: 120, height: 120, resizeMode: 'contain', position: 'absolute', right: 8, bottom: -35, zIndex: 10 }}
         />
       </View>
       <View style={s.content}>
@@ -57,7 +57,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
               activeOpacity={0.85}>
               <Text style={s.cardEmoji}>{card.emoji}</Text>
               <Text style={s.cardLabel}>{card.label}</Text>
-              <Text style={[s.cardValue, card.label === '혈압' && { fontSize: 22 }]}>{card.value}</Text>
+              <Text style={[s.cardValue, card.label === '혈압' && { fontSize: 24 }]}>{card.value}</Text>
               <Text style={s.cardUnit}>{card.unit} · {card.status}</Text>
             </TouchableOpacity>
           ))}
@@ -112,13 +112,13 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#555' },
-  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
+  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   card:      { width: CARD_SIZE, height: CARD_SIZE, borderRadius: CARD_SIZE / 2,
                alignItems: 'center', justifyContent: 'center', gap: 4 },
-  cardEmoji: { fontSize: 22 },
-  cardLabel: { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
-  cardValue: { fontSize: 30, fontWeight: '900', color: '#fff' },
-  cardUnit:  { fontSize: 11, color: 'rgba(255,255,255,0.75)' },
+  cardEmoji: { fontSize: 26 },
+  cardLabel: { fontSize: 15, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
+  cardValue: { fontSize: 32, fontWeight: '900', color: '#fff' },
+  cardUnit:  { fontSize: 12, color: 'rgba(255,255,255,0.75)' },
   mapBtn: {
     backgroundColor: '#fff', borderRadius: 16,
     paddingVertical: 16, paddingHorizontal: 18,
