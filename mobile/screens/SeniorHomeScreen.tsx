@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Image,
   Platform, StatusBar, Dimensions,
@@ -6,6 +6,7 @@ import {
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const { width } = Dimensions.get('window');
+const API_URL = 'https://silverlieai.onrender.com';
 type Props = { route: any; navigation: any };
 
 const C = {
@@ -29,20 +30,46 @@ const HEALTH_CARDS = [
 const CARD_W = (width - 24 - 8) / 2; // paddingHorizontal 12×2 + gap 8
 
 export default function SeniorHomeScreen({ route, navigation }: Props) {
-  // name이 빈 문자열('')로 넘어오는 경우도 기본값 처리
   const userId = route?.params?.userId || 'demo-user';
   const name   = route?.params?.name   || '회원';
+
+  const [advice, setAdvice]         = useState('');
+  const [adviceLoading, setAdviceLoading] = useState(true);
 
   const webBg: any = Platform.OS === 'web'
     ? { background: 'linear-gradient(155deg, #1A4A8A 0%, #2272B8 100%)' }
     : { backgroundColor: C.blue1 };
 
-  useEffect(() => { sendLocation(); }, []);
+  useEffect(() => {
+    sendLocation();
+    fetchAdvice();
+  }, []);
 
   const sendLocation = async () => {
     try {
       // expo-location 사용 시 여기에 구현
     } catch (e) {}
+  };
+
+  const fetchAdvice = async () => {
+    try {
+      const res = await fetch(`${API_URL}/ai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          message: '오늘 시니어 건강을 위한 짧은 한 줄 조언을 해주세요. 이모지 포함, 30자 이내로.',
+          history: [],
+        }),
+      });
+      const data = await res.json();
+      const text = data.reply ?? data.response ?? '';
+      if (text) setAdvice(text);
+    } catch {
+      setAdvice('오늘도 건강한 하루 보내세요! 💪');
+    } finally {
+      setAdviceLoading(false);
+    }
   };
 
   const getGreeting = () => {
@@ -109,6 +136,14 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
           </View>
         </TouchableOpacity>
 
+        {/* 꿀비 AI 한마디 카드 */}
+        <View style={s.adviceCard}>
+          <Text style={s.adviceTitle}>🐝 꿀비의 오늘 건강 조언</Text>
+          <Text style={s.adviceTxt}>
+            {adviceLoading ? '꿀비가 분석 중이에요...' : advice}
+          </Text>
+        </View>
+
         {/* SOS + AI 상담 버튼 행 */}
         <View style={s.actionRow}>
           <TouchableOpacity
@@ -148,13 +183,13 @@ const s = StyleSheet.create({
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingTop: Platform.OS === 'web' ? 20 : (StatusBar.currentHeight ?? 28) + 8,
-    paddingHorizontal: 20, paddingBottom: 24,
+    paddingHorizontal: 20, paddingBottom: 32,
   },
   headerText: { flex: 1 },
-  greeting:   { fontSize: 18, color: 'rgba(255,255,255,0.75)' },
-  name:       { fontSize: 32, fontWeight: '900', color: '#fff', marginTop: 2 },
-  subtitle:   { fontSize: 16, color: 'rgba(255,255,255,0.70)', marginTop: 3 },
-  beeLogo:    { width: 56, height: 56, marginLeft: 10 },
+  greeting:   { fontSize: 20, color: 'rgba(255,255,255,0.75)' },
+  name:       { fontSize: 36, fontWeight: '900', color: '#fff', marginTop: 2 },
+  subtitle:   { fontSize: 18, color: 'rgba(255,255,255,0.70)', marginTop: 3 },
+  beeLogo:    { width: 80, height: 80, marginLeft: 10 },
 
   /* 본문 */
   body: {
@@ -191,6 +226,16 @@ const s = StyleSheet.create({
   motionRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   motionSteps: { fontSize: 15, fontWeight: '800', color: C.blue1 },
   motionArrow: { fontSize: 22, color: '#C0C0C0', marginLeft: 2 },
+
+  /* 꿀비 AI 조언 카드 */
+  adviceCard: {
+    backgroundColor: '#EBF3FB',
+    borderRadius: 16,
+    borderLeftWidth: 4, borderLeftColor: '#2272B8',
+    paddingVertical: 12, paddingHorizontal: 16,
+  },
+  adviceTitle: { fontSize: 13, fontWeight: '700', color: C.blue1, marginBottom: 6 },
+  adviceTxt:   { fontSize: 17, color: C.text, lineHeight: 26 },
 
   /* SOS + AI 행 */
   actionRow: { flexDirection: 'row', gap: 8 },
