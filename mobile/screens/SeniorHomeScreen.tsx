@@ -33,7 +33,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
   const userId = route?.params?.userId || 'demo-user';
   const name   = route?.params?.name   || '회원';
 
-  const [advice, setAdvice]         = useState('');
+  const [advice, setAdvice]               = useState('');
   const [adviceLoading, setAdviceLoading] = useState(true);
 
   const webBg: any = Platform.OS === 'web'
@@ -46,9 +46,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
   }, []);
 
   const sendLocation = async () => {
-    try {
-      // expo-location 사용 시 여기에 구현
-    } catch (e) {}
+    try { /* expo-location 구현 시 여기에 */ } catch {}
   };
 
   const fetchAdvice = async () => {
@@ -64,7 +62,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
       });
       const data = await res.json();
       const text = data.reply ?? data.response ?? '';
-      if (text) setAdvice(text);
+      setAdvice(text || '오늘도 건강한 하루 보내세요! 💪');
     } catch {
       setAdvice('오늘도 건강한 하루 보내세요! 💪');
     } finally {
@@ -83,18 +81,17 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
   };
 
   const goMotion = () => {
-    if (!userId || userId === '') {
+    if (!userId) {
       navigation.navigate('Login');
     } else {
-      navigation.navigate('FamilyDashboard', {
-        seniorId: userId, seniorName: name, userId, name,
-      });
+      navigation.navigate('FamilyDashboard', { seniorId: userId, seniorName: name, userId, name });
     }
   };
 
   return (
     <View style={s.root}>
-      {/* 헤더 */}
+
+      {/* ── 헤더 ── */}
       <View style={[s.header, webBg]}>
         <View style={s.headerText}>
           <Text style={s.greeting}>{getGreeting()}</Text>
@@ -106,27 +103,29 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      {/* 본문 - 스크롤 없음 */}
+      {/* ── 본문: 4개 섹션을 space-between으로 균등 배분 ── */}
       <View style={s.body}>
 
-        {/* 건강 카드 4개 */}
-        <Text style={s.sectionTitle}>오늘의 건강 기록</Text>
-        <View style={s.cardGrid}>
-          {HEALTH_CARDS.map(card => (
-            <TouchableOpacity
-              key={card.key}
-              style={[s.healthCard, { backgroundColor: card.color }]}
-              onPress={() => navigation.navigate('Health', { userId, name })}
-              activeOpacity={0.85}>
-              <Text style={s.cardEmoji}>{card.emoji}</Text>
-              <Text style={s.cardLabel}>{card.label}</Text>
-              <Text style={s.cardVal}>{card.demo}</Text>
-              <Text style={s.cardUnit}>{card.unit} · {card.status}</Text>
-            </TouchableOpacity>
-          ))}
+        {/* 섹션 1: 건강 카드 2×2 */}
+        <View>
+          <Text style={s.sectionTitle}>오늘의 건강 기록</Text>
+          <View style={s.cardGrid}>
+            {HEALTH_CARDS.map(card => (
+              <TouchableOpacity
+                key={card.key}
+                style={[s.healthCard, { backgroundColor: card.color }]}
+                onPress={() => navigation.navigate('Health', { userId, name })}
+                activeOpacity={0.85}>
+                <Text style={s.cardEmoji}>{card.emoji}</Text>
+                <Text style={s.cardLabel}>{card.label}</Text>
+                <Text style={s.cardVal}>{card.demo}</Text>
+                <Text style={s.cardUnit}>{card.unit} · {card.status}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        {/* 동선 한 줄 버튼 */}
+        {/* 섹션 2: 동선 한 줄 버튼 */}
         <TouchableOpacity style={s.motionRow} onPress={goMotion} activeOpacity={0.85}>
           <Text style={s.motionIcon}>🗺️</Text>
           <Text style={s.motionLabel}>오늘 동선 확인</Text>
@@ -136,7 +135,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
           </View>
         </TouchableOpacity>
 
-        {/* 꿀비 AI 한마디 카드 */}
+        {/* 섹션 3: 꿀비 AI 한마디 */}
         <View style={s.adviceCard}>
           <Text style={s.adviceTitle}>🐝 꿀비의 오늘 건강 조언</Text>
           <Text style={s.adviceTxt}>
@@ -144,7 +143,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
           </Text>
         </View>
 
-        {/* SOS + AI 상담 버튼 행 */}
+        {/* 섹션 4: SOS + AI 상담 */}
         <View style={s.actionRow}>
           <TouchableOpacity
             style={s.sosBtn}
@@ -170,7 +169,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
 
       </View>
 
-      {/* 탭바 */}
+      {/* ── 탭바 ── */}
       <SeniorTabBar navigation={navigation} activeTab="home" userId={userId} name={name} />
     </View>
   );
@@ -189,35 +188,32 @@ const s = StyleSheet.create({
   greeting:   { fontSize: 20, color: 'rgba(255,255,255,0.75)' },
   name:       { fontSize: 36, fontWeight: '900', color: '#fff', marginTop: 2 },
   subtitle:   { fontSize: 18, color: 'rgba(255,255,255,0.70)', marginTop: 3 },
-  beeLogo:    { width: 80, height: 80, marginLeft: 10 },
+  beeLogo:    { width: 90, height: 90, marginLeft: 10 },
 
-  /* 본문 */
+  /* 본문: space-between으로 4 섹션 균등 배분 */
   body: {
     flex: 1,
     paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 8,
-    gap: 8,
+    paddingTop: 10,
+    paddingBottom: 10,
+    justifyContent: 'space-between',
   },
 
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#555' },
+  /* 섹션 1: 건강 카드 */
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#555', marginBottom: 8 },
+  cardGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  healthCard:   { width: CARD_W, borderRadius: 16, padding: 14 },
+  cardEmoji:    { fontSize: 22, marginBottom: 5 },
+  cardLabel:    { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
+  cardVal:      { fontSize: 26, fontWeight: '900', color: '#fff', marginTop: 2 },
+  cardUnit:     { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
 
-  /* 건강 카드 2×2 */
-  cardGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  healthCard: { width: CARD_W, borderRadius: 16, padding: 14 },
-  cardEmoji:  { fontSize: 24, marginBottom: 6 },
-  cardLabel:  { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.8)' },
-  cardVal:    { fontSize: 28, fontWeight: '900', color: '#fff', marginTop: 2 },
-  cardUnit:   { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-
-  /* 동선 한 줄 버튼 */
+  /* 섹션 2: 동선 버튼 */
   motionRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: C.card,
-    borderRadius: 16,
+    backgroundColor: C.card, borderRadius: 16,
     borderWidth: 1.5, borderColor: '#D0E4F7',
-    paddingVertical: 14, paddingHorizontal: 16,
-    gap: 10,
+    paddingVertical: 13, paddingHorizontal: 16, gap: 10,
     shadowColor: '#1A4A8A', shadowOpacity: 0.06, shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
@@ -227,17 +223,16 @@ const s = StyleSheet.create({
   motionSteps: { fontSize: 15, fontWeight: '800', color: C.blue1 },
   motionArrow: { fontSize: 22, color: '#C0C0C0', marginLeft: 2 },
 
-  /* 꿀비 AI 조언 카드 */
+  /* 섹션 3: 꿀비 조언 */
   adviceCard: {
-    backgroundColor: '#EBF3FB',
-    borderRadius: 16,
+    backgroundColor: '#EBF3FB', borderRadius: 16,
     borderLeftWidth: 4, borderLeftColor: '#2272B8',
-    paddingVertical: 12, paddingHorizontal: 16,
+    paddingVertical: 11, paddingHorizontal: 16,
   },
-  adviceTitle: { fontSize: 13, fontWeight: '700', color: C.blue1, marginBottom: 6 },
-  adviceTxt:   { fontSize: 17, color: C.text, lineHeight: 26 },
+  adviceTitle: { fontSize: 13, fontWeight: '700', color: C.blue1, marginBottom: 5 },
+  adviceTxt:   { fontSize: 17, color: C.text, lineHeight: 24 },
 
-  /* SOS + AI 행 */
+  /* 섹션 4: SOS + AI */
   actionRow: { flexDirection: 'row', gap: 8 },
   sosBtn: {
     flex: 1, backgroundColor: '#D32F2F', borderRadius: 16,
