@@ -50,7 +50,7 @@ export default function SeniorTabBar({ navigation, activeTab, userId, name }: Pr
               color={active ? '#1A4A8A' : '#C0C0C0'}
             />
             <Text style={{
-              fontSize: 12,
+              fontSize: 13,
               color: active ? '#1A4A8A' : '#ABABAB',
               fontWeight: active ? '700' : '500',
             }}>

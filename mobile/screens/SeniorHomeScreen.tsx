@@ -7,20 +7,12 @@ import SeniorTabBar from '../components/SeniorTabBar';
 
 const { width } = Dimensions.get('window');
 const CARD_SIZE = (width - 48) / 2;
+const CARD_H    = 130;
 type Props = { route: any; navigation: any };
 
 export default function SeniorHomeScreen({ route, navigation }: Props) {
   const { name = '게스트', userId = 'demo-user' } = route?.params ?? {};
 
-  const getGreeting = () => {
-    const h = new Date().getHours();
-    if (h < 9)  return '좋은 아침이에요 🌅';
-    if (h < 12) return '활기찬 오전이에요 ☀️';
-    if (h < 14) return '점심 시간이에요 🍱';
-    if (h < 18) return '좋은 오후에요 🌤️';
-    if (h < 21) return '좋은 저녁이에요 🌙';
-    return '편안한 밤 되세요 🌛';
-  };
 
   const webBg: any = Platform.OS === 'web'
     ? { background: 'linear-gradient(155deg, #1A4A8A 0%, #2272B8 100%)' }
@@ -28,7 +20,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
 
   const CARDS = [
     { label: '혈압', emoji: '🩸', value: '128/82', unit: 'mmHg', status: '정상 범위', color: '#F57C00' },
-    { label: '혁당', emoji: '💧',  value: '105',    unit: 'mg/dL', status: '공복 정상', color: '#C2185B' },
+    { label: '혈당', emoji: '💧',  value: '105',    unit: 'mg/dL', status: '공복 정상', color: '#C2185B' },
     { label: '체온', emoji: '🌡️', value: '36.5',   unit: '°C', status: '정상', color: '#1565C0' },
     { label: '체중', emoji: '⚖️', value: '68.2',   unit: 'kg', status: 'BMI 24.1', color: '#2E7D32' },
   ];
@@ -38,17 +30,15 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
       <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
       <View style={[s.header, webBg]}>
         <View style={s.headerLeft}>
-          <Text style={s.greeting}>{getGreeting()}</Text>
           <Text style={s.name}>{name}</Text>
           <Text style={s.headerSub}>오늘도 건강한 하루 되세요</Text>
         </View>
         <Image
           source={require('../assets/bee_nobg.png')}
-          style={{ width: 110, height: 110, resizeMode: 'contain', position: 'absolute', right: 8, bottom: -35, zIndex: 10 }}
+          style={{ width: 150, height: 150, resizeMode: 'contain', position: 'absolute', right: 8, bottom: -45, zIndex: 10 }}
         />
       </View>
       <View style={s.content}>
-        <Text style={s.sectionTitle}>오늘의 건강 기록</Text>
         <View style={s.cardGrid}>
           {CARDS.map(card => (
             <TouchableOpacity
@@ -58,7 +48,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
               activeOpacity={0.85}>
               <Text style={s.cardEmoji}>{card.emoji}</Text>
               <Text style={s.cardLabel}>{card.label}</Text>
-              <Text style={[s.cardValue, card.label === '혈압' && { fontSize: 20 }]}>{card.value}</Text>
+              <Text style={[s.cardValue, card.label === '혈압' && { fontSize: 24 }]}>{card.value}</Text>
               <Text style={s.cardUnit}>{card.unit} · {card.status}</Text>
             </TouchableOpacity>
           ))}
@@ -85,7 +75,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
             style={s.aiBtn}
             onPress={() => navigation.navigate('AIChat', { userId, name })}
             activeOpacity={0.85}>
-            <Text style={ fontSize: 26 }>🐝</Text>
+            <Text style={{ fontSize: 26 }}>🐝</Text>
             <Text style={s.aiTxt}>AI 상담</Text>
           </TouchableOpacity>
         </View>
@@ -104,31 +94,29 @@ const s = StyleSheet.create({
     overflow: 'visible',
   },
   headerLeft: { flex: 1 },
-  greeting:  { fontSize: 18, color: 'rgba(255,255,255,0.8)', fontWeight: '500' },
-  name:      { fontSize: 34, fontWeight: '900', color: '#fff', marginTop: 3 },
-  headerSub: { fontSize: 16, color: 'rgba(255,255,255,0.7)', marginTop: 4 },
+  name:      { fontSize: 36, fontWeight: '900', color: '#fff', marginTop: 3 },
+  headerSub: { fontSize: 20, color: 'rgba(255,255,255,0.7)', marginTop: 6 },
   content: {
     flex: 1, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 16,
     justifyContent: 'space-between',
   },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#555' },
   cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 20 },
   card: {
-    width: CARD_SIZE, height: CARD_SIZE, borderRadius: 24,
+    width: CARD_SIZE, height: CARD_H, borderRadius: 24,
     alignItems: 'center', justifyContent: 'center', gap: 4,
   },
-  cardEmoji: { fontSize: 20 },
-  cardLabel: { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
-  cardValue: { fontSize: 26, fontWeight: '900', color: '#fff' },
-  cardUnit:  { fontSize: 11, color: 'rgba(255,255,255,0.75)' },
+  cardEmoji: { fontSize: 28 },
+  cardLabel: { fontSize: 18, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
+  cardValue: { fontSize: 32, fontWeight: '900', color: '#fff' },
+  cardUnit:  { fontSize: 14, color: 'rgba(255,255,255,0.75)' },
   mapBtn: {
     backgroundColor: '#fff', borderRadius: 16,
     paddingVertical: 16, paddingHorizontal: 18,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     borderWidth: 1.5, borderColor: '#D0E4F7',
   },
-  mapLeft:  { fontSize: 18, fontWeight: '700', color: '#1A4A8A' },
-  mapRight: { fontSize: 16, fontWeight: '800', color: '#7B1FA2' },
+  mapLeft:  { fontSize: 22, fontWeight: '700', color: '#1A4A8A' },
+  mapRight: { fontSize: 20, fontWeight: '800', color: '#7B1FA2' },
   actionRow: { flexDirection: 'row', gap: 10 },
   sosBtn: {
     flex: 1, backgroundColor: '#D32F2F', borderRadius: 18,
@@ -136,8 +124,8 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
   sosIco: { fontSize: 28 },
-  sosTxt: { fontSize: 18, fontWeight: '900', color: '#fff' },
-  sosSub: { fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
+  sosTxt: { fontSize: 20, fontWeight: '900', color: '#fff' },
+  sosSub: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   aiBtn: {
     backgroundColor: '#1A4A8A', borderRadius: 18,
     width: 74, alignItems: 'center', justifyContent: 'center', gap: 6,
