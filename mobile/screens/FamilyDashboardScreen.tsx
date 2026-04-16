@@ -1,580 +1,296 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, StatusBar,
-  ScrollView, Platform, Animated, Alert,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView,
+  StatusBar, Platform, Linking, Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DEMO_MODE } from '../App';
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const API = 'https://silverlieai.onrender.com';
 
-const C = {
-  blue1:   '#1A4A8A',
-  blue2:   '#2272B8',
-  blueCard:'#EBF3FB',
-  card:    '#FFFFFF',
-  bg:      '#F0F5FB',
-  sage:    '#3DAB7B',
-  sageLt:  '#E6F7EF',
-  amber:   '#E8960A',
-  amberLt: '#FEF6E0',
-  red:     '#D94040',
-  redLt:   '#FDEAEA',
-  text:    '#16273E',
-  sub:     '#7A90A8',
-  line:    '#DDE8F4',
-};
+const DEMO_MEMBERS = [
+  { id: 'senior-1', name: '어머니', phone: '010-1234-5678', relation: '어머니' },
+  { id: 'senior-2', name: '아버지', phone: '010-9876-5432', relation: '아버지' },
+];
 
-type AlertLevel = 'good' | 'warn' | 'danger';
-const ALERT_CFG: Record<AlertLevel, { icon: string; title: string; desc: string; color: string; bg: string; border: string }> = {
-  good:   { icon:'✅', title:'오늘 건강 상태 양호',  desc:'복용 잘 하고 있어요. 수고하셨어요!',           color: C.sage,  bg: C.sageLt,  border: C.sage  },
-  warn:   { icon:'⚠️', title:'복용 알림',             desc:'아직 드시지 않은 약이 있어요.',                color: C.amber, bg: C.amberLt, border: C.amber },
-  danger: { icon:'🚨', title:'복용 확인 필요',         desc:'오늘 복용 기록이 많이 부족해요. 확인해주세요.', color: C.red,   bg: C.redLt,   border: C.red   },
-};
-
-const DEMO_STATUS = {
+const DEMO_HEALTH = {
+  aiAdvice: '오늘 혈압이 정상 범위입니다. 혈압약을 꾸준히 드시고 계세요. 물을 충분히 드시면 더욱 좋습니다.',
   medications: [
-    { id:'1', name:'혈압약', dosage:'1정', times:['08:00','20:00'], color:'#e57373' },
-    { id:'2', name:'당뇨약', dosage:'1정', times:['08:00','12:00'], color:'#64b5f6' },
-    { id:'3', name:'관절약', dosage:'2정', times:['12:00'],         color:'#81c784' },
+    { name: '혈압약', time: '08:00', taken: true,  dosage: '1정' },
+    { name: '당뇨약', time: '08:00', taken: true,  dosage: '1정' },
+    { name: '당뇨약', time: '12:00', taken: false, dosage: '1정' },
+    { name: '관절약', time: '12:00', taken: false, dosage: '2정' },
+    { name: '혈압약', time: '20:00', taken: false, dosage: '1정' },
   ],
-  today_logs: [
-    { medication_id:'1', scheduled_time:'08:00', taken: true,  status:'taken'   },
-    { medication_id:'2', scheduled_time:'08:00', taken: true,  status:'taken'   },
-    { medication_id:'2', scheduled_time:'12:00', taken: false, status:'skipped' },
-  ],
-  summary: { total: 4, taken: 2, skipped: 1, missed: [{ med_name:'혈압약', time:'20:00' }], alert_level:'warn', pct: 50 },
-  low_stock: [
-    { name:'혈압약', med_type:'처방약', remaining_qty: 4, days_left: 2, color:'#e57373' },
-    { name:'당뇨약', med_type:'처방약', remaining_qty:14, days_left: 7, color:'#64b5f6' },
-  ],
+  location: '역삼동 자택',
+  lastSeen: '오늘 오전 11시 05분',
+  vitals: {
+    bp: '128/82', bpStatus: '정상',
+    glucose: '105', glucoseStatus: '공복 정상',
+    temp: '36.5', tempStatus: '정상',
+    weight: '68.2', weightStatus: 'BMI 24.1',
+  },
 };
-
-const DEMO_LOGS = {
-  point_count: 5,
-  current_activity: 'home',
-  total_distance_m: 1240,
-  logs: [
-    { lat:37.4979, lng:127.0276, activity:'home',    address:'역삼동',      created_at:'2026-04-03T07:30:00Z' },
-    { lat:37.4985, lng:127.0290, activity:'outdoor', address:'역삼공원',    created_at:'2026-04-03T09:10:00Z' },
-    { lat:37.5001, lng:127.0310, activity:'outdoor', address:'강남역 근처', created_at:'2026-04-03T09:45:00Z' },
-    { lat:37.4992, lng:127.0295, activity:'outdoor', address:'이마트',      created_at:'2026-04-03T10:20:00Z' },
-    { lat:37.4981, lng:127.0280, activity:'home',    address:'역삼동',      created_at:'2026-04-03T11:05:00Z' },
-  ],
-};
-
-function getTodayStr() {
-  const d = new Date();
-  return `${d.getMonth()+1}월 ${d.getDate()}일 ${['일','월','화','수','목','금','토'][d.getDay()]}요일`;
-}
-
-function loadLeaflet(cb: () => void) {
-  if ((window as any).L) { cb(); return; }
-  if (!document.getElementById('leaflet-css')) {
-    const link = document.createElement('link');
-    link.id = 'leaflet-css'; link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    document.head.appendChild(link);
-  }
-  const s = document.createElement('script');
-  s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-  s.onload = cb;
-  document.head.appendChild(s);
-}
 
 export default function FamilyDashboardScreen({ route, navigation }: any) {
-  const seniorId   = route?.params?.seniorId   || (DEMO_MODE ? 'demo-senior' : '');
-  const seniorName = route?.params?.seniorName || (DEMO_MODE ? '홍길동' : '');
-  const userId     = route?.params?.userId     || (DEMO_MODE ? 'demo-user'   : '');
-  const name       = route?.params?.name       || (DEMO_MODE ? '홍길동' : '');
-
-  const [status,     setStatus]    = useState<any>(null);
-  const [locData,    setLocData]   = useState<any>(null);
-  const [refreshing, setRefreshing]= useState(false);
-  const [mapReady,   setMapReady]  = useState(false);
-  const [healthData, setHealthData]= useState<any>(null);
-  const [selMember,  setSelMember] = useState(0);
-
-  const FAMILY_MEMBERS = [
-    { name: seniorName || '홍길동', relation: '부모님', avatar: '👴' },
-    { name: '이영희',  relation: '배우자',  avatar: '👵' },
-  ];
-
-  const DEMO_HEALTH = {
-    blood_pressure_systolic: 128, blood_pressure_diastolic: 82,
-    blood_sugar: 105, steps: 4200,
-  };
-
-  const fadeAnim     = useRef(new Animated.Value(0)).current;
-  const inlineMapRef = useRef<any>(null);
-  const leafletMapRef = useRef<any>(null);
+  const [userId,   setUserId]   = useState<string>(route?.params?.userId || '');
+  const [name,     setName]     = useState<string>(route?.params?.name   || '');
+  const [members,  setMembers]  = useState<any[]>(DEMO_MODE ? DEMO_MEMBERS : []);
+  const [selected, setSelected] = useState<any>(DEMO_MODE ? DEMO_MEMBERS[0] : (route?.params ? { id: route.params.seniorId, name: route.params.seniorName, phone: '' } : null));
+  const [health,   setHealth]   = useState<any>(DEMO_MODE ? DEMO_HEALTH : null);
+  const [loading,  setLoading]  = useState(false);
 
   useEffect(() => {
-    Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
-    fetchStatus();
-    const timer = setInterval(fetchStatus, 120000);
-    return () => clearInterval(timer);
+    const loadUser = async () => {
+      const storedId   = await AsyncStorage.getItem('userId');
+      const storedName = await AsyncStorage.getItem('userName');
+      if (storedId) setUserId(storedId);
+      if (storedName) setName(storedName);
+    };
+    loadUser();
+    if (!DEMO_MODE) { fetchMembers(); }
   }, []);
 
   useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    if (!locData?.logs?.length) return;
-    const t = setTimeout(() => initInlineMap(locData.logs), 300);
-    return () => clearTimeout(t);
-  }, [locData, mapReady]);
+    if (selected && !DEMO_MODE) fetchHealth(selected.id);
+    if (selected && DEMO_MODE) setHealth(DEMO_HEALTH);
+  }, [selected]);
 
-  const initInlineMap = (logs: any[]) => {
-    if (!inlineMapRef.current) return;
-    loadLeaflet(() => {
-      const L = (window as any).L;
-      if (!L) return;
-      if (leafletMapRef.current) { leafletMapRef.current.remove(); leafletMapRef.current = null; }
-      const el = inlineMapRef.current;
-      if (el._leaflet_id) el._leaflet_id = undefined;
-
-      const coords: [number, number][] = logs.map((l: any) => [l.lat, l.lng]);
-      const center = coords[Math.floor(coords.length / 2)];
-
-      const map = L.map(el, {
-        zoomControl: false, scrollWheelZoom: false,
-        dragging: true, attributionControl: false,
-      }).setView(center, 15);
-      leafletMapRef.current = map;
-
-      // CartoDB Positron — 깔끔한 흰 배경, 불필요한 정보 없음
-      L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-        { maxZoom: 19, subdomains: 'abcd' }
-      ).addTo(map);
-
-      // 이동 경로 — 굵고 선명한 파란 실선
-      L.polyline(coords, {
-        color: '#2272B8', weight: 6, opacity: 0.9,
-      }).addTo(map);
-
-      // 마커 — 크고 읽기 쉬운 DivIcon
-      logs.forEach((log: any, i: number) => {
-        const t = new Date(log.created_at);
-        const timeStr = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
-        const isFirst = i === 0;
-        const isLast  = i === logs.length - 1;
-        const isHome  = log.activity === 'home';
-
-        let bgColor = '#F4956A';
-        let emoji   = '🚶';
-        if (isFirst)      { bgColor = '#3DAB7B'; emoji = '🏡'; }
-        else if (isLast)  { bgColor = '#D94040'; emoji = '📍'; }
-        else if (isHome)  { bgColor = '#3DAB7B'; emoji = '🏡'; }
-
-        const size = isFirst || isLast ? 52 : 40;
-        const icon = L.divIcon({
-          className: '',
-          html: `<div style="
-            width:${size}px; height:${size}px; border-radius:50%;
-            background:${bgColor}; border:3px solid #fff;
-            box-shadow:0 3px 10px rgba(0,0,0,0.25);
-            display:flex; flex-direction:column;
-            align-items:center; justify-content:center;
-            font-size:${isFirst || isLast ? 20 : 16}px; line-height:1;
-          ">
-            <span>${emoji}</span>
-            <span style="
-              font-size:9px; color:#fff; font-weight:700;
-              font-family:sans-serif; margin-top:1px;
-            ">${timeStr}</span>
-          </div>`,
-          iconSize:   [size, size],
-          iconAnchor: [size/2, size/2],
-        });
-
-        const label = isFirst ? '🏡 출발' : isLast ? '📍 현재위치' : isHome ? '🏡 귀가' : '🚶 외출';
-        L.marker([log.lat, log.lng], { icon })
-          .bindPopup(`<div style="font-size:15px;font-weight:700;line-height:1.6">
-            ${label}<br>
-            <span style="font-size:13px;color:#666">${timeStr}${log.address ? ' · '+log.address : ''}</span>
-          </div>`, { maxWidth: 180 })
-          .addTo(map);
-      });
-
-      if (coords.length > 1) map.fitBounds(L.latLngBounds(coords), { padding: [32, 32] });
-    });
-  };
-
-  const fetchStatus = useCallback(async () => {
-    setRefreshing(true);
+  const fetchMembers = async () => {
     try {
-      const r = await fetch(`${API}/family/status/${seniorId}`);
+      const r = await fetch(`${API}/family/members/${userId}`);
       if (r.ok) {
         const d = await r.json();
-        setStatus(d);
-        try {
-          const lr = await fetch(`${API}/location/today/${seniorId}`);
-          if (lr.ok) {
-            const ld = await lr.json();
-            setLocData(ld.point_count > 0 ? ld : (DEMO_MODE ? DEMO_LOGS : null));
-          } else if (DEMO_MODE) setLocData(DEMO_LOGS);
-        } catch { if (DEMO_MODE) setLocData(DEMO_LOGS); }
-      } else if (DEMO_MODE) {
-        setStatus(DEMO_STATUS);
-        setLocData(DEMO_LOGS);
+        setMembers(d.members || []);
+        if (d.members?.length > 0 && !selected) setSelected(d.members[0]);
       }
-    } catch {
-      if (DEMO_MODE) { setStatus(DEMO_STATUS); setLocData(DEMO_LOGS); }
-    } finally { setRefreshing(false); }
-  }, [seniorId]);
+    } catch {}
+  };
 
-  const s            = status || DEMO_STATUS;
-  const summary: any = s.summary || {};
-  const meds: any[]  = (s.medications || []).filter((m: any) => !m.med_type || m.med_type === '처방약');
-  const logs: any[]  = s.today_logs  || [];
-  const lowStock: any[] = s.low_stock || [];
+  const fetchHealth = async (seniorId: string) => {
+    setLoading(true);
+    try {
+      const r = await fetch(`${API}/family/health/${seniorId}`);
+      if (r.ok) setHealth(await r.json());
+    } catch {}
+    finally { setLoading(false); }
+  };
 
-  // 복용하지 않은 약 목록
-  const notTaken = meds.flatMap(med =>
-    (med.times || [])
-      .filter((t: string) => {
-        const log = logs.find((l: any) => l.medication_id === med.id && l.scheduled_time === t);
-        return !log?.taken;
-      })
-      .map((t: string) => ({ name: med.name, time: t, color: med.color }))
-  );
+  const callMember = () => {
+    if (!selected?.phone) { Alert.alert('전화번호 없음', '등록된 전화번호가 없습니다.'); return; }
+    Linking.openURL(`tel:${selected.phone.replace(/-/g, '')}`);
+  };
 
-  const locLogs    = locData?.logs || [];
-  const currentAct = locData?.current_activity || '';
-  const distStr    = locData?.total_distance_m >= 1000
-    ? `${(locData.total_distance_m / 1000).toFixed(1)}km`
-    : `${locData?.total_distance_m || 0}m`;
-
-  const webHeaderBg: any = Platform.OS === 'web'
-    ? { background: 'linear-gradient(135deg, #1A4A8A 0%, #2272B8 100%)' }
-    : { backgroundColor: C.blue1 };
+  const PT = Platform.OS === 'ios' ? 54 : 32;
+  const takenCount  = health?.medications?.filter((m: any) => m.taken).length || 0;
+  const totalCount  = health?.medications?.length || 0;
+  const missedCount = totalCount - takenCount;
 
   return (
-    <View style={ss.root}>
+    <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
 
-      {/* ── 헤더 ── */}
-      <View style={[ss.header, webHeaderBg]}>
-        <View style={ss.headerTop}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={ss.backBtn}>
-            <Text style={ss.backTxt}>‹</Text>
-          </TouchableOpacity>
-          <View style={ss.headerCenter}>
-            <Text style={ss.headerDate}>{getTodayStr()}</Text>
-            <Text style={ss.headerName}>{seniorName}님의 오늘</Text>
-          </View>
-          <TouchableOpacity style={ss.sosBtn}
-            onPress={() => Alert.alert('긴급 연락', `${seniorName}님께 전화를 연결합니다`)}>
-            <Text style={ss.sosTxt}>📞</Text>
-          </TouchableOpacity>
+      {/* 헤더 */}
+      <View style={[s.header, { paddingTop: PT }]}>
+        <View style={s.headerLeft}>
+          <Text style={s.headerTitle}>가족 건강</Text>
+          <Text style={s.headerSub}>{name ? `${name}님의 가족 현황` : '가족 현황'}</Text>
         </View>
-
+        {selected?.phone ? (
+          <TouchableOpacity style={s.callBtn} onPress={callMember}>
+            <Text style={s.callIcon}>📞</Text>
+            <Text style={s.callTxt}>전화</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
-      <Animated.View style={[{ flex: 1 }, { opacity: fadeAnim }]}>
-        <ScrollView contentContainerStyle={ss.scroll} showsVerticalScrollIndicator={false}>
+      {/* 멤버 선택 가로스크롤 */}
+      <View style={s.memberBar}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.memberScroll}>
+          {members.map(m => (
+            <TouchableOpacity
+              key={m.id}
+              style={[s.memberChip, selected?.id === m.id && s.memberChipOn]}
+              onPress={() => setSelected(m)}
+            >
+              <Text style={s.memberIcon}>👤</Text>
+              <Text style={[s.memberName, selected?.id === m.id && s.memberNameOn]}>{m.name || m.relation}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
-          {/* ── 가족 멤버 선택 ── */}
-          <View style={ss.memberRow}>
-            {FAMILY_MEMBERS.map((m, i) => (
-              <TouchableOpacity key={i}
-                style={[ss.memberChip, selMember === i && ss.memberChipOn]}
-                onPress={() => setSelMember(i)}
-                activeOpacity={0.8}>
-                <Text style={ss.memberAvatar}>{m.avatar}</Text>
-                <View>
-                  <Text style={[ss.memberName, selMember === i && ss.memberNameOn]}>{m.name}</Text>
-                  <Text style={ss.memberRelation}>{m.relation}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
+      <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
 
-          {/* ── 건강 수치 4개 카드 ── */}
-          {(() => {
-            const hd = healthData || DEMO_HEALTH;
-            const medPct = summary?.pct ?? 0;
-            const HEALTH_CARDS = [
-              { icon: '💗', label: '혈압',   value: `${hd.blood_pressure_systolic}/${hd.blood_pressure_diastolic}`, unit: 'mmHg',
-                color: hd.blood_pressure_systolic >= 140 ? C.red : C.sage,
-                bg:    hd.blood_pressure_systolic >= 140 ? C.redLt : C.sageLt },
-              { icon: '🩸', label: '혈당',   value: `${hd.blood_sugar}`, unit: 'mg/dL',
-                color: hd.blood_sugar >= 126 ? C.red : C.sage,
-                bg:    hd.blood_sugar >= 126 ? C.redLt : C.sageLt },
-              { icon: '🚶', label: '걸음수', value: hd.steps?.toLocaleString() ?? '—', unit: '보',
-                color: (hd.steps ?? 0) >= 5000 ? C.sage : C.amber,
-                bg:    (hd.steps ?? 0) >= 5000 ? C.sageLt : C.amberLt },
-              { icon: '💊', label: '복약률', value: `${medPct}`, unit: '%',
-                color: medPct >= 80 ? C.sage : medPct >= 50 ? C.amber : C.red,
-                bg:    medPct >= 80 ? C.sageLt : medPct >= 50 ? C.amberLt : C.redLt },
-            ];
-            return (
-              <View style={ss.healthGrid}>
-                {HEALTH_CARDS.map((card, i) => (
-                  <View key={i} style={[ss.healthCard, { backgroundColor: card.bg, borderColor: card.color }]}>
-                    <Text style={ss.healthCardIcon}>{card.icon}</Text>
-                    <Text style={ss.healthCardLabel}>{card.label}</Text>
-                    <Text style={[ss.healthCardValue, { color: card.color }]}>{card.value}</Text>
-                    <Text style={ss.healthCardUnit}>{card.unit}</Text>
-                  </View>
-                ))}
+        {/* 위치 정보 */}
+        {health?.location ? (
+          <View style={s.card}>
+            <Text style={s.cardLabel}>현재 위치</Text>
+            <View style={s.locationRow}>
+              <Text style={s.locationIcon}>📍</Text>
+              <View>
+                <Text style={s.locationTxt}>{health.location}</Text>
+                <Text style={s.locationSub}>마지막 확인: {health.lastSeen}</Text>
               </View>
-            );
-          })()}
-
-          {/* ── AI 건강 조언 카드 ── */}
-          <View style={[ss.card, ss.aiCard]}>
-            <View style={ss.aiCardHeader}>
-              <Text style={ss.aiCardIcon}>🤖</Text>
-              <Text style={ss.cardTitle}>AI 건강 조언</Text>
             </View>
-            <Text style={ss.aiCardText}>
-              {(() => {
-                const hd = healthData || DEMO_HEALTH;
-                const bp = hd.blood_pressure_systolic ?? 0;
-                const steps = hd.steps ?? 0;
-                if (bp >= 140) return `혈압이 ${bp}mmHg로 높습니다. 오늘은 가볍게 산책하시고 짠 음식을 피해주세요.`;
-                if (steps < 3000) return `오늘 걸음수가 ${steps?.toLocaleString()}보로 적습니다. 10분 산책만으로도 큰 도움이 됩니다.`;
-                return `오늘 건강 상태가 전반적으로 양호합니다. 수분 섭취와 규칙적인 약 복용을 유지해 주세요.`;
-              })()}
-            </Text>
           </View>
+        ) : null}
 
-          {/* ── 복용 상태 배너 ── */}
-          <TouchableOpacity
-            style={[ss.medBanner,
-              notTaken.length === 0
-                ? { backgroundColor: C.sageLt, borderColor: C.sage }
-                : { backgroundColor: C.amberLt, borderColor: C.amber }
-            ]}
-            onPress={() => navigation.navigate('Medication', { userId, name })}
-            activeOpacity={0.82}>
-            <Text style={ss.medBannerIcon}>
-              {notTaken.length === 0 ? '✅' : '🔔'}
-            </Text>
-            <View style={{ flex: 1 }}>
-              <Text style={[ss.medBannerTxt, {
-                color: notTaken.length === 0 ? C.sage : C.amber,
-              }]}>
-                {notTaken.length === 0
-                  ? '오늘 약을 모두 복용하셨어요'
-                  : `아직 드시지 않은 약이 있어요 (${notTaken.length}건)`}
-              </Text>
+        {/* AI 건강조언 카드 */}
+        {health?.aiAdvice ? (
+          <View style={[s.card, s.aiCard]}>
+            <View style={s.aiCardHeader}>
+              <Text style={s.aiIcon}>🤖</Text>
+              <Text style={s.aiLabel}>AI 건강조언</Text>
             </View>
-            <Text style={[ss.medBannerArrow, {
-              color: notTaken.length === 0 ? C.sage : C.amber,
-            }]}>›</Text>
-          </TouchableOpacity>
+            <Text style={s.aiAdviceTxt}>{health.aiAdvice}</Text>
+          </View>
+        ) : null}
 
-          {/* ── 오늘 동선 ── */}
-          <View style={ss.card}>
-            <View style={ss.locHeader}>
-              <Text style={ss.cardTitle}>📍 오늘 동선</Text>
-              {locData && (
-                <View style={[ss.actChip, {
-                  backgroundColor: currentAct === 'outdoor' ? C.amberLt : C.sageLt,
-                }]}>
-                  <Text style={[ss.actChipTxt, {
-                    color: currentAct === 'outdoor' ? C.amber : C.sage,
-                  }]}>
-                    {currentAct === 'outdoor' ? '🚶 외출 중' : '🏡 집 근처'}
+        {/* 바이탈 요약 */}
+        {health?.vitals ? (
+          <View style={s.card}>
+            <Text style={s.cardLabel}>오늘 건강수치</Text>
+            <View style={s.vitalsGrid}>
+              <View style={s.vitalCell}>
+                <Text style={s.vitalName}>혈압</Text>
+                <Text style={s.vitalVal}>{health.vitals.bp}</Text>
+                <Text style={s.vitalUnit}>mmHg</Text>
+                <Text style={s.vitalStatus}>{health.vitals.bpStatus}</Text>
+              </View>
+              <View style={s.vitalCell}>
+                <Text style={s.vitalName}>혈당</Text>
+                <Text style={s.vitalVal}>{health.vitals.glucose}</Text>
+                <Text style={s.vitalUnit}>mg/dL</Text>
+                <Text style={s.vitalStatus}>{health.vitals.glucoseStatus}</Text>
+              </View>
+              <View style={s.vitalCell}>
+                <Text style={s.vitalName}>체온</Text>
+                <Text style={s.vitalVal}>{health.vitals.temp}</Text>
+                <Text style={s.vitalUnit}>°C</Text>
+                <Text style={s.vitalStatus}>{health.vitals.tempStatus}</Text>
+              </View>
+              <View style={s.vitalCell}>
+                <Text style={s.vitalName}>체중</Text>
+                <Text style={s.vitalVal}>{health.vitals.weight}</Text>
+                <Text style={s.vitalUnit}>kg</Text>
+                <Text style={s.vitalStatus}>{health.vitals.weightStatus}</Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
+
+        {/* 복용약 현황 */}
+        {health?.medications ? (
+          <View style={s.card}>
+            <View style={s.medHeader}>
+              <Text style={s.cardLabel}>복용약 현황</Text>
+              <View style={s.medBadge}>
+                <Text style={s.medBadgeTxt}>{takenCount}/{totalCount} 복용</Text>
+              </View>
+            </View>
+            {missedCount > 0 ? (
+              <View style={s.medAlert}>
+                <Text style={s.medAlertTxt}>미복용 {missedCount}건이 있습니다</Text>
+              </View>
+            ) : (
+              <View style={[s.medAlert, s.medAlertOk]}>
+                <Text style={[s.medAlertTxt, { color: '#2E7D32' }]}>오늘 복약을 모두 완료했습니다!</Text>
+              </View>
+            )}
+            <View style={s.medTable}>
+              <View style={s.medTableHead}>
+                <Text style={[s.medCol, s.medColName]}>약 이름</Text>
+                <Text style={[s.medCol, s.medColTime]}>시간</Text>
+                <Text style={[s.medCol, s.medColDose]}>용량</Text>
+                <Text style={[s.medCol, s.medColStatus]}>복용</Text>
+              </View>
+              {health.medications.map((m: any, i: number) => (
+                <View key={i} style={[s.medRow, i % 2 === 0 && s.medRowEven]}>
+                  <Text style={[s.medCol, s.medColName, s.medCellTxt]}>{m.name}</Text>
+                  <Text style={[s.medCol, s.medColTime, s.medCellTxt]}>{m.time}</Text>
+                  <Text style={[s.medCol, s.medColDose, s.medCellTxt]}>{m.dosage}</Text>
+                  <Text style={[s.medCol, s.medColStatus, m.taken ? s.takenTxt : s.notTakenTxt]}>
+                    {m.taken ? '완료' : '미복용'}
                   </Text>
                 </View>
-              )}
-            </View>
-
-            {locData && (
-              <Text style={ss.distTxt}>오늘 총 {distStr} 이동 · {locLogs.length}개 지점</Text>
-            )}
-
-            {Platform.OS === 'web' ? (
-              locData && locLogs.length > 0 ? (
-                <View style={ss.mapContainer} onLayout={() => setMapReady(true)}>
-                  {/* @ts-ignore */}
-                  <div ref={inlineMapRef} style={{ width:'100%', height:'100%', borderRadius:14, overflow:'hidden' }} />
-                  <View style={ss.legend}>
-                    {[
-                      { color: C.sage,    label: '🏡 집' },
-                      { color: '#F4956A', label: '🚶 외출' },
-                      { color: C.red,     label: '📍 현재' },
-                    ].map(it => (
-                      <View key={it.label} style={ss.legendItem}>
-                        <View style={[ss.legendDot, { backgroundColor: it.color }]} />
-                        <Text style={ss.legendTxt}>{it.label}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              ) : (
-                <View style={ss.mapEmpty}>
-                  <Text style={ss.mapEmptyIcon}>🗺️</Text>
-                  <Text style={ss.mapEmptyTxt}>아직 위치 정보가 없어요</Text>
-                  <Text style={ss.mapEmptySub}>앱을 열면 자동으로 기록됩니다</Text>
-                </View>
-              )
-            ) : (
-              <View style={ss.mapEmpty}>
-                <Text style={ss.mapEmptyIcon}>🗺️</Text>
-                <Text style={ss.mapEmptyTxt}>지도는 웹 데모에서 확인 가능합니다</Text>
-              </View>
-            )}
-
-            {locData && locLogs.length > 0 && (
-              <TouchableOpacity
-                style={ss.fullMapBtn}
-                onPress={() => navigation.navigate('LocationMap', {
-                  logs: locLogs, seniorName, totalDist: locData.total_distance_m,
-                })}
-                activeOpacity={0.8}>
-                <Text style={ss.fullMapBtnTxt}>⛶  전체화면으로 보기</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* ── 약 재고 부족 경고 ── */}
-          {lowStock.length > 0 && (
-            <View style={[ss.card, { borderLeftWidth: 4, borderLeftColor: C.red }]}>
-              <Text style={ss.cardTitle}>💊 약 재고 부족 알림</Text>
-              {lowStock.map((item: any, i: number) => (
-                <View key={i} style={ss.stockRow}>
-                  <View style={[ss.stockDot, { backgroundColor: item.color }]} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={ss.stockName}>{item.name}</Text>
-                    <Text style={ss.stockSub}>{item.remaining_qty}정 남음</Text>
-                  </View>
-                  <View style={[ss.stockBadge, item.days_left <= 3 && { backgroundColor: C.redLt }]}>
-                    <Text style={[ss.stockBadgeTxt, item.days_left <= 3 && { color: C.red }]}>
-                      {item.days_left === 0 ? '⚠️ 오늘 소진' : `${item.days_left}일치 남음`}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-              <Text style={ss.stockHint}>처방약 리필이 필요합니다. 병원/약국 방문을 확인해 주세요.</Text>
-            </View>
-          )}
-
-          {/* ── 빠른 연락 ── */}
-          <View style={ss.card}>
-            <Text style={ss.cardTitle}>📲 빠른 연락</Text>
-            <View style={ss.contactRow}>
-              {[
-                { icon:'📞', label:'전화하기',   color: C.sage,  bg: C.sageLt  },
-                { icon:'💬', label:'문자 보내기', color: C.blue2, bg: C.blueCard },
-                { icon:'🚨', label:'긴급 신고',   color: C.red,   bg: C.redLt   },
-              ].map(btn => (
-                <TouchableOpacity key={btn.label}
-                  style={[ss.contactBtn, { backgroundColor: btn.bg, borderColor: btn.color }]}
-                  onPress={() => Alert.alert(btn.label, `${seniorName}님에게 ${btn.label}`)}
-                  activeOpacity={0.75}>
-                  <Text style={ss.contactIcon}>{btn.icon}</Text>
-                  <Text style={[ss.contactLabel, { color: btn.color }]}>{btn.label}</Text>
-                </TouchableOpacity>
               ))}
             </View>
           </View>
+        ) : null}
 
-          <View style={{ height: 24 }} />
-        </ScrollView>
-      </Animated.View>
+        {loading ? <Text style={s.loadingTxt}>불러오는 중...</Text> : null}
 
-      <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={name} />
+      </ScrollView>
+
+      <SeniorTabBar activeTab="family" userId={userId} name={name} navigation={navigation} />
     </View>
   );
 }
 
-const ss = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: C.bg },
-  scroll: { padding: 16, paddingBottom: 16 },
+const s = StyleSheet.create({
+  root:   { flex: 1, backgroundColor: '#F0F5FB' },
 
-  // 헤더
-  header:       { paddingTop: Platform.OS==='web' ? 20 : (StatusBar.currentHeight??28)+8,
-                  paddingHorizontal: 18, paddingBottom: 12 },
-  headerTop:    { flexDirection:'row', alignItems:'center', marginBottom: 4, gap: 10 },
-  backBtn:      { width:36, height:36, alignItems:'center', justifyContent:'center' },
-  backTxt:      { color:'#fff', fontSize:28, fontWeight:'300', lineHeight:32 },
-  headerCenter: { flex: 1 },
-  headerDate:   { fontSize:15, color:'rgba(255,255,255,0.65)', marginBottom:2 },
-  headerName:   { fontSize:26, fontWeight:'800', color:'#fff', letterSpacing:-0.3 },
-  sosBtn:       { width:40, height:40, borderRadius:20,
-                  backgroundColor:'rgba(255,255,255,0.18)', alignItems:'center', justifyContent:'center' },
-  sosTxt:       { fontSize:18 },
-  refreshBtn:   { width:32, height:32, alignItems:'center', justifyContent:'center' },
-  refreshIcon:  { fontSize:20, color: C.sub },
+  header: { backgroundColor: '#1A4A8A', paddingHorizontal: 20, paddingBottom: 20, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
+  headerLeft: {},
+  headerTitle:{ fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: 4 },
+  headerSub:  { fontSize: 17, color: 'rgba(255,255,255,0.85)' },
+  callBtn:    { backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 10, alignItems: 'center' },
+  callIcon:   { fontSize: 22 },
+  callTxt:    { fontSize: 14, fontWeight: '700', color: '#1A4A8A', marginTop: 2 },
 
-  // 카드 공통
-  card:      { backgroundColor: C.card, borderRadius:20, padding:18, marginBottom:14,
-               shadowColor:'#2272B8', shadowOpacity:0.08, shadowRadius:14,
-               shadowOffset:{width:0,height:4}, elevation:3 },
-  cardTitle: { fontSize:20, fontWeight:'800', color: C.text, marginBottom:14 },
+  memberBar:    { backgroundColor: '#1A4A8A', paddingBottom: 16 },
+  memberScroll: { paddingHorizontal: 16, gap: 10 },
+  memberChip:   { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 30, paddingHorizontal: 18, paddingVertical: 10, gap: 8 },
+  memberChipOn: { backgroundColor: '#fff' },
+  memberIcon:   { fontSize: 20 },
+  memberName:   { fontSize: 18, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
+  memberNameOn: { color: '#1A4A8A' },
 
-  // 복용 배너
-  medBanner:      { flexDirection:'row', alignItems:'center', borderRadius:16, borderWidth:1.5,
-                    paddingHorizontal:16, paddingVertical:14, marginBottom:14, gap:12 },
-  medBannerIcon:  { fontSize:22 },
-  medBannerTxt:   { fontSize:18, fontWeight:'700' },
-  medBannerArrow: { fontSize:26, fontWeight:'300' },
+  scroll:   { flex: 1 },
+  content:  { padding: 16, paddingBottom: 100 },
 
-  // 동선
-  locHeader:    { flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:6 },
-  actChip:      { borderRadius:12, paddingHorizontal:10, paddingVertical:4 },
-  actChipTxt:   { fontSize:16, fontWeight:'700' },
-  distTxt:      { fontSize:16, color: C.sub, marginBottom:12 },
-  mapContainer: { height:260, borderRadius:14, overflow:'hidden', marginBottom:10,
-                  backgroundColor: C.blueCard, position:'relative' },
-  legend:       { position:'absolute', bottom:8, left:8, flexDirection:'row', gap:10,
-                  backgroundColor:'rgba(255,255,255,0.92)', borderRadius:10,
-                  paddingHorizontal:10, paddingVertical:5 },
-  legendItem:   { flexDirection:'row', alignItems:'center', gap:4 },
-  legendDot:    { width:8, height:8, borderRadius:4 },
-  legendTxt:    { fontSize:14, color: C.text, fontWeight:'600' },
-  mapEmpty:     { height:140, alignItems:'center', justifyContent:'center', gap:8 },
-  mapEmptyIcon: { fontSize:36 },
-  mapEmptyTxt:  { fontSize:18, color: C.sub, fontWeight:'600' },
-  mapEmptySub:  { fontSize:16, color:'#BABABA' },
-  fullMapBtn:   { backgroundColor: C.blueCard, borderRadius:12, paddingVertical:11, alignItems:'center' },
-  fullMapBtnTxt:{ fontSize:19, fontWeight:'700', color: C.blue2 },
+  card:     { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 14, shadowColor: '#000', shadowOffset: { width:0, height:2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
+  cardLabel:{ fontSize: 20, fontWeight: '800', color: '#1A4A8A', marginBottom: 14 },
 
-  // 재고 부족
-  stockRow:     { flexDirection:'row', alignItems:'center', gap:12, paddingVertical:10,
-                  borderBottomWidth:1, borderBottomColor: C.line },
-  stockDot:     { width:12, height:12, borderRadius:6 },
-  stockName:    { fontSize:18, fontWeight:'700', color: C.text },
-  stockSub:     { fontSize:15, color: C.sub, marginTop:2 },
-  stockBadge:   { backgroundColor: C.amberLt, borderRadius:10, paddingHorizontal:10, paddingVertical:4 },
-  stockBadgeTxt:{ fontSize:15, fontWeight:'700', color: C.amber },
-  stockHint:    { fontSize:14, color: C.sub, marginTop:10, lineHeight:20 },
+  locationRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  locationIcon:{ fontSize: 28 },
+  locationTxt: { fontSize: 20, fontWeight: '700', color: '#2C2C2C', marginBottom: 4 },
+  locationSub: { fontSize: 15, color: '#888' },
 
-  // 연락
-  contactRow:   { flexDirection:'row', gap:10 },
-  contactBtn:   { flex:1, alignItems:'center', paddingVertical:14, borderRadius:16,
-                  borderWidth:1.5, gap:5 },
-  contactIcon:  { fontSize:22 },
-  contactLabel: { fontSize:18, fontWeight:'700' },
+  aiCard:       { backgroundColor: '#EBF3FB', borderWidth: 1.5, borderColor: '#1A4A8A' },
+  aiCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  aiIcon:       { fontSize: 26 },
+  aiLabel:      { fontSize: 20, fontWeight: '800', color: '#1A4A8A' },
+  aiAdviceTxt:  { fontSize: 18, color: '#2C3E50', lineHeight: 28 },
 
-  // 가족 멤버 선택
-  memberRow:      { flexDirection:'row', gap:10, marginBottom:14 },
-  memberChip:     { flex:1, flexDirection:'row', alignItems:'center', gap:10,
-                    backgroundColor: C.card, borderRadius:16, padding:12,
-                    borderWidth:1.5, borderColor: C.line,
-                    shadowColor:'#2272B8', shadowOpacity:0.06, shadowRadius:8, elevation:2 },
-  memberChipOn:   { backgroundColor: C.blueCard, borderColor: C.blue2 },
-  memberAvatar:   { fontSize:32 },
-  memberName:     { fontSize:18, fontWeight:'800', color: C.text },
-  memberNameOn:   { color: C.blue1 },
-  memberRelation: { fontSize:14, color: C.sub, marginTop:2 },
+  vitalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  vitalCell:  { flex: 1, minWidth: '45%', backgroundColor: '#F5F8FF', borderRadius: 14, padding: 14, alignItems: 'center' },
+  vitalName:  { fontSize: 15, color: '#666', marginBottom: 4 },
+  vitalVal:   { fontSize: 26, fontWeight: '900', color: '#1A4A8A' },
+  vitalUnit:  { fontSize: 13, color: '#888', marginTop: 2 },
+  vitalStatus:{ fontSize: 14, color: '#2E7D32', fontWeight: '600', marginTop: 4 },
 
-  // 건강 수치 4카드
-  healthGrid:      { flexDirection:'row', flexWrap:'wrap', gap:10, marginBottom:14 },
-  healthCard:      { width:'47%', borderRadius:20, borderWidth:1.5,
-                     padding:14, alignItems:'center',
-                     shadowColor:'#000', shadowOpacity:0.05, shadowRadius:6, elevation:1 },
-  healthCardIcon:  { fontSize:28, marginBottom:4 },
-  healthCardLabel: { fontSize:15, fontWeight:'700', color: C.sub, marginBottom:4 },
-  healthCardValue: { fontSize:28, fontWeight:'900', lineHeight:32 },
-  healthCardUnit:  { fontSize:13, color: C.sub, marginTop:2 },
+  medHeader:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  medBadge:      { backgroundColor: '#EBF3FB', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 },
+  medBadgeTxt:   { fontSize: 16, fontWeight: '700', color: '#1A4A8A' },
+  medAlert:      { backgroundColor: '#FFF3E0', borderRadius: 12, padding: 12, marginBottom: 14 },
+  medAlertOk:    { backgroundColor: '#E8F5E9' },
+  medAlertTxt:   { fontSize: 17, fontWeight: '700', color: '#E65100', textAlign: 'center' },
 
-  // AI 건강 조언 카드
-  aiCard:       { backgroundColor: '#EBF3FB', borderWidth:1.5, borderColor: C.blue2 },
-  aiCardHeader: { flexDirection:'row', alignItems:'center', gap:8, marginBottom:10 },
-  aiCardIcon:   { fontSize:22 },
-  aiCardText:   { fontSize:18, color: C.text, lineHeight:28 },
+  medTable:    { borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#E0E8F0' },
+  medTableHead:{ flexDirection: 'row', backgroundColor: '#1A4A8A', paddingVertical: 12, paddingHorizontal: 8 },
+  medRow:      { flexDirection: 'row', paddingVertical: 13, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: '#EEF2F8' },
+  medRowEven:  { backgroundColor: '#F8FAFD' },
+  medCol:      { flex: 1, fontSize: 16 },
+  medColName:  { flex: 2 },
+  medColTime:  { flex: 1.5 },
+  medColDose:  { flex: 1 },
+  medColStatus:{ flex: 1.2, textAlign: 'center' },
+  medCellTxt:  { color: '#2C2C2C', fontWeight: '600' },
+  takenTxt:    { color: '#2E7D32', fontWeight: '800', textAlign: 'center' },
+  notTakenTxt: { color: '#D32F2F', fontWeight: '800', textAlign: 'center' },
+
+  loadingTxt: { textAlign: 'center', fontSize: 18, color: '#888', marginTop: 20 },
 });

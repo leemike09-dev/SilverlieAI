@@ -16,7 +16,7 @@ const TABS: { icon: keyof typeof Ionicons.glyphMap; lbl: string; screen: string;
   { icon: 'home-outline',      lbl: '홈',     screen: 'SeniorHome',      key: 'home'   },
   { icon: 'bar-chart-outline', lbl: '건강기록', screen: 'Health',          key: 'health' },
   { icon: 'medical-outline',   lbl: '약관리',  screen: 'Medication',      key: 'med'    },
-  { icon: 'people-outline',    lbl: '가족',    screen: 'FamilyDashboard', key: 'family' },
+  { icon: 'people-outline',    lbl: '가족',    screen: 'FamilyConnect', key: 'family' },
 ];
 
 export default function SeniorTabBar({ navigation, activeTab, userId, name }: Props) {
@@ -38,9 +38,7 @@ export default function SeniorTabBar({ navigation, activeTab, userId, name }: Pr
             style={{ flex: 1, alignItems: 'center', gap: 4 }}
             onPress={() => !active && navigation.navigate(
               tab.screen,
-              tab.screen === 'FamilyDashboard'
-                ? { seniorId: userId, seniorName: name, userId, name }
-                : { userId, name }
+              { userId, name }
             )}
             activeOpacity={0.7}
           >
