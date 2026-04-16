@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, Dimensions, Platform,
+  ScrollView, Dimensions, Platform, Image,
 } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -28,7 +28,7 @@ const SLIDES = [
     color: '#2E7D32',
   },
   {
-    icon: '🐝',
+    icon: null,
     title: '이제 걱정 마세요\nSilver Life AI가 함께합니다',
     desc: '꿀비가 매일 건강을\n지켜드릴게요',
     color: '#7B1FA2',
@@ -70,7 +70,11 @@ export default function OnboardingScreen({ navigation }: Props) {
         {SLIDES.map((sl, i) => (
           <View key={i} style={[s.slide, { width }]}>
             <View style={[s.iconWrap, { backgroundColor: sl.color + '18' }]}>
-              <Text style={s.icon}>{sl.icon}</Text>
+              {sl.icon ? (
+                <Text style={s.icon}>{sl.icon}</Text>
+              ) : (
+                <Image source={require('../assets/bee_nobg.png')} style={s.beeImg} resizeMode="contain" />
+              )}
             </View>
             <Text style={[s.title, { color: sl.color }]}>{sl.title}</Text>
             <Text style={s.desc}>{sl.desc}</Text>
@@ -111,9 +115,10 @@ const s = StyleSheet.create({
 
   iconWrap: { width: 160, height: 160, borderRadius: 80,
               alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
-  icon:  { fontSize: 80 },
-  title: { fontSize: 28, fontWeight: '900', textAlign: 'center', marginBottom: 16 },
-  desc:  { fontSize: 20, color: '#555', textAlign: 'center', lineHeight: 32 },
+  icon:  { fontSize: 90 },
+  beeImg: { width: 160, height: 160 },
+  title: { fontSize: 30, fontWeight: '900', textAlign: 'center', marginBottom: 16 },
+  desc:  { fontSize: 22, color: '#555', textAlign: 'center', lineHeight: 34 },
 
   bottom: { padding: 24, paddingBottom: 36, alignItems: 'center', gap: 16 },
   dots:   { flexDirection: 'row', gap: 8 },
@@ -121,6 +126,6 @@ const s = StyleSheet.create({
   dotOn:  { width: 26, borderRadius: 5 },
 
   btn:    { width: '100%', paddingVertical: 20, borderRadius: 22, alignItems: 'center' },
-  btnTxt: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: 1 },
-  skip:   { fontSize: 16, color: '#B0BEC5', textDecorationLine: 'underline' },
+  btnTxt: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: 1 },  // 유지
+  skip:   { fontSize: 18, color: '#B0BEC5', textDecorationLine: 'underline' },
 });
