@@ -95,6 +95,7 @@ const s = StyleSheet.create({
     paddingTop: Platform.OS === 'web' ? 24 : (StatusBar.currentHeight ?? 28) + 12,
     paddingHorizontal: 20, paddingBottom: 20,
     overflow: 'visible',
+    flexDirection: 'row', alignItems: 'flex-start',
   },
   name:      { fontSize: 30, fontWeight: '900', color: '#fff' },
   headerSub: { fontSize: 16, color: 'rgba(255,255,255,0.75)', marginTop: 4 },
