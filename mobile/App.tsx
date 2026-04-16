@@ -73,8 +73,21 @@ export default function App() {
     return () => sub.remove();
   }, []);
 
-  const [kakaoCode, setKakaoCode] = useState<string | null>(null);
-  const [navReady,  setNavReady]  = useState(false);
+  const [kakaoCode,    setKakaoCode]    = useState<string | null>(null);
+  const [navReady,     setNavReady]     = useState(false);
+  const [initialRoute, setInitialRoute] = useState<string | null>(null);
+
+  // 초기 라우트 결정: userId → SeniorHome / onboarding_seen → Intro / 없으면 Onboarding
+  useEffect(() => {
+    (async () => {
+      try {
+        const userId = await AsyncStorage.getItem('userId');
+        if (userId) { setInitialRoute('SeniorHome'); return; }
+        const seen = await AsyncStorage.getItem('onboarding_seen');
+        setInitialRoute(seen ? 'Intro' : 'Onboarding');
+      } catch { setInitialRoute('Onboarding'); }
+    })();
+  }, []);
 
   // 웹 카카오 인가 코드 감지
   // index.html 스크립트가 먼저 실행되어 sessionStorage에 저장 → 여기서 꺼냄
@@ -124,11 +137,13 @@ export default function App() {
 
   const handleNavigationReady = () => setNavReady(true);
 
+  if (!initialRoute) return null;
+
   return (
     <SafeAreaProvider>
     <LanguageProvider>
       <NavigationContainer ref={navigationRef} onReady={handleNavigationReady}>
-        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Intro">
+        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRoute as string}>
           <Stack.Screen name="Intro"       component={IntroScreen}       />
           <Stack.Screen name="Home"        component={HomeScreen}        initialParams={DEMO} />
           <Stack.Screen name="Login"       component={LoginScreen}       />

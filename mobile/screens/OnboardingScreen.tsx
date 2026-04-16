@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Dimensions, Platform,
@@ -9,22 +10,28 @@ type Props = { navigation: any };
 
 const SLIDES = [
   {
-    icon: '🏥',
-    title: '건강을 기록하세요',
-    desc: '혈압, 혈당, 체온, 체중을\n매일 쉽게 기록하고\nAI가 분석해드려요',
+    icon: '👪',
+    title: '자녀가 부모님 건강을\n걱정하고 있지 않나요?',
+    desc: '가족이 언제든 건강 상태와\n동선을 확인할 수 있어요',
     color: '#1A4A8A',
   },
   {
-    icon: '💊',
-    title: '약을 잊지 마세요',
-    desc: '복약 시간을 알려드리고\n복용 여부를 기록해\n가족에게 전달해요',
-    color: '#00695C',
+    icon: '🚨',
+    title: '혼자 있을 때\n갑자기 아프면 어떡하죠?',
+    desc: 'SOS 한 번으로 119와\n가족에게 즉시 연락돼요',
+    color: '#D32F2F',
   },
   {
-    icon: '👨‍👩‍👧',
-    title: '가족과 함께해요',
-    desc: '실시간 건강 상태와\n오늘 동선을 가족이\n언제든 확인할 수 있어요',
-    color: '#4A148C',
+    icon: '💊',
+    title: '약 먹는 시간\n자주 잊으시나요?',
+    desc: '복약 시간을 알려드리고\n가족에게도 전달해요',
+    color: '#2E7D32',
+  },
+  {
+    icon: '🐝',
+    title: '이제 걱정 마세요\nSilver Life AI가 함께합니다',
+    desc: '꿀비가 매일 건강을\n지켜드릴게요',
+    color: '#7B1FA2',
   },
 ];
 
@@ -32,12 +39,13 @@ export default function OnboardingScreen({ navigation }: Props) {
   const [idx, setIdx] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
 
-  const goNext = () => {
+  const goNext = async () => {
     if (idx < SLIDES.length - 1) {
       const next = idx + 1;
       setIdx(next);
       scrollRef.current?.scrollTo({ x: width * next, animated: true });
     } else {
+      await AsyncStorage.setItem('onboarding_seen', 'true');
       navigation.replace('Login');
     }
   };
@@ -88,7 +96,7 @@ export default function OnboardingScreen({ navigation }: Props) {
 
         {/* 건너뛰기 */}
         {idx < SLIDES.length - 1 && (
-          <TouchableOpacity onPress={() => navigation.replace('Login')}>
+          <TouchableOpacity onPress={async () => { await AsyncStorage.setItem('onboarding_seen', 'true'); navigation.replace('Login'); }}>
             <Text style={s.skip}>건너뛰기</Text>
           </TouchableOpacity>
         )}
@@ -104,7 +112,7 @@ const s = StyleSheet.create({
   iconWrap: { width: 160, height: 160, borderRadius: 80,
               alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
   icon:  { fontSize: 80 },
-  title: { fontSize: 30, fontWeight: '900', textAlign: 'center', marginBottom: 16 },
+  title: { fontSize: 28, fontWeight: '900', textAlign: 'center', marginBottom: 16 },
   desc:  { fontSize: 20, color: '#555', textAlign: 'center', lineHeight: 32 },
 
   bottom: { padding: 24, paddingBottom: 36, alignItems: 'center', gap: 16 },

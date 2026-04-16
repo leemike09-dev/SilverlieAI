@@ -30,7 +30,8 @@ export default function IntroScreen({ navigation }: any) {
 
 const TTS_SCRIPT = '안녕하세요! 저는 꿀비예요. 건강을 함께 지켜드릴게요!';
 
-  const handleStart = () => navigation.replace('Onboarding');
+  const handleLogin  = () => navigation.replace('Login');
+  const handleStart  = () => navigation.replace('Onboarding');
 
   // 꿀비 부유 애니메이션
   useEffect(() => {
@@ -115,10 +116,15 @@ const TTS_SCRIPT = '안녕하세요! 저는 꿀비예요. 건강을 함께 지�
           {/* 여백 → 버튼을 하단으로 */}
           <View style={{ flex: 1 }} />
 
-          {/* 시작하기 버튼 */}
-          <TouchableOpacity style={s.startBtn} onPress={handleStart} activeOpacity={0.85}>
-            <Text style={s.startBtnTxt}>시작하기</Text>
-          </TouchableOpacity>
+          {/* 버튼 2개 */}
+          <View style={s.btnRow}>
+            <TouchableOpacity style={s.loginBtn} onPress={handleLogin} activeOpacity={0.85}>
+              <Text style={s.loginBtnTxt}>로그인</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.startBtn} onPress={handleStart} activeOpacity={0.85}>
+              <Text style={s.startBtnTxt}>시작하기</Text>
+            </TouchableOpacity>
+          </View>
 
           {/* 인디케이터 점 */}
           <View style={s.dots}>
@@ -183,9 +189,9 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   appSub: {
-    color: 'rgba(255,255,255,0.80)',
-    fontSize: 18,
-    fontWeight: '500',
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '700',
     textAlign: 'center',
     paddingHorizontal: 32,
   },
@@ -232,19 +238,21 @@ const s = StyleSheet.create({
   },
 
   /* 버튼 */
+  btnRow: { flexDirection: 'row', gap: 12, width: '100%' },
+  loginBtn: {
+    flex: 1, backgroundColor: '#fff', borderRadius: 16,
+    paddingVertical: 18, alignItems: 'center',
+    borderWidth: 2, borderColor: '#1A4A8A',
+  },
+  loginBtnTxt: { color: '#1A4A8A', fontSize: 20, fontWeight: '900' },
   startBtn: {
-    backgroundColor: '#1A4A8A',
-    borderRadius: 16,
-    paddingVertical: 18,
-    alignItems: 'center',
-    width: '100%',
-    shadowColor: '#1A4A8A',
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    flex: 1, backgroundColor: '#1A4A8A', borderRadius: 16,
+    paddingVertical: 18, alignItems: 'center',
+    shadowColor: '#1A4A8A', shadowOpacity: 0.3,
+    shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
-  startBtnTxt: { color: '#fff', fontSize: 24, fontWeight: '900' },
+  startBtnTxt: { color: '#fff', fontSize: 20, fontWeight: '900' },
 
   /* 점 인디케이터 */
   dots:      { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 14 },
