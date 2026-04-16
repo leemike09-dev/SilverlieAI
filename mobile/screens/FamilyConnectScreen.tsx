@@ -19,42 +19,46 @@ export default function FamilyConnectScreen({ route, navigation }: any) {
   const [copied,   setCopied]   = useState(false);
 
   useEffect(() => {
-    const loadUser = async () => {
+    const init = async () => {
+      // 1) Load userId first
       const storedId   = await AsyncStorage.getItem('userId');
       const storedName = await AsyncStorage.getItem('userName');
-      if (storedId) { setUserId(storedId); }
-      if (storedName) { setName(storedName); }
+      const uid  = storedId  || userId;
+      const uname = storedName || name;
+      if (storedId)   setUserId(storedId);
+      if (storedName) setName(storedName);
+
+      if (DEMO_MODE) {
+        // Demo: show dashboard directly (demo members exist)
+        navigation.replace('FamilyDashboard', { userId: uid || 'demo-user', name: uname });
+        return;
+      }
+
+      // 2) Check existing connections
+      if (uid) {
+        try {
+          const r = await fetch(`${API}/family/members/${uid}`);
+          if (r.ok) {
+            const d = await r.json();
+            if (d.members && d.members.length > 0) {
+              navigation.replace('FamilyDashboard', { userId: uid, name: uname });
+              return;
+            }
+          }
+        } catch {}
+      }
+
+      // 3) No connections: fetch my code
+      if (uid) {
+        try {
+          const r = await fetch(`${API}/family/my-code/${uid}`);
+          if (r.ok) { const d = await r.json(); setMyCode(d.code || null); }
+        } catch {}
+      }
     };
-    loadUser();
-    if (DEMO_MODE) {
-      setMyCode('482910');
-      // DEMO_MODE: stay on connect screen (no auto-redirect)
-    } else {
-      fetchMyCode();
-      checkExistingConnections();
-    }
+    init();
   }, []);
 
-  const checkExistingConnections = async () => {
-    try {
-      const uid = userId || await AsyncStorage.getItem('userId') || '';
-      if (!uid) return;
-      const r = await fetch(`${API}/family/members/${uid}`);
-      if (r.ok) {
-        const d = await r.json();
-        if (d.members && d.members.length > 0) {
-          navigation.replace('FamilyDashboard', { userId: uid, name });
-        }
-      }
-    } catch {}
-  };
-
-  const fetchMyCode = async () => {
-    try {
-      const r = await fetch(`${API}/family/my-code/${userId}`);
-      if (r.ok) { const d = await r.json(); setMyCode(d.code || null); }
-    } catch {}
-  };
 
   const generateCode = async () => {
     setLoading(true);

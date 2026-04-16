@@ -47,7 +47,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
         </View>
         <TouchableOpacity
           style={s.mapBtn}
-          onPress={() => navigation.navigate('Family', { userId, name })}
+          onPress={() => navigation.navigate('LocationMap', { userId, name })}
           activeOpacity={0.85}>
           <Text style={s.mapLeft}>🗺️  오늘 동선 확인</Text>
           <Text style={s.mapRight}>5,420걸음 ›</Text>
