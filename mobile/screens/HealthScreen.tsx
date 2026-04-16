@@ -220,7 +220,8 @@ export default function HealthScreen({ route, navigation }: any) {
             style={s.settingBtn}
             onPress={() => navigation.navigate('Settings', { userId, name })}
             activeOpacity={0.7}>
-            <Text style={{fontSize:24}}>⚙️</Text>
+            <Text style={{fontSize:32}}>⚙️</Text>
+            <Text style={s.settingLbl}>설정</Text>
           </TouchableOpacity>
         </View>
         <View style={s.tabRow}>
@@ -411,7 +412,7 @@ const s = StyleSheet.create({
     paddingBottom: 0,
     backgroundColor: '#1A4A8A',
   },
-  headerTitleRow: /* settings added */ { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10 },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10 },
   headerTitle:    { fontSize: 24, fontWeight: '800', color: '#fff' },
   tabRow:         { flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: 'rgba(255,255,255,0.25)' },
   tab:            { flex: 1, alignItems: 'center', paddingVertical: 10 },

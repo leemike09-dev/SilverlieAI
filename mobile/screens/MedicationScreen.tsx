@@ -230,10 +230,11 @@ export default function MedicationScreen({ route, navigation }: any) {
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={s.headerTitle}>내 약 💊</Text>
             <TouchableOpacity
-              style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 12, padding: 8 }}
+              style={{ alignItems: 'center', paddingHorizontal: 10, marginTop: 4 }}
               onPress={() => navigation.navigate('Settings', { userId, name })}
               activeOpacity={0.7}>
-              <Text style={{ fontSize: 24 }}>⚙️</Text>
+              <Text style={{ fontSize: 32 }}>⚙️</Text>
+              <Text style={{ fontSize: 52, color: 'rgba(255,255,255,0.95)', fontWeight: '700', marginTop: 2 }}>설정</Text>
             </TouchableOpacity>
           </View>
           <Text style={s.headerDate}>{nowTime}</Text>
@@ -315,7 +316,7 @@ export default function MedicationScreen({ route, navigation }: any) {
                           done    && { backgroundColor: C.sage,  borderColor: C.sage  },
                           skipped && { backgroundColor: C.line,  borderColor: C.line  },
                         ]}>
-                          <Text style={{ fontSize: 16 }}>
+                          <Text style={{ fontSize: 32 }}>
                             {done ? '✓' : skipped ? '⏭' : '·'}
                           </Text>
                         </View>
@@ -478,23 +479,23 @@ const s = StyleSheet.create({
       : { backgroundColor: '#2E7D32' }),
   },
   headerRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  headerDate:     { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginBottom: 6, fontWeight: '600' },
-  headerTitle:    { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  headerSub:      { fontSize: 15, color: 'rgba(255,255,255,0.8)' },
+  headerDate:     { fontSize: 28, color: 'rgba(255,255,255,0.75)', marginBottom: 6, fontWeight: '600' },
+  headerTitle:    { fontSize: 52, fontWeight: '800', color: '#fff', marginBottom: 4 },
+  headerSub:      { fontSize: 30, color: 'rgba(255,255,255,0.8)' },
   headerBadge:    { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' },
-  headerBadgeTxt: { fontSize: 22, fontWeight: '900', color: '#fff', lineHeight: 24 },
-  headerBadgeSub: { fontSize: 10, color: 'rgba(255,255,255,0.8)' },
+  headerBadgeTxt: { fontSize: 44, fontWeight: '900', color: '#fff', lineHeight: 24 },
+  headerBadgeSub: { fontSize: 20, color: 'rgba(255,255,255,0.8)' },
   progWrap:       { height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, marginBottom: 12 },
   progFill:       { height: 6, backgroundColor: '#fff', borderRadius: 3 },
 
   summaryRow:    { flexDirection: 'row', gap: 8, marginTop: 4 },
   summaryCard:   { flex: 1, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 14,
                    paddingVertical: 10, alignItems: 'center', borderTopWidth: 3 },
-  summaryNum:    { fontSize: 26, fontWeight: '900', color: '#fff', lineHeight: 30 },
-  summaryLabel:  { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '600', marginTop: 2 },
+  summaryNum:    { fontSize: 52, fontWeight: '900', color: '#fff', lineHeight: 30 },
+  summaryLabel:  { fontSize: 26, color: 'rgba(255,255,255,0.85)', fontWeight: '600', marginTop: 2 },
 
   group:      { marginBottom: 24 },
-  groupTitle: { fontSize: 16, fontWeight: '700', color: C.sub, marginBottom: 10, marginLeft: 2 },
+  groupTitle: { fontSize: 32, fontWeight: '700', color: C.sub, marginBottom: 10, marginLeft: 2 },
 
   medCard:        { backgroundColor: C.card, borderRadius: 18, marginBottom: 10, overflow: 'hidden',
                     shadowColor:'#B8A898', shadowOpacity:0.12, shadowRadius:8, elevation:2 },
@@ -504,16 +505,16 @@ const s = StyleSheet.create({
   medInfoRow: { flexDirection: 'row', alignItems: 'center' },
   colorStripe:{ width: 5, alignSelf: 'stretch' },
   medNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 },
-  medName:    { fontSize: 21, fontWeight: '800', color: C.text },
-  medTypeBadge: { fontSize: 12, fontWeight: '700', color: '#388E3C',
+  medName:    { fontSize: 42, fontWeight: '800', color: C.text },
+  medTypeBadge: { fontSize: 24, fontWeight: '700', color: '#388E3C',
                   backgroundColor: '#E8F5E9', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
   medTypeBadgeGreen: { color: '#2e7d32', backgroundColor: '#E8F5E9' },
   strikethrough: { textDecorationLine: 'line-through', color: '#BABABA' },
-  medDosage:  { fontSize: 14, color: C.sub },
+  medDosage:  { fontSize: 28, color: C.sub },
 
   // 잔여량 배지
   remBadge:    { backgroundColor: C.skyLt, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
-  remBadgeTxt: { fontSize: 13, fontWeight: '700', color: C.sky },
+  remBadgeTxt: { fontSize: 26, fontWeight: '700', color: C.sky },
 
   statusIcon: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: '#E0D8D0',
                 alignItems: 'center', justifyContent: 'center', marginRight: 14 },
@@ -521,62 +522,62 @@ const s = StyleSheet.create({
   // 액션 버튼 3개
   actionRow:   { flexDirection: 'row', gap: 8, padding: 12, paddingTop: 0 },
   btnTake:     { flex: 2, backgroundColor: C.sageLt, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
-  btnTakeTxt:  { fontSize: 15, fontWeight: '700', color: C.sageDk },
+  btnTakeTxt:  { fontSize: 30, fontWeight: '700', color: C.sageDk },
   btnSnooze:   { flex: 1.5, backgroundColor: C.amberLt, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
-  btnSnoozeTxt:{ fontSize: 14, fontWeight: '700', color: C.amber },
+  btnSnoozeTxt:{ fontSize: 28, fontWeight: '700', color: C.amber },
   btnSkip:     { flex: 1.5, backgroundColor: C.line, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
-  btnSkipTxt:  { fontSize: 14, fontWeight: '600', color: C.sub },
+  btnSkipTxt:  { fontSize: 28, fontWeight: '600', color: C.sub },
 
   undoRow: { paddingHorizontal: 14, paddingBottom: 10 },
-  undoTxt: { fontSize: 14, color: C.sub, textDecorationLine: 'underline', textAlign: 'right' },
+  undoTxt: { fontSize: 28, color: C.sub, textDecorationLine: 'underline', textAlign: 'right' },
 
   empty:      { alignItems: 'center', paddingVertical: 60 },
-  emptyTitle: { fontSize: 22, fontWeight: '700', color: C.sub, marginBottom: 8 },
-  emptySub:   { fontSize: 16, color: '#BABABA' },
+  emptyTitle: { fontSize: 44, fontWeight: '700', color: C.sub, marginBottom: 8 },
+  emptySub:   { fontSize: 32, color: '#BABABA' },
 
   addBtn:    { backgroundColor: C.blue2, borderRadius: 18, paddingVertical: 18, alignItems: 'center', marginTop: 6 },
-  addBtnTxt: { fontSize: 17, fontWeight: '700', color: '#fff' },
-  hint:      { textAlign: 'center', color: '#C8C0B8', fontSize: 14, marginTop: 10 },
+  addBtnTxt: { fontSize: 34, fontWeight: '700', color: '#fff' },
+  hint:      { textAlign: 'center', color: '#C8C0B8', fontSize: 28, marginTop: 10 },
 
   // 건강 메모
   memoCard:     { backgroundColor: C.card, borderRadius: 18, padding: 18, marginTop: 6, marginBottom: 10,
                   shadowColor:'#B8A898', shadowOpacity:0.10, shadowRadius:8, elevation:2 },
   memoHeader:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  memoTitle:    { fontSize: 17, fontWeight: '700', color: C.text },
-  memoDate:     { fontSize: 13, color: C.sub },
-  memoInput:    { backgroundColor: C.bg, borderRadius: 14, padding: 14, fontSize: 15, color: C.text,
+  memoTitle:    { fontSize: 34, fontWeight: '700', color: C.text },
+  memoDate:     { fontSize: 26, color: C.sub },
+  memoInput:    { backgroundColor: C.bg, borderRadius: 14, padding: 14, fontSize: 30, color: C.text,
                   borderWidth: 1, borderColor: C.line, minHeight: 100 },
   memoSaveBtn:  { marginTop: 12, backgroundColor: C.blueCard, borderRadius: 14, paddingVertical: 13, alignItems: 'center' },
-  memoSaveTxt:  { fontSize: 15, fontWeight: '700', color: C.blue1 },
+  memoSaveTxt:  { fontSize: 30, fontWeight: '700', color: C.blue1 },
 
   // 모달
   overlay:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   sheet:        { backgroundColor: C.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 50 },
   sheetHandle:  { width: 40, height: 4, borderRadius: 2, backgroundColor: C.line, alignSelf: 'center', marginBottom: 20 },
-  sheetTitle:   { fontSize: 22, fontWeight: '800', color: C.text, marginBottom: 20, textAlign: 'center' },
-  label:        { fontSize: 13, fontWeight: '700', color: C.sub, marginTop: 16, marginBottom: 8 },
-  input:        { backgroundColor: C.bg, borderRadius: 14, padding: 15, fontSize: 16, color: C.text, borderWidth: 1, borderColor: C.line },
+  sheetTitle:   { fontSize: 44, fontWeight: '800', color: C.text, marginBottom: 20, textAlign: 'center' },
+  label:        { fontSize: 26, fontWeight: '700', color: C.sub, marginTop: 16, marginBottom: 8 },
+  input:        { backgroundColor: C.bg, borderRadius: 14, padding: 15, fontSize: 32, color: C.text, borderWidth: 1, borderColor: C.line },
   qtyRow:       { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  qtyUnit:      { fontSize: 15, color: C.text, fontWeight: '600' },
-  qtyHint:      { fontSize: 11, color: C.sub, marginTop: 4 },
+  qtyUnit:      { fontSize: 30, color: C.text, fontWeight: '600' },
+  qtyHint:      { fontSize: 22, color: C.sub, marginTop: 4 },
   chipRow:      { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip:         { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: C.bg, borderWidth: 2, borderColor: C.line },
   chipOn:       { backgroundColor: C.blueCard, borderColor: C.blue2 },
-  chipTxt:      { fontSize: 12, fontWeight: '600', color: C.sub },
+  chipTxt:      { fontSize: 24, fontWeight: '600', color: C.sub },
   chipTxtOn:    { color: C.blue2 },
   colorRow:     { flexDirection: 'row', gap: 12, marginTop: 4 },
   colorDot:     { width: 34, height: 34, borderRadius: 17 },
   colorDotOn:   { borderWidth: 3, borderColor: C.text },
   sheetBtns:    { flexDirection: 'row', gap: 12, marginTop: 28 },
   cancelBtn:    { flex: 1, paddingVertical: 16, borderRadius: 16, backgroundColor: C.line, alignItems: 'center' },
-  cancelTxt:    { fontSize: 16, fontWeight: '700', color: C.sub },
+  cancelTxt:    { fontSize: 32, fontWeight: '700', color: C.sub },
   saveBtn:      { flex: 1, paddingVertical: 16, borderRadius: 16, backgroundColor: C.blue2, alignItems: 'center' },
-  saveTxt:      { fontSize: 16, fontWeight: '700', color: '#fff' },
+  saveTxt:      { fontSize: 32, fontWeight: '700', color: '#fff' },
 
   // 탭바
   tabbar: { flexDirection: 'row', backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.line, paddingTop: 10, paddingBottom: 14 },
   tab:    { flex: 1, alignItems: 'center', gap: 3 },
-  tabIcon:{ fontSize: 22, opacity: 0.3 },
-  tabLbl: { fontSize: 10, color: '#BABABA', fontWeight: '500' },
+  tabIcon:{ fontSize: 44, opacity: 0.3 },
+  tabLbl: { fontSize: 20, color: '#BABABA', fontWeight: '500' },
   tabDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: C.sage },
 });

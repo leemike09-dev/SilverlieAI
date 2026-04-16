@@ -135,7 +135,7 @@ const s = StyleSheet.create({
   },
   aiBeeImg: { width: 44, height: 44, resizeMode: 'contain' },
   aiTxt: { fontSize: 13, fontWeight: '700', color: '#fff', textAlign: 'center' },
-  settingBtn: { alignItems: 'center', justifyContent: 'center', marginBottom: 4, paddingHorizontal: 8 },
-  settingIco: { fontSize: 28 },
-  settingLbl: { fontSize: 13, color: 'rgba(255,255,255,0.9)', fontWeight: '600', marginTop: 2 },
+  settingBtn: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10, alignSelf: 'flex-start', marginTop: 4 },
+  settingIco: { fontSize: 32 },
+  settingLbl: { fontSize: 26, color: 'rgba(255,255,255,0.95)', fontWeight: '700', marginTop: 2 },
 });
