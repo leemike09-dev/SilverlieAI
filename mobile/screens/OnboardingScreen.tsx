@@ -115,10 +115,10 @@ const s = StyleSheet.create({
 
   iconWrap: { width: 160, height: 160, borderRadius: 80,
               alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
-  icon:  { fontSize: 90 },
+  icon:  { fontSize: 100 },
   beeImg: { width: 160, height: 160 },
-  title: { fontSize: 30, fontWeight: '900', textAlign: 'center', marginBottom: 16 },
-  desc:  { fontSize: 22, color: '#555', textAlign: 'center', lineHeight: 34 },
+  title: { fontSize: 32, fontWeight: '900', textAlign: 'center', marginBottom: 16 },
+  desc:  { fontSize: 24, color: '#555', textAlign: 'center', lineHeight: 36 },
 
   bottom: { padding: 24, paddingBottom: 36, alignItems: 'center', gap: 16 },
   dots:   { flexDirection: 'row', gap: 8 },
@@ -126,6 +126,6 @@ const s = StyleSheet.create({
   dotOn:  { width: 26, borderRadius: 5 },
 
   btn:    { width: '100%', paddingVertical: 20, borderRadius: 22, alignItems: 'center' },
-  btnTxt: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: 1 },  // 유지
-  skip:   { fontSize: 18, color: '#B0BEC5', textDecorationLine: 'underline' },
+  btnTxt: { fontSize: 24, fontWeight: '900', color: '#fff', letterSpacing: 1 },
+  skip:   { fontSize: 20, color: '#B0BEC5', textDecorationLine: 'underline' },
 });

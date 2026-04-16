@@ -108,9 +108,7 @@ const TTS_SCRIPT = '안녕하세요! 저는 꿀비예요. 건강을 함께 지�
         <Animated.View style={[s.bottomContent, { opacity: fadeAnim }]}>
           {/* 꿀비 말풍선 */}
           <View style={s.bubble}>
-            <Text style={s.bubbleName}>🐝 꿀비</Text>
             <Text style={s.bubbleMsg}>{GREETINGS[greetIdx]}</Text>
-            <View style={s.bubbleTail} />
           </View>
 
           {/* 여백 → 버튼을 하단으로 */}
@@ -147,7 +145,7 @@ const s = StyleSheet.create({
   /* 상단 (44%) */
   topSection: {
     height: height * 0.44,
-    backgroundColor: '#1A4A8A',
+    backgroundColor: '#0D3470',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'visible',
@@ -178,7 +176,7 @@ const s = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.6)',
   },
-  beeImg: { width: 160, height: 160 },
+  beeImg: { width: 160, height: 160 },  // already correct
 
   /* 앱 이름 */
   appName: {
@@ -190,10 +188,11 @@ const s = StyleSheet.create({
   },
   appSub: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
     textAlign: 'center',
     paddingHorizontal: 32,
+    alignSelf: 'center',
   },
 
 
@@ -222,12 +221,11 @@ const s = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1.5,
     borderColor: '#C8D8F8',
-    padding: 18,
-    alignSelf: 'flex-start',
-    maxWidth: '72%',
+    padding: 24,
+    alignSelf: 'center',
+    width: '90%',
   },
-  bubbleName: { fontSize: 14, fontWeight: '700', color: '#1A4A8A', marginBottom: 6 },
-  bubbleMsg:  { fontSize: 22, fontWeight: '700', color: '#1C1C1E', lineHeight: 32 },
+  bubbleMsg:  { fontSize: 26, fontWeight: '800', color: '#1A4A8A', textAlign: 'center', lineHeight: 36 },
   bubbleTail: {
     position: 'absolute',
     bottom: -10, left: 20,
@@ -246,7 +244,7 @@ const s = StyleSheet.create({
   },
   loginBtnTxt: { color: '#1A4A8A', fontSize: 20, fontWeight: '900' },
   startBtn: {
-    flex: 1, backgroundColor: '#1A4A8A', borderRadius: 16,
+    flex: 1, backgroundColor: '#0D3470', borderRadius: 16,
     paddingVertical: 18, alignItems: 'center',
     shadowColor: '#1A4A8A', shadowOpacity: 0.3,
     shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
@@ -257,5 +255,5 @@ const s = StyleSheet.create({
   /* 점 인디케이터 */
   dots:      { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 14 },
   dot:       { width: 8, height: 8, borderRadius: 4, backgroundColor: '#D0D8E8' },
-  dotActive: { backgroundColor: '#1A4A8A', width: 24, borderRadius: 4 },
+  dotActive: { backgroundColor: '#0D3470', width: 24, borderRadius: 4 },
 });
