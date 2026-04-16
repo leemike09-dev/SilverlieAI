@@ -227,8 +227,16 @@ export default function MedicationScreen({ route, navigation }: any) {
 
         {/* 헤더 */}
         <View style={s.header}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={s.headerTitle}>내 약 💊</Text>
+            <TouchableOpacity
+              style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 12, padding: 8 }}
+              onPress={() => navigation.navigate('Settings', { userId, name })}
+              activeOpacity={0.7}>
+              <Text style={{ fontSize: 24 }}>⚙️</Text>
+            </TouchableOpacity>
+          </View>
           <Text style={s.headerDate}>{nowTime}</Text>
-          <Text style={s.headerTitle}>내 약 💊</Text>
           {/* 진행 바 */}
           {total > 0 && (
             <View style={s.progWrap}>

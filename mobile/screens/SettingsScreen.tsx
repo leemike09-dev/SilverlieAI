@@ -76,7 +76,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
     if (!confirmed) return;
     await AsyncStorage.removeItem('userId');
     await AsyncStorage.removeItem('userName');
-    navigation.reset({ index: 0, routes: [{ name: 'SeniorHome', params: { name: '홍길동', userId: 'demo-user' } }] });
+    navigation.reset({ index: 0, routes: [{ name: 'Intro' }] });
   };
 
   const cycleLang = () => setLangIdx(i => (i + 1) % LANGUAGES.length);

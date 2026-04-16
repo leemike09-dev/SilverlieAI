@@ -216,6 +216,12 @@ export default function HealthScreen({ route, navigation }: any) {
         <View style={s.headerTitleRow}>
           <Text style={{fontSize:26}}>🫀</Text>
           <Text style={s.headerTitle}>건강</Text>
+          <TouchableOpacity
+            style={s.settingBtn}
+            onPress={() => navigation.navigate('Settings', { userId, name })}
+            activeOpacity={0.7}>
+            <Text style={{fontSize:24}}>⚙️</Text>
+          </TouchableOpacity>
         </View>
         <View style={s.tabRow}>
           {TABS.map(tab => (
@@ -405,7 +411,7 @@ const s = StyleSheet.create({
     paddingBottom: 0,
     backgroundColor: '#1A4A8A',
   },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10 },
+  headerTitleRow: /* settings added */ { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10 },
   headerTitle:    { fontSize: 24, fontWeight: '800', color: '#fff' },
   tabRow:         { flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: 'rgba(255,255,255,0.25)' },
   tab:            { flex: 1, alignItems: 'center', paddingVertical: 10 },

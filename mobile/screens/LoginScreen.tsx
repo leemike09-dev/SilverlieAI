@@ -47,7 +47,11 @@ export default function LoginScreen({ navigation, route }: any) {
       await AsyncStorage.setItem('userId', data.id);
       await AsyncStorage.setItem('userName', data.name);
 
-      navigation.replace('SeniorHome', { userId: data.id, name: data.name });
+      if (mode === 'register') {
+        navigation.replace('Settings', { userId: data.id, name: data.name });
+      } else {
+        navigation.replace('SeniorHome', { userId: data.id, name: data.name });
+      }
     } catch {
       setErrorMsg('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally {

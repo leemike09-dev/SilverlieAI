@@ -27,8 +27,16 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
       <View style={[s.header, webBg]}>
-        <Text style={s.name}>{name}</Text>
-        <Text style={s.headerSub}>오늘도 건강한 하루 되세요</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={s.name}>{name}</Text>
+          <Text style={s.headerSub}>오늘도 건강한 하루 되세요</Text>
+        </View>
+        <TouchableOpacity
+          style={s.settingBtn}
+          onPress={() => navigation.navigate('Settings', { userId, name })}
+          activeOpacity={0.7}>
+          <Text style={s.settingIco}>⚙️</Text>
+        </TouchableOpacity>
       </View>
       <View style={s.content}>
         <View style={s.cardGrid}>
@@ -126,4 +134,6 @@ const s = StyleSheet.create({
   },
   aiBeeImg: { width: 44, height: 44, resizeMode: 'contain' },
   aiTxt: { fontSize: 13, fontWeight: '700', color: '#fff', textAlign: 'center' },
+  settingBtn: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 14, padding: 10, marginBottom: 4 },
+  settingIco: { fontSize: 26 },
 });
