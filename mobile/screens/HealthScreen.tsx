@@ -412,7 +412,7 @@ const s = StyleSheet.create({
     paddingBottom: 0,
     backgroundColor: '#1A4A8A',
   },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10 },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerTitle:    { fontSize: 24, fontWeight: '800', color: '#fff' },
   tabRow:         { flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: 'rgba(255,255,255,0.25)' },
   tab:            { flex: 1, alignItems: 'center', paddingVertical: 10 },
