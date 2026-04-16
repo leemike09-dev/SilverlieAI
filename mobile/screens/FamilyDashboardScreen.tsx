@@ -148,38 +148,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
           </View>
         ) : null}
 
-        {/* 바이탈 요약 */}
-        {health?.vitals ? (
-          <View style={s.card}>
-            <Text style={s.cardLabel}>오늘 건강수치</Text>
-            <View style={s.vitalsGrid}>
-              <View style={s.vitalCell}>
-                <Text style={s.vitalName}>혈압</Text>
-                <Text style={s.vitalVal}>{health.vitals.bp}</Text>
-                <Text style={s.vitalUnit}>mmHg</Text>
-                <Text style={s.vitalStatus}>{health.vitals.bpStatus}</Text>
-              </View>
-              <View style={s.vitalCell}>
-                <Text style={s.vitalName}>혈당</Text>
-                <Text style={s.vitalVal}>{health.vitals.glucose}</Text>
-                <Text style={s.vitalUnit}>mg/dL</Text>
-                <Text style={s.vitalStatus}>{health.vitals.glucoseStatus}</Text>
-              </View>
-              <View style={s.vitalCell}>
-                <Text style={s.vitalName}>체온</Text>
-                <Text style={s.vitalVal}>{health.vitals.temp}</Text>
-                <Text style={s.vitalUnit}>°C</Text>
-                <Text style={s.vitalStatus}>{health.vitals.tempStatus}</Text>
-              </View>
-              <View style={s.vitalCell}>
-                <Text style={s.vitalName}>체중</Text>
-                <Text style={s.vitalVal}>{health.vitals.weight}</Text>
-                <Text style={s.vitalUnit}>kg</Text>
-                <Text style={s.vitalStatus}>{health.vitals.weightStatus}</Text>
-              </View>
-            </View>
-          </View>
-        ) : null}
+
 
         {/* 복용약 현황 */}
         {health?.medications ? (
@@ -265,12 +234,6 @@ const s = StyleSheet.create({
   aiLabel:      { fontSize: 20, fontWeight: '800', color: '#1A4A8A' },
   aiAdviceTxt:  { fontSize: 18, color: '#2C3E50', lineHeight: 28 },
 
-  vitalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  vitalCell:  { flex: 1, minWidth: '45%', backgroundColor: '#F5F8FF', borderRadius: 14, padding: 14, alignItems: 'center' },
-  vitalName:  { fontSize: 15, color: '#666', marginBottom: 4 },
-  vitalVal:   { fontSize: 26, fontWeight: '900', color: '#1A4A8A' },
-  vitalUnit:  { fontSize: 13, color: '#888', marginTop: 2 },
-  vitalStatus:{ fontSize: 14, color: '#2E7D32', fontWeight: '600', marginTop: 4 },
 
   medHeader:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   medBadge:      { backgroundColor: '#EBF3FB', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 },

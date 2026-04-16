@@ -36,6 +36,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
           onPress={() => navigation.navigate('Settings', { userId, name })}
           activeOpacity={0.7}>
           <Text style={s.settingIco}>⚙️</Text>
+          <Text style={s.settingLbl}>설정</Text>
         </TouchableOpacity>
       </View>
       <View style={s.content}>
@@ -134,6 +135,7 @@ const s = StyleSheet.create({
   },
   aiBeeImg: { width: 44, height: 44, resizeMode: 'contain' },
   aiTxt: { fontSize: 13, fontWeight: '700', color: '#fff', textAlign: 'center' },
-  settingBtn: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 14, padding: 10, marginBottom: 4 },
-  settingIco: { fontSize: 26 },
+  settingBtn: { alignItems: 'center', justifyContent: 'center', marginBottom: 4, paddingHorizontal: 8 },
+  settingIco: { fontSize: 28 },
+  settingLbl: { fontSize: 13, color: 'rgba(255,255,255,0.9)', fontWeight: '600', marginTop: 2 },
 });

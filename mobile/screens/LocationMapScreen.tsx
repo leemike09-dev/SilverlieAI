@@ -157,6 +157,24 @@ export default function LocationMapScreen({ route, navigation }: any) {
         </View>
       )}
 
+      {/* 통계 바 */}
+      <View style={s.statsBar}>
+        <View style={s.statItem}>
+          <Text style={s.statVal}>{distStr}</Text>
+          <Text style={s.statLbl}>총 이동거리</Text>
+        </View>
+        <View style={s.statDiv} />
+        <View style={s.statItem}>
+          <Text style={s.statVal}>{logs.length}곳</Text>
+          <Text style={s.statLbl}>방문 지점</Text>
+        </View>
+        <View style={s.statDiv} />
+        <View style={s.statItem}>
+          <Text style={s.statVal}>{outdoorCount}회</Text>
+          <Text style={s.statLbl}>외출 횟수</Text>
+        </View>
+      </View>
+
       {/* 범례 */}
       <View style={s.legend}>
         {[
@@ -176,25 +194,32 @@ export default function LocationMapScreen({ route, navigation }: any) {
 
 const s = StyleSheet.create({
   root:           { flex: 1, backgroundColor: C.bg },
-  header:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
-                    paddingTop: Platform.OS === 'web' ? 16 : 50, paddingBottom: 12,
-                    backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.line, gap: 10 },
-  backBtn:        { paddingVertical: 6, paddingHorizontal: 10 },
-  backTxt:        { fontSize: 17, color: C.sky, fontWeight: '600' },
+  header:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14,
+                    paddingTop: Platform.OS === 'web' ? 10 : 48, paddingBottom: 8,
+                    backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.line, gap: 8 },
+  backBtn:        { paddingVertical: 4, paddingHorizontal: 8 },
+  backTxt:        { fontSize: 16, color: C.sky, fontWeight: '600' },
   headerCenter:   { flex: 1 },
-  headerTitle:    { fontSize: 19, fontWeight: '800', color: C.text },
-  headerSub:      { fontSize: 15, color: C.sub, marginTop: 2 },
-  statusBadge:    { backgroundColor: C.bg, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 },
-  statusTxt:      { fontSize: 16, fontWeight: '700' },
+  headerTitle:    { fontSize: 17, fontWeight: '800', color: C.text },
+  headerSub:      { fontSize: 13, color: C.sub, marginTop: 1 },
+  statusBadge:    { backgroundColor: C.bg, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 },
+  statusTxt:      { fontSize: 14, fontWeight: '700' },
   mapWrap:        { flex: 1 },
   nativeMsg:      { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
   nativeMsgTxt:   { fontSize: 60 },
   nativeMsgTitle: { fontSize: 22, fontWeight: '700', color: C.text },
   nativeMsgSub:   { fontSize: 17, color: C.sub },
-  legend:         { flexDirection: 'row', justifyContent: 'center', gap: 20,
-                    backgroundColor: C.card, paddingVertical: 12,
+  legend:         { flexDirection: 'row', justifyContent: 'center', gap: 16,
+                    backgroundColor: C.card, paddingVertical: 8,
                     borderTopWidth: 1, borderTopColor: C.line },
-  legendItem:     { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendDot:      { width: 12, height: 12, borderRadius: 6 },
-  legendTxt:      { fontSize: 15, color: C.sub, fontWeight: '600' },
+  legendItem:     { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legendDot:      { width: 10, height: 10, borderRadius: 5 },
+  legendTxt:      { fontSize: 13, color: C.sub, fontWeight: '600' },
+  statsBar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around',
+                    backgroundColor: C.card, paddingVertical: 10,
+                    borderTopWidth: 1, borderTopColor: C.line },
+  statItem:       { alignItems: 'center' },
+  statVal:        { fontSize: 18, fontWeight: '900', color: C.text },
+  statLbl:        { fontSize: 12, color: C.sub, marginTop: 2 },
+  statDiv:        { width: 1, height: 32, backgroundColor: C.line },
 });
