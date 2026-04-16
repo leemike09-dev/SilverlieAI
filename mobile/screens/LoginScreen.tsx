@@ -21,7 +21,7 @@ export default function LoginScreen({ navigation, route }: any) {
   const [confirmPw, setConfirmPw] = useState('');
   const [loading,   setLoading]   = useState(false);
   const [errorMsg,  setErrorMsg]  = useState('');
-  const [role,      setRole]      = useState<'senior' | 'family'>('senior');
+  const [phone,     setPhone]     = useState('');
 
   const handleSubmit = async () => {
     setErrorMsg('');
@@ -47,20 +47,13 @@ export default function LoginScreen({ navigation, route }: any) {
       await AsyncStorage.setItem('userId', data.id);
       await AsyncStorage.setItem('userName', data.name);
 
-      if (mode === 'register') {
-        navigation.replace('ProfileSetup', { name: data.name, userId: data.id });
-      } else {
-        navigation.replace('SeniorHome', { name: data.name, userId: data.id, isGuest: false });
-      }
+      navigation.replace('SeniorHome', { userId: data.id, name: data.name });
     } catch {
       setErrorMsg('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setLoading(false);
     }
   };
-
-  const goHome = () =>
-    navigation.replace('SeniorHome', { name: '게스트', userId: '', isGuest: true });
 
   const handleKakaoLogin = async () => {
     const url = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT_URI)}&response_type=code`;
@@ -95,27 +88,17 @@ export default function LoginScreen({ navigation, route }: any) {
 
             {/* 입력 필드 */}
             {mode === 'register' && (
-              <View style={{ marginBottom: 16 }}>
-                <Text style={[s.label, { marginBottom: 8 }]}>나는 누구인가요?</Text>
-                <View style={{ flexDirection: 'row', gap: 10 }}>
-                  <TouchableOpacity
-                    style={[s.roleBtn, role === 'senior' && s.roleBtnOn]}
-                    onPress={() => setRole('senior')}>
-                    <Text style={[s.roleTxt, role === 'senior' && s.roleTxtOn]}>👤 본인</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[s.roleBtn, role === 'family' && s.roleBtnOn]}
-                    onPress={() => setRole('family')}>
-                    <Text style={[s.roleTxt, role === 'family' && s.roleTxtOn]}>👨‍👩‍👧 가족 (보호자)</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-            {mode === 'register' && (
               <View style={s.fieldWrap}>
                 <Text style={s.label}>이름</Text>
                 <TextInput style={s.input} placeholder="이름을 입력하세요" placeholderTextColor="#b0bec5"
                   value={name} onChangeText={setName} />
+              </View>
+            )}
+            {mode === 'register' && (
+              <View style={s.fieldWrap}>
+                <Text style={s.label}>전화번호</Text>
+                <TextInput style={s.input} placeholder="010-0000-0000" placeholderTextColor="#b0bec5"
+                  value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
               </View>
             )}
             <View style={s.fieldWrap}>
@@ -174,10 +157,6 @@ export default function LoginScreen({ navigation, route }: any) {
               </View>
             )}
 
-            {/* 홈으로 박스 */}
-            <TouchableOpacity style={s.homeBtn} onPress={goHome} activeOpacity={0.85}>
-              <Text style={s.homeBtnTxt}>← 홈으로 돌아가기</Text>
-            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -206,7 +185,7 @@ const s = StyleSheet.create({
   tabTxtActive:{ color: '#1a5fbc' },
   // 필드
   fieldWrap:   { marginBottom: 20 },
-  label:       { fontSize: 20, fontWeight: '700', color: '#1a5fbc', marginBottom: 8 },
+  label:       { fontSize: 22, fontWeight: '700', color: '#1a5fbc', marginBottom: 8 },
   input:       { backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e0e8f8', borderRadius: 14, paddingHorizontal: 16, fontSize: 22, height: 64, color: '#1a2a3a' },
   errorBox:    { backgroundColor: '#fee2e2', borderRadius: 10, padding: 14, marginBottom: 12 },
   errorTxt:    { color: '#c0392b', fontSize: 16, textAlign: 'center' },
@@ -224,10 +203,4 @@ const s = StyleSheet.create({
   findRow:     { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 4, marginBottom: 4 },
   findTxt:     { fontSize: 18, color: '#78909c' },
   findSep:     { fontSize: 16, color: '#dde3ee' },
-  homeBtn:     { marginTop: 20, backgroundColor: '#f0f2f7', borderRadius: 14, paddingVertical: 20, alignItems: 'center', borderWidth: 1.5, borderColor: '#dde3ee' },
-  homeBtnTxt:  { fontSize: 20, fontWeight: '700', color: '#546e7a' },
-  roleBtn:    { flex: 1, paddingVertical: 14, borderRadius: 10, backgroundColor: '#f0f4f8', alignItems: 'center', borderWidth: 2, borderColor: '#f0f4f8' },
-  roleBtnOn:  { backgroundColor: '#e8f0fe', borderColor: '#1a5fbc' },
-  roleTxt:    { fontSize: 17, fontWeight: '600', color: '#666' },
-  roleTxtOn:  { color: '#1a5fbc' },
 });
