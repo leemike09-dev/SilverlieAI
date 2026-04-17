@@ -4,6 +4,7 @@ import {
   TextInput, KeyboardAvoidingView, Platform,
   StatusBar, Image, Animated, Modal, Linking,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
@@ -18,14 +19,14 @@ type Msg = {
 type HistoryItem = { role: 'user' | 'assistant'; content: string };
 
 const C = {
-  blue1:   '#1A4A8A',
-  blue2:   '#2272B8',
-  blueCard:'#EBF3FB',
-  bg:      '#F0F5FB',
+  blue1:   '#5C6BC0',
+  blue2:   '#7986CB',
+  blueCard:'#E8EAF6',
+  bg:      '#F0F0F8',
   card:    '#FFFFFF',
   text:    '#16273E',
   sub:     '#7A90A8',
-  line:    '#DDE8F4',
+  line:    '#D1D5F0',
   sage:    '#3DAB7B',
   sageLt:  '#E6F7EF',
   warn:    '#FF8F00',
@@ -45,11 +46,12 @@ function getGreeting(): string {
 }
 
 const QUICK_CHIPS = [
-  { emoji: '💊', label: '약 복용 도움말' },
-  { emoji: '🚶', label: '오늘 걷기 목표' },
-  { emoji: '💓', label: '혈압 관리 팁' },
-  { emoji: '😴', label: '수면 개선 방법' },
-  { emoji: '🧘', label: '스트레칭 추천' },
+  { emoji: '💊',   label: '약 부작용' },
+  { emoji: '🩸',  label: '혁압이 높아요' },
+  { emoji: '😴',  label: '잠이 안와요' },
+  { emoji: '🦵',    label: '무릅 아파요' },
+  { emoji: '😵',  label: '어지러워요' },
+  { emoji: '🤢', label: '속이 메스껍워요' },
 ];
 
 export default function AIChatScreen({ route, navigation }: Props) {
@@ -64,11 +66,37 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [showEmergency, setShowEmergency] = useState(false);
+  const [showEmergency,  setShowEmergency]  = useState(false);
+  const [familyNotified, setFamilyNotified] = useState(false);
+  const [profileTags,    setProfileTags]    = useState<string[]>([]);
+  const [todayBP,        setTodayBP]        = useState('');
   const scrollRef = useRef<ScrollView>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<any>(null);
+
+  // 건강 프로필 태그 로드
+  useEffect(() => {
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem('health_profile');
+        if (stored) {
+          const prof = JSON.parse(stored);
+          const tags: string[] = [];
+          if (prof.diseases?.length)      tags.push(...prof.diseases.slice(0, 2));
+          if (prof.drugAllergies?.length) tags.push('알레르기: ' + prof.drugAllergies[0]);
+          setProfileTags(tags);
+        }
+        const recStr = await AsyncStorage.getItem('health_records');
+        if (recStr) {
+          const recs = JSON.parse(recStr);
+          const today = new Date().toISOString().slice(0, 10);
+          const rec = recs.find((r: any) => r.date === today);
+          if (rec?.bp_sys && rec?.bp_dia) setTodayBP(rec.bp_sys + '/' + rec.bp_dia);
+        }
+      } catch {}
+    })();
+  }, []);
 
   // 이전 상담 기록 불러오기 (로그인 회원만)
   useEffect(() => {
@@ -145,6 +173,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
       if (riskLevel === 'critical') {
         setShowEmergency(true);
+        if (data.sos_sent) setFamilyNotified(true);
       }
     } catch {
       setMsgs(prev => [...prev, {
@@ -200,7 +229,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
   const showChips = msgs.length <= 1;
   const webBg: any = Platform.OS === 'web'
-    ? { background: 'linear-gradient(175deg, #1A4A8A 0%, #2272B8 65%)' }
+    ? { background: 'linear-gradient(175deg, #5C6BC0 0%, #7986CB 65%)' }
     : { backgroundColor: C.blue1 };
 
   const call119 = () => {
@@ -237,6 +266,34 @@ export default function AIChatScreen({ route, navigation }: Props) {
       <View style={s.disclaimer}>
         <Text style={s.disclaimerTxt}>⚕️ AI 답변은 참고용입니다. 정확한 진단은 의사 선생님께 확인하세요.</Text>
       </View>
+
+      {/* 건강 프로필 태그 */}
+      {(profileTags.length > 0 || todayBP) && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+          style={s.tagsBar} contentContainerStyle={s.tagsContent}>
+          {todayBP ? <View style={s.tagBP}><Text style={s.tagBPTxt}>🩸 혁압 {todayBP}</Text></View> : null}
+          {profileTags.map((tag, i) => (
+            <View key={i} style={s.tag}><Text style={s.tagTxt}>{tag}</Text></View>
+          ))}
+        </ScrollView>
+      )}
+
+      {/* CRITICAL 인라인 카드 */}
+      {showEmergency && (
+        <View style={s.criticalCard}>
+          <Text style={s.criticalCardTitle}>🚨 응급 증상이 의심됩니다</Text>
+          {familyNotified && <Text style={s.familyNotified}>✅ 가족에게 알림 전송됨</Text>}
+          <View style={s.criticalBtns}>
+            <TouchableOpacity style={s.btnCritical119} onPress={call119}>
+              <Text style={s.btnCritical119Txt}>📞 119 전화</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.btnCriticalDismiss}
+              onPress={() => { setShowEmergency(false); setFamilyNotified(false); }}>
+              <Text style={s.btnCriticalDismissTxt}>닫기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
 
@@ -333,7 +390,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
           {showChips && (
             <View style={s.chipsWrap}>
               <Text style={s.chipsLabel}>자주 묻는 질문</Text>
-              <View style={s.chips}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                contentContainerStyle={s.chipsScroll}>
                 {QUICK_CHIPS.map(q => (
                   <TouchableOpacity
                     key={q.label}
@@ -344,7 +402,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
                     <Text style={s.chipTxt}>{q.label}</Text>
                   </TouchableOpacity>
                 ))}
-              </View>
+              </ScrollView>
               <Text style={s.chipsHint}>아래 입력창에서 원하는 질문을 직접 해보세요 👇</Text>
             </View>
           )}
@@ -583,4 +641,21 @@ const s = StyleSheet.create({
     paddingVertical: 10,
   },
   btnDismissTxt: { fontSize: 17, color: C.sub },
+
+  tagsBar:     { maxHeight: 44, backgroundColor: C.blueCard, borderBottomWidth: 1, borderBottomColor: C.line },
+  tagsContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
+  tag:    { backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: C.line },
+  tagTxt: { fontSize: 14, color: C.blue1, fontWeight: '700' },
+  tagBP:    { backgroundColor: '#FFF0F0', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: '#FFAAAA' },
+  tagBPTxt: { fontSize: 14, color: '#C62828', fontWeight: '700' },
+  criticalCard:          { backgroundColor: '#FFF0F0', borderTopWidth: 2, borderBottomWidth: 2, borderColor: '#C62828', padding: 14, alignItems: 'center' },
+  criticalCardTitle:     { fontSize: 20, fontWeight: '900', color: '#C62828', marginBottom: 8 },
+  familyNotified:        { fontSize: 16, color: '#2E7D32', fontWeight: '700', marginBottom: 8 },
+  criticalBtns:          { flexDirection: 'row', gap: 10 },
+  btnCritical119:        { backgroundColor: '#C62828', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24, flex: 1, alignItems: 'center' },
+  btnCritical119Txt:     { fontSize: 18, fontWeight: '800', color: '#fff' },
+  btnCriticalDismiss:    { borderRadius: 12, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center', borderWidth: 1.5, borderColor: '#C62828' },
+  btnCriticalDismissTxt: { fontSize: 18, fontWeight: '700', color: '#C62828' },
+  chipsScroll: { flexDirection: 'row', gap: 10, paddingHorizontal: 4, paddingBottom: 4 },
+  settingsBtn: { alignItems: 'center' },
 });

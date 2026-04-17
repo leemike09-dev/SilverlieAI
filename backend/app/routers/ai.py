@@ -1,8 +1,6 @@
-import os
-import re
-import json
+import os, re, json, httpx
 import anthropic
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date
@@ -12,7 +10,7 @@ from ..database import get_supabase
 load_dotenv()
 router = APIRouter()
 
-# Lumina 500 Q&A 지식베이스 로드
+# QA 지식베이스 로드
 _QA_DB: List[dict] = []
 try:
     _qa_path = os.path.join(os.path.dirname(__file__), '..', 'lumina_health_500.json')
@@ -22,10 +20,9 @@ try:
 except Exception as _e:
     print(f'[WARNING] QA DB 로드 실패: {_e}')
 
-
 CAT_KEYWORDS = {
     '약물':        ['약','복용','먹','처방','부작용','약물'],
-    '당뇨':        ['혈당','당뇨','인슐린','혈당'],
+    '당뇨':        ['혈당','당뇨','인슐린'],
     '심혈관':      ['혈압','심장','맥박','콜레스테롤','흉통','가슴'],
     '관절/근골격': ['관절','무릎','허리','뼈','근육','통증'],
     '수면':        ['수면','잠','불면','피로','졸림'],
@@ -35,46 +32,23 @@ CAT_KEYWORDS = {
     '생활습관':    ['운동','식단','체중','금연','음주','걷기'],
     '병원준비':    ['병원','검사','진료','의사','예약'],
 }
-
-EMERGENCY_WORDS = ['흉통','가슴통증','호흡곤란','숨막','마비','의식','쓰러','졸도','심정지']
+EMERGENCY_WORDS  = ['흉통','가슴통증','호흡곤란','숨막','마비','의식','쓰러','졸도','심정지']
 DEFAULT_FOLLOWUP = [
     "이 증상이 생긴 정확한 시점을 의사에게 말씀드리세요.",
     "병원 방문 전 증상 기록을 적어두면 도움이 돼요.",
     "복용 중인 약이 있다면 이름과 용량을 미리 메모하세요.",
 ]
-
-# Claude 답변에 포함된 [RISK:X] 토큰을 파싱하여 단계 판단
-_RISK_PATTERN = re.compile(r'\[RISK:(LOW|MEDIUM|HIGH|CRITICAL)\]', re.IGNORECASE)
-_RISK_MAP = {'LOW': 'low', 'MEDIUM': 'medium', 'HIGH': 'high', 'CRITICAL': 'critical'}
+_RISK_PAT = re.compile(r'\[RISK:(LOW|MEDIUM|HIGH|CRITICAL)\]', re.IGNORECASE)
+_RISK_MAP  = {'LOW': 'low', 'MEDIUM': 'medium', 'HIGH': 'high', 'CRITICAL': 'critical'}
 
 
 def detect_risk(reply: str) -> str:
-    """Claude 답변에서 [RISK:X] 토큰 추출. 없으면 'normal' 반환."""
-    m = _RISK_PATTERN.search(reply)
-    if m:
-        return _RISK_MAP.get(m.group(1).upper(), 'normal')
-    return 'normal'
+    m = _RISK_PAT.search(reply)
+    return _RISK_MAP.get(m.group(1).upper(), 'normal') if m else 'normal'
 
 
 def strip_risk_token(reply: str) -> str:
-    """사용자에게 보여줄 답변에서 [RISK:X] 토큰 제거."""
-    return _RISK_PATTERN.sub('', reply).strip()
-
-
-def get_suggested_questions(relevant_qa: List[dict]) -> List[str]:
-    questions: List[str] = []
-    for qa in relevant_qa:
-        dqs = qa.get('answer_template', {}).get('doctor_questions', [])
-        for q in dqs:
-            if q not in questions:
-                questions.append(q)
-            if len(questions) >= 3:
-                return questions
-    if not questions:
-        return DEFAULT_FOLLOWUP
-    while len(questions) < 3:
-        questions.append(DEFAULT_FOLLOWUP[len(questions) % len(DEFAULT_FOLLOWUP)])
-    return questions[:3]
+    return _RISK_PAT.sub('', reply).strip()
 
 
 def find_relevant_qa(message: str, top_k: int = 2) -> List[dict]:
@@ -91,47 +65,24 @@ def find_relevant_qa(message: str, top_k: int = 2) -> List[dict]:
         cat = item.get('category_ko', '')
         for kw in CAT_KEYWORDS.get(cat, []):
             if kw in message:
-                score += 5
-                break
+                score += 5; break
         if score > 0:
             scored.append((score, item))
     scored.sort(key=lambda x: -x[0])
     return [item for _, item in scored[:top_k]]
 
 
-BASE_SYSTEM = """당신은 Silver Life AI의 건강 도우미 '꿀비'입니다.
-60세 이상 시니어를 위한 건강 상담을 제공합니다.
-
-== 단계적 위험도 판단 규칙 ==
-
-1단계 (증상 첫 보고):
-- 바로 판단하지 말고 핵심 질문 1~2개를 먼저 한다
-- 예: "언제부터 그러셨나요?", "다른 증상도 함께 있나요?", "얼마나 심한가요?"
-- 이 단계에서는 [RISK] 토큰 없이 질문만 한다
-
-2단계 (충분한 정보 수집 후):
-- 답변 마지막에 반드시 아래 중 하나를 붙인다:
-  [RISK:LOW]      — 경미, 만성적, 일상에 지장 없음 → 일반 생활 조언
-  [RISK:MEDIUM]   — 지속 시 병원 필요, 당장 응급 아님 → 병원 권고
-  [RISK:HIGH]     — 오늘 내 병원 방문 필요, 빠른 조치 필요 → 강력 권고
-  [RISK:CRITICAL] — 즉시 119 또는 응급실 (의식저하·마비·심한 흉통·호흡곤란 등) → 119 안내
-
-판단 기준:
-- LOW: 가벼운 피로, 가벼운 근육통, 만성 소화불량, 일반 안부
-- MEDIUM: 며칠 지속되는 두통, 혈압 약간 높음, 소화 불량 반복
-- HIGH: 흉통(경미하나 새로운 증상), 1주 이상 지속 증상, 복용약 부작용 의심
-- CRITICAL: 갑작스러운 심한 흉통, 호흡곤란, 팔다리 마비, 의식 저하, 심한 두통
-
-== 답변 형식 ==
-- 질문 단계: 친근하게 1~2줄 + 핵심 질문 1~2개
-- 판단 단계: 한 줄 요약 → 지금 할 일 2~3가지 → 병원 가야 할 신호 → [RISK:X]
-- 단순 안부/일상은 형식 없이 2~3줄, [RISK] 토큰 생략
-
-규칙:
-- 쉽고 친근한 말투, 어려운 의학 용어 금지
-- 진단·처방·약물 용량 변경 절대 금지
-- 모든 의료 답변 끝(토큰 앞)에: "이 내용은 참고용이며 정확한 진단은 의사 선생님께 확인하세요"
-- 칭찬/평가 금지, 자기소개 금지"""
+def get_suggested_questions(relevant_qa: List[dict]) -> List[str]:
+    questions: List[str] = []
+    for qa in relevant_qa:
+        for q in qa.get('answer_template', {}).get('doctor_questions', []):
+            if q not in questions:
+                questions.append(q)
+            if len(questions) >= 3:
+                return questions
+    while len(questions) < 3:
+        questions.append(DEFAULT_FOLLOWUP[len(questions) % len(DEFAULT_FOLLOWUP)])
+    return questions[:3]
 
 
 def build_qa_context(relevant_qa: List[dict]) -> str:
@@ -139,55 +90,183 @@ def build_qa_context(relevant_qa: List[dict]) -> str:
         return ""
     lines = ["\n=== 관련 의료 지식 (참고) ==="]
     for qa in relevant_qa:
-        lines.append(f"\n[{qa['category_ko']} | 위험도: {qa['risk_level']}]")
-        lines.append(f"유사 질문: {qa['question']}")
+        lines.append(f"\n[{qa.get('category_ko','')} | 위험도: {qa.get('risk_level','')}]")
+        lines.append(f"유사 질문: {qa.get('question','')}")
         tmpl = qa.get('answer_template', {})
         if tmpl.get('what_to_do_now'):
             lines.append("권장 행동: " + " / ".join(tmpl['what_to_do_now'][:2]))
         if tmpl.get('danger_signs'):
             lines.append("위험 신호: " + " / ".join(tmpl['danger_signs'][:2]))
-        if tmpl.get('doctor_questions'):
-            lines.append("의사 질문: " + " / ".join(tmpl['doctor_questions'][:2]))
         if qa.get('doctor_visit_needed'):
             lines.append("-> 의사 방문 필요")
     return "\n".join(lines)
 
 
-def build_system_prompt(user: dict, relevant_qa: List[dict]) -> str:
-    lines = [BASE_SYSTEM]
-    lines.append("\n=== 사용자 개인 정보 ===")
-    name = user.get("name")
-    age  = user.get("age")
-    gender = user.get("gender")
-    region = user.get("region")
-    if name:   lines.append(f"이름: {name}")
-    if age:    lines.append(f"나이: {age}세")
-    if gender: lines.append(f"성별: {gender}")
-    if region: lines.append(f"거주지역: {region}")
-    h = user.get("height")
-    w = user.get("weight")
-    if h and w:
-        bmi = round(w / ((h/100)**2), 1)
-        lines.append(f"키: {h}cm / 몸무게: {w}kg / BMI: {bmi}")
-    diseases = user.get("chronic_diseases")
-    if diseases:
-        lines.append(f"만성질환: {', '.join(diseases)}")
-    if user.get("taking_medication"):
-        meds = user.get("medication_list", "")
-        lines.append(f"복용 중인 약: {meds if meds else '있음'}")
-    ex = user.get("exercise_frequency")
-    sleep = user.get("sleep_hours")
-    smoking = user.get("smoking")
-    drinking = user.get("drinking")
-    if ex:      lines.append(f"운동빈도: {ex}")
-    if sleep:   lines.append(f"평균수면: {sleep}시간")
-    if smoking is not None: lines.append(f"흡연: {'흡연 중' if smoking else '비흡연'}")
-    if drinking: lines.append(f"음주: {drinking}")
-    interests = user.get("interests")
-    if interests:
-        lines.append(f"관심분야: {', '.join(interests)}")
-    lines.append(build_qa_context(relevant_qa))
-    return "\n".join(lines)
+def load_health_context(user_id: str, db) -> dict:
+    """health_profiles / medications / health_records 로드."""
+    ctx: dict = {}
+    try:
+        r = db.table("health_profiles").select("*").eq("user_id", user_id).execute()
+        if r.data:
+            ctx['profile'] = r.data[0]
+    except Exception as e:
+        print(f"[health_profiles] {e}")
+    try:
+        r = db.table("medications").select("name,dosage,time_slot,method").eq("user_id", user_id).eq("active", True).execute()
+        if r.data:
+            ctx['medications'] = r.data
+    except Exception as e:
+        print(f"[medications] {e}")
+    try:
+        today = date.today().isoformat()
+        r = db.table("health_records").select("*").eq("user_id", user_id).gte("recorded_at", f"{today}T00:00:00").order("recorded_at", desc=True).limit(1).execute()
+        if r.data:
+            ctx['today_record'] = r.data[0]
+    except Exception as e:
+        print(f"[health_records] {e}")
+    return ctx
+
+
+def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict]) -> str:
+    p   = health_ctx.get('profile', {}) or {}
+    meds_raw = health_ctx.get('medications', []) or []
+    rec = health_ctx.get('today_record', {}) or {}
+
+    name   = user.get('name') or p.get('name', '어르신')
+    age    = user.get('age') or p.get('age', '')
+    gender = user.get('gender') or p.get('gender', '')
+
+    diseases_list = p.get('diseases') or p.get('chronic_diseases') or user.get('chronic_diseases') or []
+    diseases      = ', '.join(diseases_list) if diseases_list else '없음'
+
+    surg_list = p.get('surgeries', []) or []
+    surgeries = ', '.join(
+        [f"{s.get('name','')}({s.get('year','')})" for s in surg_list if s.get('name')]
+    ) if surg_list else '없음'
+
+    allergy_parts = []
+    if p.get('drugAllergies'):  allergy_parts.append(', '.join(p['drugAllergies']))
+    if p.get('foodAllergies'):  allergy_parts.append(', '.join(p['foodAllergies']))
+    if p.get('allergyNote'):    allergy_parts.append(p['allergyNote'])
+    allergies = ' / '.join(allergy_parts) or '없음'
+
+    if meds_raw:
+        meds_str = ', '.join([f"{m.get('name','')} {m.get('dosage','')}({m.get('time_slot','')})" for m in meds_raw])
+    elif user.get('taking_medication') and user.get('medication_list'):
+        meds_str = user['medication_list']
+    else:
+        meds_str = '없음'
+
+    bp    = f"{rec.get('bp_sys','')}/{rec.get('bp_dia','')} mmHg" if rec.get('bp_sys') else '미측정'
+    sugar = f"{rec.get('glucose','')} mg/dL" if rec.get('glucose') else '미측정'
+    steps = f"{rec.get('steps','')} 보" if rec.get('steps') else '미측정'
+
+    habits_parts = []
+    for key, label in [('smoking','흡연'), ('drinking','음주'), ('exercise','운동'), ('meal','식사')]:
+        val = p.get(key) or user.get(key)
+        if val:
+            habits_parts.append(f"{label}: {val}")
+    habits = ', '.join(habits_parts) if habits_parts else '정보 없음'
+
+    age_gender = f"{age}세 {gender}" if (age or gender) else ''
+
+    prompt = (
+        "당신은 Silver Life AI의 꿀비입니다.\n"
+        "한국 시니어 전문 건강 상담 AI입니다.\n\n"
+        "[환자 정보]\n"
+        f"이름: {name}" + (f" ({age_gender})" if age_gender else "") + "\n"
+        f"만성질환: {diseases}\n"
+        f"수술 경력: {surgeries}\n"
+        f"알레르기: {allergies}\n"
+        f"현재 복용약: {meds_str}\n"
+        f"오늘 혈압: {bp}\n"
+        f"오늘 혈당: {sugar}\n"
+        f"오늘 걸음수: {steps}\n"
+        f"생활습관: {habits}\n\n"
+        "[답변 원칙]\n"
+        f"1. 반드시 환자 이름({name})으로 친근하게 부를 것\n"
+        "2. 위 건강 정보를 반드시 참고하여 맞춤 답변\n"
+        "3. 복용약과의 관계 항상 고려\n"
+        "4. 알레르기 약물 절대 추천 금지\n"
+        "5. 쉬운 한국어 사용 (의학 용어 최소화)\n"
+        "6. 답변 구조:\n"
+        "   - 공감 한 줄\n"
+        "   - 맞춤 분석 (건강 정보 참고)\n"
+        "   - 구체적 행동 조언 2~3가지\n"
+        "   - 병원 방문 필요 시점 명시\n"
+        "7. 응급 증상 시 [RISK:CRITICAL] 태그 필수\n"
+        "8. 답변은 3~5문장으로 간결하게\n"
+        "9. 모든 의료 답변 끝에: '이 내용은 참고용이며 정확한 진단은 의사 선생님께 확인하세요'\n\n"
+        "[위험도 판단]\n"
+        "[RISK:LOW]      - 경미하거나 만성적, 일상 지장 없음\n"
+        "[RISK:MEDIUM]   - 지속 시 병원 필요, 당장 응급 아님\n"
+        "[RISK:HIGH]     - 오늘 내 병원 방문 필요\n"
+        "[RISK:CRITICAL] - 즉시 119 또는 응급실 (의식저하/마비/심한 흉통/호흡곤란)\n"
+    )
+    prompt += build_qa_context(relevant_qa)
+    return prompt
+
+
+def call_claude(client: anthropic.Anthropic, model: str, system: str, messages: list) -> str:
+    """Claude 호출 -- 웹검색 도구 우선, 실패 시 일반 호출."""
+    try:
+        resp = client.beta.messages.create(
+            model=model,
+            max_tokens=1600,
+            system=system,
+            messages=messages,
+            tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": 3}],
+            betas=["web_search_2025_03_05"],
+        )
+        for block in reversed(resp.content):
+            if hasattr(block, 'text') and block.text:
+                return block.text
+        raise ValueError("No text block in response")
+    except Exception as e:
+        print(f"[web_search] fallback ({e.__class__.__name__}): {e}")
+
+    resp = client.messages.create(
+        model=model, max_tokens=1500, system=system, messages=messages,
+    )
+    for block in resp.content:
+        if hasattr(block, 'text') and block.text:
+            return block.text
+    return resp.content[0].text
+
+
+def _send_family_alert(user_id: str, user_name: str):
+    """CRITICAL 감지 시 가족 Expo Push 알림 발송."""
+    try:
+        db = get_supabase()
+        family_res = db.table("family_connections").select("family_user_id").eq("senior_user_id", user_id).execute()
+        if not (family_res.data):
+            family_res = db.table("family_members").select("*").eq("senior_id", user_id).execute()
+        push_tokens = []
+        for row in (family_res.data or []):
+            fid = row.get("family_user_id") or row.get("id")
+            if not fid:
+                continue
+            tok = db.table("push_tokens").select("token").eq("user_id", fid).execute()
+            push_tokens += [t["token"] for t in (tok.data or []) if t.get("token")]
+        if push_tokens:
+            payload = [
+                {"to": tok, "title": "\U0001F6A8 응급 상황 알림",
+                 "body": f"{user_name}님이 AI 상담 중 응급 증상을 보이고 있습니다.",
+                 "data": {"type": "sos_alert", "userId": user_id},
+                 "sound": "default", "priority": "high"}
+                for tok in push_tokens
+            ]
+            httpx.post("https://exp.host/--/api/v2/push/send", json=payload, timeout=8)
+            print(f"[family_alert] {len(push_tokens)}명 전송 완료")
+    except Exception as e:
+        print(f"[family_alert] 오류: {e}")
+
+
+def choose_model(history_msgs: list, current_msg: str) -> str:
+    """CRITICAL/HIGH 징후면 Opus, 아니면 Sonnet."""
+    high_kw  = EMERGENCY_WORDS + ['응급', '위험', '119', '즉시']
+    combined = current_msg + ' '.join(m.get('content', '') for m in history_msgs[-4:])
+    return "claude-opus-4-6" if any(kw in combined for kw in high_kw) else "claude-sonnet-4-6"
 
 
 class HistoryMessage(BaseModel):
@@ -200,108 +279,80 @@ class ChatRequest(BaseModel):
     user_id: Optional[str] = None
     language: str = "ko"
     history: Optional[List[HistoryMessage]] = []
-
-
-EMERGENCY_KEYWORDS = [
-    '흉통','가슴통증','호흡곤란','숨막','숨이 안','마비','의식','쓰러','졸도',
-    '심정지','뇌졸중','119','응급','심한 두통','갑자기 말이','한쪽 팔','한쪽 다리'
-]
-
-WARNING_KEYWORDS = [
-    '계속 아프','2일 이상','3일째','일주일','점점','악화','심해','못 걷','쓰러질 것'
-]
-
-def detect_risk(message: str, reply: str) -> str:
-    combined = message + reply
-    if any(w in combined for w in EMERGENCY_KEYWORDS):
-        return "emergency"
-    if any(w in combined for w in WARNING_KEYWORDS):
-        return "warning"
-    return "normal"
-
-def get_suggested_questions(relevant_qa: List[dict], category: str) -> List[str]:
-    suggestions = []
-    for qa in relevant_qa:
-        for item in qa.get('checklist_template', [])[:2]:
-            suggestions.append(item + "을 알려주세요" if not item.endswith('?') else item)
-    # 카테고리별 기본 추천
-    defaults = {
-        '약물':        ["언제부터 증상이 시작됐나요?", "현재 복용 중인 약을 모두 알려주세요", "증상이 얼마나 자주 나타나나요?"],
-        '심혈관':      ["혈압 수치가 어떻게 되나요?", "가슴 통증이 있나요?", "언제부터 시작됐나요?"],
-        '당뇨':        ["최근 혈당 수치는 얼마인가요?", "식사 후에 더 심해지나요?", "인슐린을 맞고 계신가요?"],
-        '관절/근골격': ["어느 부위가 아프신가요?", "통증 강도는 10점 중 몇 점인가요?", "움직일 때 더 아픈가요?"],
-        '수면':        ["하루에 몇 시간 주무시나요?", "잠들기 어렵나요, 자다가 깨나요?", "낮에 많이 졸리신가요?"],
-        '소화기':      ["식사 후에 더 심해지나요?", "얼마나 자주 증상이 있나요?", "체중이 줄었나요?"],
-        '신경/기억력': ["언제부터 기억력이 나빠졌나요?", "가족 중 치매가 있으신가요?", "수면은 어떤가요?"],
-        '정신건강':    ["얼마나 오래됐나요?", "잠은 잘 자고 계신가요?", "식욕은 어떤가요?"],
-        '생활습관':    ["현재 운동은 어떻게 하고 계신가요?", "식사는 규칙적으로 하시나요?", "하루 걸음수가 어떻게 되나요?"],
-        '병원준비':    ["어떤 증상으로 가시나요?", "언제부터였나요?", "이전에 같은 증상으로 진료받은 적 있나요?"],
-    }
-    cat = relevant_qa[0].get('category_ko', '') if relevant_qa else category
-    base = defaults.get(cat, ["증상이 얼마나 됐나요?", "다른 불편한 점도 있나요?", "평소 드시는 약이 있나요?"])
-    for q in base:
-        if q not in suggestions:
-            suggestions.append(q)
-    return suggestions[:3]
+    client_profile: Optional[dict] = None
+    client_meds:    Optional[list] = None
+    client_record:  Optional[dict] = None
 
 
 @router.post("/chat")
-def chat(request: ChatRequest):
+def chat(request: ChatRequest, background_tasks: BackgroundTasks):
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY가 설정되지 않았습니다.")
 
     relevant_qa = find_relevant_qa(request.message)
-    detected_category = relevant_qa[0].get('category_ko', '') if relevant_qa else ''
+    user_row: dict = {}
+    health_ctx: dict = {
+        'profile':      request.client_profile or {},
+        'medications':  request.client_meds    or [],
+        'today_record': request.client_record  or {},
+    }
 
-    system_prompt = BASE_SYSTEM + build_qa_context(relevant_qa)
-    if request.user_id and request.user_id != "demo-user":
+    if request.user_id and request.user_id not in ("demo-user", "guest"):
         try:
             db = get_supabase()
-            result = db.table("users").select("*").eq("id", request.user_id).execute()
-            if result.data:
-                system_prompt = build_system_prompt(result.data[0], relevant_qa)
-        except Exception:
-            pass
+            u = db.table("users").select("*").eq("id", request.user_id).execute()
+            if u.data:
+                user_row = u.data[0]
+            server_ctx = load_health_context(request.user_id, db)
+            for k, v in server_ctx.items():
+                if v:
+                    health_ctx[k] = v
+        except Exception as ex:
+            print(f"[user_load] {ex}")
 
-    history = request.history or []
-    messages = [{"role": m.role, "content": m.content} for m in history[-10:]]
-    messages.append({"role": "user", "content": request.message})
+    system_prompt = build_system_prompt(user_row, health_ctx, relevant_qa)
+    history_msgs  = [{"role": m.role, "content": m.content} for m in (request.history or [])[-10:]]
+    model         = choose_model(history_msgs, request.message)
+    messages      = history_msgs + [{"role": "user", "content": request.message}]
 
     try:
-        client = anthropic.Anthropic(api_key=api_key)
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=1500,
-            system=system_prompt,
-            messages=messages,
-        )
-        reply_raw  = response.content[0].text
-        risk       = detect_risk(reply_raw)
-        reply_text = strip_risk_token(reply_raw)
+        client    = anthropic.Anthropic(api_key=api_key)
+        reply_raw = call_claude(client, model, system_prompt, messages)
+        risk      = detect_risk(reply_raw)
+        if risk == 'critical' and model != "claude-opus-4-6":
+            reply_raw = call_claude(client, "claude-opus-4-6", system_prompt, messages)
+            risk = detect_risk(reply_raw)
+        reply_text  = strip_risk_token(reply_raw)
         suggestions = get_suggested_questions(relevant_qa)
-
-        # AI 상담 기록 DB 저장 (게스트/데모 제외)
-        if request.user_id and request.user_id not in ("demo-user", "guest"):
-            try:
-                db = get_supabase()
-                db.table("ai_chat_logs").insert([
-                    {"user_id": request.user_id, "role": "user",      "message": request.message, "risk_level": "normal"},
-                    {"user_id": request.user_id, "role": "assistant", "message": reply_text,       "risk_level": risk},
-                ]).execute()
-            except Exception as save_err:
-                print(f"[ai_chat_logs] save error: {save_err}")
-
-        return {
-            "reply": reply_text,
-            "risk_level": risk,
-            "suggested_questions": suggestions,
-        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI 오류: {str(e)}")
 
+    sos_sent = False
+    if risk == 'critical' and request.user_id and request.user_id not in ("demo-user", "guest"):
+        uname = user_row.get('name') or (health_ctx.get('profile') or {}).get('name', '사용자')
+        background_tasks.add_task(_send_family_alert, request.user_id, uname)
+        sos_sent = True
 
-# ── AI 상담 기록 조회 ──────────────────────────────────────────
+    if request.user_id and request.user_id not in ("demo-user", "guest"):
+        try:
+            db = get_supabase()
+            db.table("ai_chat_logs").insert([
+                {"user_id": request.user_id, "role": "user",      "message": request.message, "risk_level": "normal"},
+                {"user_id": request.user_id, "role": "assistant", "message": reply_text, "risk_level": risk, "model_used": model},
+            ]).execute()
+        except Exception as se:
+            print(f"[ai_chat_logs] {se}")
+
+    return {
+        "reply":               reply_text,
+        "risk_level":          risk,
+        "model_used":          model,
+        "suggested_questions": suggestions,
+        "sos_sent":            sos_sent,
+    }
+
+
 @router.get("/history/{user_id}")
 def get_chat_history(user_id: str, limit: int = 20):
     db = get_supabase()
@@ -316,68 +367,41 @@ def get_chat_history(user_id: str, limit: int = 20):
     return result.data
 
 
-# ── 오늘 상담 요약 생성 (AI) ──────────────────────────────────
 @router.post("/summary/{user_id}")
 def generate_summary(user_id: str):
-    db = get_supabase()
+    db        = get_supabase()
     today_str = date.today().isoformat()
-
     result = (
-        db.table("ai_chat_logs")
-        .select("role,message,risk_level")
-        .eq("user_id", user_id)
-        .gte("created_at", f"{today_str}T00:00:00")
-        .execute()
+        db.table("ai_chat_logs").select("role,message,risk_level")
+        .eq("user_id", user_id).gte("created_at", f"{today_str}T00:00:00").execute()
     )
     logs = result.data
     if not logs:
         raise HTTPException(status_code=404, detail="오늘 상담 기록이 없습니다")
-
     conv_text = "\n".join([f"[{'이용자' if l['role']=='user' else 'AI'}] {l['message']}" for l in logs])
-    has_risk = any(l.get("risk_level") in ("warning", "emergency") for l in logs)
-
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    client = anthropic.Anthropic(api_key=api_key)
+    has_risk  = any(l.get("risk_level") in ("high", "critical") for l in logs)
+    api_key   = os.getenv("ANTHROPIC_API_KEY")
+    client    = anthropic.Anthropic(api_key=api_key)
     summary_res = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=400,
-        messages=[{
-            "role": "user",
-            "content": (
-                "아래 건강 상담 대화를 가족이 볼 수 있도록 3줄 이내로 한국어로 요약하세요.\n"
-                "핵심 증상/질문, AI 권고사항, 위험 여부를 간결하게 포함하세요.\n"
-                "형식: 오늘 상담 내용 요약\n\n" + conv_text
-            ),
-        }],
+        model="claude-haiku-4-5-20251001", max_tokens=400,
+        messages=[{"role": "user", "content":
+            "아래 건강 상담 대화를 가족이 볼 수 있도록 3줄 이내로 한국어로 요약하세요.\n"
+            "핵심 증상/질문, AI 권고사항, 위험 여부를 포함하세요.\n\n" + conv_text}],
     )
     summary_text = summary_res.content[0].text
-
-    # 오늘 날짜 요약이 이미 있으면 업데이트, 없으면 삽입
-    existing = (
-        db.table("ai_chat_summaries")
-        .select("id")
-        .eq("user_id", user_id)
-        .eq("date", today_str)
-        .execute()
-    )
+    existing = db.table("ai_chat_summaries").select("id").eq("user_id", user_id).eq("date", today_str).execute()
     if existing.data:
         db.table("ai_chat_summaries").update({"summary": summary_text, "has_risk": has_risk}).eq("id", existing.data[0]["id"]).execute()
     else:
         db.table("ai_chat_summaries").insert({"user_id": user_id, "summary": summary_text, "date": today_str, "has_risk": has_risk}).execute()
-
     return {"summary": summary_text, "date": today_str, "has_risk": has_risk}
 
 
-# ── AI 상담 요약 목록 조회 ─────────────────────────────────────
 @router.get("/summaries/{user_id}")
 def get_summaries(user_id: str, limit: int = 7):
     db = get_supabase()
     result = (
-        db.table("ai_chat_summaries")
-        .select("id,summary,date,has_risk,created_at")
-        .eq("user_id", user_id)
-        .order("date", desc=True)
-        .limit(limit)
-        .execute()
+        db.table("ai_chat_summaries").select("id,summary,date,has_risk,created_at")
+        .eq("user_id", user_id).order("date", desc=True).limit(limit).execute()
     )
     return result.data
