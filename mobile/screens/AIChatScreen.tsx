@@ -223,7 +223,13 @@ export default function AIChatScreen({ route, navigation }: Props) {
           <Text style={s.headerTitle}>AI 건강 상담</Text>
           <Text style={s.headerSub}>꿀비와 함께하는 건강 관리</Text>
         </View>
-        <View style={s.onlineDot} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <View style={s.onlineDot} />
+          <TouchableOpacity style={s.settingsBtn}
+            onPress={() => navigation.navigate('Settings', { userId, name })}>
+            <Text style={{ fontSize: 26 }}>⚙️</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* 의료 고지 배너 */}

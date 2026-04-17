@@ -13,15 +13,15 @@ type Props = { route: any; navigation: any };
 const LANGUAGES = ['한국어', '中文', 'English', '日本語'];
 
 const C = {
-  blue1:   '#1A4A8A',
-  blue2:   '#2272B8',
-  blueMid: '#1A5FA0',
-  blueCard:'#EBF3FB',
-  bg:      '#F0F5FB',
+  blue1:   '#5C6BC0',
+  blue2:   '#7986CB',
+  blueMid: '#5C6BC0',
+  blueCard:'#E8EAF6',
+  bg:      '#F0F0F8',
   card:    '#FFFFFF',
   text:    '#16273E',
   sub:     '#7A90A8',
-  line:    '#DDE8F4',
+  line:    '#D1D5F0',
   red:     '#E53935',
 };
 
@@ -219,7 +219,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   /* 프로필 헤더 */
   profileHeader: {
-    backgroundColor: '#1A4A8A',
+    backgroundColor: '#5C6BC0',
     paddingTop: Platform.OS === 'web' ? 40 : (StatusBar.currentHeight ?? 28) + 12,
     paddingBottom: 28,
     paddingHorizontal: 22,
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
   profileMeta:  { fontSize: 18, color: 'rgba(255,255,255,0.85)', marginBottom: 14 },
   loginRow:     { flexDirection: 'row', gap: 10, marginTop: 4 },
   loginBtn:     { backgroundColor: '#fff', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 20 },
-  loginBtnTxt:  { fontSize: 18, fontWeight: '700', color: '#1A4A8A' },
+  loginBtnTxt:  { fontSize: 18, fontWeight: '700', color: '#5C6BC0' },
   signupBtn:    { borderWidth: 2, borderColor: 'rgba(255,255,255,0.7)', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 20 },
   signupBtnTxt: { fontSize: 18, fontWeight: '700', color: '#fff' },
 

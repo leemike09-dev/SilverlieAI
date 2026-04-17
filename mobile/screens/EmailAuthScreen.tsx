@@ -4,6 +4,7 @@ import {
   ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { requestNotificationPermission, scheduleHealthDailyReminder } from '../utils/notifications';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -42,7 +43,9 @@ export default function EmailAuthScreen({ navigation }: any) {
       await AsyncStorage.setItem('userName', data.name);
 
       if (mode === 'register') {
-        navigation.replace('Settings', { userId: data.id, name: data.name });
+        await requestNotificationPermission();
+        await scheduleHealthDailyReminder();
+        navigation.replace('HealthProfile', { userId: data.id, name: data.name, fromRegister: true });
       } else {
         navigation.replace('SeniorHome', { userId: data.id, name: data.name });
       }

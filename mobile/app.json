@@ -34,7 +34,10 @@
         "android.permission.health.WRITE_HEART_RATE",
         "android.permission.health.WRITE_BLOOD_PRESSURE",
         "android.permission.health.WRITE_WEIGHT",
-        "android.permission.health.WRITE_BLOOD_GLUCOSE"
+        "android.permission.health.WRITE_BLOOD_GLUCOSE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.USE_EXACT_ALARM"
       ],
       "intentFilters": [
         {
@@ -70,7 +73,16 @@
     },
     "plugins": [
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#5C6BC0",
+          "sounds": [],
+          "iosDisplayInForeground": true
+        }
+      ]
     ],
     "scheme": "silverliveai"
   }

@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SeniorTabBar from '../components/SeniorTabBar';
+import { scheduleMedNotification, cancelMedNotification } from '../utils/notifications';
 
 const GREEN  = '#2E7D32';
 const LGREEN = '#E8F5E9';
@@ -80,7 +81,9 @@ export default function MedicationScreen({ navigation }: any) {
       taken:    false,
       skipped:  false,
     };
-    await saveMeds([...meds, newMed]);
+    const updatedMeds = [...meds, newMed];
+    await saveMeds(updatedMeds);
+    scheduleMedNotification(newMed.id, newMed.name, newMed.timeSlot);
     setForm(EMPTY_FORM);
     setAddModal(false);
   };
@@ -109,9 +112,15 @@ export default function MedicationScreen({ navigation }: any) {
             <Text style={s.headerTitle}>💊 약 관리</Text>
             <Text style={s.headerSub}>오늘도 건강하게 복용해요</Text>
           </View>
-          <TouchableOpacity style={s.addHeaderBtn} onPress={() => setAddModal(true)}>
-            <Text style={s.addHeaderTxt}>+ 약 추가</Text>
-          </TouchableOpacity>
+          <View style={s.headerBtns}>
+            <TouchableOpacity style={s.settingsBtn}
+              onPress={() => navigation.navigate('Settings', { userId, name: uname })}>
+              <Text style={s.settingsBtnTxt}>⚙️</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.addHeaderBtn} onPress={() => setAddModal(true)}>
+              <Text style={s.addHeaderTxt}>+ 약 추가</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         {/* 웨이브: 웹 전용 */}
         {Platform.OS === 'web' ? (
@@ -314,6 +323,9 @@ const s = StyleSheet.create({
   header:      { backgroundColor: GREEN, paddingHorizontal: 20, paddingBottom: 0, zIndex: 10 },
   headerRow:   { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
                  paddingBottom: 16 },
+  headerBtns:     { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  settingsBtn:    { padding: 8 },
+  settingsBtnTxt: { fontSize: 28 },
   headerTitle: { fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: 4 },
   headerSub:   { fontSize: 18, color: 'rgba(255,255,255,0.75)' },
   addHeaderBtn:{ backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 14,

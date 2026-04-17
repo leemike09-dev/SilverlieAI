@@ -28,6 +28,11 @@ import LocationMapScreen     from './screens/LocationMapScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import ImportantContactsScreen from './screens/ImportantContactsScreen';
 import SOSScreen from './screens/SOSScreen';
+import {
+  initNotificationHandler,
+  requestNotificationPermission,
+  scheduleHealthDailyReminder,
+} from './utils/notifications';
 import HealthProfileScreen from './screens/HealthProfileScreen';
 
 const Stack = createNativeStackNavigator();
@@ -50,6 +55,23 @@ const DEMO = { name: '홍길동', userId: 'demo-user', isGuest: false };
 
 export default function App() {
   // 네이티브 카카오 로그인: silverliveai://oauth?code=xxx 딥링크 처리
+  // 알림 초기화 & 권한 요청 (첫 실행)
+  useEffect(() => {
+    const initNotifications = async () => {
+      await initNotificationHandler();
+      const firstRun = await AsyncStorage.getItem('notification_init');
+      if (!firstRun && DEMO_MODE) {
+        // 데모 모드: 자동으로 권한 요청 및 건강 알림 스케줄
+        const granted = await requestNotificationPermission();
+        if (granted) {
+          await scheduleHealthDailyReminder();
+        }
+        await AsyncStorage.setItem('notification_init', '1');
+      }
+    };
+    initNotifications();
+  }, []);
+
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const sub = Linking.addEventListener('url', async ({ url }: { url: string }) => {

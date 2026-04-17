@@ -152,8 +152,16 @@ export default function HealthScreen({ navigation }: any) {
 
       {/* ── 헤더 ── */}
       <View style={[s.header, { paddingTop: PT }]}>
-        <Text style={s.headerTitle}>📊 건강 기록</Text>
-        <Text style={s.headerSub}>오늘 수치를 입력해주세요</Text>
+        <View style={s.headerTopRow}>
+          <View>
+            <Text style={s.headerTitle}>📊 건강 기록</Text>
+            <Text style={s.headerSub}>오늘 수치를 입력해주세요</Text>
+          </View>
+          <TouchableOpacity style={s.settingsBtn}
+            onPress={() => navigation.navigate('Settings', { userId, name: uname })}>
+            <Text style={s.settingsBtnTxt}>⚙️</Text>
+          </TouchableOpacity>
+        </View>
         {Platform.OS === 'web' ? (
           <View style={s.waveWrap}>
             {/* @ts-ignore */}
@@ -456,6 +464,9 @@ const s = StyleSheet.create({
 
   // 헤더
   header:      { backgroundColor: BLUE, paddingHorizontal: 20, paddingBottom: 0 },
+  headerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  settingsBtn:  { padding: 8, marginTop: 4 },
+  settingsBtnTxt: { fontSize: 28 },
   headerTitle: { fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: 4 },
   headerSub:   { fontSize: 18, color: 'rgba(255,255,255,0.8)', marginBottom: 14 },
   waveWrap:    { height: 20, overflow: 'hidden' },

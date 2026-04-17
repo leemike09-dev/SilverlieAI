@@ -40,7 +40,7 @@ const emptyProfile = () => ({
   smoking: '', drinking: '', exercise: '', meal: '',
 });
 
-export default function HealthProfileScreen({ navigation }: any) {
+export default function HealthProfileScreen({ navigation, route }: any) {
   const [step,    setStep]    = useState(1);
   const [profile, setProfile] = useState<any>(emptyProfile());
   const [saving,  setSaving]  = useState(false);
@@ -86,7 +86,15 @@ export default function HealthProfileScreen({ navigation }: any) {
       // TODO: Supabase health_profiles 저장
       // await supabase.from('health_profiles').upsert({ userId, ...profile });
       showToast('프로필이 저장됐습니다');
-      setTimeout(() => navigation.goBack(), 1200);
+      setTimeout(() => {
+        if (fromRegister) {
+          const uid  = route?.params?.userId || '';
+          const uname = route?.params?.name  || '';
+          navigation.replace('SeniorHome', { userId: uid, name: uname });
+        } else {
+          navigation.goBack();
+        }
+      }, 1200);
     } catch {
       Alert.alert('오류', '저장 중 문제가 발생했습니다.');
     }
