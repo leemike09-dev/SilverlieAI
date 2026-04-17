@@ -149,7 +149,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
             <Switch
               value={notifHealth}
               onValueChange={setNotifHealth}
-              trackColor={{ false: '#cdd8e8', true: C.blue2 }}
+              trackColor={{ false: '#C5C9E8', true: C.blue2 }}
               thumbColor="#fff"
             />
           </View>
@@ -159,7 +159,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
             <Switch
               value={notifMed}
               onValueChange={setNotifMed}
-              trackColor={{ false: '#cdd8e8', true: C.blue2 }}
+              trackColor={{ false: '#C5C9E8', true: C.blue2 }}
               thumbColor="#fff"
             />
           </View>
@@ -256,22 +256,22 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginHorizontal: 14,
     overflow: 'hidden',
-    borderWidth: 1, borderColor: '#DDE8F4',
+    borderWidth: 1, borderColor: '#D1D5F0',
   },
   listItem: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
     paddingHorizontal: 18, paddingVertical: 17,
-    borderBottomWidth: 1, borderBottomColor: '#EEF4FB',
+    borderBottomWidth: 1, borderBottomColor: '#ECEDF8',
   },
   listItemLast: { borderBottomWidth: 0 },
   listIcon:  { fontSize: 26, width: 34, textAlign: 'center' },
   listLabel: { flex: 1, fontSize: 20, fontWeight: '600', color: '#16273E' },
   listValue: { fontSize: 18, color: '#7A90A8' },
-  listArrow: { fontSize: 24, color: '#B8CCE0' },
+  listArrow: { fontSize: 24, color: '#C5C9E8' },
 
   versionText: {
     textAlign: 'center',
-    color: '#B8CCE0',
+    color: '#C5C9E8',
     fontSize: 14,
     marginTop: 24,
     marginBottom: 8,

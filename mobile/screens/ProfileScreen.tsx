@@ -8,14 +8,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const API_URL = 'https://silverlieai.onrender.com';
 
 const C = {
-  blue1:   '#1A4A8A',
-  blue2:   '#2272B8',
-  bg:      '#F0F5FB',
+  blue1:   '#5C6BC0',
+  blue2:   '#7986CB',
+  bg:      '#F0F0F8',
   card:    '#FFFFFF',
   text:    '#16273E',
   sub:     '#7A90A8',
-  line:    '#DDE8F4',
-  reason:  '#EBF3FB',
+  line:    '#D1D5F0',
+  reason:  '#E8EAF6',
 };
 
 const SECTIONS = ['기본정보', '신체정보', '건강상태', '생활습관', 'AI성향'];
@@ -323,7 +323,7 @@ export default function ProfileScreen({ navigation, route }: any) {
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: '#1A4A8A',
+    backgroundColor: '#5C6BC0',
     paddingTop: Platform.OS === 'web' ? 30 : (StatusBar.currentHeight ?? 28) + 8,
     paddingBottom: 16, paddingHorizontal: 16,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 60 },
 
   progressCard: {
-    backgroundColor: '#1A4A8A', borderRadius: 16,
+    backgroundColor: '#5C6BC0', borderRadius: 16,
     padding: 20, marginBottom: 16,
   },
   progressName: { color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 6 },
@@ -347,38 +347,38 @@ const styles = StyleSheet.create({
   tabScroll: { marginBottom: 14 },
   tabRow:    { flexDirection: 'row', gap: 8, paddingHorizontal: 2 },
   tab:       { paddingHorizontal: 18, paddingVertical: 11, borderRadius: 20,
-               backgroundColor: '#fff', borderWidth: 1, borderColor: '#DDE8F4' },
-  tabActive: { backgroundColor: '#1A4A8A', borderColor: '#1A4A8A' },
+               backgroundColor: '#fff', borderWidth: 1, borderColor: '#D1D5F0' },
+  tabActive: { backgroundColor: '#5C6BC0', borderColor: '#5C6BC0' },
   tabTxt:    { fontSize: 18, fontWeight: '600', color: '#7A90A8' },
   tabTxtActive: { color: '#fff' },
 
   card: {
     backgroundColor: '#fff', borderRadius: 16,
-    padding: 20, borderWidth: 1, borderColor: '#DDE8F4', marginBottom: 16,
+    padding: 20, borderWidth: 1, borderColor: '#D1D5F0', marginBottom: 16,
   },
   reasonBox: {
-    backgroundColor: '#EBF3FB', borderRadius: 12,
-    padding: 16, marginBottom: 20, borderLeftWidth: 4, borderLeftColor: '#1A4A8A',
+    backgroundColor: '#E8EAF6', borderRadius: 12,
+    padding: 16, marginBottom: 20, borderLeftWidth: 4, borderLeftColor: '#5C6BC0',
   },
-  reasonText: { fontSize: 16, color: '#1A4A8A', lineHeight: 24, fontWeight: '600' },
+  reasonText: { fontSize: 16, color: '#5C6BC0', lineHeight: 24, fontWeight: '600' },
 
   label: { fontSize: 18, fontWeight: '700', color: '#16273E', marginBottom: 10, marginTop: 16 },
   input: {
-    backgroundColor: '#F0F5FB', borderRadius: 12,
+    backgroundColor: '#F0F0F8', borderRadius: 12,
     paddingHorizontal: 16, paddingVertical: 14,
     fontSize: 19, color: '#16273E',
-    borderWidth: 1, borderColor: '#DDE8F4',
+    borderWidth: 1, borderColor: '#D1D5F0',
   },
 
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
   chip:    { paddingHorizontal: 18, paddingVertical: 12, borderRadius: 20,
-             backgroundColor: '#F0F5FB', borderWidth: 1, borderColor: '#DDE8F4' },
-  chipSelected: { backgroundColor: '#1A4A8A', borderColor: '#1A4A8A' },
+             backgroundColor: '#F0F0F8', borderWidth: 1, borderColor: '#D1D5F0' },
+  chipSelected: { backgroundColor: '#5C6BC0', borderColor: '#5C6BC0' },
   chipTxt:      { fontSize: 17, fontWeight: '600', color: '#7A90A8' },
   chipTxtSelected: { color: '#fff' },
 
   saveBtn: {
-    backgroundColor: '#1A4A8A', borderRadius: 16,
+    backgroundColor: '#5C6BC0', borderRadius: 16,
     paddingVertical: 20, alignItems: 'center', marginTop: 4,
   },
   saveTxt: { color: '#fff', fontSize: 20, fontWeight: '800' },

@@ -227,7 +227,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
           <View style={s.onlineDot} />
           <TouchableOpacity style={s.settingsBtn}
             onPress={() => navigation.navigate('Settings', { userId, name })}>
-            <Text style={{ fontSize: 26 }}>⚙️</Text>
+            <Text style={{ fontSize: 26, textAlign: 'center' }}>⚙️</Text>
+            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', fontWeight: '700', textAlign: 'center', marginTop: -2 }}>설정</Text>
           </TouchableOpacity>
         </View>
       </View>

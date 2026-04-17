@@ -116,6 +116,7 @@ export default function MedicationScreen({ navigation }: any) {
             <TouchableOpacity style={s.settingsBtn}
               onPress={() => navigation.navigate('Settings', { userId, name: uname })}>
               <Text style={s.settingsBtnTxt}>⚙️</Text>
+              <Text style={s.settingsBtnLabel}>설정</Text>
             </TouchableOpacity>
             <TouchableOpacity style={s.addHeaderBtn} onPress={() => setAddModal(true)}>
               <Text style={s.addHeaderTxt}>+ 약 추가</Text>
@@ -325,7 +326,8 @@ const s = StyleSheet.create({
                  paddingBottom: 16 },
   headerBtns:     { flexDirection: 'row', alignItems: 'center', gap: 8 },
   settingsBtn:    { padding: 8 },
-  settingsBtnTxt: { fontSize: 28 },
+  settingsBtnTxt:   { fontSize: 28, textAlign: 'center' },
+  settingsBtnLabel: { fontSize: 12, color: 'rgba(255,255,255,0.9)', fontWeight: '700', textAlign: 'center', marginTop: -2 },
   headerTitle: { fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: 4 },
   headerSub:   { fontSize: 18, color: 'rgba(255,255,255,0.75)' },
   addHeaderBtn:{ backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 14,
