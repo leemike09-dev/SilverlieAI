@@ -19,14 +19,14 @@ type Msg = {
 type HistoryItem = { role: 'user' | 'assistant'; content: string };
 
 const C = {
-  blue1:   '#5C6BC0',
-  blue2:   '#7986CB',
-  blueCard:'#E8EAF6',
-  bg:      '#F0F0F8',
+  purple1: '#7B1FA2',
+  purple2: '#9C27B0',
+  purpleCard:'#F3E5F5',
+  bg:      '#F9F4FC',
   card:    '#FFFFFF',
   text:    '#16273E',
   sub:     '#7A90A8',
-  line:    '#D1D5F0',
+  line:    '#E1BEE7',
   sage:    '#3DAB7B',
   sageLt:  '#E6F7EF',
   warn:    '#FF8F00',
@@ -229,8 +229,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
   const showChips = msgs.length <= 1;
   const webBg: any = Platform.OS === 'web'
-    ? { background: 'linear-gradient(175deg, #5C6BC0 0%, #7986CB 65%)' }
-    : { backgroundColor: C.blue1 };
+    ? { background: 'linear-gradient(175deg, #7B1FA2 0%, #9C27B0 65%)' }
+    : { backgroundColor: C.purple1 };
 
   const call119 = () => {
     if (Platform.OS === 'web') {
@@ -418,7 +418,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
               value={input}
               onChangeText={setInput}
               placeholder={isRecording ? '🎤 듣고 있어요...' : '건강 궁금증을 물어보세요'}
-              placeholderTextColor={isRecording ? C.blue2 : C.sub}
+              placeholderTextColor={isRecording ? C.purple2 : C.sub}
               multiline
               maxLength={300}
             />
@@ -516,7 +516,7 @@ const s = StyleSheet.create({
   beeWrap: {
     width: 96, height: 96, borderRadius: 48, overflow: 'hidden',
     borderWidth: 3, borderColor: '#fff',
-    shadowColor: C.blue1, shadowOpacity: 0.2, shadowRadius: 12,
+    shadowColor: C.purple1, shadowOpacity: 0.2, shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 }, elevation: 6,
     marginBottom: 10,
   },
@@ -529,7 +529,7 @@ const s = StyleSheet.create({
     backgroundColor: C.card, borderRadius: 4, borderTopLeftRadius: 18,
     borderTopRightRadius: 18, borderBottomRightRadius: 18,
     padding: 14,
-    shadowColor: C.blue1, shadowOpacity: 0.07, shadowRadius: 8,
+    shadowColor: C.purple1, shadowOpacity: 0.07, shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
   aiText: { fontSize: 20, color: C.text, lineHeight: 32 },
@@ -556,20 +556,21 @@ const s = StyleSheet.create({
   followupWrap: { marginTop: 8, paddingLeft: 4 },
   followupLabel: { fontSize: 15, color: C.sub, fontWeight: '600', marginBottom: 6 },
   followupChip: {
-    backgroundColor: C.blueCard, borderRadius: 10, borderWidth: 1, borderColor: C.line,
+    backgroundColor: C.purpleCard, borderRadius: 10, borderWidth: 1, borderColor: C.line,
+    borderLeftWidth: 4, borderLeftColor: C.purple1,
     paddingHorizontal: 12, paddingVertical: 9, marginBottom: 6,
   },
-  followupChipTxt: { fontSize: 17, color: C.blue1, lineHeight: 24 },
+  followupChipTxt: { fontSize: 17, color: C.purple1, lineHeight: 24 },
 
   userRow:    { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 14 },
   userBubble: {
-    backgroundColor: C.blue2, borderRadius: 18, borderBottomRightRadius: 4,
+    backgroundColor: C.purple2, borderRadius: 18, borderBottomRightRadius: 4,
     padding: 14, maxWidth: '78%',
   },
   userText: { fontSize: 20, color: '#fff', lineHeight: 32 },
 
   typingDots: { flexDirection: 'row', gap: 5, paddingVertical: 4 },
-  dot:        { width: 8, height: 8, borderRadius: 4, backgroundColor: C.line },
+  dot:        { width: 8, height: 8, borderRadius: 4, backgroundColor: C.purple2 },
 
   chipsWrap:  { marginTop: 4, marginBottom: 8 },
   chipsLabel: { fontSize: 17, fontWeight: '700', color: C.sub, marginBottom: 10, textAlign: 'center' },
@@ -579,10 +580,10 @@ const s = StyleSheet.create({
     backgroundColor: C.card, borderRadius: 22,
     paddingHorizontal: 14, paddingVertical: 9,
     borderWidth: 1.5, borderColor: C.line,
-    shadowColor: C.blue1, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1,
+    shadowColor: C.purple1, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1,
   },
   chipEmoji: { fontSize: 20 },
-  chipTxt:   { fontSize: 18, color: C.text, fontWeight: '600' },
+  chipTxt:   { fontSize: 18, color: C.purple1, fontWeight: '600' },
   chipsHint: { fontSize: 17, color: C.sub, textAlign: 'center', lineHeight: 26 },
 
   inputWrap: {
@@ -598,14 +599,14 @@ const s = StyleSheet.create({
   },
 
   micBtn:       {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: C.blueCard,
+    width: 44, height: 44, borderRadius: 22, backgroundColor: C.purpleCard,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1.5, borderColor: C.line,
   },
   micBtnActive: { backgroundColor: '#FDEAEA', borderColor: '#D94040' },
   micIcon:      { fontSize: 20 },
 
-  sendBtn:    { width: 44, height: 44, borderRadius: 22, backgroundColor: C.blue2, alignItems: 'center', justifyContent: 'center' },
+  sendBtn:    { width: 44, height: 44, borderRadius: 22, backgroundColor: C.purple2, alignItems: 'center', justifyContent: 'center' },
   sendBtnOff: { backgroundColor: C.line },
   sendIcon:   { fontSize: 20, color: '#fff', fontWeight: '700' },
 
@@ -631,7 +632,7 @@ const s = StyleSheet.create({
   btn119Txt: { fontSize: 22, fontWeight: '800', color: '#fff' },
 
   btnFamily: {
-    backgroundColor: C.blue1, borderRadius: 14,
+    backgroundColor: C.purple1, borderRadius: 14,
     paddingVertical: 14, paddingHorizontal: 24,
     width: '100%', alignItems: 'center', marginBottom: 12,
   },
@@ -642,10 +643,10 @@ const s = StyleSheet.create({
   },
   btnDismissTxt: { fontSize: 17, color: C.sub },
 
-  tagsBar:     { maxHeight: 44, backgroundColor: C.blueCard, borderBottomWidth: 1, borderBottomColor: C.line },
+  tagsBar:     { maxHeight: 44, backgroundColor: C.purpleCard, borderBottomWidth: 1, borderBottomColor: C.line },
   tagsContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
   tag:    { backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: C.line },
-  tagTxt: { fontSize: 14, color: C.blue1, fontWeight: '700' },
+  tagTxt: { fontSize: 14, color: C.purple1, fontWeight: '700' },
   tagBP:    { backgroundColor: '#FFF0F0', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: '#FFAAAA' },
   tagBPTxt: { fontSize: 14, color: '#C62828', fontWeight: '700' },
   criticalCard:          { backgroundColor: '#FFF0F0', borderTopWidth: 2, borderBottomWidth: 2, borderColor: '#C62828', padding: 14, alignItems: 'center' },
