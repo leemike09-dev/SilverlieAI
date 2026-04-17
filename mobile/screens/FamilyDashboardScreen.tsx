@@ -1,233 +1,351 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Platform, Linking, Alert,
+  StatusBar, Platform, Linking, Alert, Modal, ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DEMO_MODE } from '../App';
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const API = 'https://silverlieai.onrender.com';
 
 const RELATION_EMOJI: Record<string, string> = {
-  father:   '👴',
-  mother:   '👵',
-  spouse:   '💑',
-  son:      '👦',
-  daughter: '👧',
-  sibling:  '👫',
-  other:    '👤',
+  father:   '\u{1F474}',
+  mother:   '\u{1F475}',
+  spouse:   '\u{1F491}',
+  son:      '\u{1F466}',
+  daughter: '\u{1F467}',
+  sibling:  '\u{1F46B}',
+  other:    '\u{1F464}',
 };
 
 const RELATION_LABEL: Record<string, string> = {
-  father:   '아버지',
-  mother:   '어머니',
-  spouse:   '배우자',
-  son:      '아들',
-  daughter: '딸',
-  sibling:  '형제/자매',
-  other:    '',
+  father:   '\uc544\ubc84\uc9c0',
+  mother:   '\uc5b4\uba38\ub2c8',
+  spouse:   '\ubc30\uc6b0\uc790',
+  son:      '\uc544\ub4e4',
+  daughter: '\ub538',
+  sibling:  '\ud615\uc81c/\uc790\ub9e4',
+  other:    '\uae30\ud0c0',
 };
 
-const DEMO_MEMBERS = [
-  { id: 'senior-1', name: '홍길동', phone: '010-1234-5678', relation: 'mother' },
-  { id: 'senior-2', name: '홍쳊동', phone: '010-9876-5432', relation: 'father' },
+const RELATION_OPTIONS = [
+  { key: 'father',   label: '\uc544\ubc84\uc9c0', emoji: '\u{1F474}' },
+  { key: 'mother',   label: '\uc5b4\uba38\ub2c8', emoji: '\u{1F475}' },
+  { key: 'spouse',   label: '\ubc30\uc6b0\uc790', emoji: '\u{1F491}' },
+  { key: 'son',      label: '\uc544\ub4e4',   emoji: '\u{1F466}' },
+  { key: 'daughter', label: '\ub538',   emoji: '\u{1F467}' },
+  { key: 'sibling',  label: '\ud615\uc81c/\uc790\ub9e4', emoji: '\u{1F46B}' },
+  { key: 'other',    label: '\uae30\ud0c0',   emoji: '\u{1F464}' },
 ];
 
-const DEMO_HEALTH = {
-  aiAdvice: '오늘 혈압이 정상 범위입니다. 혈압약을 꾸준히 드시고 계세요. 물을 충분히 드시면 더욱 좋습니다.',
-  medications: [
-    { name: '혈압약', time: '08:00', taken: true,  dosage: '1정' },
-    { name: '당뇨약', time: '08:00', taken: true,  dosage: '1정' },
-    { name: '당뇨약', time: '12:00', taken: false, dosage: '1정' },
-    { name: '관절약', time: '12:00', taken: false, dosage: '2정' },
-    { name: '혈압약', time: '20:00', taken: false, dosage: '1정' },
-  ],
-  location: '역삼동 자택',
-  lastSeen: '오늘 오전 11시 05분',
-  vitals: {
-    bp: '128/82', bpStatus: '정상',
-    glucose: '105', glucoseStatus: '공복 정상',
-    temp: '36.5', tempStatus: '정상',
-    weight: '68.2', weightStatus: 'BMI 24.1',
-  },
-};
-
 export default function FamilyDashboardScreen({ route, navigation }: any) {
-  const [userId,   setUserId]   = useState<string>(route?.params?.userId || '');
-  const [name,     setName]     = useState<string>(route?.params?.name   || '');
-  const [members,  setMembers]  = useState<any[]>(DEMO_MODE ? DEMO_MEMBERS : []);
-  const [selected, setSelected] = useState<any>(DEMO_MODE ? DEMO_MEMBERS[0] : (route?.params ? { id: route.params.seniorId, name: route.params.seniorName, phone: '', relation: route.params.seniorRelation || '' } : null));
-  const [health,   setHealth]   = useState<any>(DEMO_MODE ? DEMO_HEALTH : null);
-  const [loading,  setLoading]  = useState(false);
+  const [userId,      setUserId]      = useState<string>(route?.params?.userId || '');
+  const [name,        setName]        = useState<string>(route?.params?.name   || '');
+  const [members,     setMembers]     = useState<any[]>([]);
+  const [selected,    setSelected]    = useState<any>(
+    route?.params?.seniorId
+      ? { id: route.params.seniorId, name: route.params.seniorName || '', phone: '', relation: route.params.seniorRelation || '' }
+      : null
+  );
+  const [location,    setLocation]    = useState<any>(null);
+  const [aiAdvice,    setAiAdvice]    = useState<string>('');
+  const [medications, setMedications] = useState<any[]>([]);
+  const [loading,     setLoading]     = useState(false);
+  const [relModal,    setRelModal]    = useState(false);
+  const [relTarget,   setRelTarget]   = useState<any>(null);
 
   useEffect(() => {
-    const loadUser = async () => {
+    const init = async () => {
       const storedId   = await AsyncStorage.getItem('userId');
       const storedName = await AsyncStorage.getItem('userName');
-      if (storedId) setUserId(storedId);
-      if (storedName) setName(storedName);
+      const uid = storedId || route?.params?.userId || '';
+      const uname = storedName || route?.params?.name || '';
+      if (storedId) setUserId(uid);
+      if (storedName) setName(uname);
+      await fetchMembers(uid);
     };
-    loadUser();
-    if (!DEMO_MODE) { fetchMembers(); }
+    init();
   }, []);
 
   useEffect(() => {
-    if (selected && !DEMO_MODE) fetchHealth(selected.id);
-    if (selected && DEMO_MODE) setHealth(DEMO_HEALTH);
+    if (selected?.id) {
+      fetchDashboard(selected.id);
+    } else {
+      setLocation(null);
+      setAiAdvice('');
+      setMedications([]);
+    }
   }, [selected]);
 
-  const fetchMembers = async () => {
+  const fetchMembers = async (uid?: string) => {
+    const id = uid || userId;
+    if (!id) return;
     try {
-      const r = await fetch(`${API}/family/members/${userId}`);
+      const r = await fetch(`${API}/family/members/${id}`);
       if (r.ok) {
         const d = await r.json();
-        const mems = (d.members || []).map((m: any) => ({ ...m, relation: m.relation || '' }));
+        const mems = await Promise.all(
+          (d.members || []).map(async (m: any) => {
+            const savedRel = await AsyncStorage.getItem(`relation_${m.id}`);
+            return { ...m, relation: savedRel || m.relation || '' };
+          })
+        );
         setMembers(mems);
-        if (d.members?.length > 0 && !selected) setSelected(d.members[0]);
+        if (mems.length > 0 && !selected) {
+          setSelected(mems[0]);
+        }
       }
     } catch {}
   };
 
-  const fetchHealth = async (seniorId: string) => {
+  const fetchDashboard = async (seniorId: string) => {
     setLoading(true);
+    setLocation(null);
+    setAiAdvice('');
+    setMedications([]);
     try {
-      const r = await fetch(`${API}/family/health/${seniorId}`);
-      if (r.ok) setHealth(await r.json());
+      // Location
+      const locR = await fetch(`${API}/location/today/${seniorId}`);
+      if (locR.ok) {
+        const locD = await locR.json();
+        if (locD && (locD.location || locD.address)) {
+          setLocation(locD);
+        }
+      }
     } catch {}
-    finally { setLoading(false); }
+    try {
+      // AI advice
+      const aiR = await fetch(`${API}/ai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: seniorId, message: '\uc624\ub298 \uac74\uac15 \uc0c1\ud0dc\ub97c \uac04\ub2e8\ud788 \uc694\uc57d\ud574\uc8fc\uc138\uc694' }),
+      });
+      if (aiR.ok) {
+        const aiD = await aiR.json();
+        setAiAdvice(aiD.reply || aiD.message || '');
+      }
+    } catch {}
+    try {
+      // Dashboard (medications)
+      const dashR = await fetch(`${API}/family/dashboard/${seniorId}`);
+      if (dashR.ok) {
+        const dashD = await dashR.json();
+        setMedications(dashD.medications || []);
+      }
+    } catch {}
+    setLoading(false);
   };
 
   const callMember = () => {
-    if (!selected?.phone) { Alert.alert('전화번호 없음', '등록된 전화번호가 없습니다.'); return; }
+    if (!selected?.phone) { Alert.alert('\uc804\ud654\ubc88\ud638 \uc5c6\uc74c', '\ub4f1\ub85d\ub41c \uc804\ud654\ubc88\ud638\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.'); return; }
     Linking.openURL(`tel:${selected.phone.replace(/-/g, '')}`);
   };
 
+  const openRelModal = (member: any) => {
+    setRelTarget(member);
+    setRelModal(true);
+  };
+
+  const saveRelation = async (rel: { key: string; label: string }) => {
+    if (!relTarget) return;
+    try {
+      await AsyncStorage.setItem(`relation_${relTarget.id}`, rel.key);
+      await fetch(`${API}/family/relation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, seniorId: relTarget.id, relation: rel.key }),
+      });
+    } catch {}
+    const updated = members.map(m =>
+      m.id === relTarget.id ? { ...m, relation: rel.key } : m
+    );
+    setMembers(updated);
+    if (selected?.id === relTarget.id) {
+      setSelected((prev: any) => ({ ...prev, relation: rel.key }));
+    }
+    setRelModal(false);
+    setRelTarget(null);
+  };
+
   const PT = Platform.OS === 'ios' ? 54 : 32;
-  const takenCount  = health?.medications?.filter((m: any) => m.taken).length || 0;
-  const totalCount  = health?.medications?.length || 0;
+  const takenCount  = medications.filter((m: any) => m.taken).length;
+  const totalCount  = medications.length;
   const missedCount = totalCount - takenCount;
+
+  const headerLabel = selected
+    ? (selected.relation && selected.relation !== 'other'
+        ? `${RELATION_LABEL[selected.relation] || ''} ${selected.name}\ub2d8`
+        : `${selected.name}\ub2d8`)
+    : (name ? `${name}\ub2d8\uc758 \uac00\uc871 \ud604\ud669` : '\uac00\uc871 \ud604\ud669');
 
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
 
-      {/* 헤더 */}
+      {/* \ud5e4\ub354 */}
       <View style={[s.header, { paddingTop: PT }]}>
         <View style={s.headerLeft}>
-          <Text style={s.headerTitle}>가족 건강</Text>
-          <Text style={s.headerSub}>
-          {selected
-            ? (selected.relation && selected.relation !== 'other'
-                ? `${RELATION_LABEL[selected.relation] || ''} ${selected.name}님`
-                : `${selected.name}님`)
-            : (name ? `${name}님의 가족 현황` : '가족 현황')}
-        </Text>
+          <Text style={s.headerTitle}>\uac00\uc871 \uac74\uac15</Text>
+          <Text style={s.headerSub}>{headerLabel}</Text>
         </View>
         {selected?.phone ? (
           <TouchableOpacity style={s.callBtn} onPress={callMember}>
-            <Text style={s.callIcon}>📞</Text>
-            <Text style={s.callTxt}>전화</Text>
+            <Text style={s.callIcon}>{'\u{1F4DE}'}</Text>
+            <Text style={s.callTxt}>\uc804\ud654</Text>
           </TouchableOpacity>
         ) : null}
       </View>
 
-      {/* 멤버 선택 가로스크롤 */}
-      <View style={s.memberBar}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.memberScroll}>
-          {members.map(m => (
-            <TouchableOpacity
-              key={m.id}
-              style={[s.memberChip, selected?.id === m.id && s.memberChipOn]}
-              onPress={() => setSelected(m)}
-            >
-              <Text style={s.memberIcon}>{RELATION_EMOJI[m.relation] || '👤'}</Text>
-              <View>
-                {m.relation && m.relation !== 'other' ? (
-                  <>
-                    <Text style={[s.memberRelation, selected?.id === m.id && s.memberRelationOn]}>{RELATION_LABEL[m.relation] || m.relation}</Text>
-                    <Text style={[s.memberSubName, selected?.id === m.id && s.memberSubNameOn]}>{m.name}</Text>
-                  </>
-                ) : (
-                  <Text style={[s.memberName, selected?.id === m.id && s.memberNameOn]}>{m.name}</Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+      {/* \uba64\ubc84 \uc120\ud0dd */}
+      {members.length > 0 ? (
+        <View style={s.memberBar}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.memberScroll}>
+            {members.map(m => (
+              <TouchableOpacity
+                key={m.id}
+                style={[s.memberChip, selected?.id === m.id && s.memberChipOn]}
+                onPress={() => setSelected(m)}
+              >
+                <Text style={s.memberIcon}>{RELATION_EMOJI[m.relation] || '\u{1F464}'}</Text>
+                <View>
+                  {m.relation && m.relation !== 'other' ? (
+                    <>
+                      <Text style={[s.memberRelation, selected?.id === m.id && s.memberRelationOn]}>
+                        {RELATION_LABEL[m.relation] || m.relation}
+                      </Text>
+                      <Text style={[s.memberSubName, selected?.id === m.id && s.memberSubNameOn]}>{m.name}</Text>
+                    </>
+                  ) : (
+                    <Text style={[s.memberName, selected?.id === m.id && s.memberNameOn]}>{m.name}</Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
 
       <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
 
-        {/* 위치 정보 */}
-        {health?.location ? (
-          <View style={s.card}>
-            <Text style={s.cardLabel}>현재 위치</Text>
-            <View style={s.locationRow}>
-              <Text style={s.locationIcon}>📍</Text>
-              <View>
-                <Text style={s.locationTxt}>{health.location}</Text>
-                <Text style={s.locationSub}>마지막 확인: {health.lastSeen}</Text>
-              </View>
-            </View>
-          </View>
+        {/* \uad00\uacc4 \uc124\uc815 \ubc84\ud2bc */}
+        {selected && !selected.relation ? (
+          <TouchableOpacity style={s.relBtn} onPress={() => openRelModal(selected)}>
+            <Text style={s.relBtnIcon}>{'\u{1F46A}'}</Text>
+            <Text style={s.relBtnTxt}>{selected.name}\ub2d8\uacfc\uc758 \uad00\uacc4\ub97c \uc124\uc815\ud574 \uc8fc\uc138\uc694</Text>
+            <Text style={s.relBtnArrow}>{'>'}</Text>
+          </TouchableOpacity>
         ) : null}
 
-        {/* AI 건강조언 카드 */}
-        {health?.aiAdvice ? (
-          <View style={[s.card, s.aiCard]}>
-            <View style={s.aiCardHeader}>
-              <Text style={s.aiIcon}>🤖</Text>
-              <Text style={s.aiLabel}>AI 건강조언</Text>
-            </View>
-            <Text style={s.aiAdviceTxt}>{health.aiAdvice}</Text>
+        {loading ? (
+          <View style={s.loadingBox}>
+            <ActivityIndicator size="large" color="#1A4A8A" />
+            <Text style={s.loadingTxt}>\ubd88\ub7ec\uc624\ub294 \uc911...</Text>
           </View>
-        ) : null}
-
-
-
-        {/* 복용약 현황 */}
-        {health?.medications ? (
-          <View style={s.card}>
-            <View style={s.medHeader}>
-              <Text style={s.cardLabel}>복용약 현황</Text>
-              <View style={s.medBadge}>
-                <Text style={s.medBadgeTxt}>{takenCount}/{totalCount} 복용</Text>
-              </View>
-            </View>
-            {missedCount > 0 ? (
-              <View style={s.medAlert}>
-                <Text style={s.medAlertTxt}>미복용 {missedCount}건이 있습니다</Text>
-              </View>
-            ) : (
-              <View style={[s.medAlert, s.medAlertOk]}>
-                <Text style={[s.medAlertTxt, { color: '#2E7D32' }]}>오늘 복약을 모두 완료했습니다!</Text>
-              </View>
-            )}
-            <View style={s.medTable}>
-              <View style={s.medTableHead}>
-                <Text style={[s.medCol, s.medColName]}>약 이름</Text>
-                <Text style={[s.medCol, s.medColTime]}>시간</Text>
-                <Text style={[s.medCol, s.medColDose]}>용량</Text>
-                <Text style={[s.medCol, s.medColStatus]}>복용</Text>
-              </View>
-              {health.medications.map((m: any, i: number) => (
-                <View key={i} style={[s.medRow, i % 2 === 0 && s.medRowEven]}>
-                  <Text style={[s.medCol, s.medColName, s.medCellTxt]}>{m.name}</Text>
-                  <Text style={[s.medCol, s.medColTime, s.medCellTxt]}>{m.time}</Text>
-                  <Text style={[s.medCol, s.medColDose, s.medCellTxt]}>{m.dosage}</Text>
-                  <Text style={[s.medCol, s.medColStatus, m.taken ? s.takenTxt : s.notTakenTxt]}>
-                    {m.taken ? '완료' : '미복용'}
-                  </Text>
+        ) : (
+          <>
+            {/* \uc704\uce58 \uc815\ubcf4 */}
+            <View style={s.card}>
+              <Text style={s.cardLabel}>\ud604\uc7ac \uc704\uce58</Text>
+              {location ? (
+                <View style={s.locationRow}>
+                  <Text style={s.locationIcon}>{'\u{1F4CD}'}</Text>
+                  <View>
+                    <Text style={s.locationTxt}>{location.address || location.location || ''}</Text>
+                    {location.timestamp ? (
+                      <Text style={s.locationSub}>\ub9c8\uc9c0\ub9c9 \ud655\uc778: {location.timestamp}</Text>
+                    ) : null}
+                  </View>
                 </View>
-              ))}
+              ) : (
+                <Text style={s.emptyTxt}>\uc544\uc9c1 \uae30\ub85d\ub41c \ub370\uc774\ud130\uac00 \uc5c6\uc5b4\uc694</Text>
+              )}
             </View>
-          </View>
-        ) : null}
 
-        {loading ? <Text style={s.loadingTxt}>불러오는 중...</Text> : null}
+            {/* AI \uac74\uac15\uc870\uc5b8 */}
+            <View style={[s.card, s.aiCard]}>
+              <View style={s.aiCardHeader}>
+                <Text style={s.aiIcon}>{'\u{1F916}'}</Text>
+                <Text style={s.aiLabel}>AI \uac74\uac15\uc870\uc5b8</Text>
+              </View>
+              {aiAdvice ? (
+                <Text style={s.aiAdviceTxt}>{aiAdvice}</Text>
+              ) : (
+                <Text style={s.emptyTxt}>\uc544\uc9c1 \uae30\ub85d\ub41c \ub370\uc774\ud130\uac00 \uc5c6\uc5b4\uc694</Text>
+              )}
+            </View>
 
+            {/* \ubcf5\uc6a9\uc57d \ud604\ud669 */}
+            <View style={s.card}>
+              <View style={s.medHeader}>
+                <Text style={s.cardLabel}>\ubcf5\uc6a9\uc57d \ud604\ud669</Text>
+                {totalCount > 0 ? (
+                  <View style={s.medBadge}>
+                    <Text style={s.medBadgeTxt}>{takenCount}/{totalCount} \ubcf5\uc6a9</Text>
+                  </View>
+                ) : null}
+              </View>
+              {totalCount === 0 ? (
+                <Text style={s.emptyTxt}>\uc544\uc9c1 \uae30\ub85d\ub41c \ub370\uc774\ud130\uac00 \uc5c6\uc5b4\uc694</Text>
+              ) : (
+                <>
+                  {missedCount > 0 ? (
+                    <View style={s.medAlert}>
+                      <Text style={s.medAlertTxt}>\ubbf8\ubcf5\uc6a9 {missedCount}\uac74\uc774 \uc788\uc2b5\ub2c8\ub2e4</Text>
+                    </View>
+                  ) : (
+                    <View style={[s.medAlert, s.medAlertOk]}>
+                      <Text style={[s.medAlertTxt, { color: '#2E7D32' }]}>\uc624\ub298 \ubcf5\uc57d\uc744 \ubaa8\ub450 \uc644\ub8cc\ud588\uc2b5\ub2c8\ub2e4!</Text>
+                    </View>
+                  )}
+                  <View style={s.medTable}>
+                    <View style={s.medTableHead}>
+                      <Text style={[s.medCol, s.medColName, s.medHeadTxt]}>\uc57d \uc774\ub984</Text>
+                      <Text style={[s.medCol, s.medColTime, s.medHeadTxt]}>\uc2dc\uac04</Text>
+                      <Text style={[s.medCol, s.medColDose, s.medHeadTxt]}>\uc6a9\ub7c9</Text>
+                      <Text style={[s.medCol, s.medColStatus, s.medHeadTxt]}>\ubcf5\uc6a9</Text>
+                    </View>
+                    {medications.map((m: any, i: number) => (
+                      <View key={i} style={[s.medRow, i % 2 === 0 && s.medRowEven]}>
+                        <Text style={[s.medCol, s.medColName, s.medCellTxt]}>{m.name}</Text>
+                        <Text style={[s.medCol, s.medColTime, s.medCellTxt]}>{m.time}</Text>
+                        <Text style={[s.medCol, s.medColDose, s.medCellTxt]}>{m.dosage}</Text>
+                        <Text style={[s.medCol, s.medColStatus, m.taken ? s.takenTxt : s.notTakenTxt]}>
+                          {m.taken ? '\uc644\ub8cc' : '\ubbf8\ubcf5\uc6a9'}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </>
+              )}
+            </View>
+          </>
+        )}
       </ScrollView>
+
+      {/* \uad00\uacc4 \uc124\uc815 \ubaa8\ub2ec */}
+      <Modal visible={relModal} transparent animationType="slide">
+        <View style={s.modalOverlay}>
+          <View style={s.modalBox}>
+            <Text style={s.modalTitle}>
+              {relTarget?.name}\ub2d8\uacfc\uc758 \uad00\uacc4
+            </Text>
+            <Text style={s.modalSub}>\uad00\uacc4\ub97c \uc120\ud0dd\ud558\uba74 \uc774\ud6c4 \ud45c\uc2dc\ub429\ub2c8\ub2e4</Text>
+            {RELATION_OPTIONS.map(opt => (
+              <TouchableOpacity
+                key={opt.key}
+                style={s.relOption}
+                onPress={() => saveRelation(opt)}
+              >
+                <Text style={s.relOptionEmoji}>{opt.emoji}</Text>
+                <Text style={s.relOptionLabel}>{opt.label}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={s.modalCancel} onPress={() => setRelModal(false)}>
+              <Text style={s.modalCancelTxt}>\ub2eb\uae30</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <SeniorTabBar activeTab="family" userId={userId} name={name} navigation={navigation} />
     </View>
@@ -260,8 +378,15 @@ const s = StyleSheet.create({
   scroll:   { flex: 1 },
   content:  { padding: 16, paddingBottom: 100 },
 
+  relBtn:      { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF8E1', borderRadius: 16, padding: 18, marginBottom: 14, borderWidth: 1.5, borderColor: '#FFB300' },
+  relBtnIcon:  { fontSize: 24, marginRight: 12 },
+  relBtnTxt:   { flex: 1, fontSize: 18, fontWeight: '700', color: '#E65100' },
+  relBtnArrow: { fontSize: 20, color: '#E65100', fontWeight: '700' },
+
   card:     { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 14, shadowColor: '#000', shadowOffset: { width:0, height:2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
   cardLabel:{ fontSize: 20, fontWeight: '800', color: '#1A4A8A', marginBottom: 14 },
+
+  emptyTxt: { fontSize: 17, color: '#AAB4C0', textAlign: 'center', paddingVertical: 12 },
 
   locationRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   locationIcon:{ fontSize: 28 },
@@ -274,7 +399,6 @@ const s = StyleSheet.create({
   aiLabel:      { fontSize: 20, fontWeight: '800', color: '#1A4A8A' },
   aiAdviceTxt:  { fontSize: 18, color: '#2C3E50', lineHeight: 28 },
 
-
   medHeader:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   medBadge:      { backgroundColor: '#EBF3FB', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6 },
   medBadgeTxt:   { fontSize: 16, fontWeight: '700', color: '#1A4A8A' },
@@ -284,6 +408,7 @@ const s = StyleSheet.create({
 
   medTable:    { borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#E0E8F0' },
   medTableHead:{ flexDirection: 'row', backgroundColor: '#1A4A8A', paddingVertical: 12, paddingHorizontal: 8 },
+  medHeadTxt:  { color: '#fff', fontWeight: '700', fontSize: 15 },
   medRow:      { flexDirection: 'row', paddingVertical: 13, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: '#EEF2F8' },
   medRowEven:  { backgroundColor: '#F8FAFD' },
   medCol:      { flex: 1, fontSize: 16 },
@@ -295,5 +420,16 @@ const s = StyleSheet.create({
   takenTxt:    { color: '#2E7D32', fontWeight: '800', textAlign: 'center' },
   notTakenTxt: { color: '#D32F2F', fontWeight: '800', textAlign: 'center' },
 
-  loadingTxt: { textAlign: 'center', fontSize: 18, color: '#888', marginTop: 20 },
+  loadingBox:  { alignItems: 'center', paddingVertical: 40, gap: 14 },
+  loadingTxt:  { fontSize: 18, color: '#888' },
+
+  modalOverlay:{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalBox:    { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 28, paddingBottom: 48 },
+  modalTitle:  { fontSize: 24, fontWeight: '900', color: '#1A4A8A', marginBottom: 8, textAlign: 'center' },
+  modalSub:    { fontSize: 16, color: '#888', marginBottom: 20, textAlign: 'center' },
+  relOption:   { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: '#F5F8FF', borderRadius: 16, padding: 18, marginBottom: 10 },
+  relOptionEmoji:{ fontSize: 28 },
+  relOptionLabel:{ fontSize: 22, fontWeight: '700', color: '#2C2C2C' },
+  modalCancel: { marginTop: 6, padding: 18, alignItems: 'center', backgroundColor: '#F0F0F0', borderRadius: 16 },
+  modalCancelTxt:{ fontSize: 20, color: '#666', fontWeight: '700' },
 });
