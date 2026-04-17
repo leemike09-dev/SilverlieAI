@@ -9,6 +9,26 @@ import SeniorTabBar from '../components/SeniorTabBar';
 
 const API = 'https://silverlieai.onrender.com';
 
+const RELATION_EMOJI: Record<string, string> = {
+  father:   '👴',
+  mother:   '👵',
+  spouse:   '💑',
+  son:      '👦',
+  daughter: '👧',
+  sibling:  '👫',
+  other:    '👤',
+};
+
+const RELATION_LABEL: Record<string, string> = {
+  father:   '아버지',
+  mother:   '어머니',
+  spouse:   '배우자',
+  son:      '아들',
+  daughter: '딸',
+  sibling:  '형제/자매',
+  other:    '',
+};
+
 const DEMO_MEMBERS = [
   { id: 'senior-1', name: '어머니', phone: '010-1234-5678', relation: '어머니' },
   { id: 'senior-2', name: '아버지', phone: '010-9876-5432', relation: '아버지' },
@@ -114,8 +134,17 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
               style={[s.memberChip, selected?.id === m.id && s.memberChipOn]}
               onPress={() => setSelected(m)}
             >
-              <Text style={s.memberIcon}>👤</Text>
-              <Text style={[s.memberName, selected?.id === m.id && s.memberNameOn]}>{m.name || m.relation}</Text>
+              <Text style={s.memberIcon}>{RELATION_EMOJI[m.relation] || '👤'}</Text>
+              <View>
+                {m.relation && m.relation !== 'other' ? (
+                  <>
+                    <Text style={[s.memberRelation, selected?.id === m.id && s.memberRelationOn]}>{RELATION_LABEL[m.relation] || m.relation}</Text>
+                    <Text style={[s.memberSubName, selected?.id === m.id && s.memberSubNameOn]}>{m.name}</Text>
+                  </>
+                ) : (
+                  <Text style={[s.memberName, selected?.id === m.id && s.memberNameOn]}>{m.name}</Text>
+                )}
+              </View>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -211,11 +240,15 @@ const s = StyleSheet.create({
 
   memberBar:    { backgroundColor: '#1A4A8A', paddingBottom: 16 },
   memberScroll: { paddingHorizontal: 16, gap: 10 },
-  memberChip:   { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 30, paddingHorizontal: 18, paddingVertical: 10, gap: 8 },
-  memberChipOn: { backgroundColor: '#fff' },
-  memberIcon:   { fontSize: 20 },
-  memberName:   { fontSize: 18, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
-  memberNameOn: { color: '#1A4A8A' },
+  memberChip:      { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 30, paddingHorizontal: 18, paddingVertical: 10, gap: 8 },
+  memberChipOn:    { backgroundColor: '#fff' },
+  memberIcon:      { fontSize: 22 },
+  memberName:      { fontSize: 18, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
+  memberNameOn:    { color: '#1A4A8A' },
+  memberRelation:  { fontSize: 16, fontWeight: '900', color: 'rgba(255,255,255,0.95)' },
+  memberRelationOn:{ color: '#1A4A8A' },
+  memberSubName:   { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 1 },
+  memberSubNameOn: { color: '#888' },
 
   scroll:   { flex: 1 },
   content:  { padding: 16, paddingBottom: 100 },
