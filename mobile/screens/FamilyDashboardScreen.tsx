@@ -19,23 +19,23 @@ const RELATION_EMOJI: Record<string, string> = {
 };
 
 const RELATION_LABEL: Record<string, string> = {
-  father:   '\uc544\ubc84\uc9c0',
-  mother:   '\uc5b4\uba38\ub2c8',
-  spouse:   '\ubc30\uc6b0\uc790',
-  son:      '\uc544\ub4e4',
-  daughter: '\ub538',
-  sibling:  '\ud615\uc81c/\uc790\ub9e4',
-  other:    '\uae30\ud0c0',
+  father:   '아버지',
+  mother:   '어머니',
+  spouse:   '배우자',
+  son:      '아들',
+  daughter: '딸',
+  sibling:  '형제/자매',
+  other:    '기타',
 };
 
 const RELATION_OPTIONS = [
-  { key: 'father',   label: '\uc544\ubc84\uc9c0', emoji: '\u{1F474}' },
-  { key: 'mother',   label: '\uc5b4\uba38\ub2c8', emoji: '\u{1F475}' },
-  { key: 'spouse',   label: '\ubc30\uc6b0\uc790', emoji: '\u{1F491}' },
-  { key: 'son',      label: '\uc544\ub4e4',   emoji: '\u{1F466}' },
-  { key: 'daughter', label: '\ub538',   emoji: '\u{1F467}' },
-  { key: 'sibling',  label: '\ud615\uc81c/\uc790\ub9e4', emoji: '\u{1F46B}' },
-  { key: 'other',    label: '\uae30\ud0c0',   emoji: '\u{1F464}' },
+  { key: 'father',   label: '아버지', emoji: '\u{1F474}' },
+  { key: 'mother',   label: '어머니', emoji: '\u{1F475}' },
+  { key: 'spouse',   label: '배우자', emoji: '\u{1F491}' },
+  { key: 'son',      label: '아들',   emoji: '\u{1F466}' },
+  { key: 'daughter', label: '딸',   emoji: '\u{1F467}' },
+  { key: 'sibling',  label: '형제/자매', emoji: '\u{1F46B}' },
+  { key: 'other',    label: '기타',   emoji: '\u{1F464}' },
 ];
 
 export default function FamilyDashboardScreen({ route, navigation }: any) {
@@ -118,7 +118,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
       const aiR = await fetch(`${API}/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: seniorId, message: '\uc624\ub298 \uac74\uac15 \uc0c1\ud0dc\ub97c \uac04\ub2e8\ud788 \uc694\uc57d\ud574\uc8fc\uc138\uc694' }),
+        body: JSON.stringify({ userId: seniorId, message: '오늘 건강 상태를 간단히 요약해주세요' }),
       });
       if (aiR.ok) {
         const aiD = await aiR.json();
@@ -137,7 +137,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
   };
 
   const callMember = () => {
-    if (!selected?.phone) { Alert.alert('\uc804\ud654\ubc88\ud638 \uc5c6\uc74c', '\ub4f1\ub85d\ub41c \uc804\ud654\ubc88\ud638\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.'); return; }
+    if (!selected?.phone) { Alert.alert('전화번호 없음', '등록된 전화번호가 없습니다.'); return; }
     Linking.openURL(`tel:${selected.phone.replace(/-/g, '')}`);
   };
 
@@ -174,29 +174,29 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
 
   const headerLabel = selected
     ? (selected.relation && selected.relation !== 'other'
-        ? `${RELATION_LABEL[selected.relation] || ''} ${selected.name}\ub2d8`
-        : `${selected.name}\ub2d8`)
-    : (name ? `${name}\ub2d8\uc758 \uac00\uc871 \ud604\ud669` : '\uac00\uc871 \ud604\ud669');
+        ? `${RELATION_LABEL[selected.relation] || ''} ${selected.name}님`
+        : `${selected.name}님`)
+    : (name ? `${name}님의 가족 현황` : '가족 현황');
 
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
 
-      {/* \ud5e4\ub354 */}
+      {/* 헤더 */}
       <View style={[s.header, { paddingTop: PT }]}>
         <View style={s.headerLeft}>
-          <Text style={s.headerTitle}>\uac00\uc871 \uac74\uac15</Text>
+          <Text style={s.headerTitle}>가족 건강</Text>
           <Text style={s.headerSub}>{headerLabel}</Text>
         </View>
         {selected?.phone ? (
           <TouchableOpacity style={s.callBtn} onPress={callMember}>
             <Text style={s.callIcon}>{'\u{1F4DE}'}</Text>
-            <Text style={s.callTxt}>\uc804\ud654</Text>
+            <Text style={s.callTxt}>전화</Text>
           </TouchableOpacity>
         ) : null}
       </View>
 
-      {/* \uba64\ubc84 \uc120\ud0dd */}
+      {/* 멤버 선택 */}
       {members.length > 0 ? (
         <View style={s.memberBar}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.memberScroll}>
@@ -227,11 +227,11 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
 
       <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
 
-        {/* \uad00\uacc4 \uc124\uc815 \ubc84\ud2bc */}
+        {/* 관계 설정 버튼 */}
         {selected && !selected.relation ? (
           <TouchableOpacity style={s.relBtn} onPress={() => openRelModal(selected)}>
             <Text style={s.relBtnIcon}>{'\u{1F46A}'}</Text>
-            <Text style={s.relBtnTxt}>{selected.name}\ub2d8\uacfc\uc758 \uad00\uacc4\ub97c \uc124\uc815\ud574 \uc8fc\uc138\uc694</Text>
+            <Text style={s.relBtnTxt}>{selected.name}님과의 관계를 설정해 주세요</Text>
             <Text style={s.relBtnArrow}>{'>'}</Text>
           </TouchableOpacity>
         ) : null}
@@ -239,70 +239,70 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
         {loading ? (
           <View style={s.loadingBox}>
             <ActivityIndicator size="large" color="#1A4A8A" />
-            <Text style={s.loadingTxt}>\ubd88\ub7ec\uc624\ub294 \uc911...</Text>
+            <Text style={s.loadingTxt}>불러오는 중...</Text>
           </View>
         ) : (
           <>
-            {/* \uc704\uce58 \uc815\ubcf4 */}
+            {/* 위치 정보 */}
             <View style={s.card}>
-              <Text style={s.cardLabel}>\ud604\uc7ac \uc704\uce58</Text>
+              <Text style={s.cardLabel}>현재 위치</Text>
               {location ? (
                 <View style={s.locationRow}>
                   <Text style={s.locationIcon}>{'\u{1F4CD}'}</Text>
                   <View>
                     <Text style={s.locationTxt}>{location.address || location.location || ''}</Text>
                     {location.timestamp ? (
-                      <Text style={s.locationSub}>\ub9c8\uc9c0\ub9c9 \ud655\uc778: {location.timestamp}</Text>
+                      <Text style={s.locationSub}>마지막 확인: {location.timestamp}</Text>
                     ) : null}
                   </View>
                 </View>
               ) : (
-                <Text style={s.emptyTxt}>\uc544\uc9c1 \uae30\ub85d\ub41c \ub370\uc774\ud130\uac00 \uc5c6\uc5b4\uc694</Text>
+                <Text style={s.emptyTxt}>아직 기록된 데이터가 없어요</Text>
               )}
             </View>
 
-            {/* AI \uac74\uac15\uc870\uc5b8 */}
+            {/* AI 건강조언 */}
             <View style={[s.card, s.aiCard]}>
               <View style={s.aiCardHeader}>
                 <Text style={s.aiIcon}>{'\u{1F916}'}</Text>
-                <Text style={s.aiLabel}>AI \uac74\uac15\uc870\uc5b8</Text>
+                <Text style={s.aiLabel}>AI 건강조언</Text>
               </View>
               {aiAdvice ? (
                 <Text style={s.aiAdviceTxt}>{aiAdvice}</Text>
               ) : (
-                <Text style={s.emptyTxt}>\uc544\uc9c1 \uae30\ub85d\ub41c \ub370\uc774\ud130\uac00 \uc5c6\uc5b4\uc694</Text>
+                <Text style={s.emptyTxt}>아직 기록된 데이터가 없어요</Text>
               )}
             </View>
 
-            {/* \ubcf5\uc6a9\uc57d \ud604\ud669 */}
+            {/* 복용약 현황 */}
             <View style={s.card}>
               <View style={s.medHeader}>
-                <Text style={s.cardLabel}>\ubcf5\uc6a9\uc57d \ud604\ud669</Text>
+                <Text style={s.cardLabel}>복용약 현황</Text>
                 {totalCount > 0 ? (
                   <View style={s.medBadge}>
-                    <Text style={s.medBadgeTxt}>{takenCount}/{totalCount} \ubcf5\uc6a9</Text>
+                    <Text style={s.medBadgeTxt}>{takenCount}/{totalCount} 복용</Text>
                   </View>
                 ) : null}
               </View>
               {totalCount === 0 ? (
-                <Text style={s.emptyTxt}>\uc544\uc9c1 \uae30\ub85d\ub41c \ub370\uc774\ud130\uac00 \uc5c6\uc5b4\uc694</Text>
+                <Text style={s.emptyTxt}>아직 기록된 데이터가 없어요</Text>
               ) : (
                 <>
                   {missedCount > 0 ? (
                     <View style={s.medAlert}>
-                      <Text style={s.medAlertTxt}>\ubbf8\ubcf5\uc6a9 {missedCount}\uac74\uc774 \uc788\uc2b5\ub2c8\ub2e4</Text>
+                      <Text style={s.medAlertTxt}>미복용 {missedCount}건이 있습니다</Text>
                     </View>
                   ) : (
                     <View style={[s.medAlert, s.medAlertOk]}>
-                      <Text style={[s.medAlertTxt, { color: '#2E7D32' }]}>\uc624\ub298 \ubcf5\uc57d\uc744 \ubaa8\ub450 \uc644\ub8cc\ud588\uc2b5\ub2c8\ub2e4!</Text>
+                      <Text style={[s.medAlertTxt, { color: '#2E7D32' }]}>오늘 복약을 모두 완료했습니다!</Text>
                     </View>
                   )}
                   <View style={s.medTable}>
                     <View style={s.medTableHead}>
-                      <Text style={[s.medCol, s.medColName, s.medHeadTxt]}>\uc57d \uc774\ub984</Text>
-                      <Text style={[s.medCol, s.medColTime, s.medHeadTxt]}>\uc2dc\uac04</Text>
-                      <Text style={[s.medCol, s.medColDose, s.medHeadTxt]}>\uc6a9\ub7c9</Text>
-                      <Text style={[s.medCol, s.medColStatus, s.medHeadTxt]}>\ubcf5\uc6a9</Text>
+                      <Text style={[s.medCol, s.medColName, s.medHeadTxt]}>약 이름</Text>
+                      <Text style={[s.medCol, s.medColTime, s.medHeadTxt]}>시간</Text>
+                      <Text style={[s.medCol, s.medColDose, s.medHeadTxt]}>용량</Text>
+                      <Text style={[s.medCol, s.medColStatus, s.medHeadTxt]}>복용</Text>
                     </View>
                     {medications.map((m: any, i: number) => (
                       <View key={i} style={[s.medRow, i % 2 === 0 && s.medRowEven]}>
@@ -310,7 +310,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
                         <Text style={[s.medCol, s.medColTime, s.medCellTxt]}>{m.time}</Text>
                         <Text style={[s.medCol, s.medColDose, s.medCellTxt]}>{m.dosage}</Text>
                         <Text style={[s.medCol, s.medColStatus, m.taken ? s.takenTxt : s.notTakenTxt]}>
-                          {m.taken ? '\uc644\ub8cc' : '\ubbf8\ubcf5\uc6a9'}
+                          {m.taken ? '완료' : '미복용'}
                         </Text>
                       </View>
                     ))}
@@ -322,14 +322,14 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
         )}
       </ScrollView>
 
-      {/* \uad00\uacc4 \uc124\uc815 \ubaa8\ub2ec */}
+      {/* 관계 설정 모달 */}
       <Modal visible={relModal} transparent animationType="slide">
         <View style={s.modalOverlay}>
           <View style={s.modalBox}>
             <Text style={s.modalTitle}>
-              {relTarget?.name}\ub2d8\uacfc\uc758 \uad00\uacc4
+              {relTarget?.name}님과의 관계
             </Text>
-            <Text style={s.modalSub}>\uad00\uacc4\ub97c \uc120\ud0dd\ud558\uba74 \uc774\ud6c4 \ud45c\uc2dc\ub429\ub2c8\ub2e4</Text>
+            <Text style={s.modalSub}>관계를 선택하면 이후 표시됩니다</Text>
             {RELATION_OPTIONS.map(opt => (
               <TouchableOpacity
                 key={opt.key}
@@ -341,7 +341,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
               </TouchableOpacity>
             ))}
             <TouchableOpacity style={s.modalCancel} onPress={() => setRelModal(false)}>
-              <Text style={s.modalCancelTxt}>\ub2eb\uae30</Text>
+              <Text style={s.modalCancelTxt}>닫기</Text>
             </TouchableOpacity>
           </View>
         </View>
