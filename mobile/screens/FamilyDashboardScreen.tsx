@@ -249,7 +249,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
               {location ? (
                 <View style={s.locationRow}>
                   <Text style={s.locationIcon}>{'\u{1F4CD}'}</Text>
-                  <View>
+                  <View style={{ flex: 1 }}>
                     <Text style={s.locationTxt}>{location.address || location.location || ''}</Text>
                     {location.timestamp ? (
                       <Text style={s.locationSub}>마지막 확인: {location.timestamp}</Text>
@@ -257,8 +257,18 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
                   </View>
                 </View>
               ) : (
-                <Text style={s.emptyTxt}>아직 기록된 데이터가 없어요</Text>
+                <Text style={s.emptyTxt}>아직 기록된 위치 데이터가 없어요</Text>
               )}
+              <TouchableOpacity
+                style={s.mapBtn}
+                onPress={() => navigation.navigate('LocationMap', {
+                  seniorName: selected?.name || '',
+                  logs: location?.logs || [],
+                  totalDist: location?.totalDist || 0,
+                })}
+              >
+                <Text style={s.mapBtnTxt}>🗺️  오늘 동선 확인</Text>
+              </TouchableOpacity>
             </View>
 
             {/* AI 건강조언 */}
@@ -420,6 +430,8 @@ const s = StyleSheet.create({
   takenTxt:    { color: '#2E7D32', fontWeight: '800', textAlign: 'center' },
   notTakenTxt: { color: '#D32F2F', fontWeight: '800', textAlign: 'center' },
 
+  mapBtn:      { marginTop: 18, backgroundColor: '#1A4A8A', borderRadius: 16, paddingVertical: 18, alignItems: 'center' },
+  mapBtnTxt:   { fontSize: 26, fontWeight: '800', color: '#fff' },
   loadingBox:  { alignItems: 'center', paddingVertical: 40, gap: 14 },
   loadingTxt:  { fontSize: 28, color: '#888' },
 
