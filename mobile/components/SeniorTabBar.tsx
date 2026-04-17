@@ -15,7 +15,7 @@ type Props = {
 const TABS: { icon: keyof typeof Ionicons.glyphMap; lbl: string; screen: string; key: TabKey }[] = [
   { icon: 'home-outline',      lbl: '홈',     screen: 'SeniorHome',      key: 'home'   },
   { icon: 'bar-chart-outline', lbl: '건강기록', screen: 'Health',          key: 'health' },
-  { icon: 'medical-outline',   lbl: '약관리',  screen: 'Medication',      key: 'med'    },
+  { icon: 'medkit-outline',    lbl: '약관리',  screen: 'Medication',      key: 'med'    },
   { icon: 'people-outline',    lbl: '가족',    screen: 'FamilyConnect', key: 'family' },
 ];
 
@@ -45,11 +45,11 @@ export default function SeniorTabBar({ navigation, activeTab, userId, name }: Pr
             <Ionicons
               name={active ? (String(tab.icon).replace('-outline', '') as any) : tab.icon}
               size={28}
-              color={active ? '#1A4A8A' : '#C0C0C0'}
+              color={active ? '#5C6BC0' : '#C0C0C0'}
             />
             <Text style={{
               fontSize: 13,
-              color: active ? '#1A4A8A' : '#ABABAB',
+              color: active ? '#5C6BC0' : '#ABABAB',
               fontWeight: active ? '700' : '500',
             }}>
               {tab.lbl}
@@ -57,7 +57,7 @@ export default function SeniorTabBar({ navigation, activeTab, userId, name }: Pr
             {active && (
               <View style={{
                 width: 5, height: 5, borderRadius: 2.5,
-                backgroundColor: '#1A4A8A', marginTop: 1,
+                backgroundColor: '#5C6BC0', marginTop: 1,
               }} />
             )}
           </TouchableOpacity>
