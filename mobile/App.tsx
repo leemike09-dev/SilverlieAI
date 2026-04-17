@@ -21,6 +21,7 @@ import OnboardingScreen from './screens/OnboardingScreen';
 import ProfileSetupScreen from './screens/ProfileSetupScreen';
 import SeniorHomeScreen from './screens/SeniorHomeScreen';
 import MedicationScreen from './screens/MedicationScreen';
+import EmailAuthScreen    from './screens/EmailAuthScreen';
 import FamilyConnectScreen from './screens/FamilyConnectScreen';
 import FamilyDashboardScreen from './screens/FamilyDashboardScreen';
 import LocationMapScreen     from './screens/LocationMapScreen';
@@ -158,6 +159,7 @@ export default function App() {
           <Stack.Screen name="HealthInfo"  component={HealthInfoScreen}  />
           <Stack.Screen name="SeniorHome"    component={SeniorHomeScreen}   initialParams={DEMO} />
           <Stack.Screen name="Medication"    component={MedicationScreen}   initialParams={DEMO} />
+          <Stack.Screen name="EmailAuth"     component={EmailAuthScreen}     />
           <Stack.Screen name="FamilyConnect" component={FamilyConnectScreen} initialParams={DEMO} />
           <Stack.Screen name="FamilyDashboard" component={FamilyDashboardScreen} initialParams={DEMO} />
           <Stack.Screen name="LocationMap"    component={LocationMapScreen}    initialParams={DEMO} />
