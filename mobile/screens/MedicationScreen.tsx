@@ -1,583 +1,413 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { StatusBar,
+import React, { useState, useEffect } from 'react';
+import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  Modal, TextInput, Platform, Alert, Animated,
+  StatusBar, Platform, TextInput, Modal, Alert,
 } from 'react-native';
-import { DEMO_MODE } from '../App';
-import { scheduleMedicationNotifications, cancelMedicationNotifications, snoozeNotification } from '../utils/notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import SeniorTabBar from '../components/SeniorTabBar';
 
-const API = 'https://silverlieai.onrender.com';
-const C = {
-  blue1:   '#2E7D32',
-  blue2:   '#388E3C',
-  blueCard:'#E8F5E9',
-  bg:      '#F1F8F2',
-  card:    '#FFFFFF',
-  sage:    '#43A047',
-  sageLt:  '#E8F5E9',
-  sageDk:  '#1B5E20',
-  peach:   '#F4956A',
-  peachLt: '#FEF0E8',
-  amber:   '#E8960A',
-  amberLt: '#FEF6E0',
-  sky:     '#388E3C',
-  skyLt:   '#E8F5E9',
-  text:    '#16273E',
-  sub:     '#7A90A8',
-  line:    '#DDE8F4',
-};
+const GREEN  = '#2E7D32';
+const LGREEN = '#E8F5E9';
+const BG     = '#F4F7FC';
 
-const TIMES  = ['아침 (08:00)', '점심 (12:00)', '저녁 (19:00)', '자기 전 (21:00)'];
-const TKEYS  = ['08:00', '12:00', '19:00', '21:00'];
-const TLABEL: Record<string,string> = { '08:00':'🌅 아침', '12:00':'☀️ 점심', '19:00':'🌆 저녁', '21:00':'🌙 자기 전' };
-const COLORS = ['#e57373','#64b5f6','#81c784','#ffb74d','#ba68c8','#4dd0e1'];
+const TIME_SLOTS = [
+  { key: 'morning',  label: '아침',   icon: '🌅', defaultTime: '08:00' },
+  { key: 'lunch',    label: '점심',   icon: '☀️',  defaultTime: '12:00' },
+  { key: 'evening',  label: '저녁',   icon: '🌙',  defaultTime: '18:00' },
+  { key: 'bedtime',  label: '취침전', icon: '🌛',  defaultTime: '21:00' },
+];
 
-const DEMO_MEDS: any[] = [];
+const DEMO_MEDS = [
+  { id: '1', name: '혈압약', dosage: '1정', method: '식후 즉시', timeSlot: 'morning', stock: 28, taken: true,  skipped: false },
+  { id: '2', name: '당뇨약', dosage: '1정', method: '식사 중',   timeSlot: 'morning', stock: 14, taken: true,  skipped: false },
+  { id: '3', name: '당뇨약', dosage: '1정', method: '식사 중',   timeSlot: 'lunch',   stock: 14, taken: false, skipped: false },
+  { id: '4', name: '관절약', dosage: '2정', method: '식후 30분', timeSlot: 'lunch',   stock: 5,  taken: false, skipped: false },
+  { id: '5', name: '혈압약', dosage: '1정', method: '식후 즉시', timeSlot: 'evening', stock: 28, taken: false, skipped: false },
+];
 
-type LogStatus = 'taken' | 'skipped' | 'snoozed';
+const STORAGE_KEY = 'medications';
+const EMPTY_FORM  = { name: '', dosage: '', method: '', timeSlot: 'morning', stock: '' };
 
-export default function MedicationScreen({ route, navigation }: any) {
-  const userId = route?.params?.userId || (DEMO_MODE ? 'demo-user' : '');
-  const name   = route?.params?.name   || '';
-  const today  = new Date().toISOString().split('T')[0];
-  const [nowTime, setNowTime] = useState('');
+export default function MedicationScreen({ navigation }: any) {
+  const [userId,   setUserId]   = useState('');
+  const [uname,    setUname]    = useState('');
+  const [meds,     setMeds]     = useState<any[]>([]);
+  const [addModal, setAddModal] = useState(false);
+  const [form,     setForm]     = useState<any>(EMPTY_FORM);
 
   useEffect(() => {
-    const fmt = () => {
-      const d = new Date();
-      const days = ['일','월','화','수','목','금','토'];
-      const mm = String(d.getMonth()+1).padStart(2,'0');
-      const dd = String(d.getDate()).padStart(2,'0');
-      const day = days[d.getDay()];
-      const hh = String(d.getHours()).padStart(2,'0');
-      const min = String(d.getMinutes()).padStart(2,'0');
-      setNowTime(`${d.getFullYear()}.${mm}.${dd} (${day}) ${hh}:${min}`);
-    };
-    fmt();
-    const timer = setInterval(fmt, 60000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const [meds,        setMeds]        = useState<any[]>([]);
-  const [logs,        setLogs]        = useState<any[]>([]);
-  const [takenCounts, setTakenCounts] = useState<Record<string, number>>({});
-  const [modal,       setModal]       = useState(false);
-  const [medName,     setMedName]     = useState('');
-  const [dosage,      setDosage]      = useState('1정');
-  const [selTimes,    setSelTimes]    = useState<string[]>(['08:00']);
-  const [selColor,    setSelColor]    = useState(COLORS[0]);
-  const [totalQty,    setTotalQty]    = useState('');
-  const [saving,      setSaving]      = useState(false);
-  const [selMedType,  setSelMedType]  = useState<'처방약' | '영양제'>('처방약');
-  const [memo,        setMemo]        = useState('');
-  const [memoSaved,   setMemoSaved]   = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
-    fetchAll();
-  }, []);
-
-  const fetchAll = async () => {
-    try {
-      const [mr, lr] = await Promise.all([
-        fetch(`${API}/medications/${userId}`),
-        fetch(`${API}/medications/log/${userId}/${today}`),
-      ]);
-      const md = await mr.json();
-      const ld = await lr.json();
-      const medList = Array.isArray(md) ? md : DEMO_MODE ? DEMO_MEDS : [];
-      setMeds(medList);
-      setLogs(Array.isArray(ld) ? ld : []);
-      // 전체 복용 횟수 (잔여량 계산)
-      if (!DEMO_MODE) {
-        fetchTakenCounts(medList);
-        scheduleMedicationNotifications(medList);
-      }
-      else {
-        // 데모: 혈압약 18회, 당뇨약 32회 복용한 것으로 가정
-        setTakenCounts({ '1': 18, '2': 32, '3': 0 });
-      }
-    } catch {
-      if (DEMO_MODE) {
+    const init = async () => {
+      const uid  = (await AsyncStorage.getItem('userId'))   || '';
+      const name = (await AsyncStorage.getItem('userName')) || '';
+      setUserId(uid);
+      setUname(name);
+      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        setMeds(JSON.parse(stored));
+      } else {
         setMeds(DEMO_MEDS);
-        setTakenCounts({ '1': 18, '2': 32, '3': 0 });
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(DEMO_MEDS));
       }
-    }
+    };
+    init();
+  }, []);
+
+  const saveMeds = async (updated: any[]) => {
+    setMeds(updated);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   };
 
-  const fetchTakenCounts = async (medList: any[]) => {
-    const counts: Record<string, number> = {};
-    await Promise.all(medList.map(async (m: any) => {
-      try {
-        const r = await fetch(`${API}/medications/taken-count/${userId}/${m.id}`);
-        const d = await r.json();
-        counts[m.id] = d.count || 0;
-      } catch { counts[m.id] = 0; }
-    }));
-    setTakenCounts(counts);
+  const toggleTaken = (id: string) => {
+    saveMeds(meds.map(m => m.id === id ? { ...m, taken: !m.taken, skipped: false } : m));
   };
 
-  const getLogStatus = (id: string, t: string): LogStatus | null => {
-    const log = logs.find(l => l.medication_id === id && l.scheduled_time === t);
-    if (!log) return null;
-    return (log.status as LogStatus) || (log.taken ? 'taken' : null);
-  };
-
-  const saveLog = async (med: any, time: string, status: LogStatus) => {
-    const taken = status === 'taken';
-    setLogs(prev => [
-      ...prev.filter(l => !(l.medication_id === med.id && l.scheduled_time === time)),
-      { medication_id: med.id, scheduled_time: time, taken, status },
-    ]);
-    if (!DEMO_MODE) {
-      try {
-        await fetch(`${API}/medications/log`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: userId, medication_id: med.id, medication_name: med.name,
-            scheduled_time: time, date: today, taken, status,
-          }),
-        });
-      } catch { fetchAll(); }
-    }
-  };
-
-  const handleSnooze = (med: any) => {
-    Alert.alert('⏰ 30분 후 알림', `${med.name} 복용 알림을 30분 후로 미룰까요?`, [
-      { text: '취소', style: 'cancel' },
-      { text: '확인', onPress: async () => {
-        await snoozeNotification(med.name, med.med_type || '처방약');
-        Alert.alert('알림 설정', '30분 후에 알려드릴게요! 📲');
-      }},
-    ]);
-  };
-
-  // 잔여량 계산
-  const getRemaining = (med: any): { qty: number; days: number } | null => {
-    if (!med.total_quantity) return null;
-    const taken = takenCounts[med.id] || 0;
-    const remaining = med.total_quantity - taken;
-    const dosesPerDay = (med.times || []).length;
-    const days = dosesPerDay > 0 ? Math.floor(remaining / dosesPerDay) : 0;
-    return { qty: Math.max(0, remaining), days: Math.max(0, days) };
+  const toggleSkipped = (id: string) => {
+    saveMeds(meds.map(m => m.id === id ? { ...m, skipped: !m.skipped, taken: false } : m));
   };
 
   const addMed = async () => {
-    if (!medName.trim()) return;
-    setSaving(true);
-    const qty = totalQty ? parseInt(totalQty) : null;
-    try {
-      if (!DEMO_MODE) {
-        await fetch(`${API}/medications/add`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: userId, name: medName, dosage,
-            times: selTimes, color: selColor,
-            total_quantity: qty, med_type: selMedType,
-          }),
-        });
-        await fetchAll();
-      } else {
-        setMeds(p => [...p, {
-          id: Date.now().toString(), name: medName, dosage,
-          times: selTimes, color: selColor, total_quantity: qty, med_type: selMedType,
-        }]);
-      }
-      setModal(false); setMedName(''); setDosage('1정');
-      setSelTimes(['08:00']); setSelColor(COLORS[0]); setTotalQty(''); setSelMedType('처방약');
-      Alert.alert('✅ 등록 완료', '약이 등록되었습니다.');
-    } finally { setSaving(false); }
+    if (!form.name.trim()) {
+      Alert.alert('입력 오류', '약 이름을 입력해 주세요.');
+      return;
+    }
+    const newMed = {
+      id:       Date.now().toString(),
+      name:     form.name.trim(),
+      dosage:   form.dosage.trim()  || '1정',
+      method:   form.method.trim()  || '식후',
+      timeSlot: form.timeSlot,
+      stock:    parseInt(form.stock) || 0,
+      taken:    false,
+      skipped:  false,
+    };
+    await saveMeds([...meds, newMed]);
+    setForm(EMPTY_FORM);
+    setAddModal(false);
   };
 
-  const deleteMed = (med: any) => Alert.alert('약 삭제', `${med.name}을(를) 삭제할까요?`, [
-    { text: '취소', style: 'cancel' },
-    { text: '삭제', style: 'destructive', onPress: async () => {
-      if (!DEMO_MODE) {
-        await fetch(`${API}/medications/${med.id}`, { method: 'DELETE' });
-        await cancelMedicationNotifications(med.id);
-      }
-      setMeds(p => p.filter(m => m.id !== med.id));
-    }},
-  ]);
-
-  const saveMemo = () => {
-    if (!memo.trim()) return;
-    setMemoSaved(true);
-    setTimeout(() => setMemoSaved(false), 2000);
-    // 실제 앱: DB 저장
+  const deleteMed = (id: string) => {
+    Alert.alert('약 삭제', '이 약을 목록에서 삭제할까요?', [
+      { text: '취소', style: 'cancel' },
+      { text: '삭제', style: 'destructive', onPress: () => saveMeds(meds.filter(m => m.id !== id)) },
+    ]);
   };
 
-  const grouped: Record<string, any[]> = {};
-  meds.forEach(m => (m.times || []).forEach((t: string) => {
-    if (!grouped[t]) grouped[t] = [];
-    grouped[t].push(m);
-  }));
-  const sortedTimes = Object.keys(grouped).sort();
+  const total = meds.length;
+  const taken = meds.filter(m => m.taken).length;
+  const pct   = total > 0 ? Math.round((taken / total) * 100) : 0;
 
-  const total = meds.reduce((s, m) => s + (m.times?.length || 0), 0);
-  const takenToday = logs.filter(l => l.taken).length;
-  const pct = total > 0 ? Math.round((takenToday / total) * 100) : 0;
+  const PT = Platform.OS === 'ios' ? 54 : 32;
 
   return (
     <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor={GREEN} />
 
-      <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-
-        {/* 헤더 */}
-        <View style={s.header}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={s.headerTitle}>내 약 💊</Text>
-            <TouchableOpacity
-              style={{ alignItems: 'center', paddingHorizontal: 10, marginTop: 4 }}
-              onPress={() => navigation.navigate('Settings', { userId, name })}
-              activeOpacity={0.7}>
-              <Text style={{ fontSize: 32 }}>⚙️</Text>
-              <Text style={{ fontSize: 52, color: 'rgba(255,255,255,0.95)', fontWeight: '700', marginTop: 2 }}>설정</Text>
-            </TouchableOpacity>
+      {/* ── 헤더 ── */}
+      <View style={[s.header, { paddingTop: PT }]}>
+        <View style={s.headerRow}>
+          <View>
+            <Text style={s.headerTitle}>💊 약 관리</Text>
+            <Text style={s.headerSub}>오늘도 건강하게 복용해요</Text>
           </View>
-          <Text style={s.headerDate}>{nowTime}</Text>
-          {/* 진행 바 */}
-          {total > 0 && (
-            <View style={s.progWrap}>
-              <View style={[s.progFill, { width: `${pct}%` as any }]} />
-            </View>
-          )}
-          {/* 3개 요약 카드 */}
-          {total > 0 && (
-            <View style={s.summaryRow}>
-              <View style={[s.summaryCard, { borderTopColor: C.sage }]}>
-                <Text style={s.summaryNum}>{takenToday}</Text>
-                <Text style={s.summaryLabel}>✅ 완료</Text>
-              </View>
-              <View style={[s.summaryCard, { borderTopColor: C.amber }]}>
-                <Text style={s.summaryNum}>{total - takenToday}</Text>
-                <Text style={s.summaryLabel}>💊 남은 약</Text>
-              </View>
-              <View style={[s.summaryCard, { borderTopColor: C.blue2 }]}>
-                <Text style={s.summaryNum}>{pct}%</Text>
-                <Text style={s.summaryLabel}>📊 달성률</Text>
-              </View>
-            </View>
-          )}
+          <TouchableOpacity style={s.addHeaderBtn} onPress={() => setAddModal(true)}>
+            <Text style={s.addHeaderTxt}>+ 약 추가</Text>
+          </TouchableOpacity>
+        </View>
+        {/* 웨이브: 웹 전용 */}
+        {Platform.OS === 'web' ? (
+          <View style={s.waveWrap}>
+            {/* @ts-ignore */}
+            <svg width="100%" height="30" viewBox="0 0 200 30" preserveAspectRatio="none"
+              style={{ display: 'block' }}>
+              <path d="M0 20 Q50 0 100 15 Q150 30 200 10 L200 30 L0 30 Z" fill={BG} />
+            </svg>
+          </View>
+        ) : (
+          <View style={s.waveNative} />
+        )}
+      </View>
+
+      <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+
+        {/* ── 진행률 카드 ── */}
+        <View style={s.progressCard}>
+          <View style={s.progressTop}>
+            <Text style={s.progressLabel}>오늘 복약 현황</Text>
+            <Text style={s.progressCountTxt}>
+              {taken}<Text style={s.progressTotalTxt}>/{total} 완료</Text>
+            </Text>
+          </View>
+          <View style={s.progressBar}>
+            <View style={[s.progressFill, { width: (pct + '%') as any }]} />
+          </View>
+          <Text style={s.progressPct}>{pct}% 완료</Text>
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
+        {/* ── 약 없을 때 ── */}
+        {total === 0 && (
+          <View style={s.emptyBox}>
+            <Text style={s.emptyIcon}>💊</Text>
+            <Text style={s.emptyTitle}>아직 등록된 약이 없어요</Text>
+            <Text style={s.emptySub}>복용하는 약을 등록하면{`\n`}복용 현황을 관리할 수 있어요</Text>
+            <TouchableOpacity style={s.emptyBtn} onPress={() => setAddModal(true)}>
+              <Text style={s.emptyBtnTxt}>+ 약 추가하기</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-          {meds.length === 0 ? (
-            <View style={s.empty}>
-              <Text style={{ fontSize: 56, marginBottom: 16 }}>💊</Text>
-              <Text style={s.emptyTitle}>등록된 약이 없어요</Text>
-              <Text style={s.emptySub}>아래 버튼으로 약을 추가해보세요</Text>
-            </View>
-          ) : (
-            sortedTimes.map(time => (
-              <View key={time} style={s.group}>
-                <Text style={s.groupTitle}>{TLABEL[time] || time}</Text>
-                {grouped[time].map(med => {
-                  const status = getLogStatus(med.id, time);
-                  const done    = status === 'taken';
-                  const skipped = status === 'skipped';
-                  const rem = getRemaining(med);
+        {/* ── 시간대별 목록 ── */}
+        {TIME_SLOTS.map(slot => {
+          const slotMeds = meds.filter(m => m.timeSlot === slot.key);
+          if (slotMeds.length === 0) return null;
+          const slotTaken = slotMeds.filter(m => m.taken).length;
+          return (
+            <View key={slot.key} style={s.section}>
+              {/* 시간대 헤더 */}
+              <View style={s.sectionHead}>
+                <Text style={s.sectionIcon}>{slot.icon}</Text>
+                <Text style={s.sectionLabel}>{slot.label}</Text>
+                <View style={s.sectionBadge}>
+                  <Text style={s.sectionBadgeTxt}>{slotTaken}/{slotMeds.length}</Text>
+                </View>
+              </View>
 
-                  return (
-                    <View key={med.id + time}
-                      style={[s.medCard, done && s.medCardDone, skipped && s.medCardSkipped]}>
+              {/* 약 카드 목록 */}
+              {slotMeds.map(med => {
+                const lowStock = med.stock != null && med.stock <= 7;
+                return (
+                  <TouchableOpacity
+                    key={med.id}
+                    style={[s.medCard,
+                      med.taken   && s.medCardDone,
+                      med.skipped && s.medCardSkip]}
+                    onLongPress={() => deleteMed(med.id)}
+                    activeOpacity={0.85}
+                  >
+                    {/* 약 정보 */}
+                    <View style={s.medInfo}>
+                      <View style={s.medNameRow}>
+                        <Text style={[s.medName, (med.taken || med.skipped) && s.medNameGray]}>
+                          {med.name}
+                        </Text>
+                        {med.taken   && <Text style={s.doneBadge}>✓ 완료</Text>}
+                        {med.skipped && <Text style={s.skipBadge}>건너뜀</Text>}
+                      </View>
+                      <Text style={s.medDetail}>{med.dosage}  ·  {med.method}</Text>
+                      {lowStock
+                        ? <Text style={s.stockWarn}>⚠️ 재고 {med.stock}일 분 남음</Text>
+                        : med.stock > 0
+                          ? <Text style={s.stockOk}>재고 {med.stock}일 분</Text>
+                          : null}
+                    </View>
 
-                      {/* 약 정보 행 */}
-                      <TouchableOpacity
-                        style={s.medInfoRow}
-                        onLongPress={() => deleteMed(med)}
-                        activeOpacity={0.7}>
-                        <View style={[s.colorStripe, { backgroundColor: med.color }]} />
-                        <View style={{ flex: 1, paddingVertical: 14, paddingLeft: 14 }}>
-                          <View style={s.medNameRow}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                              <Text style={[s.medName, (done || skipped) && s.strikethrough]}>{med.name}</Text>
-                              <Text style={[s.medTypeBadge, med.med_type === '영양제' && s.medTypeBadgeGreen]}>
-                                {med.med_type === '영양제' ? '🌿 영양제' : '💊 처방약'}
-                              </Text>
-                            </View>
-                            {/* 잔여량 배지 */}
-                            {rem && (
-                              <View style={[s.remBadge, rem.days <= 7 && { backgroundColor: C.peachLt }]}>
-                                <Text style={[s.remBadgeTxt, rem.days <= 7 && { color: C.peach }]}>
-                                  {rem.qty}정 남음 {rem.days > 0 ? `(${rem.days}일치)` : '⚠️'}
-                                </Text>
-                              </View>
-                            )}
-                          </View>
-                          <Text style={s.medDosage}>{med.dosage} · {time}</Text>
-                        </View>
-                        {/* 상태 아이콘 */}
-                        <View style={[
-                          s.statusIcon,
-                          done    && { backgroundColor: C.sage,  borderColor: C.sage  },
-                          skipped && { backgroundColor: C.line,  borderColor: C.line  },
-                        ]}>
-                          <Text style={{ fontSize: 32 }}>
-                            {done ? '✓' : skipped ? '⏭' : '·'}
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-
-                      {/* 액션 버튼 (미복용/미건너뛰기 상태에서만) */}
-                      {!done && !skipped && (
-                        <View style={s.actionRow}>
-                          <TouchableOpacity style={s.btnTake}
-                            onPress={() => saveLog(med, time, 'taken')} activeOpacity={0.8}>
-                            <Text style={s.btnTakeTxt}>✅ 복용 완료</Text>
+                    {/* 버튼 */}
+                    <View style={s.medBtns}>
+                      {!med.taken && !med.skipped && (
+                        <>
+                          <TouchableOpacity style={s.btnTake} onPress={() => toggleTaken(med.id)}>
+                            <Text style={s.btnTakeTxt}>복용</Text>
                           </TouchableOpacity>
-                          <TouchableOpacity style={s.btnSnooze}
-                            onPress={() => handleSnooze(med)} activeOpacity={0.8}>
-                            <Text style={s.btnSnoozeTxt}>⏰ 30분 후</Text>
+                          <TouchableOpacity style={s.btnSkip} onPress={() => toggleSkipped(med.id)}>
+                            <Text style={s.btnSkipTxt}>건너뜀</Text>
                           </TouchableOpacity>
-                          <TouchableOpacity style={s.btnSkip}
-                            onPress={() => saveLog(med, time, 'skipped')} activeOpacity={0.8}>
-                            <Text style={s.btnSkipTxt}>⏭ 건너뛰기</Text>
-                          </TouchableOpacity>
-                        </View>
+                        </>
                       )}
-
-                      {/* 복용 취소 버튼 (복용 완료 상태에서) */}
-                      {done && (
-                        <TouchableOpacity style={s.undoRow}
-                          onPress={() => saveLog(med, time, 'skipped')} activeOpacity={0.7}>
-                          <Text style={s.undoTxt}>복용 취소하기</Text>
+                      {(med.taken || med.skipped) && (
+                        <TouchableOpacity
+                          style={s.btnUndo}
+                          onPress={() => med.taken ? toggleTaken(med.id) : toggleSkipped(med.id)}
+                        >
+                          <Text style={s.btnUndoTxt}>취소</Text>
                         </TouchableOpacity>
                       )}
                     </View>
-                  );
-                })}
-              </View>
-            ))
-          )}
-
-          {/* ─── 건강 메모 ─── */}
-          <View style={s.memoCard}>
-            <View style={s.memoHeader}>
-              <Text style={s.memoTitle}>📝 오늘의 건강 메모</Text>
-              <Text style={s.memoDate}>{today}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
-            <TextInput
-              style={s.memoInput}
-              value={memo}
-              onChangeText={t => { setMemo(t); setMemoSaved(false); }}
-              placeholder={"오늘 몸 상태, 식사, 운동 등 자유롭게 기록하세요\n예) 오전에 두통이 있었어요. 점심은 가볍게 먹었어요."}
-              placeholderTextColor={C.sub}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-            <TouchableOpacity
-              style={[s.memoSaveBtn, !memo.trim() && { opacity: 0.4 }]}
-              onPress={saveMemo}
-              disabled={!memo.trim()}
-              activeOpacity={0.8}>
-              <Text style={s.memoSaveTxt}>{memoSaved ? '✓ 저장됐어요!' : '메모 저장'}</Text>
-            </TouchableOpacity>
-          </View>
+          );
+        })}
 
-          <TouchableOpacity style={s.addBtn} onPress={() => setModal(true)} activeOpacity={0.88}>
-            <Text style={s.addBtnTxt}>+ 약 추가하기</Text>
-          </TouchableOpacity>
-          <Text style={s.hint}>약 이름을 길게 누르면 삭제됩니다</Text>
-        </ScrollView>
-      </Animated.View>
+        <View style={{ height: 20 }} />
+      </ScrollView>
 
-      {/* 약 추가 모달 */}
-      <Modal visible={modal} transparent animationType="slide">
-        <View style={s.overlay}>
-          <ScrollView>
-            <View style={s.sheet}>
-              <View style={s.sheetHandle} />
-              <Text style={s.sheetTitle}>새 약 / 영양제 추가</Text>
+      {/* ── 약 추가 모달 ── */}
+      <Modal visible={addModal} transparent animationType="slide">
+        <View style={s.modalOverlay}>
+          <ScrollView contentContainerStyle={s.modalScroll} keyboardShouldPersistTaps="handled">
+            <View style={s.modalBox}>
+              <Text style={s.modalTitle}>약 추가</Text>
 
-              <Text style={s.label}>종류</Text>
-              <View style={s.chipRow}>
-                <TouchableOpacity
-                  style={[s.chip, selMedType === '처방약' && s.chipOn]}
-                  onPress={() => setSelMedType('처방약')}>
-                  <Text style={[s.chipTxt, selMedType === '처방약' && s.chipTxtOn]}>💊 처방약</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[s.chip, selMedType === '영양제' && s.chipOn]}
-                  onPress={() => setSelMedType('영양제')}>
-                  <Text style={[s.chipTxt, selMedType === '영양제' && s.chipTxtOn]}>🌿 영양제</Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={[s.qtyHint, { marginBottom: 8 }]}>{selMedType === '처방약' ? '처방약은 미복용 시 가족에게 알림이 갑니다' : '영양제는 본인에게만 알림이 옵니다'}</Text>
+              <Text style={s.fLabel}>약 이름</Text>
+              <TextInput
+                style={s.fInputLg}
+                value={form.name}
+                onChangeText={t => setForm({ ...form, name: t })}
+                placeholder="예: 혈압약"
+                placeholderTextColor="#B0BEC5"
+              />
 
-              <Text style={s.label}>이름</Text>
-              <TextInput style={s.input} value={medName} onChangeText={setMedName}
-                placeholder="예: 혈압약, 아모디핀" placeholderTextColor="#C8C0B8" />
+              <Text style={s.fLabel}>복용량</Text>
+              <TextInput
+                style={s.fInput}
+                value={form.dosage}
+                onChangeText={t => setForm({ ...form, dosage: t })}
+                placeholder="예: 1정"
+                placeholderTextColor="#B0BEC5"
+              />
 
-              <Text style={s.label}>용량</Text>
-              <TextInput style={s.input} value={dosage} onChangeText={setDosage}
-                placeholder="예: 1정, 2캡슐" placeholderTextColor="#C8C0B8" />
-
-              <Text style={s.label}>총 수량 (선택)</Text>
-              <View style={s.qtyRow}>
-                <TextInput style={[s.input, { flex: 1 }]}
-                  value={totalQty} onChangeText={t => setTotalQty(t.replace(/[^0-9]/g, ''))}
-                  placeholder="예: 60" placeholderTextColor="#C8C0B8"
-                  keyboardType="number-pad" />
-                <Text style={s.qtyUnit}>정/캡슐</Text>
-              </View>
-              <Text style={s.qtyHint}>입력하면 잔여량이 자동으로 계산됩니다</Text>
-
-              <Text style={s.label}>복용 시간</Text>
-              <View style={s.chipRow}>
-                {TIMES.map((lbl, i) => (
-                  <TouchableOpacity key={i}
-                    style={[s.chip, selTimes.includes(TKEYS[i]) && s.chipOn]}
-                    onPress={() => setSelTimes(p =>
-                      p.includes(TKEYS[i]) ? p.filter(t => t !== TKEYS[i]) : [...p, TKEYS[i]])}>
-                    <Text style={[s.chipTxt, selTimes.includes(TKEYS[i]) && s.chipTxtOn]}>{lbl}</Text>
+              <Text style={s.fLabel}>복용 시간대</Text>
+              <View style={s.timeRow}>
+                {TIME_SLOTS.map(ts => (
+                  <TouchableOpacity
+                    key={ts.key}
+                    style={form.timeSlot === ts.key ? [s.timeBtn, s.timeBtnOn] : s.timeBtn}
+                    onPress={() => setForm({ ...form, timeSlot: ts.key })}
+                  >
+                    <Text style={s.timeBtnIcon}>{ts.icon}</Text>
+                    <Text style={form.timeSlot === ts.key ? [s.timeBtnTxt, s.timeBtnTxtOn] : s.timeBtnTxt}>
+                      {ts.label}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
 
-              <Text style={s.label}>색상</Text>
-              <View style={s.colorRow}>
-                {COLORS.map(c => (
-                  <TouchableOpacity key={c}
-                    style={[s.colorDot, { backgroundColor: c }, selColor === c && s.colorDotOn]}
-                    onPress={() => setSelColor(c)} />
-                ))}
-              </View>
+              <Text style={s.fLabel}>복용 방법</Text>
+              <TextInput
+                style={s.fInput}
+                value={form.method}
+                onChangeText={t => setForm({ ...form, method: t })}
+                placeholder="예: 식후 30분"
+                placeholderTextColor="#B0BEC5"
+              />
 
-              <View style={s.sheetBtns}>
-                <TouchableOpacity style={s.cancelBtn} onPress={() => setModal(false)}>
-                  <Text style={s.cancelTxt}>취소</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[s.saveBtn, !medName && { opacity: 0.4 }]}
-                  onPress={addMed} disabled={!medName || saving}>
-                  <Text style={s.saveTxt}>{saving ? '저장 중...' : '저장'}</Text>
-                </TouchableOpacity>
-              </View>
+              <Text style={s.fLabel}>현재 재고 (일 수)</Text>
+              <TextInput
+                style={s.fInput}
+                value={form.stock}
+                onChangeText={t => setForm({ ...form, stock: t })}
+                placeholder="예: 30"
+                placeholderTextColor="#B0BEC5"
+                keyboardType="numeric"
+              />
+
+              <TouchableOpacity style={s.saveBtn} onPress={addMed}>
+                <Text style={s.saveBtnTxt}>저장하기</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.cancelBtn} onPress={() => { setForm(EMPTY_FORM); setAddModal(false); }}>
+                <Text style={s.cancelBtnTxt}>취소</Text>
+              </TouchableOpacity>
             </View>
           </ScrollView>
         </View>
       </Modal>
 
-      {/* 탭바 */}
-      <SeniorTabBar navigation={navigation} activeTab="med" userId={userId} name={name} />
+      <SeniorTabBar activeTab="med" userId={userId} name={uname} navigation={navigation} />
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: C.bg },
-  header: {
-    paddingHorizontal: 22,
-    paddingTop: Platform.OS === 'web' ? 22 : (StatusBar.currentHeight ?? 28) + 10,
-    paddingBottom: 18,
-    ...(Platform.OS === 'web'
-      ? { background: 'linear-gradient(135deg, #2E7D32 0%, #43A047 100%)' } as any
-      : { backgroundColor: '#2E7D32' }),
-  },
-  headerRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  headerDate:     { fontSize: 28, color: 'rgba(255,255,255,0.75)', marginBottom: 6, fontWeight: '600' },
-  headerTitle:    { fontSize: 52, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  headerSub:      { fontSize: 30, color: 'rgba(255,255,255,0.8)' },
-  headerBadge:    { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' },
-  headerBadgeTxt: { fontSize: 44, fontWeight: '900', color: '#fff', lineHeight: 24 },
-  headerBadgeSub: { fontSize: 20, color: 'rgba(255,255,255,0.8)' },
-  progWrap:       { height: 6, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 3, marginBottom: 12 },
-  progFill:       { height: 6, backgroundColor: '#fff', borderRadius: 3 },
+  root: { flex: 1, backgroundColor: BG },
 
-  summaryRow:    { flexDirection: 'row', gap: 8, marginTop: 4 },
-  summaryCard:   { flex: 1, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 14,
-                   paddingVertical: 10, alignItems: 'center', borderTopWidth: 3 },
-  summaryNum:    { fontSize: 52, fontWeight: '900', color: '#fff', lineHeight: 30 },
-  summaryLabel:  { fontSize: 26, color: 'rgba(255,255,255,0.85)', fontWeight: '600', marginTop: 2 },
+  // 헤더
+  header:      { backgroundColor: GREEN, paddingHorizontal: 20, paddingBottom: 0, zIndex: 10 },
+  headerRow:   { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
+                 paddingBottom: 16 },
+  headerTitle: { fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: 4 },
+  headerSub:   { fontSize: 18, color: 'rgba(255,255,255,0.75)' },
+  addHeaderBtn:{ backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 14,
+                 paddingHorizontal: 18, paddingVertical: 10, marginTop: 4 },
+  addHeaderTxt:{ fontSize: 18, fontWeight: '800', color: '#fff' },
+  waveWrap:    { height: 30, overflow: 'hidden' },
+  waveNative:  { height: 24, backgroundColor: BG, borderTopLeftRadius: 22, borderTopRightRadius: 22 },
 
-  group:      { marginBottom: 24 },
-  groupTitle: { fontSize: 32, fontWeight: '700', color: C.sub, marginBottom: 10, marginLeft: 2 },
+  // 스크롤
+  scroll:  { flex: 1 },
+  content: { padding: 16, paddingTop: 18, paddingBottom: 120 },
 
-  medCard:        { backgroundColor: C.card, borderRadius: 18, marginBottom: 10, overflow: 'hidden',
-                    shadowColor:'#B8A898', shadowOpacity:0.12, shadowRadius:8, elevation:2 },
-  medCardDone:    { opacity: 0.65 },
-  medCardSkipped: { opacity: 0.5 },
+  // 진행률
+  progressCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 18,
+                  shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
+  progressTop:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  progressLabel:    { fontSize: 20, fontWeight: '800', color: '#2C2C2C' },
+  progressCountTxt: { fontSize: 28, fontWeight: '900', color: GREEN },
+  progressTotalTxt: { fontSize: 20, color: '#90A4AE', fontWeight: '700' },
+  progressBar:  { height: 14, backgroundColor: LGREEN, borderRadius: 7, overflow: 'hidden', marginBottom: 8 },
+  progressFill: { height: '100%' as any, backgroundColor: GREEN, borderRadius: 7 },
+  progressPct:  { fontSize: 18, color: GREEN, fontWeight: '700', textAlign: 'right' },
 
-  medInfoRow: { flexDirection: 'row', alignItems: 'center' },
-  colorStripe:{ width: 5, alignSelf: 'stretch' },
-  medNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 },
-  medName:    { fontSize: 42, fontWeight: '800', color: C.text },
-  medTypeBadge: { fontSize: 24, fontWeight: '700', color: '#388E3C',
-                  backgroundColor: '#E8F5E9', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-  medTypeBadgeGreen: { color: '#2e7d32', backgroundColor: '#E8F5E9' },
-  strikethrough: { textDecorationLine: 'line-through', color: '#BABABA' },
-  medDosage:  { fontSize: 28, color: C.sub },
+  // 빈 상태
+  emptyBox:  { alignItems: 'center', paddingVertical: 40, gap: 12 },
+  emptyIcon: { fontSize: 64 },
+  emptyTitle:{ fontSize: 24, fontWeight: '800', color: '#2C2C2C' },
+  emptySub:  { fontSize: 18, color: '#90A4AE', textAlign: 'center', lineHeight: 28 },
+  emptyBtn:  { backgroundColor: GREEN, borderRadius: 18, paddingHorizontal: 32, paddingVertical: 20, marginTop: 8 },
+  emptyBtnTxt:{ fontSize: 22, fontWeight: '900', color: '#fff' },
 
-  // 잔여량 배지
-  remBadge:    { backgroundColor: C.skyLt, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3 },
-  remBadgeTxt: { fontSize: 26, fontWeight: '700', color: C.sky },
+  // 섹션
+  section:      { marginBottom: 22 },
+  sectionHead:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  sectionIcon:  { fontSize: 26 },
+  sectionLabel: { fontSize: 22, fontWeight: '900', color: '#1A2C4E', flex: 1 },
+  sectionBadge: { backgroundColor: LGREEN, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 4 },
+  sectionBadgeTxt:{ fontSize: 18, fontWeight: '700', color: GREEN },
 
-  statusIcon: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: '#E0D8D0',
-                alignItems: 'center', justifyContent: 'center', marginRight: 14 },
+  // 약 카드
+  medCard:     { backgroundColor: '#fff', borderRadius: 18, padding: 18, marginBottom: 10,
+                 flexDirection: 'row', alignItems: 'center',
+                 shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+                 shadowOpacity: 0.06, shadowRadius: 6, elevation: 2 },
+  medCardDone: { backgroundColor: LGREEN, borderWidth: 1.5, borderColor: '#A5D6A7' },
+  medCardSkip: { backgroundColor: '#F5F5F5', borderWidth: 1.5, borderColor: '#E0E0E0' },
+  medInfo:     { flex: 1 },
+  medNameRow:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' },
+  medName:     { fontSize: 22, fontWeight: '800', color: '#1A2C4E' },
+  medNameGray: { color: '#90A4AE' },
+  doneBadge:   { backgroundColor: GREEN, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 3,
+                 fontSize: 16, fontWeight: '700', color: '#fff', overflow: 'hidden' },
+  skipBadge:   { backgroundColor: '#9E9E9E', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 3,
+                 fontSize: 16, fontWeight: '700', color: '#fff', overflow: 'hidden' },
+  medDetail:   { fontSize: 18, color: '#888', marginBottom: 4 },
+  stockWarn:   { fontSize: 18, color: '#D32F2F', fontWeight: '700' },
+  stockOk:     { fontSize: 16, color: '#B0BEC5' },
 
-  // 액션 버튼 3개
-  actionRow:   { flexDirection: 'row', gap: 8, padding: 12, paddingTop: 0 },
-  btnTake:     { flex: 2, backgroundColor: C.sageLt, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
-  btnTakeTxt:  { fontSize: 30, fontWeight: '700', color: C.sageDk },
-  btnSnooze:   { flex: 1.5, backgroundColor: C.amberLt, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
-  btnSnoozeTxt:{ fontSize: 28, fontWeight: '700', color: C.amber },
-  btnSkip:     { flex: 1.5, backgroundColor: C.line, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
-  btnSkipTxt:  { fontSize: 28, fontWeight: '600', color: C.sub },
-
-  undoRow: { paddingHorizontal: 14, paddingBottom: 10 },
-  undoTxt: { fontSize: 28, color: C.sub, textDecorationLine: 'underline', textAlign: 'right' },
-
-  empty:      { alignItems: 'center', paddingVertical: 60 },
-  emptyTitle: { fontSize: 44, fontWeight: '700', color: C.sub, marginBottom: 8 },
-  emptySub:   { fontSize: 32, color: '#BABABA' },
-
-  addBtn:    { backgroundColor: C.blue2, borderRadius: 18, paddingVertical: 18, alignItems: 'center', marginTop: 6 },
-  addBtnTxt: { fontSize: 34, fontWeight: '700', color: '#fff' },
-  hint:      { textAlign: 'center', color: '#C8C0B8', fontSize: 28, marginTop: 10 },
-
-  // 건강 메모
-  memoCard:     { backgroundColor: C.card, borderRadius: 18, padding: 18, marginTop: 6, marginBottom: 10,
-                  shadowColor:'#B8A898', shadowOpacity:0.10, shadowRadius:8, elevation:2 },
-  memoHeader:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  memoTitle:    { fontSize: 34, fontWeight: '700', color: C.text },
-  memoDate:     { fontSize: 26, color: C.sub },
-  memoInput:    { backgroundColor: C.bg, borderRadius: 14, padding: 14, fontSize: 30, color: C.text,
-                  borderWidth: 1, borderColor: C.line, minHeight: 100 },
-  memoSaveBtn:  { marginTop: 12, backgroundColor: C.blueCard, borderRadius: 14, paddingVertical: 13, alignItems: 'center' },
-  memoSaveTxt:  { fontSize: 30, fontWeight: '700', color: C.blue1 },
+  // 버튼
+  medBtns:    { flexDirection: 'column', gap: 8, marginLeft: 12 },
+  btnTake:    { backgroundColor: GREEN, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 12 },
+  btnTakeTxt: { fontSize: 18, fontWeight: '800', color: '#fff', textAlign: 'center' },
+  btnSkip:    { backgroundColor: '#F5F5F5', borderRadius: 14, paddingHorizontal: 18, paddingVertical: 12 },
+  btnSkipTxt: { fontSize: 18, fontWeight: '700', color: '#888', textAlign: 'center' },
+  btnUndo:    { backgroundColor: LGREEN, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 12,
+                borderWidth: 1, borderColor: '#A5D6A7' },
+  btnUndoTxt: { fontSize: 18, fontWeight: '700', color: GREEN, textAlign: 'center' },
 
   // 모달
-  overlay:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  sheet:        { backgroundColor: C.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 50 },
-  sheetHandle:  { width: 40, height: 4, borderRadius: 2, backgroundColor: C.line, alignSelf: 'center', marginBottom: 20 },
-  sheetTitle:   { fontSize: 44, fontWeight: '800', color: C.text, marginBottom: 20, textAlign: 'center' },
-  label:        { fontSize: 26, fontWeight: '700', color: C.sub, marginTop: 16, marginBottom: 8 },
-  input:        { backgroundColor: C.bg, borderRadius: 14, padding: 15, fontSize: 32, color: C.text, borderWidth: 1, borderColor: C.line },
-  qtyRow:       { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  qtyUnit:      { fontSize: 30, color: C.text, fontWeight: '600' },
-  qtyHint:      { fontSize: 22, color: C.sub, marginTop: 4 },
-  chipRow:      { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip:         { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: C.bg, borderWidth: 2, borderColor: C.line },
-  chipOn:       { backgroundColor: C.blueCard, borderColor: C.blue2 },
-  chipTxt:      { fontSize: 24, fontWeight: '600', color: C.sub },
-  chipTxtOn:    { color: C.blue2 },
-  colorRow:     { flexDirection: 'row', gap: 12, marginTop: 4 },
-  colorDot:     { width: 34, height: 34, borderRadius: 17 },
-  colorDotOn:   { borderWidth: 3, borderColor: C.text },
-  sheetBtns:    { flexDirection: 'row', gap: 12, marginTop: 28 },
-  cancelBtn:    { flex: 1, paddingVertical: 16, borderRadius: 16, backgroundColor: C.line, alignItems: 'center' },
-  cancelTxt:    { fontSize: 32, fontWeight: '700', color: C.sub },
-  saveBtn:      { flex: 1, paddingVertical: 16, borderRadius: 16, backgroundColor: C.blue2, alignItems: 'center' },
-  saveTxt:      { fontSize: 32, fontWeight: '700', color: '#fff' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalScroll:  { justifyContent: 'flex-end', flexGrow: 1 },
+  modalBox:     { backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30,
+                  padding: 28, paddingBottom: 50 },
+  modalTitle:   { fontSize: 28, fontWeight: '900', color: GREEN, textAlign: 'center', marginBottom: 22 },
 
-  // 탭바
-  tabbar: { flexDirection: 'row', backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.line, paddingTop: 10, paddingBottom: 14 },
-  tab:    { flex: 1, alignItems: 'center', gap: 3 },
-  tabIcon:{ fontSize: 44, opacity: 0.3 },
-  tabLbl: { fontSize: 20, color: '#BABABA', fontWeight: '500' },
-  tabDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: C.sage },
+  fLabel:   { fontSize: 18, fontWeight: '700', color: '#546E7A', marginBottom: 8, marginTop: 14 },
+  fInputLg: { backgroundColor: '#F4F7FC', borderRadius: 14, borderWidth: 1.5, borderColor: '#90CAF9',
+              fontSize: 22, fontWeight: '700', color: '#1A2C4E',
+              paddingVertical: 16, paddingHorizontal: 16 },
+  fInput:   { backgroundColor: '#F4F7FC', borderRadius: 14, borderWidth: 1.5, borderColor: '#C8E6C9',
+              fontSize: 20, fontWeight: '600', color: '#1A2C4E',
+              paddingVertical: 14, paddingHorizontal: 16 },
+
+  timeRow:     { flexDirection: 'row', gap: 8, marginBottom: 4 },
+  timeBtn:     { flex: 1, alignItems: 'center', backgroundColor: '#F4F7FC',
+                 borderRadius: 14, paddingVertical: 14, borderWidth: 1.5, borderColor: '#E0E0E0' },
+  timeBtnOn:   { backgroundColor: LGREEN, borderColor: GREEN },
+  timeBtnIcon: { fontSize: 22, marginBottom: 4 },
+  timeBtnTxt:  { fontSize: 16, fontWeight: '700', color: '#78909C' },
+  timeBtnTxtOn:{ color: GREEN },
+
+  saveBtn:     { backgroundColor: GREEN, borderRadius: 18, paddingVertical: 22, alignItems: 'center', marginTop: 22 },
+  saveBtnTxt:  { fontSize: 22, fontWeight: '900', color: '#fff' },
+  cancelBtn:   { padding: 18, alignItems: 'center' },
+  cancelBtnTxt:{ fontSize: 20, color: '#90A4AE', fontWeight: '700' },
 });
