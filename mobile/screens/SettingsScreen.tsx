@@ -13,16 +13,15 @@ type Props = { route: any; navigation: any };
 const LANGUAGES = ['한국어', '中文', 'English', '日本語'];
 
 const C = {
-  blue1:   '#5C6BC0',
-  blue2:   '#7986CB',
-  blueMid: '#5C6BC0',
-  blueCard:'#E8EAF6',
-  bg:      '#F0F0F8',
-  card:    '#FFFFFF',
-  text:    '#16273E',
-  sub:     '#7A90A8',
-  line:    '#D1D5F0',
-  red:     '#E53935',
+  indigo:    '#5C6BC0',
+  indigoLt:  '#7986CB',
+  indigoCard:'#E8EAF6',
+  bg:        '#F0F0F8',
+  card:      '#FFFFFF',
+  text:      '#16273E',
+  sub:       '#7A90A8',
+  line:      '#D1D5F0',
+  red:       '#E53935',
 };
 
 interface UserProfile {
@@ -149,7 +148,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
             <Switch
               value={notifHealth}
               onValueChange={setNotifHealth}
-              trackColor={{ false: '#C5C9E8', true: C.blue2 }}
+              trackColor={{ false: '#C5C9E8', true: C.indigoLt }}
               thumbColor="#fff"
             />
           </View>
@@ -159,7 +158,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
             <Switch
               value={notifMed}
               onValueChange={setNotifMed}
-              trackColor={{ false: '#C5C9E8', true: C.blue2 }}
+              trackColor={{ false: '#C5C9E8', true: C.indigoLt }}
               thumbColor="#fff"
             />
           </View>

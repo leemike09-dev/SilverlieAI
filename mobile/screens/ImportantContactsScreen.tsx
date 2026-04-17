@@ -86,7 +86,7 @@ export default function ImportantContactsScreen({ navigation, route }: any) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F0F5FB' }}>
+    <View style={{ flex: 1, backgroundColor: '#F0F0F8' }}>
       {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -98,7 +98,7 @@ export default function ImportantContactsScreen({ navigation, route }: any) {
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
 
-        {loading ? <ActivityIndicator size="large" color="#1A4A8A" style={{ marginTop: 60 }} /> : (
+        {loading ? <ActivityIndicator size="large" color="#5C6BC0" style={{ marginTop: 60 }} /> : (
           <>
             {/* 안내 */}
             <View style={styles.infoBox}>
@@ -173,7 +173,7 @@ export default function ImportantContactsScreen({ navigation, route }: any) {
               </TouchableOpacity>
             )}
 
-            {saving && <ActivityIndicator color="#1A4A8A" style={{ marginTop: 12 }} />}
+            {saving && <ActivityIndicator color="#5C6BC0" style={{ marginTop: 12 }} />}
           </>
         )}
       </ScrollView>
@@ -183,7 +183,7 @@ export default function ImportantContactsScreen({ navigation, route }: any) {
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: '#1A4A8A',
+    backgroundColor: '#5C6BC0',
     paddingTop: Platform.OS === 'web' ? 30 : (StatusBar.currentHeight ?? 28) + 8,
     paddingBottom: 16, paddingHorizontal: 16,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -194,72 +194,72 @@ const styles = StyleSheet.create({
   body: { padding: 16, paddingBottom: 60 },
 
   infoBox: {
-    backgroundColor: '#EBF3FB', borderRadius: 12, padding: 16,
-    marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#1A4A8A',
+    backgroundColor: '#E8EAF6', borderRadius: 12, padding: 16,
+    marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#5C6BC0',
   },
-  infoText: { fontSize: 20, color: '#1A4A8A', lineHeight: 28, fontWeight: '600' },
+  infoText: { fontSize: 20, color: '#5C6BC0', lineHeight: 28, fontWeight: '600' },
 
   emptyBox: {
     backgroundColor: '#fff', borderRadius: 16, padding: 40,
     alignItems: 'center', marginBottom: 16,
-    borderWidth: 1, borderColor: '#DDE8F4',
+    borderWidth: 1, borderColor: '#D1D5F0',
   },
   emptyText: { fontSize: 22, color: '#7A90A8', textAlign: 'center', lineHeight: 30 },
 
   listBlock: {
     backgroundColor: '#fff', borderRadius: 16,
-    borderWidth: 1, borderColor: '#DDE8F4', marginBottom: 16, overflow: 'hidden',
+    borderWidth: 1, borderColor: '#D1D5F0', marginBottom: 16, overflow: 'hidden',
   },
   contactRow: {
     flexDirection: 'row', alignItems: 'center', padding: 16,
-    borderBottomWidth: 1, borderBottomColor: '#EEF4FB', gap: 10,
+    borderBottomWidth: 1, borderBottomColor: '#ECEDF8', gap: 10,
   },
   contactIcon: { fontSize: 28, width: 36, textAlign: 'center' },
   contactInfo: { flex: 1 },
   contactType:  { fontSize: 18, color: '#7A90A8', fontWeight: '600', marginBottom: 2 },
   contactName:  { fontSize: 22, fontWeight: '800', color: '#16273E', marginBottom: 2 },
-  contactPhone: { fontSize: 20, color: '#2272B8', fontWeight: '600' },
+  contactPhone: { fontSize: 20, color: '#5C6BC0', fontWeight: '600' },
   callBtn: {
-    backgroundColor: '#1A4A8A', borderRadius: 10,
+    backgroundColor: '#5C6BC0', borderRadius: 10,
     paddingVertical: 8, paddingHorizontal: 12,
   },
   callBtnTxt: { color: '#fff', fontSize: 19, fontWeight: '700' },
   deleteBtn: { padding: 8 },
-  deleteBtnTxt: { fontSize: 18, color: '#B8CCE0', fontWeight: '700' },
+  deleteBtnTxt: { fontSize: 18, color: '#C5C9E8', fontWeight: '700' },
 
   formCard: {
     backgroundColor: '#fff', borderRadius: 16, padding: 20,
-    borderWidth: 1, borderColor: '#DDE8F4', marginBottom: 16,
+    borderWidth: 1, borderColor: '#D1D5F0', marginBottom: 16,
   },
   formTitle: { fontSize: 24, fontWeight: '800', color: '#16273E', marginBottom: 16 },
   formLabel: { fontSize: 20, fontWeight: '700', color: '#16273E', marginBottom: 8, marginTop: 12 },
   input: {
-    backgroundColor: '#F0F5FB', borderRadius: 12,
+    backgroundColor: '#F0F0F8', borderRadius: 12,
     paddingHorizontal: 16, paddingVertical: 14,
     fontSize: 20, color: '#16273E',
-    borderWidth: 1, borderColor: '#DDE8F4',
+    borderWidth: 1, borderColor: '#D1D5F0',
   },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip:    { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20,
-             backgroundColor: '#F0F5FB', borderWidth: 1, borderColor: '#DDE8F4' },
-  chipOn:  { backgroundColor: '#1A4A8A', borderColor: '#1A4A8A' },
+             backgroundColor: '#F0F0F8', borderWidth: 1, borderColor: '#D1D5F0' },
+  chipOn:  { backgroundColor: '#5C6BC0', borderColor: '#5C6BC0' },
   chipTxt:   { fontSize: 19, fontWeight: '600', color: '#7A90A8' },
   chipTxtOn: { color: '#fff' },
   formBtns: { flexDirection: 'row', gap: 12, marginTop: 20 },
   cancelBtn: {
     flex: 1, borderRadius: 12, paddingVertical: 15,
-    alignItems: 'center', borderWidth: 2, borderColor: '#DDE8F4',
+    alignItems: 'center', borderWidth: 2, borderColor: '#D1D5F0',
   },
   cancelTxt: { fontSize: 20, fontWeight: '700', color: '#7A90A8' },
   addConfirmBtn: {
-    flex: 1, backgroundColor: '#1A4A8A', borderRadius: 12,
+    flex: 1, backgroundColor: '#5C6BC0', borderRadius: 12,
     paddingVertical: 15, alignItems: 'center',
   },
   addConfirmTxt: { fontSize: 20, fontWeight: '700', color: '#fff' },
 
   addBtn: {
     backgroundColor: '#fff', borderRadius: 16, paddingVertical: 18,
-    alignItems: 'center', borderWidth: 2, borderColor: '#1A4A8A',
+    alignItems: 'center', borderWidth: 2, borderColor: '#5C6BC0',
   },
-  addBtnTxt: { fontSize: 22, fontWeight: '800', color: '#1A4A8A' },
+  addBtnTxt: { fontSize: 22, fontWeight: '800', color: '#5C6BC0' },
 });
