@@ -42,7 +42,9 @@ export default function FamilyConnectScreen({ route, navigation }: any) {
       if (storedName) setName(storedName);
 
       if (DEMO_MODE) {
-        navigation.replace('FamilyDashboard', { userId: uid || 'demo-user', name: uname });
+        // DEMO: 관계 선택 모달 보여주기 (데모 연결 미리 세팅)
+        setPendingConn({ seniorId: 'demo-senior', seniorName: '홍길동' });
+        setRelModal(true);
         return;
       }
 

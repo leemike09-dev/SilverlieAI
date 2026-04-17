@@ -30,8 +30,8 @@ const RELATION_LABEL: Record<string, string> = {
 };
 
 const DEMO_MEMBERS = [
-  { id: 'senior-1', name: '어머니', phone: '010-1234-5678', relation: '어머니' },
-  { id: 'senior-2', name: '아버지', phone: '010-9876-5432', relation: '아버지' },
+  { id: 'senior-1', name: '홍길동', phone: '010-1234-5678', relation: 'mother' },
+  { id: 'senior-2', name: '홍쳊동', phone: '010-9876-5432', relation: 'father' },
 ];
 
 const DEMO_HEALTH = {
