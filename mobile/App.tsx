@@ -28,6 +28,7 @@ import LocationMapScreen     from './screens/LocationMapScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import ImportantContactsScreen from './screens/ImportantContactsScreen';
 import SOSScreen from './screens/SOSScreen';
+import HealthProfileScreen from './screens/HealthProfileScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -166,6 +167,7 @@ export default function App() {
           <Stack.Screen name="Profile"              component={ProfileScreen}             />
           <Stack.Screen name="ImportantContacts"  component={ImportantContactsScreen}  />
           <Stack.Screen name="SOS"                component={SOSScreen}                 initialParams={DEMO} />
+        <Stack.Screen name="HealthProfile"      component={HealthProfileScreen}       initialParams={DEMO} />
         </Stack.Navigator>
       </NavigationContainer>
     </LanguageProvider>
