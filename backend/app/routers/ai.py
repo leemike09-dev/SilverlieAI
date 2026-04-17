@@ -3,7 +3,7 @@ import anthropic
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from dotenv import load_dotenv
 from ..database import get_supabase
 
@@ -127,7 +127,29 @@ def load_health_context(user_id: str, db) -> dict:
     return ctx
 
 
-def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict]) -> str:
+def load_chat_context(user_id: str, db) -> dict:
+    """오늘 대화 전체 + 최근 7일 요약을 로드해 맥락 구성."""
+    ctx: dict = {'today_messages': [], 'weekly_summaries': []}
+    today_str = date.today().isoformat()
+    # 오늘 대화 전체 (최대 40턴)
+    try:
+        r = db.table("ai_chat_logs").select("role,message,created_at").eq("user_id", user_id).gte("created_at", f"{today_str}T00:00:00").order("created_at", desc=False).limit(40).execute()
+        ctx['today_messages'] = r.data or []
+    except Exception as e:
+        print(f"[chat_context/today] {e}")
+    # 최근 7일 요약 (오늘 제외)
+    try:
+        week_ago = (date.today() - timedelta(days=7)).isoformat()
+        yesterday = (date.today() - timedelta(days=1)).isoformat()
+        r = db.table("ai_chat_summaries").select("date,summary,has_risk").eq("user_id", user_id).gte("date", week_ago).lte("date", yesterday).order("date", desc=True).execute()
+        ctx['weekly_summaries'] = r.data or []
+    except Exception as e:
+        print(f"[chat_context/summaries] {e}")
+    return ctx
+
+
+def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
+                        chat_ctx: Optional[dict] = None) -> str:
     p   = health_ctx.get('profile', {}) or {}
     meds_raw = health_ctx.get('medications', []) or []
     rec = health_ctx.get('today_record', {}) or {}
@@ -203,6 +225,25 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict]) -
         "[RISK:HIGH]     - 오늘 내 병원 방문 필요\n"
         "[RISK:CRITICAL] - 즉시 119 또는 응급실 (의식저하/마비/심한 흉통/호흡곤란)\n"
     )
+
+    # 장기 대화 맥락 삽입
+    if chat_ctx:
+        weekly = chat_ctx.get('weekly_summaries', [])
+        today_msgs = chat_ctx.get('today_messages', [])
+
+        if weekly:
+            prompt += "\n\n=== 최근 7일 대화 요약 ==="
+            for s in reversed(weekly):  # 오래된 것부터
+                risk_flag = " ⚠️위험" if s.get('has_risk') else ""
+                prompt += f"\n[{s.get('date','')}]{risk_flag} {s.get('summary','')}"
+
+        if today_msgs:
+            prompt += "\n\n=== 오늘 이전 대화 기록 ==="
+            for m in today_msgs:
+                role_label = "이용자" if m.get('role') == 'user' else "꿀비"
+                msg_text = (m.get('message') or '')[:200]  # 너무 길면 잘라냄
+                prompt += f"\n[{role_label}] {msg_text}"
+
     prompt += build_qa_context(relevant_qa)
     return prompt
 
@@ -262,6 +303,18 @@ def _send_family_alert(user_id: str, user_name: str):
         print(f"[family_alert] 오류: {e}")
 
 
+def _save_chat_turn(user_id: str, user_msg: str, ai_reply: str, risk: str, model: str):
+    """대화 한 턴(user + assistant)을 ai_chat_logs에 저장."""
+    try:
+        db = get_supabase()
+        db.table("ai_chat_logs").insert([
+            {"user_id": user_id, "role": "user",      "message": user_msg,  "risk_level": "normal"},
+            {"user_id": user_id, "role": "assistant", "message": ai_reply,  "risk_level": risk, "model_used": model},
+        ]).execute()
+    except Exception as se:
+        print(f"[ai_chat_logs] {se}")
+
+
 def choose_model(history_msgs: list, current_msg: str) -> str:
     """CRITICAL/HIGH 징후면 Opus, 아니면 Sonnet."""
     high_kw  = EMERGENCY_WORDS + ['응급', '위험', '119', '즉시']
@@ -297,6 +350,7 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         'medications':  request.client_meds    or [],
         'today_record': request.client_record  or {},
     }
+    chat_ctx: Optional[dict] = None
 
     if request.user_id and request.user_id not in ("demo-user", "guest"):
         try:
@@ -308,10 +362,11 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
             for k, v in server_ctx.items():
                 if v:
                     health_ctx[k] = v
+            chat_ctx = load_chat_context(request.user_id, db)
         except Exception as ex:
             print(f"[user_load] {ex}")
 
-    system_prompt = build_system_prompt(user_row, health_ctx, relevant_qa)
+    system_prompt = build_system_prompt(user_row, health_ctx, relevant_qa, chat_ctx)
     history_msgs  = [{"role": m.role, "content": m.content} for m in (request.history or [])[-10:]]
     model         = choose_model(history_msgs, request.message)
     messages      = history_msgs + [{"role": "user", "content": request.message}]
@@ -334,15 +389,11 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         background_tasks.add_task(_send_family_alert, request.user_id, uname)
         sos_sent = True
 
+    # 대화 저장 (백그라운드)
     if request.user_id and request.user_id not in ("demo-user", "guest"):
-        try:
-            db = get_supabase()
-            db.table("ai_chat_logs").insert([
-                {"user_id": request.user_id, "role": "user",      "message": request.message, "risk_level": "normal"},
-                {"user_id": request.user_id, "role": "assistant", "message": reply_text, "risk_level": risk, "model_used": model},
-            ]).execute()
-        except Exception as se:
-            print(f"[ai_chat_logs] {se}")
+        background_tasks.add_task(
+            _save_chat_turn, request.user_id, request.message, reply_text, risk, model
+        )
 
     return {
         "reply":               reply_text,
@@ -369,6 +420,7 @@ def get_chat_history(user_id: str, limit: int = 20):
 
 @router.post("/summary/{user_id}")
 def generate_summary(user_id: str):
+    """오늘 대화를 Claude로 요약해 ai_chat_summaries에 저장."""
     db        = get_supabase()
     today_str = date.today().isoformat()
     result = (
@@ -397,6 +449,30 @@ def generate_summary(user_id: str):
     return {"summary": summary_text, "date": today_str, "has_risk": has_risk}
 
 
+@router.post("/daily-summary")
+def trigger_daily_summaries():
+    """자정 배치용 -- 오늘 대화가 있는 모든 유저의 요약 생성 (cron 또는 수동 호출)."""
+    db        = get_supabase()
+    today_str = date.today().isoformat()
+    try:
+        # 오늘 대화한 고유 user_id 목록
+        logs_res = db.table("ai_chat_logs").select("user_id").eq("role", "user").gte("created_at", f"{today_str}T00:00:00").execute()
+        user_ids = list({row["user_id"] for row in (logs_res.data or []) if row.get("user_id")})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"유저 목록 조회 실패: {e}")
+
+    results = []
+    for uid in user_ids:
+        try:
+            result = generate_summary(uid)
+            results.append({"user_id": uid, "status": "ok", **result})
+        except HTTPException as he:
+            results.append({"user_id": uid, "status": "skip", "reason": he.detail})
+        except Exception as ex:
+            results.append({"user_id": uid, "status": "error", "reason": str(ex)})
+    return {"processed": len(user_ids), "results": results}
+
+
 @router.get("/summaries/{user_id}")
 def get_summaries(user_id: str, limit: int = 7):
     db = get_supabase()
@@ -405,3 +481,15 @@ def get_summaries(user_id: str, limit: int = 7):
         .eq("user_id", user_id).order("date", desc=True).limit(limit).execute()
     )
     return result.data
+
+
+@router.get("/context/{user_id}")
+def get_chat_context(user_id: str):
+    """프론트엔드에서 현재 맥락 확인용 (옵션)."""
+    db = get_supabase()
+    ctx = load_chat_context(user_id, db)
+    return {
+        "today_message_count": len(ctx.get('today_messages', [])),
+        "weekly_summary_count": len(ctx.get('weekly_summaries', [])),
+        "weekly_summaries": ctx.get('weekly_summaries', []),
+    }
