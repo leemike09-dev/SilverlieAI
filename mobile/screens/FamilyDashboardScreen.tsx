@@ -57,7 +57,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
   const [userId,   setUserId]   = useState<string>(route?.params?.userId || '');
   const [name,     setName]     = useState<string>(route?.params?.name   || '');
   const [members,  setMembers]  = useState<any[]>(DEMO_MODE ? DEMO_MEMBERS : []);
-  const [selected, setSelected] = useState<any>(DEMO_MODE ? DEMO_MEMBERS[0] : (route?.params ? { id: route.params.seniorId, name: route.params.seniorName, phone: '' } : null));
+  const [selected, setSelected] = useState<any>(DEMO_MODE ? DEMO_MEMBERS[0] : (route?.params ? { id: route.params.seniorId, name: route.params.seniorName, phone: '', relation: route.params.seniorRelation || '' } : null));
   const [health,   setHealth]   = useState<any>(DEMO_MODE ? DEMO_HEALTH : null);
   const [loading,  setLoading]  = useState(false);
 
@@ -82,7 +82,8 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
       const r = await fetch(`${API}/family/members/${userId}`);
       if (r.ok) {
         const d = await r.json();
-        setMembers(d.members || []);
+        const mems = (d.members || []).map((m: any) => ({ ...m, relation: m.relation || '' }));
+        setMembers(mems);
         if (d.members?.length > 0 && !selected) setSelected(d.members[0]);
       }
     } catch {}
@@ -115,7 +116,13 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
       <View style={[s.header, { paddingTop: PT }]}>
         <View style={s.headerLeft}>
           <Text style={s.headerTitle}>가족 건강</Text>
-          <Text style={s.headerSub}>{name ? `${name}님의 가족 현황` : '가족 현황'}</Text>
+          <Text style={s.headerSub}>
+          {selected
+            ? (selected.relation && selected.relation !== 'other'
+                ? `${RELATION_LABEL[selected.relation] || ''} ${selected.name}님`
+                : `${selected.name}님`)
+            : (name ? `${name}님의 가족 현황` : '가족 현황')}
+        </Text>
         </View>
         {selected?.phone ? (
           <TouchableOpacity style={s.callBtn} onPress={callMember}>
