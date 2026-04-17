@@ -61,6 +61,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
   const [name,        setName]        = useState<string>(route?.params?.name   || '');
   const [members,     setMembers]     = useState<any[]>([]);
   const [selected,    setSelected]    = useState<any>(null);
+  const [selectedId,  setSelectedId]  = useState<string>('');
   const [location,    setLocation]    = useState<any>(null);
   const [aiAdvice,    setAiAdvice]    = useState('');
   const [medications, setMedications] = useState<any[]>([]);
@@ -84,13 +85,13 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
 
   // ── 선택 멤버 변경 시 대시보드 로드 ──
   useEffect(() => {
-    if (selected?.id) fetchDashboard(selected.id);
+    if (selectedId) fetchDashboard(selectedId);
     else {
       setLocation(null);
       setAiAdvice('');
       setMedications([]);
     }
-  }, [selected]);
+  }, [selectedId]);
 
   // ── 가족 멤버 목록 조회 ──
   const fetchMembers = async (uid: string) => {
@@ -109,6 +110,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
             );
             setMembers(mems);
             setSelected(mems[0]);
+            setSelectedId(mems[0].id);
             return;
           }
         }
@@ -125,6 +127,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
       );
       setMembers(mems);
       setSelected(mems[0]);
+      setSelectedId(mems[0].id);
     }
   };
 
@@ -179,6 +182,13 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
     setLoading(false);
   };
 
+  // ── 멤버 선택 ──
+  const selectMember = (m: any) => {
+    console.log('멤버 선택:', m.name, '| id:', m.id);
+    setSelected(m);
+    setSelectedId(m.id);
+  };
+
   // ── 전화 ──
   const callMember = () => {
     if (!selected?.phone) {
@@ -205,7 +215,11 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
       });
     } catch {}
     setMembers(prev => prev.map(m => m.id === relTarget.id ? { ...m, relation: rel.key } : m));
-    if (selected?.id === relTarget.id) setSelected((p: any) => ({ ...p, relation: rel.key }));
+    if (selected?.id === relTarget.id) {
+      const updated = { ...selected, relation: rel.key };
+      setSelected(updated);
+      // selectedId는 유지 (같은 멤버)
+    }
     setRelModal(false);
   };
 
@@ -255,12 +269,12 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
             contentContainerStyle={s.memberScroll}
           >
             {members.map(m => {
-              const on = selected?.id === m.id;
+              const on = selectedId === m.id;
               return (
                 <TouchableOpacity
                   key={m.id}
-                  style={[s.chip, on && s.chipOn]}
-                  onPress={() => setSelected(m)}
+                  style={on ? [s.chip, s.chipOn] : [s.chip, s.chipOff]}
+                  onPress={() => selectMember(m)}
                 >
                   <Text style={s.chipEmoji}>{RELATION_EMOJI[m.relation] || '👤'}</Text>
                   <View>
@@ -439,6 +453,7 @@ const s = StyleSheet.create({
                   borderRadius: 32, paddingHorizontal: 18, paddingVertical: 12,
                   borderWidth: 2, borderColor: 'transparent' },
   chipOn:       { backgroundColor: '#fff', borderColor: '#1565C0' },
+  chipOff:      { backgroundColor: 'rgba(255,255,255,0.10)', borderColor: 'rgba(255,255,255,0.35)' },
   chipEmoji:    { fontSize: 28 },
   chipRel:      { fontSize: 20, fontWeight: '900', color: 'rgba(255,255,255,0.95)' },
   chipRelOn:    { color: '#1A4A8A' },
