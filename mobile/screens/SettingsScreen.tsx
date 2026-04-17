@@ -189,7 +189,8 @@ export default function SettingsScreen({ route, navigation }: Props) {
             <Text style={styles.listLabel}>비밀번호 변경</Text>
             <Text style={styles.listArrow}>›</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.listItem}>
+          <TouchableOpacity style={styles.listItem}
+            onPress={() => navigation.navigate('FAQ', { userId })}>
             <Text style={styles.listIcon}>❓</Text>
             <Text style={styles.listLabel}>도움말 / FAQ</Text>
             <Text style={styles.listArrow}>›</Text>
