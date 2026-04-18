@@ -115,10 +115,10 @@ const s = StyleSheet.create({
   root:  { flex: 1, backgroundColor: '#fff' },
   slide: { alignItems: 'center', justifyContent: 'center', padding: 32 },
 
-  iconWrap: { width: 160, height: 160, borderRadius: 80,
+  iconWrap: { width: 200, height: 200, borderRadius: 100,
               alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
   icon:  { fontSize: 100 },
-  beeImg: { width: 160, height: 160 },
+  beeImg: { width: 200, height: 200 },
   title: { fontSize: 32, fontWeight: '900', textAlign: 'center', marginBottom: 16 },
   desc:  { fontSize: 24, color: '#555', textAlign: 'center', lineHeight: 36 },
 
