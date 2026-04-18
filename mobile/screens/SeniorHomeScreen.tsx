@@ -76,10 +76,6 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
             style={s.aiBtn}
             onPress={() => navigation.navigate('AIChat', { userId, name })}
             activeOpacity={0.85}>
-            <Image
-              source={require('../assets/bee_nobg.png')}
-              style={s.aiBeeImg}
-            />
             <Text style={s.aiTxt}>AI 상담</Text>
           </TouchableOpacity>
         </View>
@@ -135,8 +131,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', gap: 6,
     paddingVertical: 20,
   },
-  aiBeeImg: { width: 54, height: 54, resizeMode: 'contain' },
-  aiTxt: { fontSize: 18, fontWeight: '700', color: '#fff', textAlign: 'center' },
+  aiTxt: { fontSize: 32, fontWeight: '900', color: '#fff', textAlign: 'center' },
   settingBtn: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10, alignSelf: 'flex-start', marginTop: 4 },
   settingIco: { fontSize: 32 },
   settingLbl: { fontSize: 26, color: 'rgba(255,255,255,0.95)', fontWeight: '700', marginTop: 2 },
