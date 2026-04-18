@@ -125,7 +125,7 @@ const s = StyleSheet.create({
   mapRight: { fontSize: 16, fontWeight: '800', color: '#7B1FA2' },
   actionRow: { flexDirection: 'row', gap: 10 },
   sosBtn: {
-    flex: 2, minWidth: 0, backgroundColor: '#D32F2F', borderRadius: 18,
+    flex: 3, minWidth: 0, backgroundColor: '#D32F2F', borderRadius: 18,
     paddingVertical: 14, paddingHorizontal: 16,
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
@@ -133,7 +133,7 @@ const s = StyleSheet.create({
   sosTxt: { fontSize: 20, fontWeight: '900', color: '#fff' },
   sosSub: { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   aiBtn: {
-    flex: 3, minWidth: 0, backgroundColor: '#1A4A8A', borderRadius: 18,
+    flex: 2, minWidth: 0, backgroundColor: '#1A4A8A', borderRadius: 18,
     alignItems: 'center', justifyContent: 'center', gap: 6,
     paddingVertical: 20,
   },
