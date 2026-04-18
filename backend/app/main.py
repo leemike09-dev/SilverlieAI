@@ -5,6 +5,9 @@ from app.routers import health, ai, users, community, notifications, news, medic
 app = FastAPI(
     title="Silver Life AI API",
     version="0.1.0",
+    docs_url=None,      # /docs 비활성화
+    redoc_url=None,     # /redoc 비활성화
+    openapi_url=None,   # /openapi.json 비활성화
 )
 
 app.add_middleware(
