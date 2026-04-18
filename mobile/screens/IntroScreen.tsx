@@ -180,7 +180,7 @@ const s = StyleSheet.create({
     width: 300,
     height: 300,
     marginLeft: -30,   // 수평 센터 (300-240)/2
-    marginTop: -5,    // 원 안에서 위치 조정
+    marginTop: -20,    // 원 안에서 위치 조정
   },
 
   /* 앱 이름 */
