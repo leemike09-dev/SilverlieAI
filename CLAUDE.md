@@ -2,10 +2,10 @@
 
 ## 프로젝트 개요
 
-**앱 이름**: Silver Life AI (꿀비)  
-**대상**: 한국 시니어 (60세 이상)  
-**목적**: AI 기반 건강 관리, 복약 알림, 가족 연결, SOS 기능  
-**마스코트**: 꿀비 (bee_nobg.png)
+**앱 이름**: Silver Life AI (꿀비)
+**대상**: 한국 시니어 (60세 이상)
+**목적**: AI 기반 건강 관리, 복약 알림, 가족 연결, SOS 기능
+**마스코트**: 꿀비 (lavender 원 + 보라 하트 디자인, Canva 제작)
 
 ---
 
@@ -16,7 +16,7 @@
 - **배포**: GitHub Actions → GitHub Pages (웹 버전)
   - 레포: `leemike09-dev/SilverlieAI`
   - 배포 URL: `https://leemike09-dev.github.io/SilverlieAI/`
-- **상태 저장**: AsyncStorage (`userId`, `userName`, `onboarding_seen`)
+- **상태 저장**: AsyncStorage (`userId`, `userName`, `onboarding_seen`, `doctor_memo`, `doctor_memo_date`)
 
 ---
 
@@ -42,6 +42,49 @@ subprocess.run(['git', 'add', ...], cwd=repo)
 subprocess.run(['git', 'commit', '-m', msg], cwd=repo)
 subprocess.run(['git', 'push', 'origin', 'main'], cwd=repo)
 ```
+
+---
+
+## ⚠️ Python 코드 작성 주의사항
+
+### TSX 문자열 \n 처리
+```python
+# ❌ 실제 개행문자가 TSX 파일에 기록됨 → SyntaxError: Unterminated string constant
+lines = ["if (h < 9) return '좋은 아침\n오늘도'"]
+# Python '\n' = 실제 개행이 파일에 써짐
+
+# ✅ 리터럴 \n을 TSX에 쓰려면 Python에서 '\\n' 사용
+lines = ["if (h < 9) return '좋은 아침\\n오늘도'"]
+# Python '\\n' = TSX 파일에 \n (2글자: 백슬래시+n) 써짐
+```
+
+### JSX 표현식 \n
+```tsx
+// ❌ Python {'\n'} 작성 시 실제 개행 주입됨
+// ✅ JSX 다중줄 텍스트는 문자 템플릿 사용
+{`첫 줄\n둘째 줄`}
+```
+
+### 이모지 Python 인코딩
+```python
+# ❌ 서로게이트 쌍 → UnicodeEncodeError
+'\ud83e\ude78'
+
+# ✅ 4바이트 표기
+'\U0001FA78'
+```
+
+### macOS vs Linux 파일명 대소문자
+```
+macOS: 대소문자 무관 파일시스템
+Linux (CI): 대소문자 구분!
+→ git에 등록된 실제 파일명과 코드의 require()를 일치시켜야 함
+예: Kkulbi_1.png (git) ↔ '../assets/Kkulbi_1.png' (code)
+```
+
+### TSX 파일 생성 시 반드시 Python 방식
+- 단일 변수(`-c`) 대신 스크립트 파일(`/tmp/fix.py`) 작성 후 실행
+- 긴 파일을 실제 TSX로 쓸 때는 줄 단위 리스트 `'\n'.join(lines)` 활용
 
 ---
 
@@ -76,10 +119,16 @@ Senior  Health  Medication  FamilyConnect
  Home   Screen   Screen    (→ FamilyDashboard if connected)
 ```
 
-### 3. 설정 진입
+### 3. 추가 화면 (Stack Navigator)
 
-- **홈/건강/약복용 화면** 헤더 우상단 ⚙️ 설정 버튼 → Settings
-- **회원가입 완료** 후 → Settings (이름/전화번호 등 입력)
+| 화면 | 접근 | 제목 |
+|------|------|------|
+| AIChat | 홈화면 AI버튼, 설정에서 | AI 건강 상담 |
+| DoctorMemo | 설정 메뉴 "의사 전달 메모" | 관리 메모 화면 |
+| Settings | 헤더 설정버튼 | 설정 |
+| LocationMap | 홈 동선확인 | 동선지도 |
+| SOS | 홈 SOS버튼 | 응급 |
+| ImportantContacts | 부가화면 | 중요 연락처 |
 
 ### 4. 로그아웃
 
@@ -100,13 +149,6 @@ Senior  Health  Medication  FamilyConnect
 
 [📧 이메일로 로그인/회원가입] → EmailAuthScreen
 ```
-
-### 소셜 로그인 원칙
-
-- **카카오 가입** → 카카오로만 로그인 (닉네임 불필요, 이름/전화는 Settings에서 입력)
-- **이메일 가입** → 이메일+비밀번호로만 로그인
-- **서로 다른 방법으로 가입한 계정은 분리** (C안 = A안과 동일 개념)
-- 전화번호/이름은 카카오에서 받지 않고 **Settings 화면에서 직접 입력**
 
 ### OAuth 설정 (LoginScreen.tsx)
 
@@ -134,78 +176,137 @@ const REDIRECT_BASE    = 'https://leemike09-dev.github.io/SilverlieAI/';
 |------|----------|------|
 | 홈 (SeniorHome) | `#1A4A8A` (파랑) | |
 | 건강기록 (Health) | `#1A4A8A` (파랑) | |
-| 약복용 (Medication) | `#2E7D32` (녹색) | 온보딩 슬라이드3 색상 |
+| 약복용 (Medication) | `#2E7D32` (녹색) | |
 | 가족 연결/대시보드 | `#1A4A8A` (파랑) | |
 | 동선지도 (LocationMap) | `#FFFFFF` (흰색) | |
 | 설정 (Settings) | `#1A4A8A` (파랑) | |
 | 인트로 (Intro) | `#0D3470` (짙은 파랑) | |
+| AI 상담 (AIChat) | `#7B1FA2` (보라) | 전체 보라 테마 |
+| 의사메모 (DoctorMemo) | `#7B1FA2` (보라) | |
+
+### AI 상담화면 (AIChatScreen) 테마
+
+```typescript
+// 보라 컴포넌트
+purple1: '#7B1FA2'    // 헤더, 버튼 주색
+purple2: '#9C27B0'    // 강조색
+purpleCard: '#F3E5F5' // 카드 배경
+purpleLine: '#E1BEE7' // 라인
+```
+
+---
+
+## 꿀비 마스코트 이미지
+
+### 이미지 파일 (mobile/assets/)
+
+| 파일명 | 내용 | 사용 화면 |
+|--------|------|---------|
+| `Kkulbi_1.png` | 기본/기쁨 (lavender 원 + 보라 하트) | IntroScreen, AIChatScreen |
+| `Kkulbi_worry.png` | 걱정 (노란 원 + 슬픈 이모지) | AI 위험 답변 |
+| `Kkulbi_Cheer.png` | 환기 (녹색 원 + 엄지척) | 응원 답변 |
+| `Kkulbi_sleep.png` | 수면 (파란 원 + ZZZ) | 수면 관련 답변 |
+| `kkulbi_intro.png` | 인트로 전용 | IntroScreen |
+| `kkulbi.png` | 기존 기본 이미지 | 백업 |
+
+**파일명 주의**: git에 등록된 실제 대소문자와 코드의 require()를 반드시 일치 (Linux CI 대소문자 구분)
+
+### AIChatScreen의 꿀비 감정 매핑
+
+```typescript
+const KKULBI_IMAGES = {
+  default: require('../assets/Kkulbi_1.png'),
+  happy:   require('../assets/Kkulbi_1.png'),
+  worry:   require('../assets/Kkulbi_worry.png'),
+  cheer:   require('../assets/Kkulbi_Cheer.png'),
+  sleep:   require('../assets/Kkulbi_sleep.png'),
+  sos:     require('../assets/Kkulbi_1.png'),  // SOS전용 미제작
+};
+
+// 위험도별 자동 전환
+// critical → sos, high/medium → worry
+// 수면 키워드 → sleep, 응원 키워드 → cheer
+```
+
+---
+
+## AI 백엔드 (backend/app/routers/ai.py)
+
+### 장기 대화 컨텍스트
+
+```python
+# 시스템 프롬프트에 포함되는 컨텍스트:
+# 1. 지난 7일 요약 (ai_chat_summaries 테이블)
+# 2. 오늘 대화 (최대 40턴, ai_chat_logs 테이블)
+
+# 주요 함수
+load_chat_context(user_id, db)               # 컨텍스트 로드
+build_system_prompt(user, ..., chat_ctx)     # 시스템 프롬프트 생성
+_save_chat_turn(user_id, role, content, db)  # 대화 저장
+```
+
+### 의사 메모 기능
+
+```python
+DOCTOR_KEYWORDS = ['병원', '진료', '의사', '내원', '검사받']
+
+# /chat 엔드포인트 응답에 포함:
+# doctor_memo_needed: bool
+# doctor_memo: str | None  (사용자 정보 기반 자동 작성)
+```
+
+### Supabase 테이블
+
+| 테이블 | 용도 |
+|------|------|
+| `ai_chat_logs` | 대화 로그 (오늘) |
+| `ai_chat_summaries` | 주별 요약 |
+| `health_profiles` | 건강 프로파일 |
+| `medications` | 복약 목록 |
+| `health_records` | 건강 수치 |
+
+---
+
+## 의사 메모 화면 (DoctorMemoScreen.tsx)
+
+- **접근**: SettingsScreen 메뉴 "📋 의사 전달 메모" 탭
+- **AsyncStorage 키**: `doctor_memo`, `doctor_memo_date`
+- **기능**: 메모 표시, 편집, 공유, 인쇄, 삭제
+- **하단 버튼**: 휴대폰 공유(보라), 인쇄(파랑), 편집(주황)
+- **빈 상태**: AI 상담 시작하기 버튼
 
 ---
 
 ## 각 화면 주요 구성
 
 ### SeniorHomeScreen
-- 헤더: 이름 + "오늘도 건강한 하루 되세요" + 우상단 ⚙️설정 버튼 (row layout)
-- 카드 4개: 혈압/혈당/체온/체중 (CARD_SIZE = (width-48)/2, CARD_H = 130)
+- 헤더: 이름 + "오늘도 건강한 하루 되세요" + 우상단 ⚙️설정 버튼
+- 카드 4개: 혈압/혈당/체온/체중
 - 동선 확인 버튼 → LocationMap
 - SOS 버튼 → SOSScreen
-- AI 상담 버튼 (bee_nobg.png) → AIChat
+- AI 상담 버튼 (Kkulbi_1.png 이미지) → AIChat
 
-### HealthScreen
-- 헤더 우상단 ⚙️설정
-- 탭: 오늘 / 기록
-- 건강 수치 입력 (걸음/맥박/혈압/혈당/체온/체중)
-
-### MedicationScreen
-- 테마 색상: `#2E7D32` (녹색)
-- 헤더 우상단 ⚙️설정
-- 복약 시간별 약 목록, 복용/미루기/건너뜀 버튼
-- 약 추가 모달
-- 폰트 전체 2배 (최소 20px)
-
-### FamilyConnectScreen
-- 내 코드 공유 섹션 (코드박스 + 복사 + 카카오톡 공유)
-- 구분선 "또는"
-- 가족 코드 입력 섹션
-- 시작 시 기존 연결 확인 → 있으면 FamilyDashboard로 자동 이동
-- DEMO_MODE: FamilyDashboard로 바로 이동
-
-### FamilyDashboardScreen
-- 헤더: "가족 건강" + 전화 버튼 (📞)
-- 멤버 선택 가로스크롤
-- 현재 위치 카드
-- AI 건강조언 카드 (파란 배경)
-- 복용약 현황 표 (완료/미복용)
-- 건강수치 카드 **없음** (홈과 중복이므로 제거)
-
-### LocationMapScreen
-- Leaflet 지도 (웹 전용)
-- 헤더 컴팩트 (← 돌아가기)
-- 지도 아래 통계 바 (이동거리/방문지점/외출횟수)
-- 하단 범례 (집/외출/현재위치)
-
-### LoginScreen
-- 소셜 카드: 카카오 → 네이버 → Apple → Google 순서
-- 로그인 섹션 / 회원가입 섹션 구분
-- 이메일 카드 → EmailAuthScreen
-
-### EmailAuthScreen (신규)
-- 로그인/회원가입 탭 전환
-- 회원가입: 이름, 전화번호, 이메일, 비밀번호
-- 헤더에 ← 돌아가기
+### AIChatScreen
+- **헤더**: 보라 `#7B1FA2`
+- **맨 위 인사말**: getGreeting() 시간대별 + 건강 안내 텍스트
+- **빠른 질문 칩**: 약 부작용, 혈압, 수면, 무릎, 어지러움, 속스글픔
+- **AI 답변에 제거된 항목**: "더 알고 싶으시면" 후속 질문 삭제
+- **의사 메모 버튼**: AI가 병원 방문 권유 시 녹색 버튼 표시
+- **꿀비 아바타**: 답변 내용도에 따라 자동 전환
 
 ### SettingsScreen
-- 로그아웃 → AsyncStorage 초기화 → Intro 화면
-- 이름, 전화번호 등 프로필 입력 (회원가입 후 처음 방문)
+- 메뉴 목록:
+  1. 건강 프로파일
+  2. 📋 의사 전달 메모 → DoctorMemo 화면
+  3. 기타 설정들
+  - 로그아웃
 
 ---
 
 ## 설정(⚙️) 버튼 공통 패턴
 
-모든 주요 화면 헤더 **우상단**에 배치:
-
 ```tsx
-// 헤더 style에 반드시: flexDirection: 'row', alignItems: 'flex-start'
+// 헤더 style: flexDirection: 'row', alignItems: 'flex-start'
 <TouchableOpacity
   style={{ alignItems: 'center', paddingHorizontal: 10, marginTop: 4 }}
   onPress={() => navigation.navigate('Settings', { userId, name })}>
@@ -216,53 +317,18 @@ const REDIRECT_BASE    = 'https://leemike09-dev.github.io/SilverlieAI/';
 
 ---
 
-## 컴포넌트
+## AsyncStorage 키 목록
 
-### SeniorTabBar
-
-```typescript
-type TabKey = 'home' | 'health' | 'med' | 'family' | '';
-
-// Props
-{ navigation, activeTab: TabKey, userId: string, name: string }
-
-// 가족 탭 → FamilyConnect (FamilyConnect 내부에서 분기)
-```
-
----
-
-## 이미지 에셋 (mobile/assets/)
-
-| 파일 | 용도 |
+| 키 | 내용 |
 |------|------|
-| `bee_nobg.png` | AI 상담 버튼 (SeniorHomeScreen), 온보딩 슬라이드4 |
-| `kkulbi.png` | 배경 이미지 (IntroScreen 등) |
-
----
-
-## 알려진 이슈 / 주의사항
-
-### JSX 줄바꿈
-```tsx
-// ❌ Python heredoc에서 그대로 쓰면 실제 개행 → 빌드 에러
-{'
-'}
-
-// ✅ raw string r""" 사용하거나 단일 라인 텍스트로 대체
-```
-
-### 이모지 Python 인코딩
-```python
-# ❌ 서로게이트 쌍 → UnicodeEncodeError
-'\ud83e\ude78'
-
-# ✅ 4바이트 표기
-'\U0001FA78'
-```
-
-### StyleSheet 교체 시 주의
-- 문자열 replace로 한국어 포함 블록 교체 시 실패 가능
-- 대안: 라인 번호 기반 `lines[n] = ...` 직접 교체
+| `userId` | 로그인 사용자 ID |
+| `userName` | 사용자 이름 |
+| `onboarding_seen` | 온보딩 완료 여부 |
+| `health_profile` | 건강 프로파일 JSON |
+| `health_records` | 건강 수치 기록 |
+| `medications` | 복약 목록 |
+| `doctor_memo` | 의사 메모 텍스트 |
+| `doctor_memo_date` | 메모 저장 일시 |
 
 ---
 
@@ -271,9 +337,10 @@ type TabKey = 'home' | 'health' | 'med' | 'family' | '';
 ```bash
 gh run list --repo leemike09-dev/SilverlieAI --limit 3
 gh run view <run_id> --repo leemike09-dev/SilverlieAI --log-failed
+gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 ```
 
-빌드 → 배포까지 약 60~90초
+빌드 → 배포까지 약 40~60초
 
 ---
 
@@ -281,6 +348,7 @@ gh run view <run_id> --repo leemike09-dev/SilverlieAI --log-failed
 
 - [ ] 네이버/Apple/Google OAuth Client ID 실제 값 입력
 - [ ] 카카오 OAuth 콜백 처리 (백엔드 `/users/kakao-callback` 연동)
-- [ ] SettingsScreen 이름/전화번호 필드 확인 및 보강
 - [ ] FamilyDashboardScreen 실제 API 연동 (현재 DEMO_MODE)
 - [ ] LocationMapScreen 네이티브 앱 지도 지원 (현재 웹만)
+- [ ] 의사메모 인쇄 기능 (현재 사용 안내 코멘트만)
+- [ ] Kkulbi SOS 전용 이미지 제작 (현재 Kkulbi_1 공유)
