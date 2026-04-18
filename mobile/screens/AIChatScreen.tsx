@@ -35,6 +35,27 @@ const C = {
   emBg:    '#FFEBEE',
 };
 
+// 꿀비 감정 이미지 매핑 (정적 require)
+const KKULBI_IMAGES = {
+  default: require('../assets/kkulbi_1.png'),
+  happy:   require('../assets/kkulbi_1.png'),
+  worry:   require('../assets/kkulbi_worry.png'),
+  cheer:   require('../assets/kkulbi_cheer.png'),
+  sleep:   require('../assets/kkulbi_sleep.png'),
+  sos:     require('../assets/kkulbi_1.png'),
+};
+
+const SLEEP_KEYWORDS  = ['수면', '잠', '불면', '졸림', '피로', '잠이', '자다', '못자'];
+const CHEER_KEYWORDS  = ['잘하셨', '좋아요', '괜찮아', '다행', '건강하', '운동', '식단', '걷기', '정상'];
+
+function getKkulbiImage(riskLevel?: RiskLevel, text: string = '') {
+  if (riskLevel === 'critical') return KKULBI_IMAGES.sos;
+  if (riskLevel === 'high' || riskLevel === 'medium') return KKULBI_IMAGES.worry;
+  if (SLEEP_KEYWORDS.some(k => text.includes(k))) return KKULBI_IMAGES.sleep;
+  if (CHEER_KEYWORDS.some(k => text.includes(k))) return KKULBI_IMAGES.cheer;
+  return KKULBI_IMAGES.default;
+}
+
 function getGreeting(): string {
   const h = new Date().getHours();
   if (h < 9)  return '좋은 아침이에요! 🌅\n오늘 하루도 건강하게 시작해요';
@@ -47,11 +68,11 @@ function getGreeting(): string {
 
 const QUICK_CHIPS = [
   { emoji: '💊',   label: '약 부작용' },
-  { emoji: '🩸',  label: '혁압이 높아요' },
+  { emoji: '🩸',  label: '혈압이 높아요' },
   { emoji: '😴',  label: '잠이 안와요' },
-  { emoji: '🦵',    label: '무릅 아파요' },
+  { emoji: '🦵',    label: '무릎 아파요' },
   { emoji: '😵',  label: '어지러워요' },
-  { emoji: '🤢', label: '속이 메스껍워요' },
+  { emoji: '🤢', label: '속이 메스꺼워요' },
 ];
 
 export default function AIChatScreen({ route, navigation }: Props) {
@@ -271,7 +292,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       {(profileTags.length > 0 || todayBP) && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           style={s.tagsBar} contentContainerStyle={s.tagsContent}>
-          {todayBP ? <View style={s.tagBP}><Text style={s.tagBPTxt}>🩸 혁압 {todayBP}</Text></View> : null}
+          {todayBP ? <View style={s.tagBP}><Text style={s.tagBPTxt}>🩸 혈압 {todayBP}</Text></View> : null}
           {profileTags.map((tag, i) => (
             <View key={i} style={s.tag}><Text style={s.tagTxt}>{tag}</Text></View>
           ))}
@@ -303,13 +324,14 @@ export default function AIChatScreen({ route, navigation }: Props) {
           contentContainerStyle={s.chatContent}
           showsVerticalScrollIndicator={false}>
 
+          {/* 환영 꿀비 - 기쁨 이미지 */}
           {showChips && (
             <View style={s.welcomeArea}>
               <View style={s.beeWrap}>
                 <Image
-                  source={require('../assets/kkulbi_1.png')}
+                  source={KKULBI_IMAGES.happy}
                   style={s.beeImg}
-                  resizeMode="cover"
+                  resizeMode="contain"
                 />
               </View>
               <Text style={s.welcomeName}>{name}님, 안녕하세요!</Text>
@@ -319,10 +341,11 @@ export default function AIChatScreen({ route, navigation }: Props) {
           {msgs.map((m, i) => (
             m.role === 'ai' ? (
               <View key={i} style={s.aiRow}>
+                {/* 감정별 꿀비 아바타 */}
                 <Image
-                  source={require('../assets/kkulbi_1.png')}
+                  source={getKkulbiImage(m.riskLevel, m.text)}
                   style={s.aiAvatar}
-                  resizeMode="cover"
+                  resizeMode="contain"
                 />
                 <View style={{ flex: 1 }}>
                   {/* 위험도 배너 — 4단계 */}
@@ -372,12 +395,13 @@ export default function AIChatScreen({ route, navigation }: Props) {
             )
           ))}
 
+          {/* 로딩 - 응원 꿀비 */}
           {loading && (
             <View style={s.aiRow}>
               <Image
-                source={require('../assets/kkulbi_1.png')}
+                source={KKULBI_IMAGES.cheer}
                 style={s.aiAvatar}
-                resizeMode="cover"
+                resizeMode="contain"
               />
               <View style={s.aiBubble}>
                 <View style={s.typingDots}>
@@ -449,6 +473,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
         onRequestClose={() => setShowEmergency(false)}>
         <View style={s.modalOverlay}>
           <View style={s.modalBox}>
+            <Image source={KKULBI_IMAGES.sos} style={s.modalKkulbi} resizeMode="contain" />
             <Text style={s.modalTitle}>🚨 주의가 필요합니다</Text>
             <Text style={s.modalDesc}>
               AI가 즉각적인 도움이 필요할 수 있다고 판단했습니다.{'\n\n'}
@@ -514,17 +539,18 @@ const s = StyleSheet.create({
 
   welcomeArea: { alignItems: 'center', marginBottom: 20, marginTop: 4 },
   beeWrap: {
-    width: 96, height: 96, borderRadius: 48, overflow: 'hidden',
+    width: 120, height: 120, borderRadius: 60, overflow: 'hidden',
     borderWidth: 3, borderColor: '#fff',
     shadowColor: C.purple1, shadowOpacity: 0.2, shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 }, elevation: 6,
     marginBottom: 10,
+    backgroundColor: '#EDE7F6',
   },
-  beeImg:      { width: 96, height: 96 },
+  beeImg:      { width: 120, height: 120 },
   welcomeName: { fontSize: 26, fontWeight: '700', color: C.text },
 
   aiRow:    { flexDirection: 'row', gap: 10, marginBottom: 14, alignItems: 'flex-start' },
-  aiAvatar: { width: 36, height: 36, borderRadius: 18, flexShrink: 0 },
+  aiAvatar: { width: 44, height: 44, borderRadius: 22, flexShrink: 0, backgroundColor: '#EDE7F6' },
   aiBubble: {
     backgroundColor: C.card, borderRadius: 4, borderTopLeftRadius: 18,
     borderTopRightRadius: 18, borderBottomRightRadius: 18,
@@ -534,19 +560,16 @@ const s = StyleSheet.create({
   },
   aiText: { fontSize: 20, color: C.text, lineHeight: 32 },
 
-  // 위험도 배너 4단계
   bannerCritical: {
     backgroundColor: C.emBg, borderRadius: 10, borderWidth: 2, borderColor: C.emRed,
     paddingHorizontal: 12, paddingVertical: 10, marginBottom: 6,
   },
   bannerCriticalTxt: { fontSize: 16, color: C.emRed, fontWeight: '800', textAlign: 'center' },
-
   bannerHigh: {
     backgroundColor: '#FFF0E0', borderRadius: 10, borderWidth: 2, borderColor: '#E65100',
     paddingHorizontal: 12, paddingVertical: 10, marginBottom: 6,
   },
   bannerHighTxt: { fontSize: 16, color: '#E65100', fontWeight: '700', textAlign: 'center' },
-
   bannerMedium: {
     backgroundColor: C.warnBg, borderRadius: 10, borderWidth: 1.5, borderColor: C.warn,
     paddingHorizontal: 12, paddingVertical: 8, marginBottom: 6,
@@ -597,7 +620,6 @@ const s = StyleSheet.create({
     borderColor: C.line, paddingHorizontal: 16, paddingVertical: 10,
     fontSize: 19, color: C.text, maxHeight: 120, lineHeight: 28,
   },
-
   micBtn:       {
     width: 44, height: 44, borderRadius: 22, backgroundColor: C.purpleCard,
     alignItems: 'center', justifyContent: 'center',
@@ -605,12 +627,10 @@ const s = StyleSheet.create({
   },
   micBtnActive: { backgroundColor: '#FDEAEA', borderColor: '#D94040' },
   micIcon:      { fontSize: 20 },
-
   sendBtn:    { width: 44, height: 44, borderRadius: 22, backgroundColor: C.purple2, alignItems: 'center', justifyContent: 'center' },
   sendBtnOff: { backgroundColor: C.line },
   sendIcon:   { fontSize: 20, color: '#fff', fontWeight: '700' },
 
-  // 응급 모달
   modalOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
     alignItems: 'center', justifyContent: 'center', padding: 24,
@@ -621,26 +641,22 @@ const s = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 20,
     shadowOffset: { width: 0, height: 8 }, elevation: 12,
   },
+  modalKkulbi: { width: 80, height: 80, marginBottom: 8 },
   modalTitle: { fontSize: 26, fontWeight: '800', color: C.emRed, marginBottom: 14, textAlign: 'center' },
   modalDesc:  { fontSize: 18, color: C.text, lineHeight: 30, textAlign: 'center', marginBottom: 24 },
-
   btn119: {
     backgroundColor: C.emRed, borderRadius: 14,
     paddingVertical: 16, paddingHorizontal: 24,
     width: '100%', alignItems: 'center', marginBottom: 12,
   },
   btn119Txt: { fontSize: 22, fontWeight: '800', color: '#fff' },
-
   btnFamily: {
     backgroundColor: C.purple1, borderRadius: 14,
     paddingVertical: 14, paddingHorizontal: 24,
     width: '100%', alignItems: 'center', marginBottom: 12,
   },
   btnFamilyTxt: { fontSize: 20, fontWeight: '700', color: '#fff' },
-
-  btnDismiss: {
-    paddingVertical: 10,
-  },
+  btnDismiss:    { paddingVertical: 10 },
   btnDismissTxt: { fontSize: 17, color: C.sub },
 
   tagsBar:     { maxHeight: 44, backgroundColor: C.purpleCard, borderBottomWidth: 1, borderBottomColor: C.line },
