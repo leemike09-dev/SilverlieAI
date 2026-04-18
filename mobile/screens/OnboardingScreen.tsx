@@ -10,7 +10,7 @@ type Props = { navigation: any };
 
 const SLIDES = [
   {
-    icon: '👴👩‍👧',
+    icon: null,
     title: '자녀가 부모님 건강을\n걱정하고 있지 않나요?',
     desc: '가족이 언제든 건강 상태와\n동선을 확인할 수 있어요',
     color: '#1A4A8A',
@@ -70,7 +70,9 @@ export default function OnboardingScreen({ navigation }: Props) {
         {SLIDES.map((sl, i) => (
           <View key={i} style={[s.slide, { width }]}>
             <View style={[s.iconWrap, { backgroundColor: sl.color + '18' }]}>
-              {sl.icon ? (
+              {sl.icon === null && i === 0 ? (
+                <Image source={require('../assets/family.png')} style={s.beeImg} resizeMode="contain" />
+              ) : sl.icon ? (
                 <Text style={s.icon}>{sl.icon}</Text>
               ) : (
                 <Image source={require('../assets/bee_nobg.png')} style={s.beeImg} resizeMode="contain" />
