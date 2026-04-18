@@ -106,10 +106,12 @@ export default function App() {
   const [navReady,     setNavReady]     = useState(false);
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
 
-  // 초기 라우트 결정: userId → SeniorHome / onboarding_seen → Intro / 없으면 Onboarding
+  // 초기 라우트 결정: userId → SeniorHome / kakao 콜백 중 → Login / onboarding_seen → Intro / 없으면 Onboarding
   useEffect(() => {
     (async () => {
       try {
+        // 카카오 콜백 처리 중이면 인트로 대신 Login 유지
+        if (KAKAO_PENDING_CODE) { setInitialRoute('Login'); return; }
         const userId = await AsyncStorage.getItem('userId');
         if (userId) { setInitialRoute('SeniorHome'); return; }
         const seen = await AsyncStorage.getItem('onboarding_seen');
