@@ -62,7 +62,7 @@ function getGreeting(): string {
   if (h < 12) return '오전이 활기차네요! ☀️\n무엇이든 편하게 물어보세요';
   if (h < 14) return '점심 시간이에요! 🍱\n건강한 하루를 보내고 계신가요?';
   if (h < 18) return '오후도 건강하게! 🌤️\n궁금한 건강 정보가 있으신가요?';
-  if (h < 21) return '좋은 저녁이에요! 🌙\n오늘 하루 어떠셔요?';
+  if (h < 21) return '좋은 저녁이에요! 🌙\n오늘 하루 어디요?';
   return '잠자리 준비가 되셨나요? 🌛\n편안한 밤 되세요';
 }
 
@@ -414,9 +414,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
             <Image source={KKULBI_IMAGES.sos} style={s.modalKkulbi} resizeMode="contain" />
             <Text style={s.modalTitle}>🚨 주의가 필요합니다</Text>
             <Text style={s.modalDesc}>
-              AI가 즉각적인 도움이 필요할 수 있다고 판단했습니다.{'\'\''+'\n'+'\''\''+'\n'}
-              본인이 관찮다면 닫기를 눈러주세요.{'\'\''+'\n'}
-              불안하다면 119 또는 가족에게 연락하세요.
+              {`AI가 즉각적인 도움이 필요할 수 있다고 판단했습니다.\n본인이 관찮다면 닫기를 눈러주세요.\n불안하다면 119 또는 가족에게 연락하세요.`}
             </Text>
             <TouchableOpacity style={s.btn119} onPress={call119} activeOpacity={0.85}>
               <Text style={s.btn119Txt}>📞 119 지금 전화하기</Text>
