@@ -17,10 +17,10 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
     : { backgroundColor: '#1A4A8A' };
 
   const CARDS = [
-    { label: '혈압', value: '128/82', unit: 'mmHg', status: '정상 범위', color: '#F57C00', bigFont: 28 },
-    { label: '혁당', value: '105',    unit: 'mg/dL', status: '공복 정상', color: '#7B1FA2', bigFont: 38 },
-    { label: '체온', value: '36.5',   unit: '°C',   status: '정상',     color: '#1565C0', bigFont: 38 },
-    { label: '체중', value: '68.2',   unit: 'kg',   status: 'BMI 24.1', color: '#2E7D32', bigFont: 38 },
+    { label: '혈압', value: '128/82', unit: 'mmHg', status: '정상 범위', color: '#F57C00', bigFont: 22 },
+    { label: '혁당', value: '105',    unit: 'mg/dL', status: '공복 정상', color: '#7B1FA2', bigFont: 30 },
+    { label: '체온', value: '36.5',   unit: '°C',   status: '정상',     color: '#1565C0', bigFont: 30 },
+    { label: '체중', value: '68.2',   unit: 'kg',   status: 'BMI 24.1', color: '#2E7D32', bigFont: 30 },
   ];
 
   return (
@@ -109,13 +109,13 @@ const s = StyleSheet.create({
     width: CARD_SIZE, paddingVertical: 10, paddingHorizontal: 12,
     borderRadius: 22, gap: 2,
   },
-  cardLabel:  { fontSize: 18, color: 'rgba(255,255,255,0.9)', fontWeight: '700' },
+  cardLabel:  { fontSize: 16, color: 'rgba(255,255,255,0.9)', fontWeight: '700' },
   cardValue:  { fontWeight: '900', color: '#fff' },
-  cardUnit:   { fontSize: 16, color: 'rgba(255,255,255,0.8)' },
-  cardStatus: { fontSize: 18, color: 'rgba(255,255,255,0.75)' },
+  cardUnit:   { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
+  cardStatus: { fontSize: 15, color: 'rgba(255,255,255,0.75)' },
   mapBtn: {
     backgroundColor: '#fff', borderRadius: 16,
-    paddingVertical: 14, paddingHorizontal: 18,
+    paddingVertical: 18, paddingHorizontal: 18,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     borderWidth: 1.5, borderColor: '#D0E4F7',
   },
@@ -132,10 +132,10 @@ const s = StyleSheet.create({
   sosSub: { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   aiBtn: {
     flex: 1, backgroundColor: '#1A4A8A', borderRadius: 18,
-    alignItems: 'center', justifyContent: 'center', gap: 4,
-    paddingVertical: 14,
+    alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 20,
   },
-  aiBeeImg: { width: 44, height: 44, resizeMode: 'contain' },
+  aiBeeImg: { width: 54, height: 54, resizeMode: 'contain' },
   aiTxt: { fontSize: 18, fontWeight: '700', color: '#fff', textAlign: 'center' },
   settingBtn: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10, alignSelf: 'flex-start', marginTop: 4 },
   settingIco: { fontSize: 32 },
