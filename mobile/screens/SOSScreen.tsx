@@ -140,7 +140,7 @@ const s = StyleSheet.create({
   root:   { flex: 1, backgroundColor: '#C62828' },
   header: { paddingTop: Platform.OS === 'web' ? 20 : (StatusBar.currentHeight ?? 28) + 8,
             paddingBottom: 14, alignItems: 'center' },
-  headerSub:   { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.8)', letterSpacing: 3 },
+  headerSub:   { fontSize: 18, fontWeight: '700', color: 'rgba(255,255,255,0.8)', letterSpacing: 3 },
   headerTitle: { fontSize: 28, fontWeight: '900', color: '#fff', marginTop: 2 },
 
   body:  { flex: 1, alignItems: 'center', paddingHorizontal: 20, paddingBottom: 32 },
@@ -150,7 +150,7 @@ const s = StyleSheet.create({
             backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
             borderWidth: 6, borderColor: 'rgba(255,255,255,0.25)', marginBottom: 24 },
   sosLabel: { fontSize: 36, fontWeight: '900', color: '#C62828', letterSpacing: 3 },
-  sosSub:   { fontSize: 14, fontWeight: '700', color: '#C62828', marginTop: 4 },
+  sosSub:   { fontSize: 16, fontWeight: '700', color: '#C62828', marginTop: 4 },
 
   cdWrap:  { alignItems: 'center', minHeight: 80, justifyContent: 'center', marginBottom: 20 },
   cdNum:   { fontSize: 56, fontWeight: '900', color: '#FFD600', lineHeight: 60 },
@@ -162,7 +162,7 @@ const s = StyleSheet.create({
             borderColor: 'rgba(255,255,255,0.4)', borderRadius: 18,
             paddingVertical: 14, paddingHorizontal: 16, alignItems: 'center', minWidth: 88 },
   famEmoji: { fontSize: 28, marginBottom: 6 },
-  famLabel: { fontSize: 13, color: '#fff', fontWeight: '700', textAlign: 'center' },
+  famLabel: { fontSize: 18, color: '#fff', fontWeight: '700', textAlign: 'center' },
 
   cancelBtn: { borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', borderRadius: 16,
                paddingVertical: 12, paddingHorizontal: 40, marginBottom: 14 },
@@ -170,8 +170,8 @@ const s = StyleSheet.create({
 
   aiLink:    { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 16,
                padding: 14, alignItems: 'center', width: '100%', marginBottom: 12 },
-  aiLinkTxt: { fontSize: 15, color: 'rgba(255,255,255,0.9)', fontWeight: '700' },
-  aiLinkSub: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 4 },
+  aiLinkTxt: { fontSize: 16, color: 'rgba(255,255,255,0.9)', fontWeight: '700' },
+  aiLinkSub: { fontSize: 18, color: 'rgba(255,255,255,0.7)', marginTop: 4 },
 
-  locationTxt: { fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center' },
+  locationTxt: { fontSize: 18, color: 'rgba(255,255,255,0.6)', textAlign: 'center' },
 });

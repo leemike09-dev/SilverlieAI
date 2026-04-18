@@ -219,9 +219,9 @@ const s = StyleSheet.create({
   scoreCircle:     { width: 90, height: 90, borderRadius: 45, borderWidth: 4,
                      alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg },
   scoreNum:        { fontSize: 32, fontWeight: '900', lineHeight: 34 },
-  scoreUnit:       { fontSize: 15, color: C.sub },
+  scoreUnit:       { fontSize: 16, color: C.sub },
   scoreBadge:      { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 4 },
-  scoreBadgeTxt:   { fontSize: 15, fontWeight: '700' },
+  scoreBadgeTxt:   { fontSize: 16, fontWeight: '700' },
 
   weekChart:      { flex: 1 },
   weekChartTitle: { fontSize: 17, color: C.sub, fontWeight: '600', marginBottom: 8 },
@@ -229,7 +229,7 @@ const s = StyleSheet.create({
   chartCol:       { flex: 1, alignItems: 'center', gap: 3 },
   chartBarWrap:   { flex: 1, width: '100%', justifyContent: 'flex-end', borderRadius: 4, overflow: 'hidden', backgroundColor: C.line },
   chartBar:       { width: '100%', borderRadius: 4 },
-  chartDay:       { fontSize: 14, color: C.sub },
+  chartDay:       { fontSize: 16, color: C.sub },
   scoreChange:    { fontSize: 16, color: C.sage, fontWeight: '700' },
 
   // AI 카드

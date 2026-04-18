@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
   versionText: {
     textAlign: 'center',
     color: '#C5C9E8',
-    fontSize: 14,
+    fontSize: 16,
     marginTop: 24,
     marginBottom: 8,
   },

@@ -229,11 +229,11 @@ const s = StyleSheet.create({
   appName:      { fontSize: 24, fontWeight: '800', color: '#1a5fbc' },
   headerBtns:   { flexDirection: 'row', gap: 8, alignItems: 'center' },
   btnLogin:     { borderWidth: 2, borderColor: '#1a5fbc', borderRadius: 20, paddingVertical: 6, paddingHorizontal: 16 },
-  btnLoginTxt:  { fontSize: 15, fontWeight: '700', color: '#1a5fbc' },
+  btnLoginTxt:  { fontSize: 16, fontWeight: '700', color: '#1a5fbc' },
   btnSignup:    { backgroundColor: '#1a5fbc', borderRadius: 20, paddingVertical: 7, paddingHorizontal: 16 },
-  btnSignupTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  btnSignupTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },
   greeting:     { fontSize: 22, fontWeight: '800', color: '#1a2a3a' },
-  dateText:     { fontSize: 14, color: '#90a4ae', marginTop: 2, marginBottom: 8 },
+  dateText:     { fontSize: 16, color: '#90a4ae', marginTop: 2, marginBottom: 8 },
   wave1:        { height: 3, backgroundColor: '#bbdefb', borderRadius: 2, opacity: 0.5, marginBottom: 2 },
   wave2:        { height: 3, backgroundColor: '#90caf9', borderRadius: 2, opacity: 0.7 },
 
@@ -244,10 +244,10 @@ const s = StyleSheet.create({
   scoreCard:  { backgroundColor: '#1a5fbc', borderRadius: 18, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 16 },
   scoreRing:  { width: 70, height: 70, borderRadius: 35, borderWidth: 3, borderColor: 'rgba(255,255,255,0.55)', backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   scoreNum:   { fontSize: 24, fontWeight: '800', color: '#fff', lineHeight: 26 },
-  scoreUnit:  { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
+  scoreUnit:  { fontSize: 18, color: 'rgba(255,255,255,0.8)' },
   scoreTitle: { fontSize: 17, fontWeight: '800', color: '#fff', marginBottom: 3 },
-  scoreSub:   { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
-  scoreHint:  { fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 6, fontStyle: 'italic' },
+  scoreSub:   { fontSize: 16, color: 'rgba(255,255,255,0.8)' },
+  scoreHint:  { fontSize: 18, color: 'rgba(255,255,255,0.6)', marginTop: 6, fontStyle: 'italic' },
 
   // 운동 카드
   exCard:       { backgroundColor: '#fff', borderRadius: 16, padding: 14 },
@@ -266,13 +266,13 @@ const s = StyleSheet.create({
   tile:         { backgroundColor: '#fff', borderRadius: 14, padding: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
   tileIcon:     { fontSize: 28, marginBottom: 6 },
   tileLabel:    { fontSize: 16, fontWeight: '700', color: '#1a2a3a' },
-  tileSub:      { fontSize: 13, color: '#90a4ae', marginTop: 2 },
+  tileSub:      { fontSize: 18, color: '#90a4ae', marginTop: 2 },
 
   // 티커
   ticker:       { backgroundColor: '#e8f0fe', borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  tickerText:   { flex: 1, fontSize: 15, fontWeight: '700', color: '#1a3a6c' },
+  tickerText:   { flex: 1, fontSize: 16, fontWeight: '700', color: '#1a3a6c' },
   tickerBtn:    { backgroundColor: '#1a5fbc', borderRadius: 10, paddingVertical: 9, paddingHorizontal: 16 },
-  tickerBtnTxt: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  tickerBtnTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },
 
   // 팝업
   overlay:       { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
@@ -280,10 +280,10 @@ const s = StyleSheet.create({
   sheetHandle:   { width: 36, height: 4, backgroundColor: '#e0e0e0', borderRadius: 2, marginBottom: 18 },
   sheetIcon:     { fontSize: 40, marginBottom: 10 },
   sheetTitle:    { fontSize: 20, fontWeight: '800', color: '#1a2a3a', marginBottom: 6 },
-  sheetSub:      { fontSize: 15, color: '#90a4ae', textAlign: 'center', marginBottom: 20, lineHeight: 22 },
+  sheetSub:      { fontSize: 16, color: '#90a4ae', textAlign: 'center', marginBottom: 20, lineHeight: 22 },
   sheetLogin:    { width: '100%', backgroundColor: '#1a5fbc', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginBottom: 10 },
   sheetLoginTxt: { fontSize: 18, fontWeight: '800', color: '#fff' },
   sheetSignup:   { width: '100%', borderWidth: 2, borderColor: '#1a5fbc', borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginBottom: 14 },
   sheetSignupTxt:{ fontSize: 18, fontWeight: '800', color: '#1a5fbc' },
-  sheetCancel:   { fontSize: 15, color: '#90a4ae' },
+  sheetCancel:   { fontSize: 16, color: '#90a4ae' },
 });

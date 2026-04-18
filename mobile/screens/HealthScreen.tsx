@@ -468,7 +468,7 @@ const s = StyleSheet.create({
   headerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   settingsBtn:  { padding: 8, marginTop: 4 },
   settingsBtnTxt:   { fontSize: 28, textAlign: 'center' },
-  settingsBtnLabel: { fontSize: 12, color: 'rgba(255,255,255,0.9)', fontWeight: '700', textAlign: 'center', marginTop: -2 },
+  settingsBtnLabel: { fontSize: 18, color: 'rgba(255,255,255,0.9)', fontWeight: '700', textAlign: 'center', marginTop: -2 },
   headerTitle: { fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: 4 },
   headerSub:   { fontSize: 18, color: 'rgba(255,255,255,0.8)', marginBottom: 14 },
   waveWrap:    { height: 20, overflow: 'hidden' },

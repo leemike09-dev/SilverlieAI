@@ -112,8 +112,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
   title:       { fontSize: 26, fontWeight: '800', color: '#fff' },
-  unreadBadge: { fontSize: 15, color: 'rgba(255,255,255,0.75)', marginTop: 3 },
-  allRead:     { fontSize: 15, color: 'rgba(255,255,255,0.85)', fontWeight: '600',
+  unreadBadge: { fontSize: 16, color: 'rgba(255,255,255,0.75)', marginTop: 3 },
+  allRead:     { fontSize: 16, color: 'rgba(255,255,255,0.85)', fontWeight: '600',
                  borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)',
                  borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6 },
 
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   cardTitle:     { fontSize: 18, fontWeight: '700', color: '#263238', marginBottom: 4 },
   cardTitleRead: { fontWeight: '500', color: '#78909c' },
   cardDesc:      { fontSize: 16, color: '#546e7a', lineHeight: 24, marginBottom: 6 },
-  cardDate:      { fontSize: 14, color: '#b0bec5' },
+  cardDate:      { fontSize: 16, color: '#b0bec5' },
 
   emptyWrap: { alignItems: 'center', marginTop: 80 },
   emptyIcon: { fontSize: 48, marginBottom: 16 },

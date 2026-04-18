@@ -158,36 +158,36 @@ const s = StyleSheet.create({
   },
   headerIcon:   { fontSize: 30, marginBottom: 6 },
   headerTitle:  { fontSize: 20, fontWeight: '800', color: '#fff' },
-  headerSub:    { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 3 },
+  headerSub:    { fontSize: 18, color: 'rgba(255,255,255,0.75)', marginTop: 3 },
 
   body:         { flex: 1 },
   bodyContent:  { padding: 18, gap: 14, paddingBottom: 40 },
 
   aiBanner:     { backgroundColor: '#1a3a5c', borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
   aiBannerIcon: { fontSize: 22 },
-  aiBannerTxt:  { flex: 1, fontSize: 13, color: '#c5dff0', lineHeight: 20 },
+  aiBannerTxt:  { flex: 1, fontSize: 18, color: '#c5dff0', lineHeight: 20 },
   aiBannerHl:   { color: '#ffd700', fontWeight: '700' },
 
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: '#1a2a3a' },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1a2a3a' },
 
   bodyRow:      { flexDirection: 'row', gap: 10 },
   bodyField:    { flex: 1, backgroundColor: '#fff', borderRadius: 13, padding: 12, alignItems: 'center', borderWidth: 1.5, borderColor: '#e0e8f8' },
   bodyInput:    { fontSize: 20, fontWeight: '800', color: '#1a2a3a', textAlign: 'center', width: '100%' },
-  bodyUnit:     { fontSize: 11, color: '#90a4ae', marginTop: 2 },
-  bodyLabel:    { fontSize: 11, color: '#78909c', marginTop: 2 },
+  bodyUnit:     { fontSize: 18, color: '#90a4ae', marginTop: 2 },
+  bodyLabel:    { fontSize: 18, color: '#78909c', marginTop: 2 },
 
   interestGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   interestChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e0e8f8', borderRadius: 12, paddingVertical: 9, paddingHorizontal: 12 },
   interestChipOn: { backgroundColor: '#e8f0fe', borderColor: '#1a5fbc' },
   interestIcon: { fontSize: 16 },
-  interestLabel: { fontSize: 12, fontWeight: '600', color: '#546e7a' },
+  interestLabel: { fontSize: 18, fontWeight: '600', color: '#546e7a' },
   interestLabelOn: { color: '#1a5fbc' },
 
-  customInput:  { backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e0e8f8', borderStyle: 'dashed', borderRadius: 13, padding: 14, fontSize: 13, color: '#1a2a3a' },
+  customInput:  { backgroundColor: '#fff', borderWidth: 1.5, borderColor: '#e0e8f8', borderStyle: 'dashed', borderRadius: 13, padding: 14, fontSize: 18, color: '#1a2a3a' },
 
   btnRow:       { flexDirection: 'row', gap: 10, marginTop: 4 },
   skipBtn:      { paddingVertical: 14, paddingHorizontal: 20 },
-  skipTxt:      { fontSize: 13, color: '#90a4ae', borderBottomWidth: 1, borderBottomColor: '#cfd8dc' },
+  skipTxt:      { fontSize: 18, color: '#90a4ae', borderBottomWidth: 1, borderBottomColor: '#cfd8dc' },
   completeBtn:  { flex: 1, backgroundColor: '#1a5fbc', borderRadius: 13, paddingVertical: 15, alignItems: 'center', shadowColor: '#1a5fbc', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
-  completeTxt:  { fontSize: 15, fontWeight: '800', color: '#fff' },
+  completeTxt:  { fontSize: 16, fontWeight: '800', color: '#fff' },
 });

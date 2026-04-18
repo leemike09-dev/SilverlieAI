@@ -266,7 +266,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
           <TouchableOpacity style={s.settingsBtn}
             onPress={() => navigation.navigate('Settings', { userId, name })}>
             <Text style={{ fontSize: 26, textAlign: 'center' }}>⚙️</Text>
-            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', fontWeight: '700', textAlign: 'center', marginTop: -2 }}>설정</Text>
+            <Text style={{ fontSize: 18, color: 'rgba(255,255,255,0.9)', fontWeight: '700', textAlign: 'center', marginTop: -2 }}>설정</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -451,7 +451,7 @@ const s = StyleSheet.create({
     shadowColor: '#3DAB7B', shadowRadius: 4, shadowOpacity: 0.8 },
   disclaimer:    { backgroundColor: '#FFF8E1', paddingHorizontal: 16, paddingVertical: 8,
     borderBottomWidth: 1, borderBottomColor: '#FFE082' },
-  disclaimerTxt: { fontSize: 15, color: '#795548', textAlign: 'center', lineHeight: 22 },
+  disclaimerTxt: { fontSize: 16, color: '#795548', textAlign: 'center', lineHeight: 22 },
   chatArea:    { flex: 1, backgroundColor: C.bg },
   chatContent: { padding: 16, paddingBottom: 8 },
   welcomeArea: { alignItems: 'center', marginBottom: 20, marginTop: 4 },
@@ -530,10 +530,10 @@ const s = StyleSheet.create({
   tagsContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
   tag:    { backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 5,
     borderWidth: 1, borderColor: C.line },
-  tagTxt: { fontSize: 14, color: C.purple1, fontWeight: '700' },
+  tagTxt: { fontSize: 16, color: C.purple1, fontWeight: '700' },
   tagBP:    { backgroundColor: '#FFF0F0', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 5,
     borderWidth: 1, borderColor: '#FFAAAA' },
-  tagBPTxt: { fontSize: 14, color: '#C62828', fontWeight: '700' },
+  tagBPTxt: { fontSize: 16, color: '#C62828', fontWeight: '700' },
   criticalCard:          { backgroundColor: '#FFF0F0', borderTopWidth: 2, borderBottomWidth: 2,
     borderColor: '#C62828', padding: 14, alignItems: 'center' },
   criticalCardTitle:     { fontSize: 20, fontWeight: '900', color: '#C62828', marginBottom: 8 },
