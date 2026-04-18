@@ -307,7 +307,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
             <View style={s.welcomeArea}>
               <View style={s.beeWrap}>
                 <Image
-                  source={{uri: 'https://via.placeholder.com/36'}}
+                  source={require('../assets/kkulbi_1.png')}
                   style={s.beeImg}
                   resizeMode="cover"
                 />
@@ -320,7 +320,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
             m.role === 'ai' ? (
               <View key={i} style={s.aiRow}>
                 <Image
-                  source={{uri: 'https://via.placeholder.com/36'}}
+                  source={require('../assets/kkulbi_1.png')}
                   style={s.aiAvatar}
                   resizeMode="cover"
                 />
@@ -375,7 +375,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
           {loading && (
             <View style={s.aiRow}>
               <Image
-                source={{uri: 'https://via.placeholder.com/36'}}
+                source={require('../assets/kkulbi_1.png')}
                 style={s.aiAvatar}
                 resizeMode="cover"
               />
