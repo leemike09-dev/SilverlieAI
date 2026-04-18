@@ -18,7 +18,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
 
   const CARDS = [
     { label: '혈압', value: '128/82', unit: 'mmHg', status: '정상 범위', color: '#F57C00', bigFont: 22 },
-    { label: '혁당', value: '105',    unit: 'mg/dL', status: '공복 정상', color: '#7B1FA2', bigFont: 30 },
+    { label: '혈당', value: '105',    unit: 'mg/dL', status: '공복 정상', color: '#7B1FA2', bigFont: 30 },
     { label: '체온', value: '36.5',   unit: '°C',   status: '정상',     color: '#1565C0', bigFont: 30 },
     { label: '체중', value: '68.2',   unit: 'kg',   status: 'BMI 24.1', color: '#2E7D32', bigFont: 30 },
   ];
@@ -74,9 +74,9 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
             onPress={() => navigation.navigate('SOS', { userId, name })}
             activeOpacity={0.85}>
             <Text style={s.sosIco}>🚨</Text>
-            <View>
-              <Text style={s.sosTxt}>SOS 긴급 호출</Text>
-              <Text style={s.sosSub}>119 & 가족 즉시 연락</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.sosTxt} numberOfLines={1} adjustsFontSizeToFit>SOS 긴급 호출</Text>
+              <Text style={s.sosSub} numberOfLines={1} adjustsFontSizeToFit>119 & 가족 즉시 연락</Text>
             </View>
           </TouchableOpacity>
           <TouchableOpacity
@@ -125,7 +125,7 @@ const s = StyleSheet.create({
   mapRight: { fontSize: 16, fontWeight: '800', color: '#7B1FA2' },
   actionRow: { flexDirection: 'row', gap: 10 },
   sosBtn: {
-    flex: 2, backgroundColor: '#D32F2F', borderRadius: 18,
+    flex: 2, minWidth: 0, backgroundColor: '#D32F2F', borderRadius: 18,
     paddingVertical: 14, paddingHorizontal: 16,
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
@@ -133,7 +133,7 @@ const s = StyleSheet.create({
   sosTxt: { fontSize: 20, fontWeight: '900', color: '#fff' },
   sosSub: { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   aiBtn: {
-    flex: 3, backgroundColor: '#1A4A8A', borderRadius: 18,
+    flex: 3, minWidth: 0, backgroundColor: '#1A4A8A', borderRadius: 18,
     alignItems: 'center', justifyContent: 'center', gap: 6,
     paddingVertical: 20,
   },
