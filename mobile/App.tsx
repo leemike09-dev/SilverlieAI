@@ -137,6 +137,9 @@ export default function App() {
       if (code) window.history.replaceState({}, '', window.location.pathname);
     }
 
+    // 3순위: 모듈 로드 시점에 캡처된 코드 (URL이 이미 클리어된 경우)
+    if (!code) code = KAKAO_PENDING_CODE;
+
     if (code) setKakaoCode(code);
   }, []);
 
