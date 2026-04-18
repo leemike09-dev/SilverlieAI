@@ -27,8 +27,8 @@ export default function SeniorTabBar({ navigation, activeTab, userId, name }: Pr
       backgroundColor: '#FFFFFF',
       borderTopWidth: 1,
       borderTopColor: '#E5E5EA',
-      paddingTop: 10,
-      paddingBottom: Math.max(14, insets.bottom + 6),
+      paddingTop: 6,
+      paddingBottom: Math.max(10, insets.bottom + 4),
     }}>
       {TABS.map(tab => {
         const active = tab.key.toLowerCase() === activeTab?.toLowerCase();
@@ -44,11 +44,11 @@ export default function SeniorTabBar({ navigation, activeTab, userId, name }: Pr
           >
             <Ionicons
               name={active ? (String(tab.icon).replace('-outline', '') as any) : tab.icon}
-              size={28}
+              size={24}
               color={active ? '#5C6BC0' : '#C0C0C0'}
             />
             <Text style={{
-              fontSize: 13,
+              fontSize: 12,
               color: active ? '#5C6BC0' : '#ABABAB',
               fontWeight: active ? '700' : '500',
             }}>
