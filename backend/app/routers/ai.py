@@ -33,6 +33,7 @@ CAT_KEYWORDS = {
     '병원준비':    ['병원','검사','진료','의사','예약'],
 }
 EMERGENCY_WORDS  = ['흉통','가슴통증','호흡곤란','숨막','마비','의식','쓰러','졸도','심정지']
+DOCTOR_KEYWORDS  = ['병원', '진료', '의사', '내원', '검사받']
 DEFAULT_FOLLOWUP = [
     "이 증상이 생긴 정확한 시점을 의사에게 말씀드리세요.",
     "병원 방문 전 증상 기록을 적어두면 도움이 돼요.",
@@ -248,6 +249,58 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
     return prompt
 
 
+
+def check_doctor_visit(reply: str) -> bool:
+    return any(kw in reply for kw in DOCTOR_KEYWORDS)
+
+
+def build_doctor_memo(user: dict, health_ctx: dict, current_msg: str) -> str:
+    from datetime import datetime as _dt
+    p        = health_ctx.get('profile', {}) or {}
+    meds_raw = health_ctx.get('medications', []) or []
+    rec      = health_ctx.get('today_record', {}) or {}
+    name     = user.get('name') or p.get('name', '')
+    age      = user.get('age')  or p.get('age', '')
+    gender   = user.get('gender') or p.get('gender', '')
+    diseases = ', '.join(p.get('diseases') or p.get('chronic_diseases') or []) or ''
+    allergy_parts = []
+    if p.get('drugAllergies'): allergy_parts.extend(p['drugAllergies'])
+    if p.get('foodAllergies'): allergy_parts.extend(p['foodAllergies'])
+    allergies = ', '.join(allergy_parts) or ''
+    meds_str  = ', '.join([
+        f"{m.get('name','')} {m.get('dosage','')}({m.get('time_slot','')})"
+        for m in meds_raw
+    ]) if meds_raw else ''
+    bp    = f"{rec.get('bp_sys','')}/{rec.get('bp_dia','')} mmHg" if rec.get('bp_sys') else ''
+    sugar = f"{rec.get('glucose','')} mg/dL" if rec.get('glucose') else ''
+    steps = f"{rec.get('steps','')} 백" if rec.get('steps') else ''
+    age_gender = f"{age}세 {gender}" if (age or gender) else ''
+    now = _dt.now().strftime('%Y년 %m월 %d일 %H:%M')
+    lines = [
+        "[의사 전달 메모]",
+        f"작성일시: {now}",
+        "",
+        "■ 환자 정보",
+        f"이름: {name}" + (f" ({age_gender})" if age_gender else ""),
+        f"기저질환: {diseases or '없음'}",
+        f"알레르기: {allergies or '없음'}",
+        "",
+        "■ 현재 증상",
+        current_msg,
+        "",
+        "■ 복용 중인 약",
+        meds_str or '없음',
+        "",
+        "■ 최근 건강 수치",
+        f"혁압: {bp or '미측정'}",
+        f"혁당: {sugar or '미측정'}",
+        f"걸음수: {steps or '미측정'}",
+        "",
+        "* Silver Life AI 꿼비 상담 내용을 기반으로 자동 생성된 메모입니다.",
+    ]
+    return '\n'.join(lines)
+
+
 def call_claude(client: anthropic.Anthropic, model: str, system: str, messages: list) -> str:
     """Claude 호출 -- 웹검색 도구 우선, 실패 시 일반 호출."""
     try:
@@ -395,12 +448,17 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
             _save_chat_turn, request.user_id, request.message, reply_text, risk, model
         )
 
+    doctor_memo_needed = check_doctor_visit(reply_text)
+    doctor_memo = build_doctor_memo(user_row, health_ctx, request.message) if doctor_memo_needed else None
+
     return {
         "reply":               reply_text,
         "risk_level":          risk,
         "model_used":          model,
         "suggested_questions": suggestions,
         "sos_sent":            sos_sent,
+        "doctor_memo_needed":  doctor_memo_needed,
+        "doctor_memo":         doctor_memo,
     }
 
 

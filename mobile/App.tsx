@@ -35,6 +35,7 @@ import {
 } from './utils/notifications';
 import HealthProfileScreen from './screens/HealthProfileScreen';
 import FAQScreen from './screens/FAQScreen';
+import DoctorMemoScreen from './screens/DoctorMemoScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -192,6 +193,7 @@ export default function App() {
           <Stack.Screen name="SOS"                component={SOSScreen}                 initialParams={DEMO} />
         <Stack.Screen name="HealthProfile"      component={HealthProfileScreen}       initialParams={DEMO} />
         <Stack.Screen name="FAQ"               component={FAQScreen}                 initialParams={DEMO} />
+        <Stack.Screen name="DoctorMemo"        component={DoctorMemoScreen}          initialParams={DEMO} />
         </Stack.Navigator>
       </NavigationContainer>
     </LanguageProvider>
