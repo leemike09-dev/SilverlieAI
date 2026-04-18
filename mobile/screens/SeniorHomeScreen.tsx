@@ -93,8 +93,8 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F4F7FC' },
   header: {
     paddingTop: Platform.OS === 'web' ? 24 : (StatusBar.currentHeight ?? 28) + 12,
-    paddingHorizontal: 20, paddingBottom: 20,
-    overflow: 'visible',
+    paddingHorizontal: 20, paddingBottom: 28,
+    borderBottomLeftRadius: 32, borderBottomRightRadius: 32,
     flexDirection: 'row', alignItems: 'flex-start',
   },
   name:      { fontSize: 30, fontWeight: '900', color: '#fff' },
