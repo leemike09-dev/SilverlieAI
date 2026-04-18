@@ -213,8 +213,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
     if (Platform.OS !== 'web') return;
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) {
-      setMsgs(prev => [...prev, { role: 'ai', text: '이 브라우저는 음성 인식을 지원하지 않아요.
-Chrome을 사용해 주세요.' }]);
+      setMsgs(prev => [...prev, { role: 'ai', text: '이 브라우저는 음성 인식을 지원하지 않아요.\nChrome을 사용해 주세요.' }]);
       return;
     }
     if (isRecording) { stopVoice(); return; }
