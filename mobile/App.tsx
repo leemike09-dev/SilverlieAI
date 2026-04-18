@@ -111,7 +111,9 @@ export default function App() {
     (async () => {
       try {
         // 카카오 콜백 처리 중이면 인트로 대신 Login 유지
-        if (KAKAO_PENDING_CODE) { setInitialRoute('Login'); return; }
+        const hasPendingKakao = !!KAKAO_PENDING_CODE ||
+          (typeof sessionStorage !== 'undefined' && !!sessionStorage.getItem('kakao_auth_code'));
+        if (hasPendingKakao) { setInitialRoute('Login'); return; }
         const userId = await AsyncStorage.getItem('userId');
         if (userId) { setInitialRoute('SeniorHome'); return; }
         const seen = await AsyncStorage.getItem('onboarding_seen');
