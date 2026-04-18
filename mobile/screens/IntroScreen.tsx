@@ -8,8 +8,8 @@ import * as Speech from 'expo-speech';
 const { height } = Dimensions.get('window');
 
 const beeSource = Platform.OS === 'web'
-  ? { uri: 'https://raw.githubusercontent.com/leemike09-dev/SilverlieAI/main/mobile/assets/Kkulbi_1.png' }
-  : require('../assets/Kkulbi_1.png');
+  ? { uri: 'https://raw.githubusercontent.com/leemike09-dev/SilverlieAI/main/mobile/assets/Kkulbi_happy.png' }
+  : require('../assets/Kkulbi_happy.png');
 
 const GREETINGS = [
   '안녕하세요! 저는 꿀비예요 🐝',
