@@ -37,12 +37,12 @@ const C = {
 };
 
 const KKULBI_IMAGES = {
-  default: require('../assets/kkulbi_1.png'),
-  happy:   require('../assets/kkulbi_1.png'),
-  worry:   require('../assets/kkulbi_worry.png'),
-  cheer:   require('../assets/kkulbi_cheer.png'),
-  sleep:   require('../assets/kkulbi_sleep.png'),
-  sos:     require('../assets/kkulbi_1.png'),
+  default: require('../assets/Kkulbi_1.png'),
+  happy:   require('../assets/Kkulbi_1.png'),
+  worry:   require('../assets/Kkulbi_worry.png'),
+  cheer:   require('../assets/Kkulbi_Cheer.png'),
+  sleep:   require('../assets/Kkulbi_sleep.png'),
+  sos:     require('../assets/Kkulbi_1.png'),
 };
 
 const SLEEP_KEYWORDS  = ['수면', '잠', '불면', '존림', '피로', '잠이', '자다', '못자'];
