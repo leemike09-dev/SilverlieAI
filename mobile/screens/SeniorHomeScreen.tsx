@@ -40,9 +40,9 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
         </TouchableOpacity>
         {Platform.OS === 'web' && (
           // @ts-ignore
-          <svg viewBox="0 0 375 55" style={{ position: 'absolute', bottom: -1, left: 0, right: 0, width: '100%', display: 'block' }}>
+          <svg viewBox="0 0 375 60" style={{ position: 'absolute', bottom: -1, left: 0, right: 0, width: '100%', display: 'block' }}>
             {/* @ts-ignore */}
-            <path d="M0 55 Q94 0 188 28 Q282 55 375 8 L375 55 Z" fill="#F4F7FC" />
+            <path d="M0 60 Q94 0 188 30 Q282 60 375 10 L375 60 L0 60 Z" fill="#F4F7FC" />
           </svg>
         )}
       </View>
