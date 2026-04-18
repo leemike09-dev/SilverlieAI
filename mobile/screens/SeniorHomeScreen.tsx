@@ -105,7 +105,7 @@ const s = StyleSheet.create({
   },
   cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   card: {
-    width: CARD_SIZE, paddingVertical: 18, paddingHorizontal: 14,
+    width: CARD_SIZE, paddingVertical: 14, paddingHorizontal: 14,
     borderRadius: 22, gap: 3,
   },
   cardLabel:  { fontSize: 18, color: 'rgba(255,255,255,0.9)', fontWeight: '700' },
@@ -114,7 +114,7 @@ const s = StyleSheet.create({
   cardStatus: { fontSize: 18, color: 'rgba(255,255,255,0.75)' },
   mapBtn: {
     backgroundColor: '#fff', borderRadius: 16,
-    paddingVertical: 18, paddingHorizontal: 18,
+    paddingVertical: 14, paddingHorizontal: 18,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     borderWidth: 1.5, borderColor: '#D0E4F7',
   },
@@ -123,16 +123,16 @@ const s = StyleSheet.create({
   actionRow: { flexDirection: 'row', gap: 10 },
   sosBtn: {
     flex: 1, backgroundColor: '#D32F2F', borderRadius: 18,
-    paddingVertical: 18, paddingHorizontal: 16,
+    paddingVertical: 14, paddingHorizontal: 16,
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
   sosIco: { fontSize: 28 },
   sosTxt: { fontSize: 20, fontWeight: '900', color: '#fff' },
   sosSub: { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   aiBtn: {
-    backgroundColor: '#1A4A8A', borderRadius: 18,
-    width: 80, alignItems: 'center', justifyContent: 'center', gap: 4,
-    paddingVertical: 10,
+    flex: 2, backgroundColor: '#1A4A8A', borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center', gap: 4,
+    paddingVertical: 14,
   },
   aiBeeImg: { width: 44, height: 44, resizeMode: 'contain' },
   aiTxt: { fontSize: 18, fontWeight: '700', color: '#fff', textAlign: 'center' },
