@@ -59,6 +59,9 @@ export default function App() {
   // 네이티브 카카오 로그인: silverliveai://oauth?code=xxx 딥링크 처리
   // 알림 초기화 & 권한 요청 (첫 실행)
   useEffect(() => {
+    // Render 서버 콜드 스타트 방지 — 앱 시작 시 미리 깨움
+    fetch('https://silverlieai.onrender.com/').catch(() => {});
+
     const initNotifications = async () => {
       await initNotificationHandler();
       const firstRun = await AsyncStorage.getItem('notification_init');
