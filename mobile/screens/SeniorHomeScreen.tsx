@@ -17,7 +17,7 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
     : { backgroundColor: '#1A4A8A' };
 
   const CARDS = [
-    { label: '혁압', value: '128/82', unit: 'mmHg', status: '정상 범위', color: '#F57C00', bigFont: 28 },
+    { label: '혈압', value: '128/82', unit: 'mmHg', status: '정상 범위', color: '#F57C00', bigFont: 28 },
     { label: '혁당', value: '105',    unit: 'mg/dL', status: '공복 정상', color: '#7B1FA2', bigFont: 38 },
     { label: '체온', value: '36.5',   unit: '°C',   status: '정상',     color: '#1565C0', bigFont: 38 },
     { label: '체중', value: '68.2',   unit: 'kg',   status: 'BMI 24.1', color: '#2E7D32', bigFont: 38 },

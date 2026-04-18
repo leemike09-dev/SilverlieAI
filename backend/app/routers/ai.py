@@ -292,7 +292,7 @@ def build_doctor_memo(user: dict, health_ctx: dict, current_msg: str) -> str:
         meds_str or '없음',
         "",
         "■ 최근 건강 수치",
-        f"혁압: {bp or '미측정'}",
+        f"혈압: {bp or '미측정'}",
         f"혁당: {sugar or '미측정'}",
         f"걸음수: {steps or '미측정'}",
         "",

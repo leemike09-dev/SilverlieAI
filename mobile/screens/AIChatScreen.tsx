@@ -68,7 +68,7 @@ function getGreeting(): string {
 
 const QUICK_CHIPS = [
   { emoji: '💊', label: '약 부작용' },
-  { emoji: '🩸', label: '혁압이 높아요' },
+  { emoji: '🩸', label: '혈압이 높아요' },
   { emoji: '😴', label: '잠이 안와요' },
   { emoji: '🦵', label: '무릅 아파요' },
   { emoji: '😵', label: '어지러워요' },
@@ -280,7 +280,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       {(profileTags.length > 0 || todayBP) && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           style={s.tagsBar} contentContainerStyle={s.tagsContent}>
-          {todayBP ? <View style={s.tagBP}><Text style={s.tagBPTxt}>🩸 혁압 {todayBP}</Text></View> : null}
+          {todayBP ? <View style={s.tagBP}><Text style={s.tagBPTxt}>🩸 혈압 {todayBP}</Text></View> : null}
           {profileTags.map((tag, i) => (
             <View key={i} style={s.tag}><Text style={s.tagTxt}>{tag}</Text></View>
           ))}
@@ -414,7 +414,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
             <Image source={KKULBI_IMAGES.sos} style={s.modalKkulbi} resizeMode="contain" />
             <Text style={s.modalTitle}>🚨 주의가 필요합니다</Text>
             <Text style={s.modalDesc}>
-              {`AI가 즉각적인 도움이 필요할 수 있다고 판단했습니다.\n본인이 관찮다면 닫기를 눈러주세요.\n불안하다면 119 또는 가족에게 연락하세요.`}
+              {`AI가 즉각적인 도움이 필요할 수 있다고 판단했습니다.\n본인이 괜찮다면 닫기를 눌러주세요.\n불안하다면 119 또는 가족에게 연락하세요.`}
             </Text>
             <TouchableOpacity style={s.btn119} onPress={call119} activeOpacity={0.85}>
               <Text style={s.btn119Txt}>📞 119 지금 전화하기</Text>
@@ -425,7 +425,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
               <Text style={s.btnFamilyTxt}>👥 중요 연락처 보기</Text>
             </TouchableOpacity>
             <TouchableOpacity style={s.btnDismiss} onPress={() => setShowEmergency(false)} activeOpacity={0.85}>
-              <Text style={s.btnDismissTxt}>관찮습니다, 닫기</Text>
+              <Text style={s.btnDismissTxt}>괜찮습니다, 닫기</Text>
             </TouchableOpacity>
           </View>
         </View>
