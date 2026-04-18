@@ -145,8 +145,7 @@ export default function DoctorMemoScreen({ route, navigation }: Props) {
           <View style={s.emptyBox}>
             <Text style={s.emptyTitle}>📋 저장된 메모가 없습니다</Text>
             <Text style={s.emptyDesc}>
-              AI 상담 중 병원 방문 권유 답변이{'
-'}
+              AI 상담 중 병원 방문 권유 답변이{'\n'}
               있을 때 메모를 저장할 수 있어요
             </Text>
             <TouchableOpacity style={s.goAIBtn}
