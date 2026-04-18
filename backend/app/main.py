@@ -30,4 +30,11 @@ app.include_router(location.router, prefix="/location", tags=["location"])
 
 @app.get("/")
 def root():
-    return {"status": "ok", "message": "Silver Life AI API"}
+    # Supabase 자동 일시정지 방지 — 앱 시작 ping 시 DB도 함께 깨움
+    try:
+        from app.database import get_supabase
+        get_supabase().table("users").select("id").limit(1).execute()
+        db_status = "ok"
+    except Exception:
+        db_status = "unavailable"
+    return {"status": "ok", "message": "Silver Life AI API", "db": db_status}
