@@ -100,13 +100,13 @@ const s = StyleSheet.create({
   name:      { fontSize: 30, fontWeight: '900', color: '#fff' },
   headerSub: { fontSize: 16, color: 'rgba(255,255,255,0.75)', marginTop: 4 },
   content: {
-    flex: 1, paddingHorizontal: 14, paddingTop: 16, paddingBottom: 16,
+    flex: 1, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10,
     justifyContent: 'space-between',
   },
-  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   card: {
-    width: CARD_SIZE, paddingVertical: 14, paddingHorizontal: 14,
-    borderRadius: 22, gap: 3,
+    width: CARD_SIZE, paddingVertical: 10, paddingHorizontal: 12,
+    borderRadius: 22, gap: 2,
   },
   cardLabel:  { fontSize: 18, color: 'rgba(255,255,255,0.9)', fontWeight: '700' },
   cardValue:  { fontWeight: '900', color: '#fff' },
@@ -122,7 +122,7 @@ const s = StyleSheet.create({
   mapRight: { fontSize: 16, fontWeight: '800', color: '#7B1FA2' },
   actionRow: { flexDirection: 'row', gap: 10 },
   sosBtn: {
-    flex: 1, backgroundColor: '#D32F2F', borderRadius: 18,
+    flex: 2, backgroundColor: '#D32F2F', borderRadius: 18,
     paddingVertical: 14, paddingHorizontal: 16,
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
@@ -130,7 +130,7 @@ const s = StyleSheet.create({
   sosTxt: { fontSize: 20, fontWeight: '900', color: '#fff' },
   sosSub: { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   aiBtn: {
-    flex: 2, backgroundColor: '#1A4A8A', borderRadius: 18,
+    flex: 1, backgroundColor: '#1A4A8A', borderRadius: 18,
     alignItems: 'center', justifyContent: 'center', gap: 4,
     paddingVertical: 14,
   },
