@@ -452,9 +452,14 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 - [ ] 삼성헬스 SDK 연동
 - [ ] Apple HealthKit 연동
 
+### 🎤 음성 기능 ⚠️ 출시 전 필수
+- [ ] AIChatScreen 음성 입력 (STT) — 🎤 버튼 탭 시 음성 → 텍스트 변환 후 전송 (expo-speech / react-native-voice)
+- [ ] SOSScreen TTS 음성 안내 — 화면 진입 시 "지금 119에 연결합니다" 등 자동 음성 재생 (`setTimeout` 빈 블록 완성)
+- [ ] AIChatScreen TTS 답변 읽기 — 꿀비 답변을 음성으로 읽어주는 기능 (스피커 버튼)
+- [ ] 인트로 TTS 음성 안내 (시간대별 인사말 — "좋은 아침이에요" 등)
+
 ### 🌏 글로벌 / 플랫폼 확장
 - [ ] 중국 WeChat 미니프로그램 버전
-- [ ] 인트로 TTS 음성 안내 (시간대별 인사말, `setTimeout` 빈 블록 완성 필요)
 
 ### 👨‍👩‍👧 가족 / 연결 기능
 - [ ] FamilyDashboard AI 건강 요약 카드 (현재 DEMO_MODE)
