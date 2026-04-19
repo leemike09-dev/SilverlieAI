@@ -58,7 +58,7 @@ export default function SOSScreen({ navigation, route }: Props) {
     if (timerRef.current) clearInterval(timerRef.current);
     setCounting(false);
     setCount(5);
-    navigation.goBack();
+    navigation.navigate('SeniorHome', { userId, name });
   };
 
   return (
@@ -119,7 +119,7 @@ export default function SOSScreen({ navigation, route }: Props) {
 
         {/* 취소 버튼 */}
         <TouchableOpacity style={s.cancelBtn} onPress={cancelSOS} activeOpacity={0.8}>
-          <Text style={s.cancelTxt}>✕ 취소 (오작동)</Text>
+          <Text style={s.cancelTxt}>✕ 취소하고 홈으로</Text>
         </TouchableOpacity>
 
         {/* AI 상담 보조 링크 */}
