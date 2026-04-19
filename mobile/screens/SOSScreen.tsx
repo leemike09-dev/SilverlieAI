@@ -80,6 +80,7 @@ export default function SOSScreen({ navigation, route }: Props) {
           <Animated.View style={[s.sosBtn, { transform: [{ scale: scaleAnim }] }]}>
             <Text style={s.sosLabel}>SOS</Text>
             <Text style={s.sosSub}>탭하여 호출</Text>
+            <Text style={s.sos119}>119</Text>
           </Animated.View>
         </TouchableOpacity>
 
@@ -144,29 +145,30 @@ const s = StyleSheet.create({
   headerTitle: { fontSize: 28, fontWeight: '900', color: '#fff', marginTop: 2 },
 
   body:  { flex: 1, alignItems: 'center', paddingHorizontal: 20, paddingBottom: 32 },
-  guide: { fontSize: 16, color: 'rgba(255,255,255,0.85)', marginBottom: 20, textAlign: 'center' },
+  guide: { fontSize: 24, fontWeight: '700', color: 'rgba(255,255,255,0.95)', marginBottom: 20, textAlign: 'center' },
 
   sosBtn: { width: 180, height: 180, borderRadius: 90,
             backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
             borderWidth: 6, borderColor: 'rgba(255,255,255,0.25)', marginBottom: 24 },
   sosLabel: { fontSize: 36, fontWeight: '900', color: '#C62828', letterSpacing: 3 },
-  sosSub:   { fontSize: 16, fontWeight: '700', color: '#C62828', marginTop: 4 },
+  sosSub:   { fontSize: 14, fontWeight: '700', color: '#C62828', marginTop: 2 },
+  sos119:   { fontSize: 36, fontWeight: '900', color: '#C62828', marginTop: 2, letterSpacing: 2 },
 
   cdWrap:  { alignItems: 'center', minHeight: 80, justifyContent: 'center', marginBottom: 20 },
   cdNum:   { fontSize: 56, fontWeight: '900', color: '#FFD600', lineHeight: 60 },
   cdTxt:   { fontSize: 16, color: 'rgba(255,255,255,0.85)' },
-  cdGuide: { fontSize: 16, color: 'rgba(255,255,255,0.5)' },
+  cdGuide: { fontSize: 24, fontWeight: '700', color: 'rgba(255,255,255,0.7)' },
 
   famRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  famBtn: { backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1.5,
+  famBtn: { flex: 1, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1.5,
             borderColor: 'rgba(255,255,255,0.4)', borderRadius: 18,
-            paddingVertical: 14, paddingHorizontal: 16, alignItems: 'center', minWidth: 88 },
+            paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center' },
   famEmoji: { fontSize: 28, marginBottom: 6 },
   famLabel: { fontSize: 18, color: '#fff', fontWeight: '700', textAlign: 'center' },
 
   cancelBtn: { borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', borderRadius: 16,
                paddingVertical: 12, paddingHorizontal: 40, marginBottom: 14 },
-  cancelTxt: { fontSize: 16, color: 'rgba(255,255,255,0.9)' },
+  cancelTxt: { fontSize: 20, fontWeight: '900', color: '#fff' },
 
   aiLink:    { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 16,
                padding: 14, alignItems: 'center', width: '100%', marginBottom: 12 },
