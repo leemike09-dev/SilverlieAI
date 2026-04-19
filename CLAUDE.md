@@ -472,6 +472,11 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 - [ ] 백그라운드 위치 추적 (산책 동선 자동 기록)
 
 ### 📋 미완성 화면 기능
+- [ ] HealthProfileScreen 프로필 작성 중요성 팝업 안내
+  - 회원가입 후 어드 시: "글비가 회원님의 건강 정보를 정확히 알아야 AI 상담이 더 정확해질니다" 등 구체적 이유 안내
+  - 프로필 편집(수정) 진입 시도 리마인드 팝업 표시 (중요성 강조)
+  - 팝업 내용: 맞치형 AI 상담 / 응급 상황 신속 대응 / 복약 안전 안내 혼동 방지 등 혜택 선명화
+  - 시니어 기준 큰 글씨 + 주요 포인트 3개 이내로 짧고 명확하게
 - [ ] DoctorMemoScreen 인쇄 기능 구현
 - [ ] Kkulbi SOS 전용 이미지 제작
 - [ ] 백엔드 `/users/{userId}/push-token` API 구현 확인
