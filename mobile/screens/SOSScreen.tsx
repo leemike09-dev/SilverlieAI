@@ -73,8 +73,6 @@ export default function SOSScreen({ navigation, route }: Props) {
 
       {/* 메인 콘텐츠 */}
       <View style={s.body}>
-        <Text style={s.guide} numberOfLines={1} adjustsFontSizeToFit>큰 버튼을 누르면 자동으로 신고됩니다</Text>
-
         {/* SOS 큰 버튼 */}
         <TouchableOpacity onPress={startCountdown} activeOpacity={0.85}>
           <Animated.View style={[s.sosBtn, { transform: [{ scale: scaleAnim }] }]}>
@@ -84,15 +82,15 @@ export default function SOSScreen({ navigation, route }: Props) {
           </Animated.View>
         </TouchableOpacity>
 
+        <Text style={s.guide} numberOfLines={1} adjustsFontSizeToFit>큰 버튼을 누르면 자동으로 신고됩니다</Text>
+
         {/* 카운트다운 */}
         <View style={s.cdWrap}>
-          {counting ? (
+          {counting && (
             <>
               <Text style={s.cdNum}>{count}</Text>
               <Text style={s.cdTxt}>초 후 119 자동 연결</Text>
             </>
-          ) : (
-            <Text style={s.cdGuide}>— 버튼을 누르세요 —</Text>
           )}
         </View>
 
@@ -166,9 +164,8 @@ const s = StyleSheet.create({
   famEmoji: { fontSize: 28, marginBottom: 6 },
   famLabel: { fontSize: 18, color: '#fff', fontWeight: '700', textAlign: 'center' },
 
-  cancelBtn: { borderWidth: 2, borderColor: 'rgba(255,255,255,0.6)', borderRadius: 16,
-               paddingVertical: 18, width: '100%', alignItems: 'center',
-               backgroundColor: 'rgba(255,255,255,0.12)' },
+  cancelBtn: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)', borderRadius: 12,
+               paddingVertical: 10, paddingHorizontal: 32, alignItems: 'center' },
   cancelTxt: { fontSize: 20, fontWeight: '900', color: '#fff' },
 
   aiLink:    { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 16,
