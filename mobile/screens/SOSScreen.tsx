@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { speak, stopSpeech } from '../utils/speech';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   Animated, Linking, Platform, StatusBar,
@@ -29,10 +30,12 @@ export default function SOSScreen({ navigation, route }: Props) {
 
     // 화면 진입 시 음성 안내
     setTimeout(() => {
-    }, 500);
+      speak('긴급 호출 화면입니다. 큰 버튼을 누르면 119에 연결됩니다.', 0.85);
+    }, 600);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      stopSpeech();
     };
   }, []);
 
@@ -40,6 +43,7 @@ export default function SOSScreen({ navigation, route }: Props) {
     if (counting) return;
     setCounting(true);
     setCount(5);
+    speak('119에 연결합니다. 5초 후 자동 연결됩니다.', 0.85);
 
     let c = 5;
     timerRef.current = setInterval(() => {
@@ -55,6 +59,7 @@ export default function SOSScreen({ navigation, route }: Props) {
   };
 
   const cancelSOS = () => {
+    stopSpeech();
     if (timerRef.current) clearInterval(timerRef.current);
     setCounting(false);
     setCount(5);
