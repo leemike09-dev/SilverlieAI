@@ -563,7 +563,7 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 | SeniorHomeScreen | 걸음수 | ✅ 완료 | 실데이터(steps) — 없으면 '--' |
 | HealthScreen | 건강기록 입력 | ✅ 완료 | 실데이터 백엔드 저장 (혈압/혈당/체온/체중/걸음수) |
 | WeeklyReportScreen | 주간 리포트 | ✅ 완료 | 실데이터 + AI 총평 |
-| AIChatScreen | AI 상담 | ✅ 완료 | 실데이터 컨텍스트 (복약/건강기록 7일) |
+| AIChatScreen | AI 상담 | ✅ 완료 | 실데이터 컨텍스트 (복약/건강기록 7일) + 과거 데이터 tool use (query_health_records) |
 | AIChatScreen | STT 음성입력 | 🔲 미완성 | 🎤 버튼 — Web Speech API |
 | AIChatScreen | TTS 읽어주기 | 🔲 미완성 | 🔊 버튼 — speech.ts 유틸 완성됨 |
 | SOSScreen | TTS 음성안내 | 🔲 미완성 | 화면 진입 시 자동 음성 재생 |
