@@ -282,12 +282,15 @@ const KKULBI_IMAGES = {
 ---
 
 ### SeniorHomeScreen
-- 헤더 색상: `#1A4A8A`
-- 이름 + "오늘도 건강한 하루 되세요" + 우상단 ⚙️설정
-- 카드 4개: 혈압/혈당/체온/체중 (CARD_SIZE = (width-48)/2, CARD_H = 130)
-- AI 상담 버튼: Kkulbi_1.png → AIChat
+- 헤더 색상: `#1A4A8A` (linear-gradient 웹)
+- `{name}님` 표시 (⚠️ "어르신" 절대 붙이지 말 것)
+- 우상단 ⚙️ 설정 버튼 (꿀비 이미지 아님)
+- 카드 4개: 혈압/혈당/심박수/체중 — **실데이터** (`fetchLatest` → `GET /health/records/{uid}`)
+- userId: **AsyncStorage 우선** (`await AsyncStorage.getItem('userId')`) — route.params 보조
+- demo-user는 fetchLatest 건너뜀
+- 걸음수: 최근 기록 steps 표시 (없으면 '--')
 - SOS 버튼 → SOSScreen
-- 동선 확인 → LocationMap
+- 동선 확인 → FamilyConnect(실사용자) / FamilyDashboard(DEMO)
 
 ---
 
@@ -351,14 +354,35 @@ DOCTOR_KEYWORDS = ['병원', '진료', '의사', '내원', '검사받']
 # doctor_memo: str | None  (사용자 정보 기반 자동 작성)
 ```
 
+### AI 채팅 컨텍스트 구조 (2026-04-20 완성)
+`/ai/chat` 호출 시 시스템 프롬프트에 자동 포함되는 데이터:
+
+| 데이터 | 소스 | 내용 |
+|--------|------|------|
+| 사용자 프로필 | `users` 테이블 | 이름/나이/성별/만성질환/알레르기 |
+| 복용약 목록 | `medications` 테이블 | 이름/용량/종류/복용시간 |
+| 오늘 복용 여부 | `medication_logs` 테이블 | 시간대별 ✅복용/❌미복용/⬜미기록 |
+| 최근 건강 기록 | `health_records` 최근 7일 | 혈압/혈당/심박수/체중/걸음수 |
+| 최근 4일 트렌드 | `health_records` 계산 | 혈압·혈당·체중 변화 흐름 |
+| 오늘 대화 기록 | `ai_chat_logs` | 최대 40턴 문맥 유지 |
+| 최근 7일 요약 | `ai_chat_summaries` | 지난 상담 내용 참고 |
+
+```python
+# load_health_context() — 올바른 컬럼명 (2026-04-20 수정)
+# medications: name, dosage, times, med_type  (time_slot/active 아님)
+# health_records: date 기준 정렬  (recorded_at 아님)
+# medication_logs: date + user_id 필터
+```
+
 ### Supabase 테이블
 | 테이블 | 용도 |
 |--------|------|
 | `ai_chat_logs` | 대화 로그 (오늘) |
 | `ai_chat_summaries` | 주별 요약 |
-| `health_profiles` | 건강 프로파일 |
-| `medications` | 복약 목록 |
-| `health_records` | 건강 수치 |
+| `medications` | 복약 목록 (times: List[str], med_type) |
+| `medication_logs` | 일별 복용 여부 (taken: bool, status, scheduled_time) |
+| `health_records` | 건강 수치 (date, blood_pressure_systolic/diastolic, blood_sugar, heart_rate, weight, steps) |
+| `family_links` | 가족 연결 (senior_id, family_id, link_code, status) |
 
 ---
 
@@ -491,3 +515,35 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 - [ ] 전체 글자 크기 일괄 정리 (시니어 기준 18px 이상)
 - [ ] 가족 화면 UI 정리
 - [ ] 최종 통합 테스트
+
+---
+
+## 완료 작업 기록 (2026-04-20)
+
+### AI 채팅 컨텍스트 고도화
+- `load_health_context()`: medications(times/med_type), medication_logs(오늘), health_records(최근 7일) 연동
+- `build_system_prompt()`: 복용약별 시간대 ✅/❌/⬜ 복용 현황, 최근 4일 트렌드 포함
+- 이전 오류: `time_slot`/`active`/`recorded_at` → 올바른 컬럼명으로 수정
+
+### 가족 대시보드 API 수정
+- `GET /family/members/{user_id}` 신규 추가 — 연결된 시니어 목록
+- `GET /family/dashboard/{senior_id}` 신규 추가 — 프론트 기대 형식 (name/time/taken/stock)
+- 기존 `/family/status`는 내부용으로 유지
+
+### 주간 건강 리포트 실데이터 연동 (WeeklyReportScreen)
+- `GET /health/history/{uid}?days=7` → 7일 건강 기록
+- 건강 점수 자동 계산 함수 `calcScore()` — 혈압/혈당/심박수/걸음수 기반
+- 주간 평균 수치, 트렌드 분석 (↑↓→ 자동 판별)
+- `POST /health/weekly-report` → Claude AI 총평 (잘한점/개선점/권고사항)
+- HealthScreen 기록 탭 상단에 "7일 주간 리포트" 진입 버튼 추가
+
+### SeniorHomeScreen 버그 수정
+- '{name} 어르신' → '{name}님' (stash 충돌로 원격 버전 덮어써진 것 복구)
+- 꿀비 이미지 → ⚙️ 설정 버튼 복구
+- 하드코딩 건강 카드 → fetchLatest() 실데이터
+- AsyncStorage userId 우선 읽기
+
+### 크롬 입력창 개선 (index.html + HealthScreen)
+- `input:focus { outline: none }` — 파란 포커스 테두리 제거
+- `-webkit-autofill` box-shadow 오버라이드 — 자동완성 노란/파란 배경 제거
+- TextInput 6개 `autoComplete="off"` 추가
