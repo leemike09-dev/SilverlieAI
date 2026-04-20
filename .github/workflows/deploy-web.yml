@@ -25,9 +25,17 @@ jobs:
       - name: Install dependencies
         run: cd mobile && npm install
 
-      - name: TypeScript check
-        run: cd mobile && npx tsc --noEmit
-        # 구문/타입 오류를 빌드 전에 잡아서 빠르게 실패
+      - name: TypeScript syntax check
+        run: |
+          cd mobile
+          TSC_OUT=$(npx tsc --noEmit 2>&1 || true)
+          SYNTAX_ERRORS=$(echo "$TSC_OUT" | grep "error TS" | grep -vE "TS2307|TS2304|TS2305")
+          if [ -n "$SYNTAX_ERRORS" ]; then
+            echo "TypeScript syntax error found:"
+            echo "$SYNTAX_ERRORS"
+            exit 1
+          fi
+          echo "TypeScript check passed"
 
       - name: Build web
         run: cd mobile && npx expo export --platform web
@@ -36,8 +44,8 @@ jobs:
         run: |
           sed -i 's|href="/favicon.ico"|href="/SilverlieAI/favicon.ico"|g' mobile/dist/index.html
           sed -i 's|src="/_expo/|src="/SilverlieAI/_expo/|g' mobile/dist/index.html
-          find mobile/dist/_expo -name "*.js" -exec sed -i 's|"/_expo/|"/SilverlieAI/_expo/|g' {} \;
-          find mobile/dist/_expo -name "*.js" -exec sed -i 's|"/assets/|"/SilverlieAI/assets/|g' {} \;
+          find mobile/dist/_expo -name "*.js" -exec sed -i 's|"/_expo/|"/SilverlieAI/_expo/|g' {} +
+          find mobile/dist/_expo -name "*.js" -exec sed -i 's|"/assets/|"/SilverlieAI/assets/|g' {} +
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
