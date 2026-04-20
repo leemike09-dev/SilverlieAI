@@ -33,8 +33,7 @@ export default function LoginScreen({ navigation }: any) {
 
   const handleSocial = async (key: string) => {
     if (key === 'naver' || key === 'apple' || key === 'google') {
-      alert('고배님, 해당 로그인은 준비 중입니다.
-카카오 또는 이메일로 로그인해 주세요.');
+      alert('카카오 또는 이메일 로그인을 사용해 주세요.');
       return;
     }
     setLoading(key);
