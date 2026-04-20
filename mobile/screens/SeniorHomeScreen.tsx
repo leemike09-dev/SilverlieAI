@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   Platform, StatusBar, Dimensions, Image,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const { width } = Dimensions.get('window');
@@ -16,11 +17,68 @@ export default function SeniorHomeScreen({ route, navigation }: Props) {
     ? { background: 'linear-gradient(155deg, #1A4A8A 0%, #2272B8 100%)' }
     : { backgroundColor: '#1A4A8A' };
 
+  // 최신 건강 기록
+  const [latestBp,     setLatestBp]     = useState<string>('--/--');
+  const [latestBpSt,   setLatestBpSt]   = useState<string>('기록 없음');
+  const [latestGlucose,setLatestGlucose]= useState<string>('--');
+  const [latestGluSt,  setLatestGluSt]  = useState<string>('기록 없음');
+  const [latestWeight, setLatestWeight] = useState<string>('--');
+  const [latestWtSt,   setLatestWtSt]   = useState<string>('기록 없음');
+  const [todaySteps,   setTodaySteps]   = useState<string>('--');
+  const [stepsSt,      setStepsSt]      = useState<string>('기록 없음');
+
+  useEffect(() => {
+    const fetchLatest = async () => {
+      const uid = userId || await AsyncStorage.getItem('userId') || '';
+      if (!uid || uid === 'demo-user') return; // 데모 모드: 하드코딩 유지
+      try {
+        const res = await fetch('https://silverlieai.onrender.com/health/records/' + uid);
+        if (!res.ok) return;
+        const data = await res.json();
+        const records = data.records || [];
+        if (!records.length) return;
+
+        // 혈압 — 가장 최근 기록
+        const bpRec = records.find((r: any) => r.blood_pressure_systolic);
+        if (bpRec) {
+          const sys = bpRec.blood_pressure_systolic;
+          const dia = bpRec.blood_pressure_diastolic;
+          setLatestBp(`${sys}/${dia}`);
+          setLatestBpSt(sys <= 120 && dia <= 80 ? '정상 범위' : sys >= 140 || dia >= 90 ? '고혈압 주의' : '경계 범위');
+        }
+
+        // 혈당
+        const gluRec = records.find((r: any) => r.blood_sugar != null);
+        if (gluRec) {
+          const g = gluRec.blood_sugar;
+          setLatestGlucose(String(g));
+          setLatestGluSt(g <= 100 ? '공복 정상' : g <= 126 ? '경계 범위' : '당뇨 주의');
+        }
+
+        // 체중
+        const wtRec = records.find((r: any) => r.weight != null);
+        if (wtRec) {
+          setLatestWeight(String(wtRec.weight));
+          setLatestWtSt('기록됨');
+        }
+
+        // 걸음수 — 오늘 날짜
+        const today = new Date().toISOString().slice(0, 10);
+        const stepsRec = records.find((r: any) => r.steps != null && r.date === today);
+        if (stepsRec) {
+          setTodaySteps(stepsRec.steps.toLocaleString());
+          setStepsSt(stepsRec.steps >= 8000 ? '목표 달성' : stepsRec.steps >= 5000 ? '절반 달성' : '더 걸어봐요');
+        }
+      } catch {}
+    };
+    fetchLatest();
+  }, [userId]);
+
   const CARDS = [
-    { label: '혈압', value: '128/82', unit: 'mmHg', status: '정상 범위', color: '#F57C00', bigFont: 22 },
-    { label: '혈당', value: '105',    unit: 'mg/dL', status: '공복 정상', color: '#7B1FA2', bigFont: 30 },
-    { label: '체온', value: '36.5',   unit: '°C',   status: '정상',     color: '#1565C0', bigFont: 30 },
-    { label: '체중', value: '68.2',   unit: 'kg',   status: 'BMI 24.1', color: '#2E7D32', bigFont: 30 },
+    { label: '혈압', value: latestBp,      unit: 'mmHg',  status: latestBpSt,    color: '#F57C00', bigFont: 22 },
+    { label: '혈당', value: latestGlucose, unit: 'mg/dL', status: latestGluSt,   color: '#7B1FA2', bigFont: 30 },
+    { label: '걸음', value: todaySteps,    unit: '보',    status: stepsSt,       color: '#1565C0', bigFont: 24 },
+    { label: '체중', value: latestWeight,  unit: 'kg',    status: latestWtSt,    color: '#2E7D32', bigFont: 30 },
   ];
 
   return (

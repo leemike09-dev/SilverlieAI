@@ -74,7 +74,7 @@ export default function HealthScreen({ navigation }: any) {
       const name = (await AsyncStorage.getItem('userName')) || '';
       setUserId(uid);
       setUname(name);
-      await loadRecords();
+      await loadRecords(uid);
       tryPedometer();
     };
     init();
@@ -101,11 +101,32 @@ export default function HealthScreen({ navigation }: any) {
     setStepsLoading(false);
   };
 
-  // ── 기록 불러오기 ──
-  const loadRecords = async () => {
+  // ── 기록 불러오기 (백엔드 우선, 실패 시 로컬 캐시) ──
+  const loadRecords = async (uid?: string) => {
+    const id = uid || userId;
+    // 로컬 캐시 먼저 표시 (즉각 반응)
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      if (stored) setRecords(JSON.parse(stored));
+      const cached = await AsyncStorage.getItem(STORAGE_KEY);
+      if (cached) setRecords(JSON.parse(cached));
+    } catch {}
+    // 백엔드에서 최신 데이터 가져오기
+    if (!id || id === 'demo-user') return;
+    try {
+      const res = await fetch('https://silverlieai.onrender.com/health/records/' + id);
+      if (!res.ok) return;
+      const data = await res.json();
+      const serverRecords = (data.records || []).map((r: any) => ({
+        id: r.id,
+        date: r.date,
+        time: '',
+        ...(r.blood_pressure_systolic && { bp: { sys: r.blood_pressure_systolic, dia: r.blood_pressure_diastolic } }),
+        ...(r.blood_sugar != null && { glucose: { val: r.blood_sugar, type: '공복' } }),
+        ...(r.weight != null && { weight: r.weight }),
+        ...(r.steps != null && { steps: r.steps }),
+        ...(r.heart_rate != null && { heartRate: r.heart_rate }),
+      }));
+      setRecords(serverRecords);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(serverRecords));
     } catch {}
   };
 
@@ -128,9 +149,30 @@ export default function HealthScreen({ navigation }: any) {
     if (steps)          record.steps  = Number(steps);
 
     try {
+      // 백엔드 저장 (실제 사용자만)
+      if (userId && userId !== 'demo-user') {
+        const apiBody: any = {
+          user_id: userId,
+          date: record.date,
+          source: 'manual',
+        };
+        if (record.bp) {
+          apiBody.blood_pressure_systolic  = record.bp.sys;
+          apiBody.blood_pressure_diastolic = record.bp.dia;
+        }
+        if (record.glucose) apiBody.blood_sugar = record.glucose.val;
+        if (record.weight)  apiBody.weight      = record.weight;
+        if (record.steps)   apiBody.steps       = record.steps;
+        await fetch('https://silverlieai.onrender.com/health/records', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(apiBody),
+        }).catch(() => {}); // 실패해도 로컬 저장은 계속
+      }
+      // 로컬 캐시 업데이트
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       const existing: any[] = stored ? JSON.parse(stored) : [];
-      const updated = [record, ...existing].slice(0, 90); // 최대 90개
+      const updated = [record, ...existing].slice(0, 90);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       setRecords(updated);
       Alert.alert('저장 완료', '건강 기록이 저장되었습니다.');
