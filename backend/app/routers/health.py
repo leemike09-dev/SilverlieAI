@@ -66,7 +66,7 @@ def create_health_record(record: HealthRecord):
     from app.database import get_supabase
     # 실제 health_records 테이블에 존재하는 컬럼만 포함
     ALLOWED = {"user_id", "date", "blood_pressure_systolic", "blood_pressure_diastolic",
-               "heart_rate", "blood_sugar", "weight", "steps", "notes"}
+               "heart_rate", "blood_sugar", "weight", "notes"}  # steps: schema cache 갱신 후 추가
     try:
         db = get_supabase()
         raw = record.model_dump()
