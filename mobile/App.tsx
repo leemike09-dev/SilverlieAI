@@ -103,7 +103,7 @@ export default function App() {
             await AsyncStorage.setItem('userId', String(data.id));
             await AsyncStorage.setItem('userName', data.name || '');
             await AsyncStorage.setItem('onboarding_seen', '1');
-            navigationRef.navigate('SeniorHome', { name: data.name, userId: String(data.id) });
+            navigationRef.navigate('SeniorHome', { name: data.name || '회원', userId: String(data.id) });
           }
         }
       } catch (e) { console.error('Native Kakao login error', e); }
@@ -218,7 +218,7 @@ export default function App() {
             await AsyncStorage.setItem('userName', data.name || '');
             await AsyncStorage.setItem('onboarding_seen', '1');
             setKakaoProcessing(false);
-            navigationRef.navigate('SeniorHome', { name: data.name, userId: String(data.id) });
+            navigationRef.navigate('SeniorHome', { name: data.name || '회원', userId: String(data.id) });
             return;
           } else {
             throw new Error('사용자 정보를 받아오지 못했습니다');
