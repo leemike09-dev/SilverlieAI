@@ -180,8 +180,7 @@ export default function App() {
       } catch (e: any) {
         console.error('Kakao login error', e);
         setKakaoProcessing(false);
-        setKakaoError(e?.message || '카카오 로그인에 실패했습니다.
-잠시 후 다시 시도해주세요.');
+        setKakaoError(e?.message || '카카오 로그인에 실패했습니다. 잠시 후 다시 시도해주세요.');
       }
     })();
   }, [kakaoCode, navReady]);
