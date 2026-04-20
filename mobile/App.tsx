@@ -112,14 +112,14 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        // 카카오 콜백 처리 중이면 인트로 대신 Login 유지
+        // 카카오 콜백 처리 중이면 Login 유지
         const hasPendingKakao = !!KAKAO_PENDING_CODE ||
           (typeof sessionStorage !== 'undefined' && !!sessionStorage.getItem('kakao_auth_code'));
         if (hasPendingKakao) { setInitialRoute('Login'); return; }
         const userId = await AsyncStorage.getItem('userId');
         if (userId) { setInitialRoute('SeniorHome'); return; }
-        const seen = await AsyncStorage.getItem('onboarding_seen');
-        setInitialRoute(seen ? 'Intro' : 'Onboarding');
+        // 로그인 안 된 경우 항상 Intro (첫 방문 / 로그아웃 모두)
+        setInitialRoute('Intro');
       } catch { setInitialRoute('Onboarding'); }
     })();
   }, []);
