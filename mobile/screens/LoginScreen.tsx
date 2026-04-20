@@ -32,13 +32,21 @@ export default function LoginScreen({ navigation }: any) {
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleSocial = async (key: string) => {
+    if (key === 'naver' || key === 'apple' || key === 'google') {
+      alert('고배님, 해당 로그인은 준비 중입니다.
+카카오 또는 이메일로 로그인해 주세요.');
+      return;
+    }
     setLoading(key);
     try {
       const url = getOAuthUrl(key, mode);
+      if (!url) { setLoading(null); return; }
       if (Platform.OS === 'web') {
         (window as any).location.href = url;
+        // 리다이렉트 후 페이지가 떠나므로 loading은 자동 해제됨
       } else {
         await WebBrowser.openBrowserAsync(url);
+        setLoading(null);
       }
     } catch {
       setLoading(null);

@@ -55,12 +55,9 @@
         var params = new URLSearchParams(search);
         var code = params.get('code');
         if (code) {
+          // sessionStorage에 저장 후 URL만 클리어 (네이티브 리다이렉트 제거 — 웹에서 silverliveai:// 시도 시 페이지 리로드 유발)
           sessionStorage.setItem('kakao_auth_code', code);
           window.history.replaceState({}, '', window.location.pathname);
-          // 네이티브 앱으로 리다이렉트 시도 (APK 카카오 로그인)
-          setTimeout(function() {
-            window.location.href = 'silverliveai://oauth?code=' + encodeURIComponent(code);
-          }, 200);
         }
       }
     })();

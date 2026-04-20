@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { Platform, View, Text, ActivityIndicator } from 'react-native';
 import * as Linking from 'expo-linking';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -103,6 +103,8 @@ export default function App() {
   }, []);
 
   const [kakaoCode,    setKakaoCode]    = useState<string | null>(null);
+  const [kakaoProcessing, setKakaoProcessing] = useState(false);
+  const [kakaoError,    setKakaoError]    = useState<string | null>(null);
   const [navReady,     setNavReady]     = useState(false);
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
 
@@ -152,28 +154,64 @@ export default function App() {
     if (!kakaoCode || !navReady) return;
     const code = kakaoCode;
     setKakaoCode(null);
+    setKakaoProcessing(true);
+    setKakaoError(null);
     (async () => {
       try {
         const res = await fetch('https://silverlieai.onrender.com/users/kakao-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code, redirect_uri: 'https://leemike09-dev.github.io/SilverlieAI/' }),
+          // Render 콜드스타트 대비 타임아웃 60초
         });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err?.detail || '로그인 실패');
+        }
         const data = await res.json();
         if (data?.id) {
-          await AsyncStorage.setItem('userId', data.id);
-          await AsyncStorage.setItem('userName', data.name);
+          await AsyncStorage.setItem('userId', String(data.id));
+          await AsyncStorage.setItem('userName', data.name || '');
+          setKakaoProcessing(false);
           navigationRef.navigate('SeniorHome', { name: data.name, userId: data.id });
+        } else {
+          throw new Error('사용자 정보를 받아오지 못했습니다');
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error('Kakao login error', e);
+        setKakaoProcessing(false);
+        setKakaoError(e?.message || '카카오 로그인에 실패했습니다.
+잠시 후 다시 시도해주세요.');
       }
     })();
   }, [kakaoCode, navReady]);
 
   const handleNavigationReady = () => setNavReady(true);
 
-  if (!initialRoute) return null;
+  if (!initialRoute || kakaoProcessing) return (
+    <View style={{ flex: 1, backgroundColor: '#FEE500', justifyContent: 'center', alignItems: 'center', gap: 20 }}>
+      <Text style={{ fontSize: 48 }}>💬</Text>
+      <ActivityIndicator size="large" color="#3C1E1E" />
+      <Text style={{ fontSize: 22, fontWeight: '800', color: '#3C1E1E' }}>
+        {kakaoProcessing ? '카카오 로그인 중...' : '시작 중...'}
+      </Text>
+      {kakaoProcessing && (
+        <Text style={{ fontSize: 16, color: '#5C3A1E', textAlign: 'center', paddingHorizontal: 40 }}>
+          서버 연결 중입니다{`\n`}잠시만 기다려주세요 (10~30초)
+        </Text>
+      )}
+      {kakaoError && (
+        <View style={{ backgroundColor: '#fff', borderRadius: 14, padding: 18, marginHorizontal: 32 }}>
+          <Text style={{ fontSize: 17, color: '#D32F2F', textAlign: 'center', lineHeight: 26 }}>{kakaoError}</Text>
+          <Text
+            style={{ fontSize: 18, fontWeight: '800', color: '#3C1E1E', textAlign: 'center', marginTop: 14 }}
+            onPress={() => { setKakaoError(null); navigationRef.navigate('Login'); }}>
+            다시 시도
+          </Text>
+        </View>
+      )}
+    </View>
+  );
 
   return (
     <SafeAreaProvider>
