@@ -104,14 +104,23 @@ def build_qa_context(relevant_qa: List[dict]) -> str:
 
 
 def load_health_context(user_id: str, db) -> dict:
-    """medications + health_records 최근 7일 로드."""
+    """medications + medication_logs(오늘) + health_records 최근 7일 로드."""
     ctx: dict = {}
+    today_str = date.today().isoformat()
     try:
-        r = db.table("medications").select("name,dosage,times,med_type").eq("user_id", user_id).execute()
+        r = db.table("medications").select("id,name,dosage,times,med_type").eq("user_id", user_id).execute()
         if r.data:
             ctx['medications'] = r.data
     except Exception as e:
         print(f"[medications] {e}")
+    try:
+        # 오늘 복용 로그 — taken/skipped 현황
+        r = db.table("medication_logs").select("medication_id,medication_name,scheduled_time,taken,status")\
+            .eq("user_id", user_id).eq("date", today_str).execute()
+        if r.data:
+            ctx['today_med_logs'] = r.data
+    except Exception as e:
+        print(f"[medication_logs] {e}")
     try:
         r = db.table("health_records").select("*").eq("user_id", user_id).order("date", desc=True).limit(7).execute()
         if r.data:
@@ -168,10 +177,31 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
     allergies = ' / '.join(allergy_parts) or '없음'
 
     if meds_raw:
-        meds_str = ', '.join([
-            f"{m.get('name','')} {m.get('dosage','')} [{m.get('med_type','')}] ({', '.join(m.get('times') or [])})"
-            for m in meds_raw
-        ])
+        # 오늘 복용 로그로 각 약의 복용 현황 매핑
+        logs_today = health_ctx.get('today_med_logs', []) or []
+        log_map: dict = {}  # medication_id → {time: status}
+        for lg in logs_today:
+            mid = lg.get('medication_id', '')
+            if mid not in log_map:
+                log_map[mid] = {}
+            log_map[mid][lg.get('scheduled_time', '')] = lg.get('taken', False)
+
+        med_lines = []
+        for m in meds_raw:
+            times_list = m.get('times') or []
+            mid = m.get('id', '')
+            time_status = []
+            for t in times_list:
+                taken = log_map.get(mid, {}).get(t)
+                if taken is True:
+                    time_status.append(f"{t}✅")
+                elif taken is False:
+                    time_status.append(f"{t}❌미복용")
+                else:
+                    time_status.append(f"{t}⬜미기록")
+            status_str = ', '.join(time_status) if time_status else '시간 미설정'
+            med_lines.append(f"{m.get('name','')} {m.get('dosage','')} [{m.get('med_type','')}] — {status_str}")
+        meds_str = '\n    '.join(med_lines)
     elif user.get('taking_medication') and user.get('medication_list'):
         meds_str = user['medication_list']
     else:
