@@ -39,7 +39,7 @@ import DoctorMemoScreen from './screens/DoctorMemoScreen';
 
 const Stack = createNativeStackNavigator();
 
-// React Navigation이 URL을 처리하기 전에 카카오 코드 캡처
+// React Navigation이 URL을 처리하기 전에 카카오 코드 캡처 (모듈 로드 시점)
 export let KAKAO_PENDING_CODE: string | null = null;
 if (typeof window !== 'undefined' && window.location?.search) {
   const _p = new URLSearchParams(window.location.search);
@@ -51,19 +51,28 @@ if (typeof window !== 'undefined' && window.location?.search) {
 }
 const navigationRef = createNavigationContainerRef<any>();
 
-// ✅ 팀 평가용 데모 모드 — 출시 전 false로 변경
 export const DEMO_MODE = true;
 const DEMO = { name: '홍길동', userId: 'demo-user', isGuest: false };
 
 const BACKEND = 'https://silverlieai.onrender.com';
 const KAKAO_REDIRECT = 'https://leemike09-dev.github.io/SilverlieAI/';
 const KAKAO_MAX_RETRIES = 3;
+const FETCH_TIMEOUT_MS = 25000; // 25초 타임아웃 — 카카오 코드는 5분 유효
+
+// AbortController 타임아웃 fetch 헬퍼
+async function fetchWithTimeout(url: string, options: RequestInit, ms = FETCH_TIMEOUT_MS) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...options, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 export default function App() {
   useEffect(() => {
-    // Render 서버 콜드 스타트 방지 — 앱 시작 시 미리 깨움
     fetch(`${BACKEND}/`).catch(() => {});
-
     const initNotifications = async () => {
       await initNotificationHandler();
       const firstRun = await AsyncStorage.getItem('notification_init');
@@ -76,7 +85,7 @@ export default function App() {
     initNotifications();
   }, []);
 
-  // 네이티브 딥링크 처리 (iOS/Android 앱)
+  // 네이티브 딥링크 (iOS/Android 앱용)
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const sub = Linking.addEventListener('url', async ({ url }: { url: string }) => {
@@ -84,7 +93,7 @@ export default function App() {
         const parsed = Linking.parse(url);
         const code = parsed.queryParams?.code as string | undefined;
         if (parsed.path === 'oauth' && code) {
-          const res = await fetch(`${BACKEND}/users/kakao-login`, {
+          const res = await fetchWithTimeout(`${BACKEND}/users/kakao-login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code, redirect_uri: KAKAO_REDIRECT }),
@@ -94,7 +103,7 @@ export default function App() {
             await AsyncStorage.setItem('userId', String(data.id));
             await AsyncStorage.setItem('userName', data.name || '');
             await AsyncStorage.setItem('onboarding_seen', '1');
-            navigationRef.navigate('SeniorHome', { name: data.name, userId: data.id });
+            navigationRef.navigate('SeniorHome', { name: data.name, userId: String(data.id) });
           }
         }
       } catch (e) { console.error('Native Kakao login error', e); }
@@ -106,31 +115,49 @@ export default function App() {
   const [kakaoProcessing, setKakaoProcessing] = useState(false);
   const [kakaoError,      setKakaoError]      = useState<string | null>(null);
   const [navReady,        setNavReady]        = useState(false);
-  const [initialRoute,    setInitialRoute]    = useState<string>('Intro'); // 기본값 Intro — 오버레이가 덮으므로 안전
 
-  // 초기 라우트 결정 (오버레이 가려진 동안 백그라운드에서 결정)
-  const [routeReady, setRouteReady] = useState(false);
+  // 초기 라우트 — routeReady=true 전까지 NavContainer를 렌더하지 않으므로
+  // 이 값이 Navigator에 정확하게 적용됨 (initialRouteName은 최초 렌더 시만 읽힘)
+  const [initialRoute, setInitialRoute] = useState<string>('Intro');
+  const [routeReady,   setRouteReady]   = useState(false);
 
+  // 로그인 유지 사용자 — SeniorHome에 실제 userId/name 전달용
+  const [loggedInUser, setLoggedInUser] = useState<{ userId: string; name: string } | null>(null);
+
+  // 초기 라우트 결정
   useEffect(() => {
     (async () => {
       try {
-        const hasPendingKakao = !!KAKAO_PENDING_CODE ||
+        const hasPendingKakao =
+          !!KAKAO_PENDING_CODE ||
           (typeof sessionStorage !== 'undefined' && !!sessionStorage.getItem('kakao_auth_code'));
 
-        const userId = await AsyncStorage.getItem('userId');
-        if (userId) { setInitialRoute('SeniorHome'); setRouteReady(true); return; }
+        const uid   = await AsyncStorage.getItem('userId');
+        const uname = await AsyncStorage.getItem('userName');
 
-        if (hasPendingKakao) {
-          // 카카오 콜백 — Login 화면 준비, 오버레이가 처리
-          setInitialRoute('Login'); setRouteReady(true); return;
+        if (uid) {
+          // 로그인 유지 — 실제 params 저장 후 SeniorHome
+          setLoggedInUser({ userId: uid, name: uname || '회원' });
+          setInitialRoute('SeniorHome');
+          setRouteReady(true);
+          return;
         }
-
+        if (hasPendingKakao) {
+          setInitialRoute('Login');
+          setRouteReady(true);
+          return;
+        }
         const onboardingSeen = await AsyncStorage.getItem('onboarding_seen');
-        if (onboardingSeen) { setInitialRoute('Login'); setRouteReady(true); return; }
-
-        setInitialRoute('Intro'); setRouteReady(true);
+        if (onboardingSeen) {
+          setInitialRoute('Login');
+          setRouteReady(true);
+          return;
+        }
+        setInitialRoute('Intro');
+        setRouteReady(true);
       } catch {
-        setInitialRoute('Intro'); setRouteReady(true);
+        setInitialRoute('Intro');
+        setRouteReady(true);
       }
     })();
   }, []);
@@ -152,26 +179,31 @@ export default function App() {
     if (!code) code = KAKAO_PENDING_CODE;
 
     if (code) {
-      // 코드 감지 즉시 서버 웨이크업 (Render 콜드스타트 대비)
-      fetch(`${BACKEND}/`).catch(() => {});
+      fetch(`${BACKEND}/`).catch(() => {}); // 서버 웨이크업
       setKakaoCode(code);
     }
   }, []);
 
-  // 코드 + 네비게이션 준비되면 로그인 처리 (최대 3회 재시도)
-  // NavigationContainer는 항상 마운트 상태 — 오버레이로 가리기만 함
+  // 로그인 유지 사용자 → navReady 후 실제 params로 navigate
+  useEffect(() => {
+    if (!navReady || !loggedInUser) return;
+    navigationRef.navigate('SeniorHome', loggedInUser);
+  }, [navReady, loggedInUser]);
+
+  // 카카오 코드 + navReady → 로그인 처리 (최대 3회 재시도, 25초 타임아웃)
   useEffect(() => {
     if (!kakaoCode || !navReady) return;
     const code = kakaoCode;
     setKakaoCode(null);
     setKakaoProcessing(true);
     setKakaoError(null);
+
     (async () => {
       let lastError: any = null;
       for (let attempt = 0; attempt < KAKAO_MAX_RETRIES; attempt++) {
         try {
           if (attempt > 0) await new Promise(r => setTimeout(r, 6000 * attempt));
-          const res = await fetch(`${BACKEND}/users/kakao-login`, {
+          const res = await fetchWithTimeout(`${BACKEND}/users/kakao-login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code, redirect_uri: KAKAO_REDIRECT }),
@@ -186,15 +218,14 @@ export default function App() {
             await AsyncStorage.setItem('userName', data.name || '');
             await AsyncStorage.setItem('onboarding_seen', '1');
             setKakaoProcessing(false);
-            // NavigationContainer가 마운트되어 있으므로 navigate 정상 동작
-            navigationRef.navigate('SeniorHome', { name: data.name, userId: data.id });
+            navigationRef.navigate('SeniorHome', { name: data.name, userId: String(data.id) });
             return;
           } else {
             throw new Error('사용자 정보를 받아오지 못했습니다');
           }
         } catch (e: any) {
           lastError = e;
-          console.error(`Kakao login attempt ${attempt + 1}/${KAKAO_MAX_RETRIES} failed`, e);
+          console.error(`Kakao login attempt ${attempt + 1}/${KAKAO_MAX_RETRIES} failed`, e?.message);
         }
       }
       setKakaoProcessing(false);
@@ -204,43 +235,51 @@ export default function App() {
 
   const handleNavigationReady = () => setNavReady(true);
 
-  // 오버레이를 보여야 하는지 여부
-  const showOverlay = !routeReady || kakaoProcessing || !!kakaoError;
+  // 오버레이 조건:
+  // - routeReady=false: AsyncStorage 읽는 중
+  // - navReady=false:   NavContainer 초기화 중 (initialRoute 적용 전 화면 노출 방지)
+  // - kakaoCode 있음:   navReady 대기 중 Login 화면 노출 방지
+  // - kakaoProcessing:  서버 로그인 처리 중
+  // - kakaoError:       에러 화면 표시
+  const showOverlay =
+    !routeReady || !navReady || !!kakaoCode || kakaoProcessing || !!kakaoError;
 
   return (
     <SafeAreaProvider>
       <LanguageProvider>
-        {/* NavigationContainer는 항상 마운트 — unmount하면 navigate() 호출 불가 */}
-        <NavigationContainer ref={navigationRef} onReady={handleNavigationReady}>
-          <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRoute}>
-            <Stack.Screen name="Intro"       component={IntroScreen}       />
-            <Stack.Screen name="Home"        component={HomeScreen}        initialParams={DEMO} />
-            <Stack.Screen name="Login"       component={LoginScreen}       />
-            <Stack.Screen name="Health"      component={HealthScreen}      initialParams={DEMO} />
-            <Stack.Screen name="Dashboard"   component={DashboardScreen}   initialParams={DEMO} />
-            <Stack.Screen name="AIChat"      component={AIChatScreen}      initialParams={DEMO} />
-            <Stack.Screen name="Notifications" component={NotificationsScreen} initialParams={DEMO} />
-            <Stack.Screen name="Settings"    component={SettingsScreen}    initialParams={DEMO} />
-            <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} initialParams={DEMO} />
-            <Stack.Screen name="Onboarding"   component={OnboardingScreen}   />
-            <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
-            <Stack.Screen name="HealthInfo"  component={HealthInfoScreen}  />
-            <Stack.Screen name="SeniorHome"    component={SeniorHomeScreen}   initialParams={DEMO} />
-            <Stack.Screen name="Medication"    component={MedicationScreen}   initialParams={DEMO} />
-            <Stack.Screen name="EmailAuth"     component={EmailAuthScreen}     />
-            <Stack.Screen name="FamilyConnect" component={FamilyConnectScreen} initialParams={DEMO} />
-            <Stack.Screen name="FamilyDashboard" component={FamilyDashboardScreen} initialParams={DEMO} />
-            <Stack.Screen name="LocationMap"    component={LocationMapScreen}    initialParams={DEMO} />
-            <Stack.Screen name="Profile"              component={ProfileScreen}             />
-            <Stack.Screen name="ImportantContacts"  component={ImportantContactsScreen}  />
-            <Stack.Screen name="SOS"                component={SOSScreen}                 initialParams={DEMO} />
-            <Stack.Screen name="HealthProfile"      component={HealthProfileScreen}       initialParams={DEMO} />
-            <Stack.Screen name="FAQ"               component={FAQScreen}                 initialParams={DEMO} />
-            <Stack.Screen name="DoctorMemo"        component={DoctorMemoScreen}          initialParams={DEMO} />
-          </Stack.Navigator>
-        </NavigationContainer>
+        {/* routeReady=true 후에만 렌더 → initialRouteName이 올바른 값으로 적용됨 */}
+        {routeReady && (
+          <NavigationContainer ref={navigationRef} onReady={handleNavigationReady}>
+            <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRoute}>
+              <Stack.Screen name="Intro"         component={IntroScreen}           />
+              <Stack.Screen name="Home"          component={HomeScreen}            initialParams={DEMO} />
+              <Stack.Screen name="Login"         component={LoginScreen}           />
+              <Stack.Screen name="Health"        component={HealthScreen}          initialParams={DEMO} />
+              <Stack.Screen name="Dashboard"     component={DashboardScreen}       initialParams={DEMO} />
+              <Stack.Screen name="AIChat"        component={AIChatScreen}          initialParams={DEMO} />
+              <Stack.Screen name="Notifications" component={NotificationsScreen}   initialParams={DEMO} />
+              <Stack.Screen name="Settings"      component={SettingsScreen}        initialParams={DEMO} />
+              <Stack.Screen name="WeeklyReport"  component={WeeklyReportScreen}    initialParams={DEMO} />
+              <Stack.Screen name="Onboarding"    component={OnboardingScreen}      />
+              <Stack.Screen name="ProfileSetup"  component={ProfileSetupScreen}    />
+              <Stack.Screen name="HealthInfo"    component={HealthInfoScreen}      />
+              <Stack.Screen name="SeniorHome"    component={SeniorHomeScreen}      initialParams={DEMO} />
+              <Stack.Screen name="Medication"    component={MedicationScreen}      initialParams={DEMO} />
+              <Stack.Screen name="EmailAuth"     component={EmailAuthScreen}       />
+              <Stack.Screen name="FamilyConnect" component={FamilyConnectScreen}   initialParams={DEMO} />
+              <Stack.Screen name="FamilyDashboard" component={FamilyDashboardScreen} initialParams={DEMO} />
+              <Stack.Screen name="LocationMap"   component={LocationMapScreen}     initialParams={DEMO} />
+              <Stack.Screen name="Profile"            component={ProfileScreen}           />
+              <Stack.Screen name="ImportantContacts"  component={ImportantContactsScreen} />
+              <Stack.Screen name="SOS"                component={SOSScreen}               initialParams={DEMO} />
+              <Stack.Screen name="HealthProfile"      component={HealthProfileScreen}     initialParams={DEMO} />
+              <Stack.Screen name="FAQ"                component={FAQScreen}               initialParams={DEMO} />
+              <Stack.Screen name="DoctorMemo"         component={DoctorMemoScreen}        initialParams={DEMO} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        )}
 
-        {/* 로딩/에러 오버레이 — NavigationContainer 위에 absolute로 덮음 */}
+        {/* 로딩/에러 오버레이 — NavContainer 위에 absolute로 덮음 */}
         {showOverlay && (
           <View style={ov.root}>
             <Text style={ov.icon}>💬</Text>
@@ -262,7 +301,6 @@ export default function App() {
                   style={ov.retryBtn}
                   onPress={() => {
                     setKakaoError(null);
-                    // NavigationContainer 마운트되어 있으므로 바로 navigate 가능
                     navigationRef.navigate('Login');
                   }}>
                   다시 시도
