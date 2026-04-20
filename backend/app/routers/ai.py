@@ -374,6 +374,77 @@ def call_claude(client: anthropic.Anthropic, model: str, system: str, messages: 
     return resp.content[0].text
 
 
+# ── 건강기록 조회 Tool ──────────────────────────────────────────────────────
+HEALTH_QUERY_TOOL = {
+    "name": "query_health_records",
+    "description": (
+        "사용자의 건강 기록을 날짜 범위로 조회합니다. "
+        "사용자가 특정 날짜 또는 기간의 걸음수, 혈압, 혈당, 체온, 체중을 물어볼 때 사용하세요. "
+        "예: '한달 전 걸음수', '지난주 혈압', '3월 체중 변화'"
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "date_from": {"type": "string", "description": "조회 시작 날짜 (YYYY-MM-DD)"},
+            "date_to":   {"type": "string", "description": "조회 종료 날짜 (YYYY-MM-DD)"},
+        },
+        "required": ["date_from", "date_to"],
+    },
+}
+
+
+def execute_health_query(user_id: str, tool_input: dict, db) -> str:
+    """query_health_records tool 실행 — Supabase에서 날짜 범위 조회."""
+    date_from = tool_input.get("date_from", "")
+    date_to   = tool_input.get("date_to",   "")
+    try:
+        result = (
+            db.table("health_records")
+            .select("date,blood_pressure_systolic,blood_pressure_diastolic,blood_sugar,temp,weight,steps")
+            .eq("user_id", user_id)
+            .gte("date", date_from)
+            .lte("date", date_to)
+            .order("date", desc=False)
+            .execute()
+        )
+        if not result.data:
+            return f"{date_from} ~ {date_to} 기간에 건강 기록이 없습니다."
+        return json.dumps(result.data, ensure_ascii=False)
+    except Exception as e:
+        return f"조회 오류: {e}"
+
+
+def call_claude_with_health_tool(
+    client: anthropic.Anthropic, model: str, system: str,
+    messages: list, user_id: str, db
+) -> str:
+    """health_query tool을 포함한 Claude 호출 (tool use 루프 최대 1회)."""
+    resp = client.messages.create(
+        model=model, max_tokens=1500, system=system,
+        messages=messages, tools=[HEALTH_QUERY_TOOL],
+    )
+    # tool_use 응답이면 실행 후 재호출
+    if resp.stop_reason == "tool_use":
+        tool_block = next((b for b in resp.content if b.type == "tool_use"), None)
+        if tool_block and tool_block.name == "query_health_records" and db:
+            tool_result = execute_health_query(user_id, tool_block.input, db)
+            print(f"[health_tool] {tool_block.input} → {tool_result[:80]}")
+            cont_messages = messages + [
+                {"role": "assistant", "content": resp.content},
+                {"role": "user", "content": [
+                    {"type": "tool_result", "tool_use_id": tool_block.id, "content": tool_result}
+                ]},
+            ]
+            resp = client.messages.create(
+                model=model, max_tokens=1500, system=system,
+                messages=cont_messages, tools=[HEALTH_QUERY_TOOL],
+            )
+    for block in resp.content:
+        if hasattr(block, "text") and block.text:
+            return block.text
+    return ""
+
+
 def _send_family_alert(user_id: str, user_name: str):
     """CRITICAL 감지 시 가족 Expo Push 알림 발송."""
     try:
@@ -471,6 +542,7 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
     }
     chat_ctx: Optional[dict] = None
 
+    db = None
     if request.user_id and request.user_id not in ("demo-user", "guest"):
         try:
             db = get_supabase()
@@ -491,8 +563,11 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
     messages      = history_msgs + [{"role": "user", "content": request.message}]
 
     try:
-        client    = anthropic.Anthropic(api_key=api_key)
-        reply_raw = call_claude(client, model, system_prompt, messages)
+        client = anthropic.Anthropic(api_key=api_key)
+        db_ref = db if (request.user_id and request.user_id not in ("demo-user", "guest")) else None
+        reply_raw = call_claude_with_health_tool(client, model, system_prompt, messages, request.user_id or "", db_ref)
+        if not reply_raw:
+            reply_raw = call_claude(client, model, system_prompt, messages)
         risk      = detect_risk(reply_raw)
         if risk == 'critical' and model != "claude-opus-4-6":
             reply_raw = call_claude(client, "claude-opus-4-6", system_prompt, messages)
