@@ -254,6 +254,7 @@ export default function HealthScreen({ navigation }: any) {
                   placeholder="120"
                   placeholderTextColor="#B0BEC5"
                   maxLength={3}
+                  autoComplete="off"
                 />
                 <Text style={s.bpUnit}>mmHg</Text>
               </View>
@@ -268,6 +269,7 @@ export default function HealthScreen({ navigation }: any) {
                   placeholder="80"
                   placeholderTextColor="#B0BEC5"
                   maxLength={3}
+                  autoComplete="off"
                 />
                 <Text style={s.bpUnit}>mmHg</Text>
               </View>
@@ -305,6 +307,7 @@ export default function HealthScreen({ navigation }: any) {
                 placeholder="--"
                 placeholderTextColor="#B0BEC5"
                 maxLength={3}
+                autoComplete="off"
               />
               <Text style={s.bigUnit}>mg/dL</Text>
             </View>
@@ -331,6 +334,7 @@ export default function HealthScreen({ navigation }: any) {
                   placeholder="36.5"
                   placeholderTextColor="#B0BEC5"
                   maxLength={4}
+                  autoComplete="off"
                 />
                 <Text style={s.midUnit}>°C</Text>
               </View>
@@ -355,6 +359,7 @@ export default function HealthScreen({ navigation }: any) {
                   placeholder="68.0"
                   placeholderTextColor="#B0BEC5"
                   maxLength={5}
+                  autoComplete="off"
                 />
                 <Text style={s.midUnit}>kg</Text>
               </View>
@@ -382,6 +387,7 @@ export default function HealthScreen({ navigation }: any) {
                 placeholderTextColor="#B0BEC5"
                 maxLength={6}
                 editable={!stepsLoading}
+                autoComplete="off"
               />
               <Text style={s.bigUnit}>보</Text>
             </View>
