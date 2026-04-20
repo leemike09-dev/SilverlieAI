@@ -29,9 +29,9 @@ jobs:
         run: |
           cd mobile
           TSC_OUT=$(npx tsc --noEmit 2>&1 || true)
-          SYNTAX_ERRORS=$(echo "$TSC_OUT" | grep "error TS" | grep -vE "TS2307|TS2304|TS2305")
+          SYNTAX_ERRORS=$(echo "$TSC_OUT" | grep "error TS" | grep -vE "TS2307|TS2304|TS2305" || true)
           if [ -n "$SYNTAX_ERRORS" ]; then
-            echo "TypeScript syntax error found:"
+            echo "TypeScript syntax error:"
             echo "$SYNTAX_ERRORS"
             exit 1
           fi
