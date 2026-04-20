@@ -57,7 +57,7 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "publicPath": "/SilverlieAI/"
+      "bundler": "metro"
     },
     "extra": {
       "eas": {
@@ -84,6 +84,9 @@
         }
       ]
     ],
-    "scheme": "silverliveai"
+    "scheme": "silverliveai",
+    "experiments": {
+      "baseUrl": "/SilverlieAI"
+    }
   }
 }
