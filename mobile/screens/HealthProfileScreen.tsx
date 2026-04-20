@@ -41,6 +41,7 @@ const emptyProfile = () => ({
 });
 
 export default function HealthProfileScreen({ navigation, route }: any) {
+  const fromRegister = route?.params?.fromRegister ?? false;
   const [step,    setStep]    = useState(1);
   const [profile, setProfile] = useState<any>(emptyProfile());
   const [saving,  setSaving]  = useState(false);

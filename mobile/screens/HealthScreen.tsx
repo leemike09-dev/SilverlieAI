@@ -87,8 +87,8 @@ export default function HealthScreen({ navigation }: any) {
       const { Pedometer } = await import('expo-sensors');
       const { granted } = await Pedometer.requestPermissionsAsync();
       if (!granted) return;
-      const { status } = await Pedometer.isAvailableAsync();
-      if (!status) return;
+      const available = await Pedometer.isAvailableAsync();
+      if (!available) return;
       setStepsLoading(true);
       const midnight = new Date();
       midnight.setHours(0, 0, 0, 0);
