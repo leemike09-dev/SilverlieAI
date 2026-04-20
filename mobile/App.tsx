@@ -252,8 +252,7 @@ export default function App() {
             )}
             {kakaoProcessing && (
               <Text style={ov.sub}>
-                {'서버 연결 중입니다
-잠시만 기다려주세요 (10~30초)'}
+                {'서버 연결 중입니다\n잠시만 기다려주세요 (10~30초)'}
               </Text>
             )}
             {kakaoError && (
