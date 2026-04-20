@@ -40,23 +40,11 @@ jobs:
       - name: Build web
         run: cd mobile && npx expo export --platform web
 
-      - name: Verify asset paths
+      - name: Verify bundle path
         run: |
-          echo "=== index.html script/link tags ==="
-          grep -E 'src=|href=' mobile/dist/index.html || true
-          if grep -q 'src="/_expo/' mobile/dist/index.html; then
-            echo "WARNING: index.html has /_expo/ path — sed fallback needed"
-            sed -i 's|src="/_expo/|src="/SilverlieAI/_expo/|g' mobile/dist/index.html
-          fi
-          if grep -q 'href="/favicon.ico"' mobile/dist/index.html; then
-            sed -i 's|href="/favicon.ico"|href="/SilverlieAI/favicon.ico"|g' mobile/dist/index.html
-          fi
-          find mobile/dist/_expo -name "*.js" -exec sed -i 's|"/_expo/|"/SilverlieAI/_expo/|g' {} +
-          find mobile/dist/_expo -name "*.js" -exec sed -i 's|"/assets/|"/SilverlieAI/assets/|g' {} +
-          echo "=== Final script tag ==="
-          grep 'src=.*\.js' mobile/dist/index.html || echo "No JS script tag found!"
+          grep 'src=.*\.js' mobile/dist/index.html
           if ! grep -q 'src="/SilverlieAI/' mobile/dist/index.html; then
-            echo "ERROR: JS bundle path does not contain /SilverlieAI/ — deploy aborted"
+            echo "ERROR: JS bundle path missing /SilverlieAI/ prefix"
             exit 1
           fi
           echo "Path check passed"
