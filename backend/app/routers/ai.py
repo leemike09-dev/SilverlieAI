@@ -415,10 +415,30 @@ def _save_chat_turn(user_id: str, user_msg: str, ai_reply: str, risk: str, model
 
 
 def choose_model(history_msgs: list, current_msg: str) -> str:
-    """CRITICAL/HIGH 징후면 Opus, 아니면 Sonnet."""
-    high_kw  = EMERGENCY_WORDS + ['응급', '위험', '119', '즉시']
+    """3단계 모델 선택:
+    - Opus   : 응급/위험 키워드 포함 시
+    - Sonnet : 건강·의료 관련 질문
+    - Haiku  : 일상·안부·잡담 등 가벼운 대화
+    """
     combined = current_msg + ' '.join(m.get('content', '') for m in history_msgs[-4:])
-    return "claude-opus-4-6" if any(kw in combined for kw in high_kw) else "claude-sonnet-4-6"
+
+    # 1단계: 응급 → Opus
+    opus_kw = EMERGENCY_WORDS + ['응급', '위험', '119', '즉시', '마비', '의식']
+    if any(kw in combined for kw in opus_kw):
+        return "claude-opus-4-6"
+
+    # 2단계: 건강/의료 → Sonnet
+    sonnet_kw = [
+        '혈압', '혈당', '심박', '체중', '약', '복용', '처방', '병원', '진료', '의사',
+        '증상', '통증', '두통', '어지', '기침', '열', '당뇨', '고혈압', '콜레스테롤',
+        '수면', '불면', '관절', '허리', '소화', '변비', '설사', '치매', '기억',
+        '우울', '불안', '스트레스', '검사', '수치', '건강', '칼로리', '운동',
+    ]
+    if any(kw in combined for kw in sonnet_kw):
+        return "claude-sonnet-4-6"
+
+    # 3단계: 일상/잡담 → Haiku
+    return "claude-haiku-4-5-20251001"
 
 
 class HistoryMessage(BaseModel):
