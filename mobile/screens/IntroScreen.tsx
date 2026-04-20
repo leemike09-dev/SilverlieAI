@@ -30,7 +30,7 @@ export default function IntroScreen({ navigation }: any) {
 
 const TTS_SCRIPT = '안녕하세요! 저는 꿀비예요. 건강을 함께 지켜드릴게요!';
 
-  const handleLogin  = () => navigation.replace('Login');
+  const handleLogin  = async () => { await AsyncStorage.setItem('onboarding_seen', '1'); navigation.replace('Login'); };
   const handleStart  = () => navigation.replace('Onboarding');
 
   // 꿀비 부유 애니메이션
