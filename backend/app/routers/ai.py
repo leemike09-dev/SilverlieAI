@@ -135,9 +135,9 @@ def load_chat_context(user_id: str, db) -> dict:
     """오늘 대화 전체 + 최근 7일 요약을 로드해 맥락 구성."""
     ctx: dict = {'today_messages': [], 'weekly_summaries': []}
     today_str = date.today().isoformat()
-    # 오늘 대화 전체 (최대 40턴)
+    # 오늘 대화 (최대 20턴 — 앱 재시작 시 문맥 복원용)
     try:
-        r = db.table("ai_chat_logs").select("role,message,created_at").eq("user_id", user_id).gte("created_at", f"{today_str}T00:00:00").order("created_at", desc=False).limit(40).execute()
+        r = db.table("ai_chat_logs").select("role,message,created_at").eq("user_id", user_id).gte("created_at", f"{today_str}T00:00:00").order("created_at", desc=False).limit(20).execute()
         ctx['today_messages'] = r.data or []
     except Exception as e:
         print(f"[chat_context/today] {e}")
