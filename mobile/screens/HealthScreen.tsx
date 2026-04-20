@@ -419,6 +419,16 @@ export default function HealthScreen({ navigation }: any) {
       {/* ── 기록 조회 탭 ── */}
       {tab === 'history' && (
         <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+          {/* 주간 리포트 버튼 */}
+          <TouchableOpacity
+            style={s.weeklyBtn}
+            onPress={() => navigation.navigate('WeeklyReport', { userId, name: uname })}
+            activeOpacity={0.8}>
+            <Text style={s.weeklyBtnIcon}>📊</Text>
+            <Text style={s.weeklyBtnTxt}>7일 주간 건강 리포트 보기</Text>
+            <Text style={s.weeklyBtnArr}>›</Text>
+          </TouchableOpacity>
+
           {records.length === 0 ? (
             <View style={s.emptyBox}>
               <Text style={s.emptyIcon}>📊</Text>
@@ -602,4 +612,9 @@ const s = StyleSheet.create({
                marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#EEF2F8', paddingBottom: 10 },
   recDate:   { fontSize: 20, fontWeight: '900', color: BLUE },
   recTime:   { fontSize: 18, color: '#90A4AE' },
+  weeklyBtn:     { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A4A8A',
+                   borderRadius: 16, padding: 18, marginBottom: 16, gap: 10 },
+  weeklyBtnIcon: { fontSize: 24 },
+  weeklyBtnTxt:  { flex: 1, fontSize: 20, fontWeight: '800', color: '#fff' },
+  weeklyBtnArr:  { fontSize: 28, color: 'rgba(255,255,255,0.7)', fontWeight: '700' },
 });
