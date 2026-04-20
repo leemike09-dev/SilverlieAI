@@ -64,27 +64,35 @@ def ping():
 @router.post("/records")
 def create_health_record(record: HealthRecord):
     from app.database import get_supabase
-    db = get_supabase()
-    data = record.model_dump()
-    # wearable: 같은 날짜 기록이 있으면 업데이트, 없으면 삽입
-    if data.get('source') == 'wearable':
-        existing = db.table("health_records")\
-            .select("id")\
-            .eq("user_id", data["user_id"])\
-            .eq("date", str(data["date"]))\
-            .eq("source", "wearable")\
-            .execute()
-        if existing.data:
-            rec_id = existing.data[0]["id"]
-            update_data = {k: v for k, v in data.items() if v is not None and k not in ("user_id", "date", "source")}
-            result = db.table("health_records").update(update_data).eq("id", rec_id).execute()
+    try:
+        db = get_supabase()
+        data = record.model_dump()
+        data["date"] = str(data["date"])  # date 객체 → string
+        if data.get("source") is None:
+            data["source"] = "manual"
+        # wearable: 같은 날짜 기록이 있으면 업데이트, 없으면 삽입
+        if data.get("source") == "wearable":
+            existing = db.table("health_records")\
+                .select("id")\
+                .eq("user_id", data["user_id"])\
+                .eq("date", data["date"])\
+                .eq("source", "wearable")\
+                .execute()
+            if existing.data:
+                rec_id = existing.data[0]["id"]
+                update_data = {k: v for k, v in data.items() if v is not None and k not in ("user_id", "date", "source")}
+                result = db.table("health_records").update(update_data).eq("id", rec_id).execute()
+            else:
+                result = db.table("health_records").insert(data).execute()
         else:
             result = db.table("health_records").insert(data).execute()
-    else:
-        result = db.table("health_records").insert(data).execute()
-    if not result.data:
-        raise HTTPException(status_code=400, detail="건강 기록 저장 실패")
-    return result.data[0]
+        if not result.data:
+            raise HTTPException(status_code=400, detail="건강 기록 저장 실패")
+        return result.data[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"DB 오류: {str(e)}")
 
 
 @router.get("/records/{user_id}")
