@@ -68,6 +68,30 @@ def get_links(user_id: str):
         "as_family": as_family.data or [],
     }
 
+
+@router.get("/members/{user_id}")
+def get_members(user_id: str):
+    """가족 앱 사용자가 연결한 시니어 목록 반환 (FamilyDashboard용)"""
+    db = get_supabase()
+    # 이 user_id가 family로 연결된 시니어 목록
+    links = db.table("family_links") \
+        .select("senior_id, senior_name, link_code") \
+        .eq("family_id", user_id).eq("status", "linked").execute()
+    members = []
+    for lk in (links.data or []):
+        sid = lk.get("senior_id", "")
+        # users 테이블에서 상세 정보 조회
+        u = db.table("users").select("id,name,phone").eq("id", sid).execute()
+        if u.data:
+            members.append({
+                "id":    u.data[0].get("id", sid),
+                "name":  u.data[0].get("name") or lk.get("senior_name", ""),
+                "phone": u.data[0].get("phone", ""),
+            })
+        else:
+            members.append({"id": sid, "name": lk.get("senior_name", ""), "phone": ""})
+    return {"members": members}
+
 @router.get("/status/{senior_id}")
 def get_senior_status(senior_id: str):
     db = get_supabase()
@@ -155,6 +179,59 @@ def get_senior_status(senior_id: str):
             "pct": pct,
         },
     }
+
+@router.get("/dashboard/{senior_id}")
+def get_dashboard(senior_id: str):
+    """FamilyDashboardScreen이 기대하는 형식으로 복용약 현황 반환"""
+    db = get_supabase()
+    today = date.today().isoformat()
+    now   = datetime.now(timezone.utc)
+
+    meds_resp = db.table("medications").select("*").eq("user_id", senior_id).execute()
+    logs_resp  = db.table("medication_logs").select("*").eq("user_id", senior_id).eq("date", today).execute()
+    meds = meds_resp.data or []
+    logs = logs_resp.data or []
+
+    rows = []
+    for med in meds:
+        times = med.get("times") or []
+        for t in times:
+            log = next((l for l in logs
+                        if l.get("medication_id") == med["id"]
+                        and str(l.get("scheduled_time", ""))[:5] == str(t)[:5]), None)
+            if log:
+                taken = bool(log.get("taken"))
+            else:
+                taken = False
+
+            # 잔여량 계산
+            taken_res = db.table("medication_logs").select("id") \
+                .eq("user_id", senior_id).eq("medication_id", med["id"]).eq("taken", True).execute()
+            taken_count = len(taken_res.data or [])
+            total_qty = med.get("total_quantity")
+            if total_qty:
+                remaining = max(0, total_qty - taken_count)
+                dpd = len(times)
+                days_left = (remaining // dpd) if dpd > 0 else 0
+            else:
+                days_left = None
+
+            rows.append({
+                "name":    med.get("name", ""),
+                "time":    str(t)[:5],
+                "taken":   taken,
+                "med_type": med.get("med_type", "처방약"),
+                "stock":   days_left,
+                "color":   med.get("color", "#4CAF50"),
+            })
+
+    # 요약
+    total   = len(rows)
+    taken_n = sum(1 for r in rows if r["taken"])
+    pct     = round(taken_n / total * 100) if total > 0 else 100
+
+    return {"medications": rows, "summary": {"total": total, "taken": taken_n, "pct": pct}}
+
 
 @router.get("/anomaly-check/{senior_id}")
 def anomaly_check(senior_id: str):
