@@ -104,25 +104,19 @@ def build_qa_context(relevant_qa: List[dict]) -> str:
 
 
 def load_health_context(user_id: str, db) -> dict:
-    """health_profiles / medications / health_records 로드."""
+    """medications + health_records 최근 7일 로드."""
     ctx: dict = {}
     try:
-        r = db.table("health_profiles").select("*").eq("user_id", user_id).execute()
-        if r.data:
-            ctx['profile'] = r.data[0]
-    except Exception as e:
-        print(f"[health_profiles] {e}")
-    try:
-        r = db.table("medications").select("name,dosage,time_slot,method").eq("user_id", user_id).eq("active", True).execute()
+        r = db.table("medications").select("name,dosage,times,med_type").eq("user_id", user_id).execute()
         if r.data:
             ctx['medications'] = r.data
     except Exception as e:
         print(f"[medications] {e}")
     try:
-        today = date.today().isoformat()
-        r = db.table("health_records").select("*").eq("user_id", user_id).gte("recorded_at", f"{today}T00:00:00").order("recorded_at", desc=True).limit(1).execute()
+        r = db.table("health_records").select("*").eq("user_id", user_id).order("date", desc=True).limit(7).execute()
         if r.data:
-            ctx['today_record'] = r.data[0]
+            ctx['health_records'] = r.data
+            ctx['today_record'] = r.data[0]  # 가장 최근 기록
     except Exception as e:
         print(f"[health_records] {e}")
     return ctx
@@ -174,15 +168,35 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
     allergies = ' / '.join(allergy_parts) or '없음'
 
     if meds_raw:
-        meds_str = ', '.join([f"{m.get('name','')} {m.get('dosage','')}({m.get('time_slot','')})" for m in meds_raw])
+        meds_str = ', '.join([
+            f"{m.get('name','')} {m.get('dosage','')} [{m.get('med_type','')}] ({', '.join(m.get('times') or [])})"
+            for m in meds_raw
+        ])
     elif user.get('taking_medication') and user.get('medication_list'):
         meds_str = user['medication_list']
     else:
         meds_str = '없음'
 
-    bp    = f"{rec.get('bp_sys','')}/{rec.get('bp_dia','')} mmHg" if rec.get('bp_sys') else '미측정'
-    sugar = f"{rec.get('glucose','')} mg/dL" if rec.get('glucose') else '미측정'
+    bp_s  = rec.get('blood_pressure_systolic')
+    bp_d  = rec.get('blood_pressure_diastolic')
+    bp    = f"{bp_s}/{bp_d} mmHg" if (bp_s and bp_d) else '미측정'
+    sugar_val = rec.get('blood_sugar')
+    sugar = f"{sugar_val} mg/dL" if sugar_val else '미측정'
     steps = f"{rec.get('steps','')} 보" if rec.get('steps') else '미측정'
+    hr    = f"{rec.get('heart_rate','')} bpm" if rec.get('heart_rate') else '미측정'
+    wt    = f"{rec.get('weight','')} kg" if rec.get('weight') else '미측정'
+
+    # 최근 7일 건강 기록 트렌드
+    records_7d = health_ctx.get('health_records', [])
+    trend_lines = []
+    for r in records_7d[1:5]:  # 오늘 제외 최근 4일
+        parts = [str(r.get('date',''))]
+        bs2 = r.get('blood_pressure_systolic'); bd2 = r.get('blood_pressure_diastolic')
+        if bs2 and bd2: parts.append(f"혈압 {bs2}/{bd2}")
+        if r.get('blood_sugar'): parts.append(f"혈당 {r['blood_sugar']}")
+        if r.get('weight'): parts.append(f"체중 {r['weight']}kg")
+        trend_lines.append("  " + " / ".join(parts))
+    trend_str = "\n".join(trend_lines) if trend_lines else "  기록 없음"
 
     habits_parts = []
     for key, label in [('smoking','흡연'), ('drinking','음주'), ('exercise','운동'), ('meal','식사')]:
@@ -203,9 +217,12 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         f"수술 경력: {surgeries}\n"
         f"알레르기: {allergies}\n"
         f"현재 복용약: {meds_str}\n"
-        f"오늘 혈압: {bp}\n"
-        f"오늘 혈당: {sugar}\n"
-        f"오늘 걸음수: {steps}\n"
+        f"최근 기록 혈압: {bp}\n"
+        f"최근 기록 혈당: {sugar}\n"
+        f"최근 기록 심박수: {hr}\n"
+        f"최근 기록 체중: {wt}\n"
+        f"최근 기록 걸음수: {steps}\n"
+        f"최근 4일 트렌드:\n{trend_str}\n"
         f"생활습관: {habits}\n\n"
         "[답변 원칙]\n"
         f"1. 반드시 이름({name})으로 친근하게 부를 것\n"
