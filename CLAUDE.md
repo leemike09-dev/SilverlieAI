@@ -473,8 +473,10 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 ### 🏥 헬스케어 API 연동
 - [ ] 마이헬스웨이 API 연동 (공공 건강 데이터)
 - [ ] 건강보험심사평가원 API 연동
-- [ ] 삼성헬스 SDK 연동
-- [ ] Apple HealthKit 연동
+- [ ] 삼성헬스 SDK 연동 → 걸음수/심박수/수면 데이터 자동 수집
+- [ ] Apple HealthKit 연동 → 걸음수/심박수/수면 데이터 자동 수집
+- [ ] 웨어러블 데이터 + 건강프로필 연계 → AI 상담 컨텍스트에 자동 반영
+  - 흐름: 웨어러블 수집 → health_records 저장 → load_health_context() → AI 시스템 프롬프트 포함
 
 ### 🎤 음성 기능 ⚠️ 출시 전 필수
 - [ ] AIChatScreen 음성 입력 (STT) — 🎤 버튼 탭 시 음성 → 텍스트 변환 후 전송 (expo-speech / react-native-voice)
