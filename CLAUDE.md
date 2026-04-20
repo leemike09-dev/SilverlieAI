@@ -547,3 +547,26 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 - `input:focus { outline: none }` — 파란 포커스 테두리 제거
 - `-webkit-autofill` box-shadow 오버라이드 — 자동완성 노란/파란 배경 제거
 - TextInput 6개 `autoComplete="off"` 추가
+
+---
+
+## 구현 현황 (Demo → Real) — 세션 시작 전 반드시 확인
+
+> **규칙:** 코드 변경 전 이 테이블 확인 → 변경 후 즉시 업데이트. 추측 금지.
+
+| 화면 | 항목 | 상태 | 확정 내용 |
+|------|------|------|-----------|
+| SeniorHomeScreen | 헤더 | ✅ 완료 | ⚙️ 설정버튼 (꿀비 이미지 제거 확정), `{name}님` (어르신 제거 확정) |
+| SeniorHomeScreen | 건강카드 | ✅ 완료 | 혈압/혈당/체온/체중 4개, 실데이터(fetchLatest) |
+| SeniorHomeScreen | 걸음수 | ✅ 완료 | 실데이터(steps) — 없으면 '--' |
+| HealthScreen | 건강기록 입력 | ✅ 완료 | 실데이터 백엔드 저장 (혈압/혈당/체온/체중/걸음수) |
+| WeeklyReportScreen | 주간 리포트 | ✅ 완료 | 실데이터 + AI 총평 |
+| AIChatScreen | AI 상담 | ✅ 완료 | 실데이터 컨텍스트 (복약/건강기록 7일) |
+| AIChatScreen | STT 음성입력 | 🔲 미완성 | 🎤 버튼 — Web Speech API |
+| AIChatScreen | TTS 읽어주기 | 🔲 미완성 | 🔊 버튼 — speech.ts 유틸 완성됨 |
+| SOSScreen | TTS 음성안내 | 🔲 미완성 | 화면 진입 시 자동 음성 재생 |
+| SOSScreen | 가족 전화번호 | 🔲 미완성 | 현재 phone 빈 문자열 |
+| FamilyDashboard | AI 건강요약 | 🔲 미완성 | 현재 DEMO_MODE |
+| LoginScreen | 카카오 로그인 | ✅ 완료 | 웹 OAuth 동작 |
+| LoginScreen | 네이버/Apple/Google | 🔲 미완성 | Client ID 미설정 |
+

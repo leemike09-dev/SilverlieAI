@@ -1,40 +1,95 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Platform, Image, Dimensions,
+  Platform, StatusBar, Dimensions,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SeniorTabBar from '../components/SeniorTabBar';
 import { DEMO_MODE } from '../App';
 
 const API   = 'https://silverlieai.onrender.com';
 const { width } = Dimensions.get('window');
-
 const CARD_GAP = 8;
-const CARD_W   = (width - 24 - CARD_GAP) / 2;  // 24 = paddingHorizontal 12 × 2
+const CARD_W   = (width - 24 - CARD_GAP) / 2;
 
-const beeSource = Platform.OS === 'web'
-  ? { uri: 'https://raw.githubusercontent.com/leemike09-dev/SilverlieAI/main/mobile/assets/bee_nobg.png' }
-  : require('../assets/bee_nobg.png');
-
-const HEALTH_CARDS = [
-  { emoji: '🫀', label: '혈압',  value: '120/80', unit: 'mmHg', color: '#fff', bg: '#F57C00' },
-  { emoji: '💉', label: '혈당',  value: '98',     unit: 'mg/dL', color: '#fff', bg: '#C2185B' },
-  { emoji: '🌡️', label: '체온',  value: '36.5',   unit: '°C',   color: '#fff', bg: '#1565C0' },
-  { emoji: '⚖️', label: '체중',  value: '68.2',   unit: 'kg',   color: '#fff', bg: '#2E7D32' },
+// 데모용 건강 카드 기본값
+const DEMO_CARDS = [
+  { emoji: '🫀', label: '혈압',  value: '120/80', unit: 'mmHg', bg: '#F57C00' },
+  { emoji: '💉', label: '혈당',  value: '98',     unit: 'mg/dL', bg: '#C2185B' },
+  { emoji: '🌡️', label: '체온',  value: '36.5',  unit: '°C',   bg: '#1565C0' },
+  { emoji: '⚖️', label: '체중',  value: '68.2',   unit: 'kg',   bg: '#2E7D32' },
 ];
 
 export default function SeniorHomeScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
-  const userId = route?.params?.userId || (DEMO_MODE ? 'demo-user' : '');
-  const name   = route?.params?.name   || (DEMO_MODE ? '홍길동' : '');
 
+  const [userId, setUserId] = useState<string>(route?.params?.userId || '');
+  const [name,   setName]   = useState<string>(route?.params?.name   || '');
+  const [cards,  setCards]  = useState(DEMO_CARDS);
+  const [steps,  setSteps]  = useState<number | null>(null);
   const [locationStatus, setLocationStatus] = useState<'sharing' | 'off' | 'loading'>('off');
 
-  useEffect(() => { sendLocation(); }, []);
+  useEffect(() => {
+    const init = async () => {
+      // AsyncStorage에서 userId/userName 우선 읽기
+      const storedId   = await AsyncStorage.getItem('userId')   || route?.params?.userId || '';
+      const storedName = await AsyncStorage.getItem('userName') || route?.params?.name   || '';
+      if (storedId)   setUserId(storedId);
+      if (storedName) setName(storedName);
 
-  const sendLocation = async () => {
-    if (!userId) return;
+      if (storedId && storedId !== 'demo-user') {
+        fetchLatest(storedId);
+        sendLocation(storedId);
+      } else if (DEMO_MODE) {
+        sendLocation(route?.params?.userId || 'demo-user');
+      }
+    };
+    init();
+  }, []);
+
+  const fetchLatest = async (uid: string) => {
+    try {
+      const r = await fetch(`${API}/health/records/${uid}`);
+      if (!r.ok) return;
+      const d = await r.json();
+      const recs: any[] = d.records || [];
+      if (recs.length === 0) return;
+      const latest = recs[0]; // 가장 최근 기록
+
+      const newCards = [
+        {
+          emoji: '🫀', label: '혈압',
+          value: latest.blood_pressure_systolic
+            ? `${latest.blood_pressure_systolic}/${latest.blood_pressure_diastolic}`
+            : '미측정',
+          unit: 'mmHg', bg: '#F57C00',
+        },
+        {
+          emoji: '💉', label: '혈당',
+          value: latest.blood_sugar ? String(latest.blood_sugar) : '미측정',
+          unit: 'mg/dL', bg: '#C2185B',
+        },
+        {
+          emoji: '🌡️', label: '체온',
+          value: latest.temp ? String(latest.temp) : '미측정',
+          unit: '°C', bg: '#1565C0',
+        },
+        {
+          emoji: '⚖️', label: '체중',
+          value: latest.weight ? String(latest.weight) : '미측정',
+          unit: 'kg', bg: '#2E7D32',
+        },
+      ];
+      setCards(newCards);
+      if (latest.steps) setSteps(latest.steps);
+    } catch (e) {
+      console.log('fetchLatest error:', e);
+    }
+  };
+
+  const sendLocation = async (uid: string) => {
+    if (!uid) return;
     try {
       setLocationStatus('loading');
       const pos = await new Promise<GeolocationPosition>((res, rej) =>
@@ -48,12 +103,12 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           { headers: { 'User-Agent': 'SilverLifeAI/1.0' } }
         );
         const gd = await gr.json();
-        const r  = gd.address || {};
-        address  = r.road || r.suburb || r.neighbourhood || r.county || '';
+        const ra = gd.address || {};
+        address  = ra.road || ra.suburb || ra.neighbourhood || ra.county || '';
       } catch {}
       await fetch(`${API}/location/update`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, lat, lng, address, activity: 'unknown' }),
+        body: JSON.stringify({ user_id: uid, lat, lng, address, activity: 'unknown' }),
       });
       setLocationStatus('sharing');
     } catch { setLocationStatus('off'); }
@@ -75,27 +130,41 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
   return (
     <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
 
       {/* ══ 헤더 ══ */}
       <View style={[s.header, headerStyle, { paddingTop: Math.max(insets.top + 14, 28) }]}>
         <View style={s.headerRow}>
           <View style={s.headerText}>
             <Text style={s.greeting}>{greeting} 👋</Text>
-            <Text style={s.userName}>{name} 어르신</Text>
+            <Text style={s.userName}>{name}님</Text>
             {locationStatus === 'sharing' && (
               <Text style={s.locTxt}>🟢 위치 공유 중</Text>
             )}
           </View>
-          <Image source={beeSource} style={s.beeLogo} resizeMode="contain" />
+          <TouchableOpacity
+            style={s.settingBtn}
+            onPress={() => navigation.navigate('Settings', { userId, name })}
+            activeOpacity={0.7}>
+            <Text style={s.settingIco}>⚙️</Text>
+            <Text style={s.settingLbl}>설정</Text>
+          </TouchableOpacity>
         </View>
+        {Platform.OS === 'web' && (
+          // @ts-ignore
+          <svg viewBox="0 0 375 60" style={{ position: 'absolute', bottom: -1, left: 0, right: 0, width: '100%', display: 'block', pointerEvents: 'none' }}>
+            {/* @ts-ignore */}
+            <path d="M0 30 Q90 60 188 22 Q285 -5 375 32 L375 60 L0 60 Z" fill="#F4F7FC" />
+          </svg>
+        )}
       </View>
 
-      {/* ══ 본문 (스크롤 없음) ══ */}
+      {/* ══ 본문 ══ */}
       <View style={s.body}>
 
         {/* 건강 카드 2×2 */}
         <View style={s.healthGrid}>
-          {HEALTH_CARDS.map(card => (
+          {cards.map(card => (
             <TouchableOpacity
               key={card.label}
               style={[s.healthCard, { backgroundColor: card.bg }]}
@@ -103,10 +172,10 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
               activeOpacity={0.82}
             >
               <Text style={s.healthEmoji}>{card.emoji}</Text>
-              <Text style={[s.healthLabel, { color: card.color }]}>{card.label}</Text>
+              <Text style={s.healthLabel}>{card.label}</Text>
               <View style={s.healthValueRow}>
-                <Text style={[s.healthValue, { color: card.color }]}>{card.value}</Text>
-                <Text style={[s.healthUnit,  { color: card.color }]}>{card.unit}</Text>
+                <Text style={s.healthValue}>{card.value}</Text>
+                <Text style={s.healthUnit}>{card.unit}</Text>
               </View>
             </TouchableOpacity>
           ))}
@@ -117,7 +186,9 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           <Text style={s.motionRowIcon}>🗺️</Text>
           <Text style={s.motionRowLabel}>오늘 동선 확인</Text>
           <View style={s.motionRowSteps}>
-            <Text style={s.motionRowStepNum}>4,820</Text>
+            <Text style={s.motionRowStepNum}>
+              {steps !== null ? steps.toLocaleString() : '--'}
+            </Text>
             <Text style={s.motionRowStepUnit}>걸음</Text>
           </View>
           <Text style={s.motionRowArrow}>›</Text>
@@ -145,7 +216,6 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
       </View>
 
-      {/* 탭바 */}
       <SeniorTabBar navigation={navigation} activeTab="home" userId={userId} name={name} />
     </View>
   );
@@ -154,56 +224,36 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F4F7FC' },
 
-  /* 헤더 */
-  header: { paddingHorizontal: 20, paddingBottom: 14 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  header:     { paddingHorizontal: 20, paddingBottom: 20 },
+  headerRow:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerText: { flex: 1 },
-  greeting:  { color: 'rgba(255,255,255,0.80)', fontSize: 16, fontWeight: '500', marginBottom: 2 },
-  userName:  { color: '#fff', fontSize: 28, fontWeight: '800', marginBottom: 2 },
-  locTxt:    { color: 'rgba(255,255,255,0.80)', fontSize: 13, fontWeight: '500' },
-  beeLogo:   { width: 60, height: 60, marginLeft: 10 },
+  greeting:   { color: 'rgba(255,255,255,0.80)', fontSize: 16, fontWeight: '500', marginBottom: 2 },
+  userName:   { color: '#fff', fontSize: 28, fontWeight: '800', marginBottom: 2 },
+  locTxt:     { color: 'rgba(255,255,255,0.80)', fontSize: 13, fontWeight: '500' },
 
-  /* 본문 */
-  body: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 6,
-    gap: 8,
-  },
+  settingBtn: { alignItems: 'center', paddingLeft: 12 },
+  settingIco: { fontSize: 26 },
+  settingLbl: { color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: '600', marginTop: 2 },
 
-  /* 건강 카드 2×2 */
+  body: { flex: 1, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 6, gap: 8 },
+
   healthGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   healthCard: {
-    width: CARD_W,
-    borderRadius: 16,
-    padding: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.10,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
+    width: CARD_W, borderRadius: 16, padding: 14,
+    shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 }, elevation: 4,
   },
   healthEmoji:    { fontSize: 26, marginBottom: 8 },
   healthLabel:    { fontSize: 13, fontWeight: '700', marginBottom: 6, color: 'rgba(255,255,255,0.85)' },
   healthValueRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4 },
-  healthValue:    { fontSize: 28, fontWeight: '800', lineHeight: 32 },
-  healthUnit:     { fontSize: 13, fontWeight: '600', paddingBottom: 2 },
+  healthValue:    { fontSize: 28, fontWeight: '800', lineHeight: 32, color: '#fff' },
+  healthUnit:     { fontSize: 13, fontWeight: '600', paddingBottom: 2, color: 'rgba(255,255,255,0.85)' },
 
-  /* 동선 한 줄 버튼 */
   motionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-    gap: 10,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff',
+    borderRadius: 16, paddingVertical: 14, paddingHorizontal: 16,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 }, elevation: 2, gap: 10,
   },
   motionRowIcon:    { fontSize: 22 },
   motionRowLabel:   { flex: 1, fontSize: 17, fontWeight: '600', color: '#1C1C1E' },
@@ -212,38 +262,21 @@ const s = StyleSheet.create({
   motionRowStepUnit:{ fontSize: 13, fontWeight: '600', color: '#2272B8', paddingBottom: 1 },
   motionRowArrow:   { fontSize: 22, color: '#C0C0C0', marginLeft: 2 },
 
-  /* SOS + AI */
   actionRow: { flexDirection: 'row', gap: 10 },
   sosBtn: {
-    flex: 3,
-    backgroundColor: '#C62828',
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    shadowColor: '#C62828',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 5,
+    flex: 3, backgroundColor: '#C62828', borderRadius: 16,
+    paddingVertical: 16, alignItems: 'center', justifyContent: 'center',
+    flexDirection: 'row', gap: 10,
+    shadowColor: '#C62828', shadowOpacity: 0.3, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 }, elevation: 5,
   },
   sosBtnIcon: { fontSize: 26 },
   sosBtnTxt:  { color: '#fff', fontSize: 20, fontWeight: '900' },
   aiBtn: {
-    flex: 1,
-    backgroundColor: '#1A4A8A',
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    shadowColor: '#1A4A8A',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 5,
+    flex: 1, backgroundColor: '#1A4A8A', borderRadius: 16,
+    paddingVertical: 16, alignItems: 'center', justifyContent: 'center', gap: 4,
+    shadowColor: '#1A4A8A', shadowOpacity: 0.3, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 }, elevation: 5,
   },
   aiBtnIcon: { fontSize: 22 },
   aiBtnTxt:  { color: '#fff', fontSize: 13, fontWeight: '700', textAlign: 'center', lineHeight: 18 },
