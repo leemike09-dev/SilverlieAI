@@ -25,6 +25,10 @@ jobs:
       - name: Install dependencies
         run: cd mobile && npm install
 
+      - name: TypeScript check
+        run: cd mobile && npx tsc --noEmit
+        # 구문/타입 오류를 빌드 전에 잡아서 빠르게 실패
+
       - name: Build web
         run: cd mobile && npx expo export --platform web
 
@@ -34,8 +38,6 @@ jobs:
           sed -i 's|src="/_expo/|src="/SilverlieAI/_expo/|g' mobile/dist/index.html
           find mobile/dist/_expo -name "*.js" -exec sed -i 's|"/_expo/|"/SilverlieAI/_expo/|g' {} \;
           find mobile/dist/_expo -name "*.js" -exec sed -i 's|"/assets/|"/SilverlieAI/assets/|g' {} \;
-          # 카카오 OAuth 콜백 코드 캡처 스크립트 주입
-          sed -i 's|</head>|<script>(function(){var s=window.location.search;if(s){var p=new URLSearchParams(s);var c=p.get("code");if(c){sessionStorage.setItem("kakao_auth_code",c);window.history.replaceState({},"",window.location.pathname);setTimeout(function(){window.location.href="silverliveai://oauth?code="+encodeURIComponent(c);},200);}}})(  );</script></head>|g' mobile/dist/index.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
