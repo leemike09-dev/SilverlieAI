@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Platform, View, Text, ActivityIndicator } from 'react-native';
+import { Platform, View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import * as Linking from 'expo-linking';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -60,8 +60,6 @@ const KAKAO_REDIRECT = 'https://leemike09-dev.github.io/SilverlieAI/';
 const KAKAO_MAX_RETRIES = 3;
 
 export default function App() {
-  // 네이티브 카카오 로그인: silverliveai://oauth?code=xxx 딥링크 처리
-  // 알림 초기화 & 권한 요청 (첫 실행)
   useEffect(() => {
     // Render 서버 콜드 스타트 방지 — 앱 시작 시 미리 깨움
     fetch(`${BACKEND}/`).catch(() => {});
@@ -70,17 +68,15 @@ export default function App() {
       await initNotificationHandler();
       const firstRun = await AsyncStorage.getItem('notification_init');
       if (!firstRun && DEMO_MODE) {
-        // 데모 모드: 자동으로 권한 요청 및 건강 알림 스케줄
         const granted = await requestNotificationPermission();
-        if (granted) {
-          await scheduleHealthDailyReminder();
-        }
+        if (granted) await scheduleHealthDailyReminder();
         await AsyncStorage.setItem('notification_init', '1');
       }
     };
     initNotifications();
   }, []);
 
+  // 네이티브 딥링크 처리 (iOS/Android 앱)
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const sub = Linking.addEventListener('url', async ({ url }: { url: string }) => {
@@ -110,53 +106,49 @@ export default function App() {
   const [kakaoProcessing, setKakaoProcessing] = useState(false);
   const [kakaoError,      setKakaoError]      = useState<string | null>(null);
   const [navReady,        setNavReady]        = useState(false);
-  const [initialRoute,    setInitialRoute]    = useState<string | null>(null);
+  const [initialRoute,    setInitialRoute]    = useState<string>('Intro'); // 기본값 Intro — 오버레이가 덮으므로 안전
 
-  // 초기 라우트 결정
-  // - userId 있음          → SeniorHome  (로그인 유지)
-  // - kakao 콜백 코드 감지 → Login (처리 중 표시)
-  // - onboarding_seen 있음 → Login  (로그아웃 후 재접속: 온보딩 건너뜀)
-  // - 완전 첫 방문         → Intro
+  // 초기 라우트 결정 (오버레이 가려진 동안 백그라운드에서 결정)
+  const [routeReady, setRouteReady] = useState(false);
+
   useEffect(() => {
     (async () => {
       try {
         const hasPendingKakao = !!KAKAO_PENDING_CODE ||
           (typeof sessionStorage !== 'undefined' && !!sessionStorage.getItem('kakao_auth_code'));
-        if (hasPendingKakao) { setInitialRoute('Login'); return; }
 
         const userId = await AsyncStorage.getItem('userId');
-        if (userId) { setInitialRoute('SeniorHome'); return; }
+        if (userId) { setInitialRoute('SeniorHome'); setRouteReady(true); return; }
 
-        // 온보딩을 이미 봤거나 로그인 화면에 간 적 있음 → Login으로 바로 이동
+        if (hasPendingKakao) {
+          // 카카오 콜백 — Login 화면 준비, 오버레이가 처리
+          setInitialRoute('Login'); setRouteReady(true); return;
+        }
+
         const onboardingSeen = await AsyncStorage.getItem('onboarding_seen');
-        if (onboardingSeen) { setInitialRoute('Login'); return; }
+        if (onboardingSeen) { setInitialRoute('Login'); setRouteReady(true); return; }
 
-        // 완전 첫 방문 → Intro
-        setInitialRoute('Intro');
-      } catch { setInitialRoute('Intro'); }
+        setInitialRoute('Intro'); setRouteReady(true);
+      } catch {
+        setInitialRoute('Intro'); setRouteReady(true);
+      }
     })();
   }, []);
 
   // 웹 카카오 인가 코드 감지
-  // index.html 스크립트가 먼저 실행되어 sessionStorage에 저장 → 여기서 꺼냄
   useEffect(() => {
     if (typeof window === 'undefined') return;
     let code: string | null = null;
 
-    // 1순위: sessionStorage (index.html 스크립트가 URL 클리어 전에 저장)
     if (typeof sessionStorage !== 'undefined') {
       code = sessionStorage.getItem('kakao_auth_code');
       if (code) sessionStorage.removeItem('kakao_auth_code');
     }
-
-    // 2순위: URL에 아직 남아있는 경우 (로컬 개발 환경 등)
     if (!code && window.location?.search) {
       const params = new URLSearchParams(window.location.search);
       code = params.get('code');
       if (code) window.history.replaceState({}, '', window.location.pathname);
     }
-
-    // 3순위: 모듈 로드 시점에 캡처된 코드 (URL이 이미 클리어된 경우)
     if (!code) code = KAKAO_PENDING_CODE;
 
     if (code) {
@@ -167,6 +159,7 @@ export default function App() {
   }, []);
 
   // 코드 + 네비게이션 준비되면 로그인 처리 (최대 3회 재시도)
+  // NavigationContainer는 항상 마운트 상태 — 오버레이로 가리기만 함
   useEffect(() => {
     if (!kakaoCode || !navReady) return;
     const code = kakaoCode;
@@ -177,10 +170,7 @@ export default function App() {
       let lastError: any = null;
       for (let attempt = 0; attempt < KAKAO_MAX_RETRIES; attempt++) {
         try {
-          // 2회차부터 딜레이 (Render 콜드스타트 대기)
-          if (attempt > 0) {
-            await new Promise(r => setTimeout(r, 6000 * attempt));
-          }
+          if (attempt > 0) await new Promise(r => setTimeout(r, 6000 * attempt));
           const res = await fetch(`${BACKEND}/users/kakao-login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -196,8 +186,9 @@ export default function App() {
             await AsyncStorage.setItem('userName', data.name || '');
             await AsyncStorage.setItem('onboarding_seen', '1');
             setKakaoProcessing(false);
+            // NavigationContainer가 마운트되어 있으므로 navigate 정상 동작
             navigationRef.navigate('SeniorHome', { name: data.name, userId: data.id });
-            return; // 성공 — 루프 종료
+            return;
           } else {
             throw new Error('사용자 정보를 받아오지 못했습니다');
           }
@@ -206,7 +197,6 @@ export default function App() {
           console.error(`Kakao login attempt ${attempt + 1}/${KAKAO_MAX_RETRIES} failed`, e);
         }
       }
-      // 모든 재시도 실패
       setKakaoProcessing(false);
       setKakaoError(lastError?.message || '카카오 로그인에 실패했습니다. 잠시 후 다시 시도해주세요.');
     })();
@@ -214,66 +204,91 @@ export default function App() {
 
   const handleNavigationReady = () => setNavReady(true);
 
-  // 로딩 화면: 초기 라우트 미결정 / 카카오 처리 중 / 에러 표시
-  if (!initialRoute || kakaoProcessing || !!kakaoError) return (
-    <View style={{ flex: 1, backgroundColor: '#FEE500', justifyContent: 'center', alignItems: 'center', gap: 20 }}>
-      <Text style={{ fontSize: 48 }}>💬</Text>
-      {!kakaoError && <ActivityIndicator size="large" color="#3C1E1E" />}
-      {!kakaoError && (
-        <Text style={{ fontSize: 22, fontWeight: '800', color: '#3C1E1E' }}>
-          {kakaoProcessing ? '카카오 로그인 중...' : '시작 중...'}
-        </Text>
-      )}
-      {kakaoProcessing && (
-        <Text style={{ fontSize: 16, color: '#5C3A1E', textAlign: 'center', paddingHorizontal: 40 }}>
-          {'서버 연결 중입니다\n잠시만 기다려주세요 (10~30초)'}
-        </Text>
-      )}
-      {kakaoError && (
-        <View style={{ backgroundColor: '#fff', borderRadius: 14, padding: 18, marginHorizontal: 32 }}>
-          <Text style={{ fontSize: 17, color: '#D32F2F', textAlign: 'center', lineHeight: 26 }}>{kakaoError}</Text>
-          <Text
-            style={{ fontSize: 18, fontWeight: '800', color: '#3C1E1E', textAlign: 'center', marginTop: 14 }}
-            onPress={() => { setKakaoError(null); if (initialRoute) navigationRef.navigate('Login'); else setInitialRoute('Login'); }}>
-            다시 시도
-          </Text>
-        </View>
-      )}
-    </View>
-  );
+  // 오버레이를 보여야 하는지 여부
+  const showOverlay = !routeReady || kakaoProcessing || !!kakaoError;
 
   return (
     <SafeAreaProvider>
-    <LanguageProvider>
-      <NavigationContainer ref={navigationRef} onReady={handleNavigationReady}>
-        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRoute as string}>
-          <Stack.Screen name="Intro"       component={IntroScreen}       />
-          <Stack.Screen name="Home"        component={HomeScreen}        initialParams={DEMO} />
-          <Stack.Screen name="Login"       component={LoginScreen}       />
-          <Stack.Screen name="Health"      component={HealthScreen}      initialParams={DEMO} />
-          <Stack.Screen name="Dashboard"   component={DashboardScreen}   initialParams={DEMO} />
-          <Stack.Screen name="AIChat"      component={AIChatScreen}      initialParams={DEMO} />
-          <Stack.Screen name="Notifications" component={NotificationsScreen} initialParams={DEMO} />
-          <Stack.Screen name="Settings"    component={SettingsScreen}    initialParams={DEMO} />
-          <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} initialParams={DEMO} />
-          <Stack.Screen name="Onboarding"   component={OnboardingScreen}   />
-          <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
-          <Stack.Screen name="HealthInfo"  component={HealthInfoScreen}  />
-          <Stack.Screen name="SeniorHome"    component={SeniorHomeScreen}   initialParams={DEMO} />
-          <Stack.Screen name="Medication"    component={MedicationScreen}   initialParams={DEMO} />
-          <Stack.Screen name="EmailAuth"     component={EmailAuthScreen}     />
-          <Stack.Screen name="FamilyConnect" component={FamilyConnectScreen} initialParams={DEMO} />
-          <Stack.Screen name="FamilyDashboard" component={FamilyDashboardScreen} initialParams={DEMO} />
-          <Stack.Screen name="LocationMap"    component={LocationMapScreen}    initialParams={DEMO} />
-          <Stack.Screen name="Profile"              component={ProfileScreen}             />
-          <Stack.Screen name="ImportantContacts"  component={ImportantContactsScreen}  />
-          <Stack.Screen name="SOS"                component={SOSScreen}                 initialParams={DEMO} />
-          <Stack.Screen name="HealthProfile"      component={HealthProfileScreen}       initialParams={DEMO} />
-          <Stack.Screen name="FAQ"               component={FAQScreen}                 initialParams={DEMO} />
-          <Stack.Screen name="DoctorMemo"        component={DoctorMemoScreen}          initialParams={DEMO} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </LanguageProvider>
+      <LanguageProvider>
+        {/* NavigationContainer는 항상 마운트 — unmount하면 navigate() 호출 불가 */}
+        <NavigationContainer ref={navigationRef} onReady={handleNavigationReady}>
+          <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRoute}>
+            <Stack.Screen name="Intro"       component={IntroScreen}       />
+            <Stack.Screen name="Home"        component={HomeScreen}        initialParams={DEMO} />
+            <Stack.Screen name="Login"       component={LoginScreen}       />
+            <Stack.Screen name="Health"      component={HealthScreen}      initialParams={DEMO} />
+            <Stack.Screen name="Dashboard"   component={DashboardScreen}   initialParams={DEMO} />
+            <Stack.Screen name="AIChat"      component={AIChatScreen}      initialParams={DEMO} />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} initialParams={DEMO} />
+            <Stack.Screen name="Settings"    component={SettingsScreen}    initialParams={DEMO} />
+            <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} initialParams={DEMO} />
+            <Stack.Screen name="Onboarding"   component={OnboardingScreen}   />
+            <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+            <Stack.Screen name="HealthInfo"  component={HealthInfoScreen}  />
+            <Stack.Screen name="SeniorHome"    component={SeniorHomeScreen}   initialParams={DEMO} />
+            <Stack.Screen name="Medication"    component={MedicationScreen}   initialParams={DEMO} />
+            <Stack.Screen name="EmailAuth"     component={EmailAuthScreen}     />
+            <Stack.Screen name="FamilyConnect" component={FamilyConnectScreen} initialParams={DEMO} />
+            <Stack.Screen name="FamilyDashboard" component={FamilyDashboardScreen} initialParams={DEMO} />
+            <Stack.Screen name="LocationMap"    component={LocationMapScreen}    initialParams={DEMO} />
+            <Stack.Screen name="Profile"              component={ProfileScreen}             />
+            <Stack.Screen name="ImportantContacts"  component={ImportantContactsScreen}  />
+            <Stack.Screen name="SOS"                component={SOSScreen}                 initialParams={DEMO} />
+            <Stack.Screen name="HealthProfile"      component={HealthProfileScreen}       initialParams={DEMO} />
+            <Stack.Screen name="FAQ"               component={FAQScreen}                 initialParams={DEMO} />
+            <Stack.Screen name="DoctorMemo"        component={DoctorMemoScreen}          initialParams={DEMO} />
+          </Stack.Navigator>
+        </NavigationContainer>
+
+        {/* 로딩/에러 오버레이 — NavigationContainer 위에 absolute로 덮음 */}
+        {showOverlay && (
+          <View style={ov.root}>
+            <Text style={ov.icon}>💬</Text>
+            {!kakaoError && <ActivityIndicator size="large" color="#3C1E1E" />}
+            {!kakaoError && (
+              <Text style={ov.title}>
+                {kakaoProcessing ? '카카오 로그인 중...' : '시작 중...'}
+              </Text>
+            )}
+            {kakaoProcessing && (
+              <Text style={ov.sub}>
+                {'서버 연결 중입니다
+잠시만 기다려주세요 (10~30초)'}
+              </Text>
+            )}
+            {kakaoError && (
+              <View style={ov.errorBox}>
+                <Text style={ov.errorTxt}>{kakaoError}</Text>
+                <Text
+                  style={ov.retryBtn}
+                  onPress={() => {
+                    setKakaoError(null);
+                    // NavigationContainer 마운트되어 있으므로 바로 navigate 가능
+                    navigationRef.navigate('Login');
+                  }}>
+                  다시 시도
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }
+
+const ov = StyleSheet.create({
+  root: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#FEE500',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+  },
+  icon:     { fontSize: 48 },
+  title:    { fontSize: 22, fontWeight: '800', color: '#3C1E1E' },
+  sub:      { fontSize: 16, color: '#5C3A1E', textAlign: 'center', paddingHorizontal: 40 },
+  errorBox: { backgroundColor: '#fff', borderRadius: 14, padding: 18, marginHorizontal: 32 },
+  errorTxt: { fontSize: 17, color: '#D32F2F', textAlign: 'center', lineHeight: 26 },
+  retryBtn: { fontSize: 18, fontWeight: '800', color: '#3C1E1E', textAlign: 'center', marginTop: 14 },
+});
