@@ -254,6 +254,7 @@ export default function SOSScreen({ navigation, route }: Props) {
                 <Text style={s.famPreviewName}>{firstFamily.name}</Text>
                 <Text style={s.famCall}>📞</Text>
               </View>
+            ) : (
               <Text style={s.famConnectTxt}>가족 연결하기 +</Text>
             )}
           </TouchableOpacity>
