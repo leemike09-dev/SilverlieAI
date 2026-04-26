@@ -9,8 +9,8 @@ import {
 const API = 'https://silverlieai.onrender.com';
 
 const RELATION_EMOJI: Record<string, string> = {
-  father: '\u{1F474}', mother: '\u{1F475}', spouse: '\u{1F491}',
-  son: '\u{1F466}', daughter: '\u{1F467}', sibling: '\u{1F46B}', other: '\u{1F464}',
+  father: '👴', mother: '👵', spouse: '💑',
+  son: '👦', daughter: '👧', sibling: '👫', other: '👤',
 };
 const RELATION_LABEL: Record<string, string> = {
   father: '아버지', mother: '어머니', spouse: '배우자',
@@ -18,43 +18,33 @@ const RELATION_LABEL: Record<string, string> = {
 };
 
 type FamilyMember = { id: string; name: string; phone: string; relation: string };
-
 type Props = { navigation: any; route: any };
 
 export default function SOSScreen({ navigation, route }: Props) {
   const { userId, name } = route?.params ?? {};
-  const [counting,  setCounting]  = useState(false);
-  const [count,     setCount]     = useState(5);
-  const [family,    setFamily]    = useState<FamilyMember[]>([]);
+  const [counting, setCounting] = useState(false);
+  const [count,    setCount]    = useState(5);
+  const [family,   setFamily]   = useState<FamilyMember[]>([]);
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const timerRef  = useRef<any>(null);
 
   useEffect(() => {
-    // AsyncStorage 에서 가족 연락체 로드
     AsyncStorage.getItem('family_members').then(raw => {
-      if (raw) {
-        try { setFamily(JSON.parse(raw).slice(0, 3)); } catch {}
-      }
+      if (raw) { try { setFamily(JSON.parse(raw).slice(0, 3)); } catch {} }
     });
-
     Animated.loop(
       Animated.sequence([
         Animated.timing(scaleAnim, { toValue: 1.06, duration: 800, useNativeDriver: true }),
         Animated.timing(scaleAnim, { toValue: 1.0,  duration: 800, useNativeDriver: true }),
       ])
     ).start();
-
-    setTimeout(() => {
-      speak('괜찮으세요? 큰 빨간 버튼을 누르시면 일일구로 바로 연결돼요.', 0.85);
-    }, 600);
-
+    setTimeout(() => speak('괜찮으세요? 큰 빨간 버튼을 누르시면 일일구로 바로 연결돼요.', 0.85), 600);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       stopSpeech();
     };
   }, []);
 
-  // SOS 트리거 시 백엔드에 가족 푸시 알림 요청
   const notifyFamily = () => {
     if (!userId) return;
     fetch(`${API}/sos/push`, {
@@ -70,7 +60,6 @@ export default function SOSScreen({ navigation, route }: Props) {
     setCount(5);
     speak('걱정 마세요. 5초 후 일일구로 연결할게요.', 0.85);
     notifyFamily();
-
     const COUNT_WORDS = ['', '하나', '둘', '셋', '넷', '다섯'];
     let c = 5;
     timerRef.current = setInterval(() => {
@@ -90,7 +79,7 @@ export default function SOSScreen({ navigation, route }: Props) {
 
   const cancelSOS = () => {
     stopSpeech();
-    setTimeout(() => speak('취소됐어요. 필요하시면 언제든지 다시 눌러 주세요.', 0.85), 200);
+    setTimeout(() => speak('취소되었어요. 필요하시면 언제든지 다시 눌러 주세요.', 0.85), 200);
     if (timerRef.current) clearInterval(timerRef.current);
     setCounting(false);
     setCount(5);
@@ -138,59 +127,61 @@ export default function SOSScreen({ navigation, route }: Props) {
           )}
         </View>
 
-        {/* 가족 연락 버튼 */}
-        <View style={s.famRow}>
-          {family.length > 0 ? (
-            <>
-              {family.map(m => (
-                <TouchableOpacity
-                  key={m.id}
-                  style={[s.famBtn, !m.phone && s.famBtnDisabled]}
-                  onPress={() => callFamily(m)}
-                  activeOpacity={m.phone ? 0.8 : 1}>
-                  <Text style={s.famEmoji}>{RELATION_EMOJI[m.relation] || '\u{1F464}'}</Text>
-                  <Text style={s.famLabel}>{m.name}</Text>
-                  <Text style={s.famSub}>
-                    {m.phone ? RELATION_LABEL[m.relation] || '가족' : '번호 없음'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </>
-          ) : (
-            <TouchableOpacity
-              style={[s.famBtn, s.famBtnAdd]}
-              onPress={() => navigation.navigate('FamilyConnect', { userId, name })}
-              activeOpacity={0.8}>
-              <Text style={s.famEmoji}>👨‍👩‍👧</Text>
-              <Text style={s.famLabel}>가족 연결하기</Text>
-            </TouchableOpacity>
-          )}
+        {/* 카드 2개 */}
+        <View style={s.cardRow}>
+          {/* 가족 카드 */}
+          <View style={[s.famCard, { flex: family.length > 0 ? 2 : 1 }]}>
+            <Text style={s.cardTitle}>👪 가족에게 연락</Text>
+            {family.length > 0 ? (
+              <View style={s.famList}>
+                {family.map(m => (
+                  <TouchableOpacity
+                    key={m.id}
+                    style={[s.famRow, !m.phone && s.famRowDisabled]}
+                    onPress={() => callFamily(m)}
+                    activeOpacity={m.phone ? 0.75 : 1}>
+                    <Text style={s.famEmoji}>{RELATION_EMOJI[m.relation] || '👤'}</Text>
+                    <View style={s.famInfo}>
+                      <Text style={s.famName}>{m.name}</Text>
+                      <Text style={s.famRel}>{m.phone ? RELATION_LABEL[m.relation] || '가족' : '번호 없음'}</Text>
+                    </View>
+                    {m.phone && <Text style={s.famCall}>📞</Text>}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={s.famConnectBtn}
+                onPress={() => navigation.navigate('FamilyConnect', { userId, name })}
+                activeOpacity={0.8}>
+                <Text style={s.famConnectTxt}>가족 연결하기 +</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* 119 카드 */}
           <TouchableOpacity
-            style={s.famBtn}
+            style={s.emergCard}
             onPress={() => Linking.openURL('tel:119')}
             activeOpacity={0.8}>
-            <Text style={s.famEmoji}>📞</Text>
-            <Text style={s.famLabel}>119 직접</Text>
+            <Text style={s.emergEmoji}>📞</Text>
+            <Text style={s.emergLabel}>119</Text>
+            <Text style={s.emergSub}>직접 연결</Text>
           </TouchableOpacity>
         </View>
 
-        {/* 취소 버튼 */}
+        {/* 취소 버튼 — 사각형 */}
         <TouchableOpacity style={s.cancelBtn} onPress={cancelSOS} activeOpacity={0.8}>
-          <Text style={s.cancelTxt}>✕ 취소하고 홈으로</Text>
+          <Text style={s.cancelTxt}>취소</Text>
         </TouchableOpacity>
 
-        {/* AI 상담 보조 링크 */}
+        {/* AI 상담 — 긴 사각형 */}
         <TouchableOpacity
-          style={s.aiLink}
+          style={s.aiBtn}
           onPress={() => navigation.navigate('AIChat', { userId, name })}
           activeOpacity={0.8}>
-          <Text style={s.aiLinkTxt}>🐝 응급인지 확실하지 않으세요?</Text>
-          <Text style={s.aiLinkSub}>AI에게 증상을 말씀해주세요 →</Text>
+          <Text style={s.aiBtnTxt}>🐝 증상이 확실하지 않으세요? AI에게 여쭤보기 →</Text>
         </TouchableOpacity>
-
-        {family.length > 0 && (
-          <Text style={s.locationTxt}>📍 가족에게 알림을 전송하고 있어요</Text>
-        )}
       </View>
     </View>
   );
@@ -206,9 +197,9 @@ const s = StyleSheet.create({
   body:  { flex: 1, alignItems: 'center', paddingHorizontal: 20, paddingBottom: 20, justifyContent: 'space-between' },
   guide: { fontSize: 24, fontWeight: '700', color: 'rgba(255,255,255,0.95)', textAlign: 'center', width: '100%' },
 
-  sosBtn: { width: 180, height: 180, borderRadius: 90,
-            backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
-            borderWidth: 6, borderColor: 'rgba(255,255,255,0.25)' },
+  sosBtn:   { width: 180, height: 180, borderRadius: 90,
+              backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
+              borderWidth: 6, borderColor: 'rgba(255,255,255,0.25)' },
   sosLabel: { fontSize: 36, fontWeight: '900', color: '#C62828', letterSpacing: 3 },
   sosSub:   { fontSize: 14, fontWeight: '700', color: '#C62828', marginTop: 2 },
   sos119:   { fontSize: 36, fontWeight: '900', color: '#C62828', marginTop: 2, letterSpacing: 2 },
@@ -217,24 +208,35 @@ const s = StyleSheet.create({
   cdNum:  { fontSize: 56, fontWeight: '900', color: '#FFD600', lineHeight: 60 },
   cdTxt:  { fontSize: 16, color: 'rgba(255,255,255,0.85)' },
 
-  famRow:        { flexDirection: 'row', gap: 10, width: '100%' },
-  famBtn:        { flex: 1, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1.5,
-                   borderColor: 'rgba(255,255,255,0.4)', borderRadius: 18,
-                   paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center' },
-  famBtnDisabled:{ opacity: 0.45 },
-  famBtnAdd:     { flex: 2 },
-  famEmoji:      { fontSize: 28, marginBottom: 4 },
-  famLabel:      { fontSize: 17, color: '#fff', fontWeight: '800', textAlign: 'center' },
-  famSub:        { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2, textAlign: 'center' },
+  cardRow: { flexDirection: 'row', gap: 10, width: '100%' },
 
-  cancelBtn: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)', borderRadius: 12,
-               paddingVertical: 10, paddingHorizontal: 32, alignItems: 'center' },
-  cancelTxt: { fontSize: 20, fontWeight: '900', color: '#fff' },
+  famCard:  { backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 18,
+              borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', padding: 14 },
+  cardTitle:{ fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 10, textAlign: 'center' },
+  famList:  { gap: 8 },
+  famRow:   { flexDirection: 'row', alignItems: 'center', gap: 10,
+              backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 12, padding: 10 },
+  famRowDisabled: { opacity: 0.4 },
+  famEmoji: { fontSize: 26 },
+  famInfo:  { flex: 1 },
+  famName:  { fontSize: 17, fontWeight: '800', color: '#fff' },
+  famRel:   { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 1 },
+  famCall:  { fontSize: 22 },
+  famConnectBtn: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 12, padding: 14, alignItems: 'center' },
+  famConnectTxt: { fontSize: 17, fontWeight: '700', color: '#fff' },
 
-  aiLink:    { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 16,
-               padding: 12, alignItems: 'center', width: '100%' },
-  aiLinkTxt: { fontSize: 16, color: 'rgba(255,255,255,0.9)', fontWeight: '700' },
-  aiLinkSub: { fontSize: 18, color: 'rgba(255,255,255,0.7)', marginTop: 4 },
+  emergCard:  { flex: 1, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 18,
+               borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)',
+               alignItems: 'center', justifyContent: 'center', padding: 14 },
+  emergEmoji: { fontSize: 32, marginBottom: 6 },
+  emergLabel: { fontSize: 28, fontWeight: '900', color: '#fff' },
+  emergSub:   { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 3, fontWeight: '600' },
 
-  locationTxt: { fontSize: 18, color: 'rgba(255,255,255,0.6)', textAlign: 'center' },
+  cancelBtn: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 10, width: '100%',
+               paddingVertical: 16, alignItems: 'center' },
+  cancelTxt: { fontSize: 22, fontWeight: '900', color: '#fff' },
+
+  aiBtn:    { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 14, width: '100%',
+             paddingVertical: 18, alignItems: 'center' },
+  aiBtnTxt: { fontSize: 18, fontWeight: '700', color: 'rgba(255,255,255,0.92)' },
 });
