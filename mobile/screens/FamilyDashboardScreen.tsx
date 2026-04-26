@@ -116,7 +116,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
           <Text style={s.headerSub}>{name ? `${name}님의 가족 공간` : '가족과 소통해요'}</Text>
         </View>
         <TouchableOpacity style={s.addFamilyBtn}
-          onPress={() => navigation.navigate('FamilyConnect', { userId, name })}>
+          onPress={() => navigation.navigate('FamilyConnect', { userId, name, addMode: true })}>
           <Ionicons name="person-add-outline" size={22} color="#1A4A8A" />
         </TouchableOpacity>
       </View>
@@ -172,7 +172,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
                 <Text style={s.emptyIcon}>👨‍👩‍👧‍👦</Text>
                 <Text style={s.emptyTxt}>연결된 가족이 없어요</Text>
                 <TouchableOpacity style={s.emptyBtn}
-                  onPress={() => navigation.navigate('FamilyConnect', { userId, name })}>
+                  onPress={() => navigation.navigate('FamilyConnect', { userId, name, addMode: true })}>
                   <Text style={s.emptyBtnTxt}>가족 연결하기</Text>
                 </TouchableOpacity>
               </View>

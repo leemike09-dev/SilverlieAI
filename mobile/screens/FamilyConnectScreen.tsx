@@ -36,13 +36,16 @@ export default function FamilyConnectScreen({ route, navigation }: any) {
       setUserId(uid);
       setUserName(uname);
 
-      // 이미 연결된 가족이 있으면 바로 대시보드로
-      const stored = await AsyncStorage.getItem('family_members');
-      if (stored) {
-        const mems = JSON.parse(stored);
-        if (mems && mems.length > 0) {
-          navigation.replace('FamilyDashboard', { userId: uid, name: uname });
-          return;
+      // 이미 연결된 가족이 있으면 바로 대시보드로 (addMode면 건너뜀)
+      const addMode = route?.params?.addMode;
+      if (!addMode) {
+        const stored = await AsyncStorage.getItem('family_members');
+        if (stored) {
+          const mems = JSON.parse(stored);
+          if (mems && mems.length > 0) {
+            navigation.replace('FamilyDashboard', { userId: uid, name: uname });
+            return;
+          }
         }
       }
 
