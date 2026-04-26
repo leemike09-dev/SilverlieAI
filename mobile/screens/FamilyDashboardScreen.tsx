@@ -56,16 +56,8 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
       if (uname) setName(uname);
 
       const stored = await AsyncStorage.getItem('family_members');
-      if (!stored) {
-        navigation.replace('FamilyConnect', { userId: uid, name: uname });
-        return;
-      }
-      const mems: any[] = JSON.parse(stored);
-      if (!mems || mems.length === 0) {
-        navigation.replace('FamilyConnect', { userId: uid, name: uname });
-        return;
-      }
-      setMembers(mems);
+      const mems: any[] = stored ? JSON.parse(stored) : [];
+      setMembers(mems || []);
       await fetchData(uid);
     };
     init();
