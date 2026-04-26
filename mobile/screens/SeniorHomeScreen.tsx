@@ -81,7 +81,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       if (!ttsDoneRef.current) {
         ttsDoneRef.current = true;
         const bp = newCards.find((c: any) => c.label === '혈압');
-        const bpText = bp?.value !== '미측정' ? `혈압은 ${bp.value.replace('/', '에 ')}이에요. ` : '';
+        const bpText = (bp && bp.value !== '미측정') ? `혈압은 ${bp.value.replace('/', '에 ')}이에요. ` : '';
         const h = new Date().getHours();
         const gr = h < 12 ? '좋은 아침이에요' : h < 18 ? '좋은 오후예요' : '좋은 저녁이에요';
         const uname = await AsyncStorage.getItem('userName') || '';
