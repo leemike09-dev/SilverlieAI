@@ -206,7 +206,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       setHistory([...newHistory, { role: 'assistant', content: reply }]);
       setAiMsgIdx(i => i + 1);
 
-      if (dMemoNeeded && dMemo) {
+      if (dMemoNeeded && dMemo && ['medium','high','critical'].includes(riskLevel)) {
         setPendingMemo(dMemo);
         // TTS 완료 후 메모 프롬프트 표시
         const mainMs = Math.max(4000, reply.length * 180);
