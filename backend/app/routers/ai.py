@@ -154,7 +154,8 @@ def load_chat_context(user_id: str, db) -> dict:
 
 def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
                         chat_ctx: Optional[dict] = None,
-                        turn_count: int = 0, force_summary: bool = False) -> str:
+                        turn_count: int = 0, force_summary: bool = False,
+                        intent: str = "health") -> str:
     p   = health_ctx.get('profile', {}) or {}
     meds_raw = health_ctx.get('medications', []) or []
     rec = health_ctx.get('today_record', {}) or {}
@@ -293,6 +294,51 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
                 prompt += f"\n[{role_label}] {msg_text}"
 
     prompt += build_qa_context(relevant_qa)
+
+    # ── Intent 맞춤 응답 지시 ──
+    if intent == "emotional":
+        prompt += (
+            "\n\n[감정 지원 모드 최우선]\n"
+            "이용자가 외로움/슬픔/불안/그리움 등 감정을 표현했습니다.\n"
+            "규칙:\n"
+            "1. 건강 조언/정보를 먼저 제공하지 말 것 (이용자가 직접 요청 시만)\n"
+            "2. 먼저 충분히 공감: '많이 외로우셨겠어요', '그 마음 충분히 이해해요'\n"
+            "3. '저 꿀비가 여기 있어요, 혼자가 아니에요' 동반자 느낌 전달\n"
+            "4. 가족 연결이나 활동은 강요 없이 자연스럽게만 제안\n"
+            "5. 짧고 따뜻한 문장 2~3개, 마크다운 사용 금지\n"
+            "6. [RISK:] 태그 사용 금지\n"
+        )
+    elif intent == "crisis":
+        prompt += (
+            "\n\n[위기 상황 모드 최긴급 배려]\n"
+            "이용자가 삶에 대한 극도의 피로/자해 관련 표현을 했을 수 있습니다.\n"
+            "규칙:\n"
+            "1. 판단 금지, 공감과 수용만\n"
+            "2. '많이 힘드셨겠어요. 저 꿀비가 곁에 있어요'\n"
+            "3. 혼자가 아님을 강조\n"
+            "4. 자연스럽게 전문 도움 안내: 정신건강 위기상담 1393 (24시간 무료)\n"
+            "5. 해결책/조언/설교 절대 금지\n"
+            "6. 2~3문장, 쉽고 따뜻하게, [RISK:] 태그 사용 금지\n"
+        )
+    elif intent == "cognitive":
+        prompt += (
+            "\n\n[인지 배려 모드]\n"
+            "이용자가 반복 질문이나 혼란/망각을 표현하고 있습니다.\n"
+            "규칙:\n"
+            "1. 첫 문장: '괜찮아요, 언제든 몇 번이든 물어보세요' (안심 먼저)\n"
+            "2. '다시 말씀드릴게요:' 프리픽스 사용\n"
+            "3. 핵심 1가지만, 최대 3문장, 아주 짧고 쉬운 말\n"
+            "4. '아까 말씀드렸는데요' 등 지적 표현 절대 금지\n"
+        )
+    elif intent == "daily":
+        prompt += (
+            "\n\n[일상 대화 모드]\n"
+            "건강과 무관한 일상 이야기입니다.\n"
+            "1. 친구처럼 가볍고 따뜻하게 대화\n"
+            "2. 억지로 건강과 연결하지 말 것\n"
+            "3. 이용자의 기분과 관심사에 집중\n"
+            "4. [RISK:] 태그 사용 금지\n"
+        )
 
     # 대화형 상담 진행 방식
     turn_label = turn_count + 1
@@ -563,6 +609,7 @@ class ChatRequest(BaseModel):
     client_record:  Optional[dict] = None
     turn_count:     int = 0
     force_summary:  bool = False
+    intent:         str  = "health"   # health|emotional|cognitive|crisis|daily
 
 
 @router.post("/chat")
@@ -596,7 +643,8 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
             print(f"[user_load] {ex}")
 
     system_prompt = build_system_prompt(user_row, health_ctx, relevant_qa, chat_ctx,
-                                          turn_count=request.turn_count, force_summary=request.force_summary)
+                                          turn_count=request.turn_count, force_summary=request.force_summary,
+                                          intent=request.intent)
     history_msgs  = [{"role": m.role, "content": m.content} for m in (request.history or [])[-10:]]
     model         = choose_model(history_msgs, request.message)
     messages      = history_msgs + [{"role": "user", "content": request.message}]
@@ -745,3 +793,86 @@ def get_chat_context(user_id: str):
         "weekly_summary_count": len(ctx.get('weekly_summaries', [])),
         "weekly_summaries": ctx.get('weekly_summaries', []),
     }
+
+
+@router.get("/proactive-greeting/{user_id}")
+def proactive_greeting(user_id: str):
+    """화면 진입 시 꿀비의 선제적 맞춤 인사 메시지 생성."""
+    hour = (datetime.now(timezone.utc).hour + 9) % 24
+    time_label = "아침" if hour < 12 else "오후" if hour < 18 else "저녁"
+
+    def fallback_msg(name: str = "") -> str:
+        n = f"{name}님, " if name else ""
+        if hour < 12:   return f"{n}좋은 아침이에요! 오늘도 건강하고 행복하게 시작해요. 궁금한 것이 있으면 언제든 물어보세요."
+        elif hour < 18: return f"{n}안녕하세요! 오늘 하루 잘 보내고 계신가요? 무엇이든 편하게 이야기해요."
+        else:           return f"{n}좋은 저녁이에요! 오늘 하루도 수고하셨어요. 무엇이든 편하게 이야기해 주세요."
+
+    if not user_id or user_id in ("demo-user", "guest"):
+        return {"message": fallback_msg()}
+
+    try:
+        db = get_supabase()
+        user_res = db.table("users").select("name").eq("id", user_id).execute()
+        name = (user_res.data[0].get("name") if user_res.data else "") or ""
+
+        health_ctx = load_health_context(user_id, db)
+        chat_ctx   = load_chat_context(user_id, db)
+
+        context_notes = []
+
+        today_logs = health_ctx.get("today_med_logs", [])
+        untaken = [l for l in today_logs if not l.get("taken") and l.get("status") != "skipped"]
+        if untaken:
+            med_name = untaken[0].get("medication_name") or "약"
+            context_notes.append(f"오늘 {med_name} 아직 복용하지 않으셨습니다")
+
+        records = health_ctx.get("health_records", [])
+        if len(records) >= 3:
+            bp_vals = [r.get("blood_pressure_systolic") for r in records[:3] if r.get("blood_pressure_systolic")]
+            if len(bp_vals) >= 3 and all(v >= 140 for v in bp_vals):
+                context_notes.append(f"최근 3일 혈압이 높게 측정되고 있습니다")
+
+        if len(records) >= 2:
+            sg_vals = [r.get("blood_sugar") for r in records[:2] if r.get("blood_sugar")]
+            if len(sg_vals) >= 2 and all(v >= 126 for v in sg_vals):
+                context_notes.append(f"최근 혈당이 다소 높게 나오고 있습니다")
+
+        if chat_ctx.get("weekly_summaries"):
+            last = chat_ctx["weekly_summaries"][0]
+            if last.get("summary"):
+                context_notes.append(f"지난 상담 메모: {last['summary'][:60]}")
+
+        context_str = "\n".join(f"- {c}" for c in context_notes) if context_notes else "특별한 이슈 없음"
+        name_str = f"{name}님" if name else "어르신"
+
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        client  = anthropic.Anthropic(api_key=api_key)
+
+        prompt = (
+            f"당신은 꿀비입니다. {name_str}이 지금 AI 상담 화면을 열었습니다.\n"
+            f"현재 시간대: {time_label}\n"
+            f"파악된 상황:\n{context_str}\n\n"
+            "역할: 건강하고 친근하며 전문적인 친구이자 보호자.\n"
+            "인사 작성 규칙:\n"
+            f"1. '{name_str}'으로 부르며 시작\n"
+            "2. 2~3문장 이내\n"
+            "3. 특이사항이 있으면 걱정하는 친구처럼 자연스럽게 언급 (의학 용어 금지)\n"
+            "4. 특이사항 없으면 시간대별 따뜻한 인사\n"
+            "5. 마지막은 대화를 유도하는 부드러운 질문으로 마무리\n"
+            "6. 이모지 사용 금지, 마크다운 사용 금지\n"
+            "7. 시니어에게 편안한 존댓말"
+        )
+
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=200,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return {"message": resp.content[0].text.strip()}
+    except Exception as e:
+        print(f"[proactive_greeting] {e}")
+        try:
+            name_fb = (get_supabase().table("users").select("name").eq("id", user_id).execute().data or [{}])[0].get("name","")
+        except Exception:
+            name_fb = ""
+        return {"message": fallback_msg(name_fb)}

@@ -36,13 +36,58 @@ const C = {
 };
 
 const QUICK_CHIPS = [
-  { label: '약 부작용' },
   { label: '혈압이 높아요' },
-  { label: '잠이 안와요' },
-  { label: '무릎 아파요' },
+  { label: '약 부작용이 걱정돼요' },
+  { label: '잠을 못 자고 있어요' },
+  { label: '무릎이 아파요' },
   { label: '어지러워요' },
-  { label: '속이 메스꺼워요' },
+  { label: '기분이 울적해요' },
+  { label: '산책 운동 추천해줘' },
+  { label: '가족이 보고 싶어요' },
 ];
+
+// ── Intent 분류 ──
+type Intent = 'emergency' | 'crisis' | 'emotional' | 'cognitive' | 'health' | 'daily';
+
+const EMERGENCY_KW = [
+  '가슴이 아파', '가슴 아파', '가슴통증', '가슴 답답', '심장이 아파', '심장 통증',
+  '숨이 막혀', '숨막혀', '숨쉬기 힘들', '호흡 곤란', '호흡이 안', '호흡곤란',
+  '쓰러질 것', '쓰러졌어', '쓰러졌다', '넘어졌어', '못 일어나',
+  '의식이 없', '정신을 잃', '졸도', '심정지', '뇌졸중',
+  '119 불러', '응급실 가야',
+];
+
+const CRISIS_KW = [
+  '죽고 싶', '죽고싶', '살기 싫', '살기싫', '더 살기 힘',
+  '이 세상 떠나', '사라지고 싶', '없어지고 싶', '자살',
+];
+
+const EMOTIONAL_KW = [
+  '혼자', '외로', '심심', '아무도 없', '아무도 안', '보고싶', '그립다', '그리워',
+  '슬프', '눈물이', '힘들어', '우울', '서럽다', '괜찮지 않', '무서워', '불안해',
+  '기분이 안 좋', '기분이 울적', '마음이 아파', '마음이 힘', '위로가 필요',
+  '기운이 없', '가족이 보고 싶', '자식이', '기운 없어',
+];
+
+const COGNITIVE_KW = [
+  '또 물어봐서', '아까 말했', '헷갈려', '뭔지 모르겠', '기억이 안나',
+  '다시 한번 말해줘', '방금 뭐라고', '이해가 안', '다시 알려줘',
+];
+
+function classifyIntent(msg: string, history: HistoryItem[]): Intent {
+  if (EMERGENCY_KW.some(k => msg.includes(k))) return 'emergency';
+  if (CRISIS_KW.some(k => msg.includes(k))) return 'crisis';
+  if (EMOTIONAL_KW.some(k => msg.includes(k))) return 'emotional';
+  if (COGNITIVE_KW.some(k => msg.includes(k))) return 'cognitive';
+  const recent = history.filter(h => h.role === 'user').slice(-4).map(h => h.content);
+  if (recent.length >= 2 && msg.length >= 6) {
+    const key = msg.slice(0, 10);
+    if (recent.filter(m => m.slice(0, 10) === key).length >= 1) return 'cognitive';
+  }
+  const DAILY_KW = ['날씨', '심심해', '뭐 해요', '뭐해요', '이야기 하고 싶', '그냥 얘기', '오늘 뭐'];
+  if (DAILY_KW.some(k => msg.includes(k))) return 'daily';
+  return 'health';
+}
 
 function stripEmoji(text: string): string {
   return text
@@ -73,12 +118,12 @@ function cleanForTTS(text: string): string {
 
 function getGreeting(name: string): string {
   const h = new Date().getHours();
-  if (h < 9)  return `${name}님, 좋은 아침이에요!\n오늘 하루도 건강하게 시작해요`;
-  if (h < 12) return `${name}님, 안녕하세요!\n무엇이든 편하게 물어보세요`;
-  if (h < 14) return `${name}님, 점심은 드셨나요?\n건강 관련 궁금한 것이 있으시면 물어보세요`;
-  if (h < 18) return `${name}님, 오후도 건강하게!\n궁금한 건강 정보가 있으시면 물어보세요`;
-  if (h < 21) return `${name}님, 좋은 저녁이에요!\n오늘 하루 어떠셨나요?`;
-  return `${name}님, 편안한 밤 되세요\n내일도 건강하게 함께해요`;
+  if (h < 9)  return `${name}님, 좋은 아침이에요! 오늘 하루도 건강하고 행복하게 시작해요. 무엇이든 편하게 물어보세요.`;
+  if (h < 12) return `${name}님, 안녕하세요! 오늘 컨디션은 어떠신가요? 건강이든 일상이든 편하게 이야기해요.`;
+  if (h < 14) return `${name}님, 점심은 맛있게 드셨나요? 오늘도 곁에 있을게요. 궁금한 것 있으시면 말씀해요.`;
+  if (h < 18) return `${name}님, 오후도 잘 보내고 계신가요? 무엇이든 편하게 물어보세요. 저 꿀비가 여기 있어요.`;
+  if (h < 21) return `${name}님, 좋은 저녁이에요! 오늘 하루 어떠셨나요? 무엇이든 편하게 이야기해요.`;
+  return `${name}님, 편안한 밤 되세요. 잠 자기 전 건강이나 걱정되는 것 있으시면 언제든 말씀해요.`;
 }
 
 export default function AIChatScreen({ route, navigation }: Props) {
@@ -98,6 +143,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [toastMsg,    setToastMsg]    = useState('');
   const [aiMsgIdx,    setAiMsgIdx]    = useState(0);
   const [turnCount,   setTurnCount]   = useState(0);
+  const [currentIntent, setCurrentIntent] = useState<Intent>('health');
+  const [showCrisis,    setShowCrisis]    = useState(false);
 
   const pulseAnim    = useRef(new Animated.Value(1)).current;
   const fadeAnim     = useRef(new Animated.Value(1)).current;
@@ -108,12 +155,10 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const speakTimerRef   = useRef<any>(null);
   const isWelcome = history.length === 0 && !loading;
 
-  // 초기 인사 TTS
+  // 초기 선제적 인사 — 서버에서 컨텍스트 기반 메시지 로드
   useEffect(() => {
-    const t = setTimeout(() => {
-      speak(`안녕하세요, ${name}님`, 0.85);
-    }, 600);
-    return () => { clearTimeout(t); stopSpeech(); };
+    fetchProactiveGreeting();
+    return () => { stopSpeech(); };
   }, []);
 
   // 새 AI 메시지 TTS 자동 재생
@@ -179,12 +224,58 @@ export default function AIChatScreen({ route, navigation }: Props) {
     speakTimerRef.current = setTimeout(() => setIsSpeaking(false), ms);
   };
 
+  const fetchProactiveGreeting = async () => {
+    const fallback = getGreeting(name);
+    if (!userId || userId === 'guest') {
+      fadeInMsg({ role: 'ai', text: fallback });
+      setTimeout(() => speak(cleanForTTS(fallback), 0.85), 600);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res  = await fetch(`${API_URL}/ai/proactive-greeting/${userId}`);
+      const data = await res.json();
+      const msg  = data.message || fallback;
+      fadeInMsg({ role: 'ai', text: msg });
+      setTimeout(() => speak(cleanForTTS(msg), 0.85), 400);
+    } catch {
+      fadeInMsg({ role: 'ai', text: fallback });
+      setTimeout(() => speak(cleanForTTS(fallback), 0.85), 600);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const send = async (text?: string) => {
     const msg = (text ?? input).trim();
     if (!msg || loading) return;
     setInput('');
     stopSpeakingHandler();
     if (memoState !== 'saved') setMemoState('idle');
+
+    // ── Intent 분류 ──
+    const detectedIntent = classifyIntent(msg, history);
+    setCurrentIntent(detectedIntent);
+
+    // ── 응급 Pre-filter: API 호출 없이 즉시 SOS 표시 ──
+    if (detectedIntent === 'emergency') {
+      const emMsg = `${name}님, 지금 많이 불편하신가요? 걱정이 돼요. 아래 버튼으로 즉시 도움을 받으세요.`;
+      fadeInMsg({ role: 'ai', text: emMsg, riskLevel: 'critical' });
+      setAiMsgIdx(i => i + 1);
+      setShowEmergency(true);
+      setTimeout(() => speak(cleanForTTS(emMsg), 0.82), 300);
+      return;
+    }
+
+    // ── 위기 Pre-filter: 위기 카드 표시 후 API도 호출 ──
+    if (detectedIntent === 'crisis') {
+      const crisisMsg = `${name}님, 지금 많이 힘드신 거 느껴져요. 저 꿀비가 여기 있어요. 혼자 감당하지 않아도 돼요.`;
+      fadeInMsg({ role: 'ai', text: crisisMsg });
+      setAiMsgIdx(i => i + 1);
+      setShowCrisis(true);
+      setTimeout(() => speak(cleanForTTS(crisisMsg), 0.82), 300);
+      // 위기는 API도 호출해서 공감 응답 받기 (아래 계속 실행)
+    }
 
     fadeInMsg({ role: 'user', text: msg });
     setLoading(true);
@@ -194,7 +285,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       const res = await fetch(`${API_URL}/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, message: msg, history: history.slice(-10), turn_count: turnCount, force_summary: false }),
+        body: JSON.stringify({ user_id: userId, message: msg, history: history.slice(-10), turn_count: turnCount, force_summary: false, intent: detectedIntent }),
       });
       const data = await res.json();
       const reply     = stripEmoji(data.reply ?? data.response ?? '죄송합니다, 다시 시도해주세요.');
@@ -361,7 +452,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
       {/* CRITICAL 배너 */}
       {showEmergency && (
         <View style={s.criticalCard}>
-          <Text style={s.criticalCardTitle}>응급 증상이 의심됩니다</Text>
+          <Text style={s.criticalCardTitle}>지금 즉시 도움을 받으세요</Text>
+          <Text style={s.criticalCardDesc}>꿀비가 걱정돼요. 아래 버튼을 눌러주세요.</Text>
           {familyNotified && <Text style={s.familyNotified}>가족에게 알림 전송됨</Text>}
           <View style={s.criticalBtns}>
             <TouchableOpacity style={s.btnCritical119} onPress={call119}>
@@ -372,6 +464,28 @@ export default function AIChatScreen({ route, navigation }: Props) {
               <Text style={s.btnCriticalDismissTxt}>닫기</Text>
             </TouchableOpacity>
           </View>
+        </View>
+      )}
+
+      {/* 위기 상담 카드 */}
+      {showCrisis && (
+        <View style={s.crisisCard}>
+          <Text style={s.crisisCardTitle}>마음이 많이 힘드신가요?</Text>
+          <Text style={s.crisisCardDesc}>전문 선생님과 바로 이야기하실 수 있어요.</Text>
+          <TouchableOpacity style={s.crisisCallBtn}
+            onPress={() => { if (Platform.OS === 'web') { (window as any).location.href = 'tel:1393'; } else { Linking.openURL('tel:1393'); } }}>
+            <Text style={s.crisisCallTxt}>정신건강 위기상담 1393 (24시간 무료)</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.crisisDismissBtn} onPress={() => setShowCrisis(false)}>
+            <Text style={s.crisisDismissTxt}>닫기</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* 감정 공감 배너 */}
+      {currentIntent === 'emotional' && !loading && displayMsg.role === 'ai' && history.length > 0 && (
+        <View style={s.emotionalBanner}>
+          <Text style={s.emotionalBannerTxt}>꿀비가 마음으로 함께할게요</Text>
         </View>
       )}
 
@@ -672,4 +786,28 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 20,
     paddingHorizontal: 20, paddingVertical: 10 },
   toastTxt: { color: '#fff', fontSize: 16, fontWeight: '700' },
+
+  // 위기 상담 카드
+  crisisCard: {
+    backgroundColor: '#FFF3E0', borderTopWidth: 2, borderBottomWidth: 2,
+    borderColor: '#F57C00', padding: 16, alignItems: 'center',
+  },
+  crisisCardTitle: { fontSize: 20, fontWeight: '800', color: '#E65100', marginBottom: 4 },
+  crisisCardDesc:  { fontSize: 17, color: '#6D4C41', marginBottom: 12, textAlign: 'center' },
+  crisisCallBtn:   { backgroundColor: '#E65100', borderRadius: 14,
+    paddingVertical: 14, paddingHorizontal: 20, alignItems: 'center', marginBottom: 10, width: '100%' },
+  crisisCallTxt:   { fontSize: 18, fontWeight: '800', color: '#fff', textAlign: 'center' },
+  crisisDismissBtn: { paddingVertical: 8 },
+  crisisDismissTxt: { fontSize: 16, color: '#90A4AE' },
+
+  // 감정 공감 배너
+  emotionalBanner: {
+    backgroundColor: '#FCE4EC', borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 8, alignSelf: 'center', marginBottom: 6,
+    borderWidth: 1.5, borderColor: '#F48FB1',
+  },
+  emotionalBannerTxt: { fontSize: 17, color: '#880E4F', fontWeight: '700', textAlign: 'center' },
+
+  // criticalCard desc 추가
+  criticalCardDesc: { fontSize: 16, color: '#C62828', marginBottom: 8, textAlign: 'center' },
 });
