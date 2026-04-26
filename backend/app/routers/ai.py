@@ -561,6 +561,8 @@ class ChatRequest(BaseModel):
     client_profile: Optional[dict] = None
     client_meds:    Optional[list] = None
     client_record:  Optional[dict] = None
+    turn_count:     int = 0
+    force_summary:  bool = False
 
 
 @router.post("/chat")
