@@ -110,8 +110,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   // 초기 인사 TTS
   useEffect(() => {
     const t = setTimeout(() => {
-      speak(cleanForTTS(greeting), 0.85);
-      setIsSpeaking(true);
+      speak(`안녕하세요, ${name}님`, 0.85);
     }, 600);
     return () => { clearTimeout(t); stopSpeech(); };
   }, []);
