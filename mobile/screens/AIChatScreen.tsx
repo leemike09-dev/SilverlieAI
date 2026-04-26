@@ -56,16 +56,16 @@ function stripEmoji(text: string): string {
 
 function cleanForTTS(text: string): string {
   return stripEmoji(text)
-    .replace(/\*{1,3}([^*\n]+)\*{1,3}/g, '$1')
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/^[-*+]\s+/gm, '')
-    .replace(/^\d+\.\s+/gm, '')
-    .replace(/^-{3,}$/gm, '')
-    .replace(/^={3,}$/gm, '')
     .replace(/```[\s\S]*?```/g, '')
-    .replace(/`([^`]+)`/g, '$1')
+    .replace(/`[^`]+`/g, '')
+    .replace(/\*{1,3}([^*\n]*)\*{1,3}/g, '$1')
+    .replace(/\*+/g, '')
+    .replace(/^#{1,6}\s*/gm, '')
+    .replace(/^[-*+]\s+/gm, '')
+    .replace(/^-{2,}\s*/gm, '')
+    .replace(/^\d+\.\s+/gm, '')
+    .replace(/^={3,}$/gm, '')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/\n{3,}/g, ' ')
     .replace(/\n/g, ' ')
     .replace(/ {2,}/g, ' ')
     .trim();
@@ -184,7 +184,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
     if (!msg || loading) return;
     setInput('');
     stopSpeakingHandler();
-    setMemoState('idle');
+    if (memoState !== 'saved') setMemoState('idle');
 
     fadeInMsg({ role: 'user', text: msg });
     setLoading(true);
@@ -209,7 +209,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       setAiMsgIdx(i => i + 1);
       setTurnCount(t => t + 1);
 
-      if ((isFinal && dMemo) || (dMemoNeeded && dMemo && ['medium','high','critical'].includes(riskLevel))) {
+      if (memoState === 'idle' && ((isFinal && dMemo) || (dMemoNeeded && dMemo && ['medium','high','critical'].includes(riskLevel)))) {
         setPendingMemo(dMemo);
         // TTS 완료 후 메모 프롬프트 표시
         const mainMs = Math.max(4000, reply.length * 180);

@@ -355,7 +355,7 @@ def build_doctor_memo(user: dict, health_ctx: dict, current_msg: str) -> str:
     ]) if meds_raw else ''
     bp    = f"{rec.get('bp_sys','')}/{rec.get('bp_dia','')} mmHg" if rec.get('bp_sys') else ''
     sugar = f"{rec.get('glucose','')} mg/dL" if rec.get('glucose') else ''
-    steps = f"{rec.get('steps','')} 백" if rec.get('steps') else ''
+    steps = f"{rec.get('steps','')} 보" if rec.get('steps') else ''
     age_gender = f"{age}세 {gender}" if (age or gender) else ''
     now = _dt.now().strftime('%Y년 %m월 %d일 %H:%M')
     lines = [
@@ -375,10 +375,10 @@ def build_doctor_memo(user: dict, health_ctx: dict, current_msg: str) -> str:
         "",
         "■ 최근 건강 수치",
         f"혈압: {bp or '미측정'}",
-        f"혁당: {sugar or '미측정'}",
+        f"혈당: {sugar or '미측정'}",
         f"걸음수: {steps or '미측정'}",
         "",
-        "* Silver Life AI 꿼비 상담 내용을 기반으로 자동 생성된 메모입니다.",
+        "* Silver Life AI 꿀비 상담 내용을 기반으로 자동 생성된 메모입니다.",
     ]
     return '\n'.join(lines)
 
