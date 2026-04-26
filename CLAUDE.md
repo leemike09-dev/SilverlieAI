@@ -494,6 +494,10 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 - [ ] sendSOSPushToFamily 완전 구현
 
 ### 📍 위치 / 지도
+- [ ] LocationMapScreen 지도 카카오맵으로 전환 (현재 Leaflet+OpenStreetMap)
+  - 웹: Kakao Maps JS API (카카오 개발자 계정 사용)
+  - 중국 사용자: AutoNavi (高德地图) 분기 — 언어/지역 감지로 자동 전환
+  - 구조: `getMapProvider()` → 'kakao' | 'autonavi' | 'osm'
 - [ ] LocationMapScreen 네이티브 앱 지도 지원 (현재 웹만)
 - [ ] 백그라운드 위치 추적 (산책 동선 자동 기록)
 
