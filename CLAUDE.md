@@ -479,9 +479,9 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
   - 흐름: 웨어러블 수집 → health_records 저장 → load_health_context() → AI 시스템 프롬프트 포함
 
 ### 🎤 음성 기능 ⚠️ 출시 전 필수
-- [ ] AIChatScreen 음성 입력 (STT) — 🎤 버튼 탭 시 음성 → 텍스트 변환 후 전송 (expo-speech / react-native-voice)
-- [ ] SOSScreen TTS 음성 안내 — 화면 진입 시 "지금 119에 연결합니다" 등 자동 음성 재생 (`setTimeout` 빈 블록 완성)
-- [ ] AIChatScreen TTS 답변 읽기 — 꿀비 답변을 음성으로 읽어주는 기능 (스피커 버튼)
+- [x] AIChatScreen 음성 입력 (STT) — 🎤 버튼 구현 완료 (Web Speech API)
+- [x] SOSScreen TTS 음성 안내 — 완료: 진입 안내 + 카운트다운(하나/둘/셋/넷/다섯) + 취소 안심 메시지
+- [x] AIChatScreen TTS 답변 읽기 — 🔊/⏹ 읽기·정지 버튼 각 AI 메시지에 추가 완료
 - [ ] 인트로 TTS 음성 안내 (시간대별 인사말 — "좋은 아침이에요" 등)
 
 ### 🌏 글로벌 / 플랫폼 확장
@@ -534,6 +534,15 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 - [ ] FamilyDashboard 가족 공유 연동
 - [ ] 1차 출시 후 3~6개월 실사용 데이터 기반으로 임계값 설계
 ---
+
+## 완료 작업 기록 (2026-04-26)
+
+### TTS/STT 음성기능 전면 적용 — 편안·보호·공감 목소리
+- `speech.ts`: rate 0.85 / pitch 1.1 / 한국어 여성 목소리 우선 (Yuna·Heami·Google) / voices 비동기 로드 대응
+- `SOSScreen`: "괜찮으세요?" 진입 → 카운트다운 하나/둘/셋/넷/다섯 → "지금 연결해요" → 취소 시 "걱정 마세요"
+- `AIChatScreen`: 각 AI 답변에 🔊 읽기 버튼, 탭하면 ⏹ 정지 토글
+- `SeniorHomeScreen`: 건강기록 로드 후 시간대별 인사 + 혈압요약 TTS (세션 1회)
+- `MedicationScreen`: 화면 진입 시 미복용 약 안내 + 복용 완료 탭 시 칭찬 피드백
 
 ## 완료 작업 기록 (2026-04-26)
 
@@ -590,9 +599,9 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 | HealthScreen | 건강기록 입력 | ✅ 완료 | 실데이터 백엔드 저장 (혈압/혈당/체온/체중/걸음수) |
 | WeeklyReportScreen | 주간 리포트 | ✅ 완료 | 실데이터 + AI 총평 |
 | AIChatScreen | AI 상담 | ✅ 완료 | 실데이터 컨텍스트 (복약/건강기록 7일) + 과거 데이터 tool use (query_health_records) |
-| AIChatScreen | STT 음성입력 | 🔲 미완성 | 🎤 버튼 — Web Speech API |
-| AIChatScreen | TTS 읽어주기 | 🔲 미완성 | 🔊 버튼 — speech.ts 유틸 완성됨 |
-| SOSScreen | TTS 음성안내 | 🔲 미완성 | 화면 진입 시 자동 음성 재생 |
+| AIChatScreen | STT 음성입력 | ✅ 완료 | 🎤 버튼 — Web Speech API |
+| AIChatScreen | TTS 읽어주기 | ✅ 완료 | 🔊 읽기/⏹ 정지 토글 버튼 |
+| SOSScreen | TTS 음성안내 | ✅ 완료 | 진입 안내 + 카운트다운 + 취소 메시지 |
 | SOSScreen | 가족 전화번호 | 🔲 미완성 | 현재 phone 빈 문자열 |
 | FamilyDashboard | AI 건강요약 | 🔲 미완성 | 현재 DEMO_MODE |
 | LoginScreen | 카카오 로그인 | ✅ 완료 | 웹 OAuth 동작 |
