@@ -334,3 +334,185 @@ def anomaly_check(senior_id: str):
         }}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+
+# ══════════════════════════════════════════════════════════
+#  가족 메시지 (family_messages)
+# ══════════════════════════════════════════════════════════
+
+class SendMessageRequest(BaseModel):
+    sender_id: str
+    receiver_id: str
+    message: str
+    msg_type: Optional[str] = "text"   # "text" | "quick_reply"
+
+class ReadMessagesRequest(BaseModel):
+    sender_id: str
+    receiver_id: str
+
+QUICK_REPLIES = [
+    {"id": "ok",      "label": "잘 있어요"},
+    {"id": "call",    "label": "전화해줘"},
+    {"id": "later",   "label": "조금 있다 연락할게"},
+    {"id": "miss",    "label": "보고 싶어요"},
+]
+
+@router.get("/quick-replies")
+def get_quick_replies():
+    """빠른 답장 목록"""
+    return {"replies": QUICK_REPLIES}
+
+@router.post("/messages")
+def send_message(req: SendMessageRequest):
+    """메시지 전송"""
+    db = get_supabase()
+    row = db.table("family_messages").insert({
+        "sender_id":   req.sender_id,
+        "receiver_id": req.receiver_id,
+        "message":     req.message,
+        "msg_type":    req.msg_type or "text",
+        "is_read":     False,
+    }).execute()
+    return {"ok": True, "id": row.data[0]["id"] if row.data else None}
+
+@router.get("/messages/{user_id}")
+def get_messages(user_id: str):
+    """user_id 기준 대화 파트너별 최신 메시지 목록 반환"""
+    db = get_supabase()
+
+    # 내가 보낸 or 받은 모든 메시지
+    sent = db.table("family_messages")         .select("*").eq("sender_id", user_id)         .order("created_at", desc=True).limit(200).execute().data or []
+    received = db.table("family_messages")         .select("*").eq("receiver_id", user_id)         .order("created_at", desc=True).limit(200).execute().data or []
+
+    # 파트너별 최신 메시지 집계
+    partners: dict = {}
+    for msg in sent + received:
+        partner = msg["receiver_id"] if msg["sender_id"] == user_id else msg["sender_id"]
+        existing = partners.get(partner)
+        if not existing or msg["created_at"] > existing["created_at"]:
+            partners[partner] = msg
+
+    # 파트너 이름 조회
+    result = []
+    for partner_id, msg in partners.items():
+        user_row = db.table("users").select("name").eq("id", partner_id).execute()
+        partner_name = user_row.data[0]["name"] if user_row.data else partner_id
+
+        unread = db.table("family_messages")             .select("id", count="exact")             .eq("sender_id", partner_id)             .eq("receiver_id", user_id)             .eq("is_read", False).execute()
+        unread_count = unread.count or 0
+
+        result.append({
+            "partner_id":    partner_id,
+            "partner_name":  partner_name,
+            "last_message":  msg["message"],
+            "last_msg_type": msg.get("msg_type", "text"),
+            "last_at":       msg["created_at"],
+            "is_mine":       msg["sender_id"] == user_id,
+            "unread_count":  unread_count,
+        })
+
+    result.sort(key=lambda x: x["last_at"], reverse=True)
+    return {"conversations": result}
+
+@router.get("/messages/{sender_id}/{receiver_id}")
+def get_thread(sender_id: str, receiver_id: str, limit: int = 30):
+    """두 사람 사이 대화 스레드"""
+    db = get_supabase()
+    msgs = db.table("family_messages")         .select("*")         .or_(
+            f"and(sender_id.eq.{sender_id},receiver_id.eq.{receiver_id}),"
+            f"and(sender_id.eq.{receiver_id},receiver_id.eq.{sender_id})"
+        )         .order("created_at", desc=False).limit(limit).execute().data or []
+
+    # 읽음 처리
+    db.table("family_messages")         .update({"is_read": True})         .eq("sender_id", receiver_id)         .eq("receiver_id", sender_id)         .eq("is_read", False).execute()
+
+    return {"messages": msgs}
+
+@router.get("/messages/unread-count/{user_id}")
+def get_unread_count(user_id: str):
+    """전체 미읽음 메시지 수"""
+    db = get_supabase()
+    r = db.table("family_messages")         .select("id", count="exact")         .eq("receiver_id", user_id)         .eq("is_read", False).execute()
+    return {"unread": r.count or 0}
+
+
+# ══════════════════════════════════════════════════════════
+#  공동 건강 목표 (family_goals)
+# ══════════════════════════════════════════════════════════
+
+class GoalRequest(BaseModel):
+    senior_id:  str
+    family_id:  str
+    goal_type:  Optional[str] = "steps"
+    target:     int
+    period:     Optional[str] = "weekly"
+    created_by: str
+
+@router.post("/goals")
+def create_goal(req: GoalRequest):
+    """공동 목표 생성 (기존 활성 목표는 비활성화)"""
+    db = get_supabase()
+    from datetime import date, timedelta
+
+    # 기존 목표 비활성화
+    db.table("family_goals")         .update({"is_active": False})         .eq("senior_id", req.senior_id)         .eq("family_id", req.family_id)         .eq("is_active", True).execute()
+
+    start = date.today()
+    end = start + timedelta(days=6 if req.period == "weekly" else 0)
+
+    row = db.table("family_goals").insert({
+        "senior_id":  req.senior_id,
+        "family_id":  req.family_id,
+        "goal_type":  req.goal_type or "steps",
+        "target":     req.target,
+        "period":     req.period or "weekly",
+        "start_date": start.isoformat(),
+        "end_date":   end.isoformat(),
+        "created_by": req.created_by,
+        "is_active":  True,
+    }).execute()
+    return {"ok": True, "goal": row.data[0] if row.data else {}}
+
+@router.get("/goals/{user_id}")
+def get_goals(user_id: str):
+    """user_id가 관련된 활성 목표 + 진행률"""
+    db = get_supabase()
+    from datetime import date
+
+    goals_raw = db.table("family_goals")         .select("*")         .or_(f"senior_id.eq.{user_id},family_id.eq.{user_id}")         .eq("is_active", True).execute().data or []
+
+    results = []
+    today = date.today().isoformat()
+
+    for g in goals_raw:
+        progress = 0
+        current_val = 0
+
+        if g["goal_type"] == "steps":
+            # 시니어의 걸음 수 합산
+            recs = db.table("health_records")                 .select("steps")                 .eq("user_id", g["senior_id"])                 .gte("date", g["start_date"])                 .lte("date", today).execute().data or []
+            current_val = sum(r.get("steps") or 0 for r in recs)
+            progress = min(100, round(current_val / g["target"] * 100)) if g["target"] > 0 else 0
+
+        # 파트너 이름 조회
+        partner_id = g["family_id"] if g["senior_id"] == user_id else g["senior_id"]
+        partner_row = db.table("users").select("name").eq("id", partner_id).execute()
+        partner_name = partner_row.data[0]["name"] if partner_row.data else partner_id
+
+        results.append({
+            **g,
+            "current_val":   current_val,
+            "progress_pct":  progress,
+            "partner_id":    partner_id,
+            "partner_name":  partner_name,
+            "achieved":      progress >= 100,
+        })
+
+    return {"goals": results}
+
+@router.delete("/goals/{goal_id}")
+def deactivate_goal(goal_id: str):
+    """목표 비활성화"""
+    db = get_supabase()
+    db.table("family_goals").update({"is_active": False}).eq("id", goal_id).execute()
+    return {"ok": True}
