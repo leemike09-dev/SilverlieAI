@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Platform, Linking, Alert, Modal, ActivityIndicator,
+  StatusBar, Platform, ActivityIndicator, Modal,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SeniorTabBar from '../components/SeniorTabBar';
+import { Ionicons } from '@expo/vector-icons';
 
 const API = 'https://silverlieai.onrender.com';
 
-// ── 관계 상수 ──
 const RELATION_EMOJI: Record<string, string> = {
   father: '👴', mother: '👵', spouse: '💑',
   son: '👦', daughter: '👧', sibling: '👫', other: '👤',
@@ -27,193 +27,89 @@ const RELATION_OPTIONS = [
   { key: 'other',    label: '기타',      emoji: '👤' },
 ];
 
-export default function FamilyDashboardScreen({ route, navigation }: any) {
-  const [userId,      setUserId]      = useState<string>(route?.params?.userId || '');
-  const [name,        setName]        = useState<string>(route?.params?.name   || '');
-  const [members,     setMembers]     = useState<any[]>([]);
-  const [selected,    setSelected]    = useState<any>(null);
-  const [selectedId,  setSelectedId]  = useState<string>('');
-  const [location,    setLocation]    = useState<any>(null);
-  const [aiAdvice,    setAiAdvice]    = useState('');
-  const [medications, setMedications] = useState<any[]>([]);
-  const [loading,     setLoading]     = useState(false);
-  const [relModal,    setRelModal]    = useState(false);
-  const [relTarget,   setRelTarget]   = useState<any>(null);
+const DEMO_CONVERSATIONS = [
+  { partner_id: 'demo-son-1',    last_message: '아버지 오늘 점심은 드셨어요?', last_at: new Date().toISOString(), unread_count: 2 },
+  { partner_id: 'demo-daughter-1', last_message: '이번 주말에 방문할게요! 😊', last_at: new Date(Date.now() - 3600000).toISOString(), unread_count: 0 },
+];
+const DEMO_GOALS = [
+  { id: 'g1', goal_type: 'steps', target: 5000, period: 'daily', progress_pct: 84, created_by: 'demo-son-1' },
+];
 
-  // ── 초기화: AsyncStorage에서 family_members 로드 ──
+export default function FamilyDashboardScreen({ route, navigation }: any) {
+  const [userId,   setUserId]   = useState<string>(route?.params?.userId || '');
+  const [name,     setName]     = useState<string>(route?.params?.name   || '');
+  const [members,  setMembers]  = useState<any[]>([]);
+  const [convs,    setConvs]    = useState<any[]>([]);
+  const [goals,    setGoals]    = useState<any[]>([]);
+  const [tab,      setTab]      = useState<'messages' | 'goals'>('messages');
+  const [loading,  setLoading]  = useState(true);
+  const [relModal, setRelModal] = useState(false);
+  const [relTarget,setRelTarget]= useState<any>(null);
+
+  const unreadTotal = convs.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+
   useEffect(() => {
     const init = async () => {
-      const storedId   = (await AsyncStorage.getItem('userId'))   || '';
-      const storedName = (await AsyncStorage.getItem('userName')) || '';
-      const uid   = storedId   || route?.params?.userId || '';
-      const uname = storedName || route?.params?.name   || '';
-      if (storedId)   setUserId(uid);
-      if (storedName) setName(uname);
+      const uid   = (await AsyncStorage.getItem('userId'))   || route?.params?.userId || '';
+      const uname = (await AsyncStorage.getItem('userName')) || route?.params?.name   || '';
+      if (uid)   setUserId(uid);
+      if (uname) setName(uname);
 
-      // AsyncStorage에서 연결된 가족 목록 로드
       const stored = await AsyncStorage.getItem('family_members');
-      if (stored) {
-        try {
-          const mems: any[] = JSON.parse(stored);
-          if (mems && mems.length > 0) {
-            console.log('family_members 로드:', mems.length, '명');
-            setMembers(mems);
-            setSelected(mems[0]);
-            setSelectedId(mems[0].id);
-            return;
-          }
-        } catch {}
+      if (!stored) {
+        navigation.replace('FamilyConnect', { userId: uid, name: uname });
+        return;
       }
-
-      // 실제 API로 멤버 조회 시도
-      if (uid) {
-        try {
-          const r = await fetch(`${API}/family/members/${uid}`);
-          if (r.ok) {
-            const d = await r.json();
-            const mems: any[] = d.members || [];
-            if (mems.length > 0) {
-              await AsyncStorage.setItem('family_members', JSON.stringify(mems));
-              setMembers(mems);
-              setSelected(mems[0]);
-              setSelectedId(mems[0].id);
-              return;
-            }
-          }
-        } catch {}
+      const mems: any[] = JSON.parse(stored);
+      if (!mems || mems.length === 0) {
+        navigation.replace('FamilyConnect', { userId: uid, name: uname });
+        return;
       }
-      // 연결된 가족 없음 → FamilyConnect로
-      navigation.replace('FamilyConnect', { userId: uid, name: uname });
+      setMembers(mems);
+      await fetchData(uid);
     };
     init();
   }, []);
 
-  // ── selectedId 변경 시 대시보드 데이터 로드 ──
-  useEffect(() => {
-    if (selectedId) {
-      console.log('대시보드 로드:', selectedId);
-      fetchDashboard(selectedId);
-    } else {
-      setLocation(null);
-      setAiAdvice('');
-      setMedications([]);
-    }
-  }, [selectedId]);
-
-  // ── 멤버 선택 ──
-  const selectMember = (m: any) => {
-    console.log('멤버 선택:', m.name, '| id:', m.id);
-    setSelected(m);
-    setSelectedId(m.id);
-  };
-
-  // ── 대시보드 데이터 조회 ──
-  const fetchDashboard = async (seniorId: string) => {
+  const fetchData = async (uid: string) => {
     setLoading(true);
-    setLocation(null);
-    setAiAdvice('');
-    setMedications([]);
-
-    let gotLoc = false, gotAi = false, gotMed = false;
-
-    // 위치
     try {
-      const r = await fetch(`${API}/location/today/${seniorId}`);
-      if (r.ok) {
-        const d = await r.json();
-        if (d && Object.keys(d).length > 0) { setLocation(d); gotLoc = true; }
+      const [cr, gr] = await Promise.all([
+        fetch(`${API}/family/messages/${uid}`),
+        fetch(`${API}/family/goals/${uid}`),
+      ]);
+      if (cr.ok) {
+        const cd = await cr.json();
+        setConvs(cd.conversations || []);
+      } else {
+        setConvs(DEMO_CONVERSATIONS);
       }
-    } catch {}
-
-    // AI 조언
-    try {
-      const r = await fetch(`${API}/ai/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: seniorId, message: '오늘 건강 상태를 간단히 요약해 주세요' }),
-      });
-      if (r.ok) {
-        const d = await r.json();
-        const txt = d.reply || d.message || '';
-        if (txt) { setAiAdvice(txt); gotAi = true; }
+      if (gr.ok) {
+        const gd = await gr.json();
+        setGoals(gd.goals || DEMO_GOALS);
+      } else {
+        setGoals(DEMO_GOALS);
       }
-    } catch {}
-
-    // 복용약
-    try {
-      const r = await fetch(`${API}/family/dashboard/${seniorId}`);
-      if (r.ok) {
-        const d = await r.json();
-        if (d.medications?.length > 0) { setMedications(d.medications); gotMed = true; }
-      }
-    } catch {}
-
-    setLoading(false);
-  };
-
-  // ── 전화 ──
-  const callMember = () => {
-    if (!selected?.phone) {
-      Alert.alert('전화번호 없음', '등록된 전화번호가 없습니다.');
-      return;
+    } catch {
+      setConvs(DEMO_CONVERSATIONS);
+      setGoals(DEMO_GOALS);
     }
-    Linking.openURL(`tel:${selected.phone.replace(/-/g, '')}`);
-  };
-
-  // ── 관계 설정 ──
-  const openRelModal = (member: any) => {
-    setRelTarget(member);
-    setRelModal(true);
+    setLoading(false);
   };
 
   const saveRelation = async (rel: { key: string; label: string }) => {
     if (!relTarget) return;
-    const updatedMember = { ...relTarget, relation: rel.key };
-
-    // AsyncStorage 업데이트
+    const updated = members.map(m => m.id === relTarget.id ? { ...m, relation: rel.key } : m);
+    setMembers(updated);
     try {
-      const stored = await AsyncStorage.getItem('family_members');
-      const mems: any[] = stored ? JSON.parse(stored) : members;
-      const updated = mems.map(m => m.id === relTarget.id ? updatedMember : m);
       await AsyncStorage.setItem('family_members', JSON.stringify(updated));
-      setMembers(updated);
-    } catch {
-      setMembers(prev => prev.map(m => m.id === relTarget.id ? updatedMember : m));
-    }
-
-    if (selected?.id === relTarget.id) {
-      setSelected(updatedMember);
-    }
-
-    try {
       await fetch(`${API}/family/relation`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, targetUserId: relTarget.id, relation: rel.key }),
       });
     } catch {}
-
     setRelModal(false);
   };
-
-  // ── 복용약 배지 ──
-  const medBadge = (med: any) => {
-    if (med.taken) return { label: '복용완료', color: '#2E7D32', bg: '#E8F5E9' };
-    const [h, m] = (med.time || '00:00').split(':').map(Number);
-    const now = new Date();
-    const mt  = new Date();
-    mt.setHours(h, m, 0, 0);
-    if (now > mt) return { label: '미복용', color: '#D32F2F', bg: '#FFEBEE' };
-    return { label: '예정', color: '#888888', bg: '#F5F5F5' };
-  };
-
-  const distStr = (d: number) => d >= 1000 ? `${(d / 1000).toFixed(1)}km` : `${d}m`;
-
-  const headerSub = selected
-    ? (selected.relation && selected.relation !== 'other'
-        ? `${RELATION_LABEL[selected.relation] || ''} ${selected.name}님`
-        : `${selected.name}님`)
-    : `${name ? name + '님의 ' : ''}가족 현황`;
 
   const PT = Platform.OS === 'ios' ? 54 : 32;
 
@@ -221,48 +117,34 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
 
-      {/* ── 헤더 ── */}
+      {/* Header */}
       <View style={[s.header, { paddingTop: PT }]}>
         <View>
-          <Text style={s.headerTitle}>가족 건강</Text>
-          <Text style={s.headerSub}>{headerSub}</Text>
+          <Text style={s.headerTitle}>우리 가족</Text>
+          <Text style={s.headerSub}>{name ? `${name}님의 가족 공간` : '가족과 소통해요'}</Text>
         </View>
-        <TouchableOpacity style={s.callBtn} onPress={callMember}>
-          <Text style={s.callIcon}>📞</Text>
-          <Text style={s.callTxt}>전화</Text>
+        <TouchableOpacity style={s.addFamilyBtn}
+          onPress={() => navigation.navigate('FamilyConnect', { userId, name })}>
+          <Ionicons name="person-add-outline" size={22} color="#1A4A8A" />
         </TouchableOpacity>
       </View>
 
-      {/* ── 멤버 선택 가로 스크롤 ── */}
+      {/* Member chips */}
       {members.length > 0 && (
-        <View style={s.memberBar}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={s.memberScroll}
-          >
+        <View style={s.chipBar}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}
+            contentContainerStyle={s.chipScroll}>
             {members.map(m => {
-              const on = selectedId === m.id;
+              const noRel = !m.relation;
               return (
-                <TouchableOpacity
-                  key={m.id}
-                  style={on ? [s.chip, s.chipOn] : [s.chip, s.chipOff]}
-                  onPress={() => selectMember(m)}
-                  activeOpacity={0.7}
-                >
+                <TouchableOpacity key={m.id} style={s.chip}
+                  onPress={() => noRel && (setRelTarget(m), setRelModal(true))}
+                  activeOpacity={noRel ? 0.6 : 1}>
                   <Text style={s.chipEmoji}>{RELATION_EMOJI[m.relation] || '👤'}</Text>
-                  <View>
-                    {m.relation ? (
-                      <>
-                        <Text style={[s.chipRel, on && s.chipRelOn]}>
-                          {RELATION_LABEL[m.relation] || m.relation}
-                        </Text>
-                        <Text style={[s.chipSub, on && s.chipSubOn]}>{m.name}</Text>
-                      </>
-                    ) : (
-                      <Text style={[s.chipName, on && s.chipNameOn]}>{m.name}</Text>
-                    )}
-                  </View>
+                  <Text style={s.chipName}>
+                    {m.relation ? `${RELATION_LABEL[m.relation]}` : m.name}
+                  </Text>
+                  {noRel && <Text style={s.chipEdit}>설정</Text>}
                 </TouchableOpacity>
               );
             })}
@@ -270,117 +152,122 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
         </View>
       )}
 
-      {/* ── 스크롤 콘텐츠 ── */}
-      <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+      {/* Tab toggle */}
+      <View style={s.tabRow}>
+        <TouchableOpacity style={[s.tabBtn, tab === 'messages' && s.tabBtnOn]}
+          onPress={() => setTab('messages')}>
+          <Text style={[s.tabTxt, tab === 'messages' && s.tabTxtOn]}>
+            메시지{unreadTotal > 0 ? `  ${unreadTotal}` : ''}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[s.tabBtn, tab === 'goals' && s.tabBtnOn]}
+          onPress={() => setTab('goals')}>
+          <Text style={[s.tabTxt, tab === 'goals' && s.tabTxtOn]}>건강 목표</Text>
+        </TouchableOpacity>
+      </View>
 
-        {/* 관계 미설정 배너 */}
-        {selected && !selected.relation && (
-          <TouchableOpacity style={s.relBanner} onPress={() => openRelModal(selected)}>
-            <Text style={s.relBannerIcon}>👪</Text>
-            <Text style={s.relBannerTxt}>{selected.name}님과의 관계를 설정해 주세요</Text>
-            <Text style={s.relBannerArr}>›</Text>
-          </TouchableOpacity>
-        )}
+      {loading ? (
+        <View style={s.loadBox}>
+          <ActivityIndicator size="large" color="#1A4A8A" />
+          <Text style={s.loadTxt}>불러오는 중...</Text>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
 
-        {loading ? (
-          <View style={s.loadingBox}>
-            <ActivityIndicator size="large" color="#1A4A8A" />
-            <Text style={s.loadingTxt}>불러오는 중...</Text>
-          </View>
-        ) : (
-          <>
-            {/* ── 현재 위치 · 동선 카드 ── */}
-            <View style={s.card}>
-              <Text style={s.cardTitle}>📍 현재 위치 · 오늘 동선</Text>
-              {location ? (
-                <View style={s.locBlock}>
-                  <Text style={s.locAddr}>{location.address || location.location || '위치 확인 중'}</Text>
-                  {location.timestamp
-                    ? <Text style={s.locTime}>마지막 확인: {location.timestamp}</Text>
-                    : null}
-                  <View style={s.locStats}>
-                    <View style={s.locStat}>
-                      <Text style={s.locStatVal}>{distStr(location.totalDist || 0)}</Text>
-                      <Text style={s.locStatLbl}>총 이동거리</Text>
-                    </View>
-                    <View style={s.locDiv} />
-                    <View style={s.locStat}>
-                      <Text style={s.locStatVal}>{location.points || location.logs?.length || 0}곳</Text>
-                      <Text style={s.locStatLbl}>방문 지점</Text>
-                    </View>
-                  </View>
-                </View>
-              ) : (
-                <Text style={s.emptyTxt}>아직 기록된 위치 데이터가 없어요</Text>
-              )}
-              <TouchableOpacity
-                style={s.mapBtn}
-                onPress={() => navigation.navigate('LocationMap', {
-                  userId:     selected?.id        || '',
-                  seniorName: selected?.name      || '',
-                  logs:       location?.logs      || [],
-                  totalDist:  location?.totalDist || 0,
-                })}
-              >
-                <Text style={s.mapBtnTxt}>🗺️  오늘 동선 확인</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* ── AI 건강 조언 ── */}
-            <View style={[s.card, s.aiCard]}>
-              <View style={s.aiHeader}>
-                <Text style={s.aiIconTxt}>🐝</Text>
-                <Text style={s.aiLabel}>AI 건강 조언</Text>
+          {tab === 'messages' ? (
+            members.length === 0 ? (
+              <View style={s.emptyBox}>
+                <Text style={s.emptyIcon}>👨‍👩‍👧‍👦</Text>
+                <Text style={s.emptyTxt}>연결된 가족이 없어요</Text>
+                <TouchableOpacity style={s.emptyBtn}
+                  onPress={() => navigation.navigate('FamilyConnect', { userId, name })}>
+                  <Text style={s.emptyBtnTxt}>가족 연결하기</Text>
+                </TouchableOpacity>
               </View>
-              {aiAdvice
-                ? <Text style={s.aiTxt}>{aiAdvice}</Text>
-                : <Text style={s.emptyTxt}>아직 기록된 데이터가 없어요</Text>}
-            </View>
-
-            {/* ── 복용약 현황 ── */}
-            <View style={s.card}>
-              <Text style={s.cardTitle}>💊 복용약 현황</Text>
-              {medications.length === 0 ? (
-                <Text style={s.emptyTxt}>아직 기록된 데이터가 없어요</Text>
-              ) : (
-                <View style={s.table}>
-                  <View style={s.tHead}>
-                    <Text style={[s.tCol, s.tColName,   s.tHeadTxt]}>약 이름</Text>
-                    <Text style={[s.tCol, s.tColTime,   s.tHeadTxt]}>시간</Text>
-                    <Text style={[s.tCol, s.tColStatus, s.tHeadTxt]}>상태</Text>
-                    <Text style={[s.tCol, s.tColStock,  s.tHeadTxt]}>재고</Text>
-                  </View>
-                  {medications.map((med: any, i: number) => {
-                    const badge    = medBadge(med);
-                    const lowStock = med.stock != null && med.stock <= 7;
-                    return (
-                      <View key={i} style={[s.tRow, i % 2 === 1 && s.tRowAlt]}>
-                        <Text style={[s.tCol, s.tColName,   s.tCell]}>{med.name}</Text>
-                        <Text style={[s.tCol, s.tColTime,   s.tCell]}>{med.time || '-'}</Text>
-                        <View style={[s.tCol, s.tColStatus]}>
-                          <View style={[s.badge, { backgroundColor: badge.bg }]}>
-                            <Text style={[s.badgeTxt, { color: badge.color }]}>{badge.label}</Text>
-                          </View>
+            ) : (
+              members.map(m => {
+                const conv = convs.find(c => c.partner_id === m.id);
+                const unread   = conv?.unread_count || 0;
+                const lastMsg  = conv?.last_message || '첫 인사를 나눠보세요 💙';
+                const lastTime = conv?.last_at
+                  ? new Date(conv.last_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+                  : '';
+                return (
+                  <TouchableOpacity key={m.id} style={s.convCard}
+                    onPress={() => navigation.navigate('FamilyChat', {
+                      userId, name,
+                      partnerId: m.id, partnerName: m.name, partnerRelation: m.relation,
+                    })}
+                    activeOpacity={0.85}>
+                    <View style={s.convAvatar}>
+                      <Text style={s.convAvatarTxt}>{RELATION_EMOJI[m.relation] || '👤'}</Text>
+                      {unread > 0 && (
+                        <View style={s.unreadDot}>
+                          <Text style={s.unreadDotTxt}>{unread}</Text>
                         </View>
-                        <Text style={[s.tCol, s.tColStock, s.tCell, lowStock && s.lowStock]}>
-                          {med.stock != null ? `${med.stock}일` : '-'}
+                      )}
+                    </View>
+                    <View style={s.convBody}>
+                      <View style={s.convTopRow}>
+                        <Text style={s.convName}>
+                          {m.relation ? RELATION_LABEL[m.relation] : m.name} {m.relation ? m.name : ''}
+                        </Text>
+                        {lastTime ? <Text style={s.convTime}>{lastTime}</Text> : null}
+                      </View>
+                      <Text style={[s.convLast, unread > 0 && s.convLastUnread]}
+                        numberOfLines={1}>{lastMsg}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#C0C0C0" />
+                  </TouchableOpacity>
+                );
+              })
+            )
+          ) : (
+            goals.length === 0 ? (
+              <View style={s.emptyBox}>
+                <Text style={s.emptyIcon}>🎯</Text>
+                <Text style={s.emptyTxt}>설정된 건강 목표가 없어요{'\n'}가족과 함께 목표를 정해보세요!</Text>
+              </View>
+            ) : (
+              goals.map((g: any) => {
+                const pct   = Math.min(100, Math.round(g.progress_pct || 0));
+                const color = pct >= 100 ? '#3DAB7B' : pct >= 60 ? '#F5A623' : '#2272B8';
+                const label = g.goal_type === 'steps' ? '걸음수 목표' : '건강 목표';
+                const icon  = g.goal_type === 'steps' ? '🚶' : '🎯';
+                return (
+                  <View key={g.id} style={s.goalCard}>
+                    <View style={s.goalTop}>
+                      <Text style={s.goalTitle}>{icon} {label}</Text>
+                      <View style={[s.goalPeriodBadge, { backgroundColor: color + '20' }]}>
+                        <Text style={[s.goalPeriodTxt, { color }]}>
+                          {g.period === 'daily' ? '오늘' : '이번 주'}
                         </Text>
                       </View>
-                    );
-                  })}
-                </View>
-              )}
-            </View>
-          </>
-        )}
-      </ScrollView>
+                    </View>
+                    <View style={s.barBg}>
+                      <View style={[s.barFill, { width: `${pct}%` as any, backgroundColor: color }]} />
+                    </View>
+                    <View style={s.goalBottom}>
+                      <Text style={[s.goalPct, { color }]}>{pct}% 달성</Text>
+                      <Text style={s.goalTarget}>목표 {g.target?.toLocaleString()}보</Text>
+                    </View>
+                    {g.created_by && g.created_by !== userId && (
+                      <Text style={s.goalCheer}>가족이 응원하고 있어요 💙</Text>
+                    )}
+                  </View>
+                );
+              })
+            )
+          )}
+        </ScrollView>
+      )}
 
-      {/* ── 관계 선택 모달 ── */}
+      {/* Relation modal */}
       <Modal visible={relModal} transparent animationType="slide">
         <View style={s.modalOverlay}>
           <View style={s.modalBox}>
             <Text style={s.modalTitle}>{relTarget?.name}님과의 관계</Text>
-            <Text style={s.modalSub}>관계를 선택하면 이후 표시됩니다</Text>
+            <Text style={s.modalSub}>관계를 선택해 주세요</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
               {RELATION_OPTIONS.map(opt => (
                 <TouchableOpacity key={opt.key} style={s.relOpt} onPress={() => saveRelation(opt)}>
@@ -404,83 +291,71 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F0F5FB' },
 
-  header:      { backgroundColor: '#1A4A8A', paddingHorizontal: 20, paddingBottom: 20,
-                 flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 30, fontWeight: '900', color: '#fff', marginBottom: 4 },
-  headerSub:   { fontSize: 20, color: 'rgba(255,255,255,0.85)' },
-  callBtn:     { backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 18,
-                 paddingVertical: 12, alignItems: 'center' },
-  callIcon:    { fontSize: 26 },
-  callTxt:     { fontSize: 18, fontWeight: '700', color: '#1A4A8A', marginTop: 2 },
+  header:        { backgroundColor: '#1A4A8A', paddingHorizontal: 22, paddingBottom: 18,
+                   flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
+  headerTitle:   { fontSize: 30, fontWeight: '900', color: '#fff', marginBottom: 2 },
+  headerSub:     { fontSize: 18, color: 'rgba(255,255,255,0.82)' },
+  addFamilyBtn:  { backgroundColor: '#fff', borderRadius: 14, padding: 10 },
 
-  memberBar:    { backgroundColor: '#1A4A8A', paddingBottom: 18 },
-  memberScroll: { paddingHorizontal: 16, gap: 10 },
-  chip:    { flexDirection: 'row', alignItems: 'center', gap: 10,
-             borderRadius: 32, paddingHorizontal: 18, paddingVertical: 14,
-             borderWidth: 2 },
-  chipOn:  { backgroundColor: '#FFFFFF', borderColor: '#1565C0' },
-  chipOff: { backgroundColor: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.3)' },
-  chipEmoji: { fontSize: 28 },
-  chipRel:   { fontSize: 20, fontWeight: '900', color: 'rgba(255,255,255,0.9)' },
-  chipRelOn: { color: '#1A4A8A' },
-  chipSub:   { fontSize: 16, color: 'rgba(255,255,255,0.65)', marginTop: 1 },
-  chipSubOn: { color: '#666' },
-  chipName:   { fontSize: 20, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
-  chipNameOn: { color: '#1A4A8A' },
+  chipBar:    { backgroundColor: '#1A4A8A', paddingBottom: 16 },
+  chipScroll: { paddingHorizontal: 16, gap: 10 },
+  chip:       { flexDirection: 'row', alignItems: 'center', gap: 8,
+                backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 30,
+                paddingHorizontal: 16, paddingVertical: 10,
+                borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.3)' },
+  chipEmoji: { fontSize: 24 },
+  chipName:  { fontSize: 17, fontWeight: '700', color: '#fff' },
+  chipEdit:  { fontSize: 14, color: 'rgba(255,255,255,0.6)', fontWeight: '500' },
 
-  relBanner:    { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF8E1',
-                  borderRadius: 18, padding: 20, marginBottom: 14,
-                  borderWidth: 1.5, borderColor: '#FFB300' },
-  relBannerIcon:{ fontSize: 26, marginRight: 12 },
-  relBannerTxt: { flex: 1, fontSize: 20, fontWeight: '700', color: '#E65100' },
-  relBannerArr: { fontSize: 28, color: '#E65100', fontWeight: '700' },
+  tabRow:    { flexDirection: 'row', backgroundColor: '#fff',
+               borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
+  tabBtn:    { flex: 1, paddingVertical: 16, alignItems: 'center' },
+  tabBtnOn:  { borderBottomWidth: 3, borderBottomColor: '#1A4A8A' },
+  tabTxt:    { fontSize: 18, fontWeight: '600', color: '#90A4AE' },
+  tabTxtOn:  { color: '#1A4A8A', fontWeight: '800' },
 
-  scroll:  { flex: 1 },
+  loadBox:  { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, paddingTop: 60 },
+  loadTxt:  { fontSize: 18, color: '#90A4AE' },
+
   content: { padding: 16, paddingBottom: 120 },
 
-  card:      { backgroundColor: '#fff', borderRadius: 22, padding: 22, marginBottom: 16,
-               shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-               shadowOpacity: 0.08, shadowRadius: 8, elevation: 3 },
-  cardTitle: { fontSize: 22, fontWeight: '800', color: '#1A4A8A', marginBottom: 16 },
-  emptyTxt:  { fontSize: 18, color: '#B0BEC5', textAlign: 'center', paddingVertical: 14 },
+  emptyBox:    { alignItems: 'center', paddingVertical: 60, gap: 16 },
+  emptyIcon:   { fontSize: 56 },
+  emptyTxt:    { fontSize: 20, color: '#90A4AE', textAlign: 'center', lineHeight: 32 },
+  emptyBtn:    { backgroundColor: '#1A4A8A', borderRadius: 18, paddingHorizontal: 28, paddingVertical: 16, marginTop: 8 },
+  emptyBtnTxt: { fontSize: 20, fontWeight: '800', color: '#fff' },
 
-  locBlock:   { marginBottom: 16 },
-  locAddr:    { fontSize: 22, fontWeight: '700', color: '#1A2C4E', marginBottom: 6 },
-  locTime:    { fontSize: 18, color: '#90A4AE', marginBottom: 14 },
-  locStats:   { flexDirection: 'row', alignItems: 'stretch' },
-  locStat:    { flex: 1, alignItems: 'center', paddingVertical: 12,
-                backgroundColor: '#EBF3FB', borderRadius: 14 },
-  locStatVal: { fontSize: 24, fontWeight: '900', color: '#1A4A8A' },
-  locStatLbl: { fontSize: 16, color: '#90A4AE', marginTop: 3 },
-  locDiv:     { width: 10 },
+  convCard:      { flexDirection: 'row', alignItems: 'center', gap: 16,
+                   backgroundColor: '#fff', borderRadius: 20, padding: 18, marginBottom: 12,
+                   shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  convAvatar:    { width: 58, height: 58, borderRadius: 29,
+                   backgroundColor: '#EBF3FB', alignItems: 'center', justifyContent: 'center',
+                   position: 'relative' },
+  convAvatarTxt: { fontSize: 28 },
+  unreadDot:     { position: 'absolute', top: -2, right: -2,
+                   backgroundColor: '#E53935', borderRadius: 10,
+                   minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center',
+                   paddingHorizontal: 5 },
+  unreadDotTxt:  { fontSize: 13, fontWeight: '900', color: '#fff' },
+  convBody:      { flex: 1 },
+  convTopRow:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 },
+  convName:      { fontSize: 20, fontWeight: '800', color: '#1E2D3D' },
+  convTime:      { fontSize: 15, color: '#B0BEC5' },
+  convLast:      { fontSize: 17, color: '#90A4AE', lineHeight: 24 },
+  convLastUnread:{ color: '#1E2D3D', fontWeight: '700' },
 
-  mapBtn:    { backgroundColor: '#1A4A8A', borderRadius: 16, paddingVertical: 18, alignItems: 'center' },
-  mapBtnTxt: { fontSize: 22, fontWeight: '800', color: '#fff' },
-
-  aiCard:   { borderLeftWidth: 5, borderLeftColor: '#1A4A8A' },
-  aiHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
-  aiIconTxt:{ fontSize: 28 },
-  aiLabel:  { fontSize: 22, fontWeight: '800', color: '#1A4A8A' },
-  aiTxt:    { fontSize: 18, color: '#37474F', lineHeight: 30 },
-
-  table:   { borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: '#E0E8F0' },
-  tHead:   { flexDirection: 'row', backgroundColor: '#1A4A8A', paddingVertical: 14, paddingHorizontal: 8 },
-  tHeadTxt:{ color: '#fff', fontWeight: '800', fontSize: 18 },
-  tRow:    { flexDirection: 'row', paddingVertical: 14, paddingHorizontal: 8,
-             borderTopWidth: 1, borderTopColor: '#EEF2F8', alignItems: 'center' },
-  tRowAlt: { backgroundColor: '#F8FAFD' },
-  tCol:    { flex: 1 },
-  tColName:  { flex: 2.2 },
-  tColTime:  { flex: 1.6 },
-  tColStatus:{ flex: 2.0 },
-  tColStock: { flex: 1.2, textAlign: 'center' },
-  tCell:   { fontSize: 18, color: '#2C2C2C', fontWeight: '600' },
-  badge:   { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5, alignSelf: 'flex-start' },
-  badgeTxt:{ fontSize: 16, fontWeight: '800' },
-  lowStock:{ color: '#C62828', fontWeight: '900' },
-
-  loadingBox: { alignItems: 'center', paddingVertical: 50, gap: 16 },
-  loadingTxt: { fontSize: 20, color: '#90A4AE' },
+  goalCard:   { backgroundColor: '#fff', borderRadius: 20, padding: 22, marginBottom: 14,
+                shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  goalTop:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  goalTitle:  { fontSize: 22, fontWeight: '800', color: '#1E2D3D' },
+  goalPeriodBadge: { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 5 },
+  goalPeriodTxt:   { fontSize: 16, fontWeight: '700' },
+  barBg:      { height: 16, backgroundColor: '#EEF2F8', borderRadius: 8, overflow: 'hidden', marginBottom: 12 },
+  barFill:    { height: '100%', borderRadius: 8 },
+  goalBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  goalPct:    { fontSize: 24, fontWeight: '900' },
+  goalTarget: { fontSize: 17, color: '#90A4AE' },
+  goalCheer:  { fontSize: 17, color: '#2272B8', fontWeight: '600', marginTop: 10 },
 
   modalOverlay:   { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalBox:       { backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30,
