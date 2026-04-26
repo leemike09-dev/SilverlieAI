@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   TextInput, KeyboardAvoidingView, Platform,
-  StatusBar, Image, Animated, Modal, Linking,
+  StatusBar, Animated, Modal, Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { speak, stopSpeech } from '../utils/speech';
@@ -28,25 +28,10 @@ const C = {
   emBg:    '#FFEBEE',
 };
 
-const KKULBI_IMAGES = {
-  default: require('../assets/Kkulbi_1.png'),
-  happy:   require('../assets/Kkulbi_1.png'),
-  worry:   require('../assets/Kkulbi_worry.png'),
-  cheer:   require('../assets/Kkulbi_Cheer.png'),
-  sleep:   require('../assets/Kkulbi_sleep.png'),
-  sos:     require('../assets/Kkulbi_1.png'),
-};
 
 const SLEEP_KEYWORDS = ['수면', '잠', '불면', '졸림', '피로', '잠이', '자다', '못자'];
 const CHEER_KEYWORDS = ['잘하셨', '좋아요', '괴찮아', '다행', '건강하', '운동', '식단', '걷기', '정상'];
 
-function getKkulbiImage(riskLevel?: RiskLevel, text: string = '') {
-  if (riskLevel === 'critical') return KKULBI_IMAGES.sos;
-  if (riskLevel === 'high' || riskLevel === 'medium') return KKULBI_IMAGES.worry;
-  if (SLEEP_KEYWORDS.some(k => text.includes(k))) return KKULBI_IMAGES.sleep;
-  if (CHEER_KEYWORDS.some(k => text.includes(k))) return KKULBI_IMAGES.cheer;
-  return KKULBI_IMAGES.happy;
-}
 
 function stripEmoji(text: string): string {
   return text
@@ -220,7 +205,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
     else Linking.openURL('tel:119');
   };
 
-  const kkulbiImg  = getKkulbiImage(displayMsg.riskLevel, displayMsg.text);
   const isUserMsg  = displayMsg.role === 'user';
   const isWelcome  = history.length === 0 && !loading;
 
@@ -272,13 +256,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
         {/* 메인 바디 - 고정 레이아웃 (스크롤 없음) */}
         <View style={s.body}>
-
-          {/* 꿀비 이미지 섹션 */}
-          <View style={s.kkulbiSection}>
-            <View style={s.kkulbiWrap}>
-              <Image source={kkulbiImg} style={s.kkulbiImg} resizeMode="contain" />
-            </View>
-          </View>
 
           {/* 메시지 버블 섹션 */}
           <View style={s.bubbleSection}>
@@ -360,7 +337,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
         onRequestClose={() => setShowEmergency(false)}>
         <View style={s.modalOverlay}>
           <View style={s.modalBox}>
-            <Image source={KKULBI_IMAGES.sos} style={s.modalKkulbi} resizeMode="contain" />
             <Text style={s.modalTitle}>주의가 필요합니다</Text>
             <Text style={s.modalDesc}>
               {`AI가 즉각적인 도움이 필요할 수 있다고 판단했습니다.\n본인이 괜찮다면 닫기를 눌러주세요.\n불안하다면 119 또는 가족에게 연락하세요.`}
@@ -418,19 +394,9 @@ const s = StyleSheet.create({
   // 메인 바디
   body: { flex: 1, paddingTop: 30, paddingHorizontal: 20, paddingBottom: 8 },
 
-  // 꿀비 섹션
-  kkulbiSection: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  kkulbiWrap: {
-    width: 180, height: 180, borderRadius: 90,
-    backgroundColor: '#EDE7F6',
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: C.purple1, shadowOpacity: 0.18,
-    shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 8,
-  },
-  kkulbiImg: { width: 160, height: 160 },
 
   // 메시지 버블 섹션
-  bubbleSection: { flex: 2, justifyContent: 'flex-start', paddingTop: 8 },
+  bubbleSection: { flex: 1, justifyContent: 'center', paddingTop: 0 },
 
   aiBubble: {
     backgroundColor: C.card, borderRadius: 20, borderBottomLeftRadius: 6,
@@ -438,17 +404,17 @@ const s = StyleSheet.create({
     shadowColor: C.purple1, shadowOpacity: 0.08, shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 }, elevation: 3,
   },
-  aiBubbleTxt: { fontSize: 22, color: C.text, lineHeight: 34, fontWeight: '500' },
+  aiBubbleTxt: { fontSize: 28, color: C.text, lineHeight: 42, fontWeight: '500' },
 
   userBubble: {
     backgroundColor: '#7B1FA2', borderRadius: 20, borderBottomRightRadius: 6,
     padding: 18, alignSelf: 'flex-end', maxWidth: '88%',
   },
-  userBubbleTxt: { fontSize: 22, color: '#fff', lineHeight: 34, fontWeight: '500' },
+  userBubbleTxt: { fontSize: 28, color: '#fff', lineHeight: 42, fontWeight: '500' },
 
   ttsBtn:    { alignSelf: 'flex-end', marginTop: 10, paddingHorizontal: 16, paddingVertical: 8,
                backgroundColor: '#EDE7F6', borderRadius: 20 },
-  ttsBtnTxt: { fontSize: 18, color: '#7B1FA2', fontWeight: '700' },
+  ttsBtnTxt: { fontSize: 20, color: '#7B1FA2', fontWeight: '700' },
 
   bannerCritical: { backgroundColor: '#FFEBEE', borderRadius: 10, borderWidth: 2, borderColor: '#D32F2F',
     paddingHorizontal: 12, paddingVertical: 8, marginBottom: 8 },
@@ -463,7 +429,7 @@ const s = StyleSheet.create({
   doctorMemoBtn: { marginTop: 12, backgroundColor: '#E8F5E9', borderRadius: 14,
     borderWidth: 1.5, borderColor: '#43A047', paddingVertical: 14, paddingHorizontal: 16,
     alignItems: 'center' },
-  doctorMemoBtnTxt: { fontSize: 19, color: '#2E7D32', fontWeight: '800' },
+  doctorMemoBtnTxt: { fontSize: 22, color: '#2E7D32', fontWeight: '800' },
 
   // 칩 섹션
   chipsSection: { paddingTop: 12 },
@@ -471,7 +437,7 @@ const s = StyleSheet.create({
   chip: { backgroundColor: C.card, borderRadius: 22, paddingHorizontal: 18, paddingVertical: 12,
     borderWidth: 1.5, borderColor: '#E1BEE7',
     shadowColor: C.purple1, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
-  chipTxt: { fontSize: 19, color: '#7B1FA2', fontWeight: '600' },
+  chipTxt: { fontSize: 22, color: '#7B1FA2', fontWeight: '600' },
 
   // 입력창
   inputWrap: { backgroundColor: C.card, borderTopWidth: 1, borderTopColor: '#E1BEE7',
@@ -479,7 +445,7 @@ const s = StyleSheet.create({
   inputRow:  { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   inputBox: { flex: 1, backgroundColor: C.bg, borderRadius: 22, borderWidth: 1.5,
     borderColor: '#E1BEE7', paddingHorizontal: 16, paddingVertical: 10,
-    fontSize: 20, color: C.text, maxHeight: 120, lineHeight: 30 },
+    fontSize: 22, color: C.text, maxHeight: 120, lineHeight: 30 },
   micBtn:       { width: 48, height: 48, borderRadius: 24, backgroundColor: '#F3E5F5',
     alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#E1BEE7' },
   micBtnActive: { backgroundColor: '#FDEAEA', borderColor: '#D94040' },
@@ -507,7 +473,6 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', padding: 24 },
   modalBox: { backgroundColor: '#fff', borderRadius: 20, padding: 28,
     width: '100%', maxWidth: 380, alignItems: 'center' },
-  modalKkulbi: { width: 80, height: 80, marginBottom: 8 },
   modalTitle: { fontSize: 26, fontWeight: '800', color: '#D32F2F', marginBottom: 14, textAlign: 'center' },
   modalDesc:  { fontSize: 18, color: C.text, lineHeight: 30, textAlign: 'center', marginBottom: 24 },
   btn119: { backgroundColor: '#D32F2F', borderRadius: 14, paddingVertical: 16, paddingHorizontal: 24,
