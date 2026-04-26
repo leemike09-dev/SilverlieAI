@@ -251,14 +251,9 @@ export default function SOSScreen({ navigation, route }: Props) {
             <Text style={s.cardTitle}>👪 가족에게 연락</Text>
             {firstFamily ? (
               <View style={s.famPreview}>
-                <Text style={s.famPreviewEmoji}>{RELATION_EMOJI[firstFamily.relation] || '👤'}</Text>
-                <View>
-                  <Text style={s.famPreviewName}>{firstFamily.name}</Text>
-                  <Text style={s.famPreviewRel}>{RELATION_LABEL[firstFamily.relation] || '가족'} · 전화 연결</Text>
-                </View>
+                <Text style={s.famPreviewName}>{firstFamily.name}</Text>
                 <Text style={s.famCall}>📞</Text>
               </View>
-            ) : (
               <Text style={s.famConnectTxt}>가족 연결하기 +</Text>
             )}
           </TouchableOpacity>
@@ -310,13 +305,11 @@ const s = StyleSheet.create({
   nextBannerName: { fontSize: 22, fontWeight: '900', color: '#3A1D00' },
   cardRow:     { flexDirection: 'row', gap: 10, width: '100%' },
   famCard:     { backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 18,
-                 borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', padding: 16 },
-  cardTitle:   { fontSize: 17, fontWeight: '800', color: '#fff', marginBottom: 12, textAlign: 'center' },
-  famPreview:  { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  famPreviewEmoji: { fontSize: 30 },
-  famPreviewName:  { fontSize: 18, fontWeight: '800', color: '#fff' },
-  famPreviewRel:   { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  famCall:     { fontSize: 24, marginLeft: 'auto' as any },
+                 borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', padding: 22, justifyContent: 'center' },
+  cardTitle:   { fontSize: 17, fontWeight: '800', color: 'rgba(255,255,255,0.8)', marginBottom: 14, textAlign: 'center' },
+  famPreview:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
+  famPreviewName:  { fontSize: 26, fontWeight: '900', color: '#fff' },
+  famCall:     { fontSize: 28 },
   famConnectTxt: { fontSize: 16, fontWeight: '700', color: '#fff', textAlign: 'center' },
   emergCard:   { flex: 1, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 18,
                  borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)',
