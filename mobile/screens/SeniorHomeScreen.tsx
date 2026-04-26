@@ -77,11 +77,18 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       setCards(newCards);
       if (latest.steps) setSteps(latest.steps);
 
-      // 건강요약 TTS — 한 세션 1회
-      if (!ttsDoneRef.current) {
+      // 인사 TTS — 하루 1회만
+      const today = new Date().toISOString().slice(0, 10);
+      const lastGreetDate = await AsyncStorage.getItem('tts_greeting_date');
+      if (!ttsDoneRef.current && lastGreetDate !== today) {
         ttsDoneRef.current = true;
+        await AsyncStorage.setItem('tts_greeting_date', today);
         const uname = await AsyncStorage.getItem('userName') || '';
-        setTimeout(() => speak(`안녕하세요, ${uname}님! 제가 늘 함께할게요.`, 0.85), 800);
+        const hour = new Date().getHours();
+        const timeGreet = hour < 12 ? '좋은 아침이에요' : hour < 18 ? '좋은 오후예요' : '좋은 저녁이에요';
+        setTimeout(() => speak(`${timeGreet}, ${uname}님! 오늘도 건강한 하루 되세요.`, 0.85), 800);
+      } else {
+        ttsDoneRef.current = true;
       }
     } catch (e) {
       console.log('fetchLatest error:', e);
