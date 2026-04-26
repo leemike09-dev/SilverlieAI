@@ -118,10 +118,24 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
     try {
       const r = await fetch(`${API}/location/today/${userId}`);
       const d = r.ok ? await r.json() : {};
+      const logs = d.logs || [];
+      // 오늘 기록 없으면 현재 위치를 첫 로그로 전달
+      if (logs.length === 0 && typeof navigator !== 'undefined' && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            const { latitude: lat, longitude: lng } = pos.coords;
+            navigation.navigate('LocationMap', {
+              logs: [{ lat, lng, activity: 'outdoor', created_at: new Date().toISOString(), address: '' }],
+              seniorName: name, totalDist: 0,
+            });
+          },
+          () => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0 }),
+          { timeout: 5000 }
+        );
+        return;
+      }
       navigation.navigate('LocationMap', {
-        logs:       d.logs             || [],
-        seniorName: name,
-        totalDist:  d.total_distance_m || 0,
+        logs, seniorName: name, totalDist: d.total_distance_m || 0,
       });
     } catch {
       navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0 });

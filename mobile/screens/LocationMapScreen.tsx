@@ -15,7 +15,6 @@ export default function LocationMapScreen({ route, navigation }: any) {
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
-    if (!logs.length) return;
 
     // Leaflet CSS 로드
     if (!document.getElementById('leaflet-css')) {
@@ -96,12 +95,55 @@ export default function LocationMapScreen({ route, navigation }: any) {
       }
     };
 
+    const startMap = () => {
+      if (logs.length > 0) {
+        initMap();
+      } else {
+        // 오늘 이동 기록 없음 — 현재 위치라도 표시
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            pos => {
+              const { latitude: lat, longitude: lng } = pos.coords;
+              const L = (window as any).L;
+              if (!L || !mapRef.current) return;
+              if ((mapRef.current as any)._leaflet_id) {
+                (mapRef.current as any)._leaflet_id = null;
+              }
+              const map = L.map(mapRef.current, { zoomControl: true }).setView([lat, lng], 15);
+              L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+                maxZoom: 19,
+              }).addTo(map);
+              L.circleMarker([lat, lng], {
+                radius: 14, color: '#FFFFFF', fillColor: '#E05C5C',
+                weight: 3, fillOpacity: 1,
+              }).bindPopup('<b>📍 현재 위치</b>').addTo(map).openPopup();
+            },
+            () => {
+              // 위치 거부 — 서울 기본 표시
+              const L = (window as any).L;
+              if (!L || !mapRef.current) return;
+              if ((mapRef.current as any)._leaflet_id) {
+                (mapRef.current as any)._leaflet_id = null;
+              }
+              const map = L.map(mapRef.current, { zoomControl: true }).setView([37.5665, 126.9780], 12);
+              L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+                maxZoom: 19,
+              }).addTo(map);
+            },
+            { timeout: 8000 }
+          );
+        }
+      }
+    };
+
     if ((window as any).L) {
-      initMap();
+      startMap();
     } else {
       const script = document.createElement('script');
       script.src  = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.onload = initMap;
+      script.onload = startMap;
       document.head.appendChild(script);
     }
   }, [logs]);
