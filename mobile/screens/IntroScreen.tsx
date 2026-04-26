@@ -3,7 +3,8 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Image,
   Animated, Platform, StatusBar, Dimensions,
 } from 'react-native';
-import * as Speech from 'expo-speech';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { speak, stopSpeech } from '../utils/speech';
 
 const { height } = Dimensions.get('window');
 
@@ -28,7 +29,6 @@ export default function IntroScreen({ navigation }: any) {
   const [greetIdx] = useState(0);
   const [dotIdx]   = useState(0);
 
-const TTS_SCRIPT = '안녕하세요! 저는 꿀비예요. 건강을 함께 지켜드릴게요!';
 
   const handleLogin  = async () => { await AsyncStorage.setItem('onboarding_seen', '1'); navigation.replace('Login'); };
   const handleStart  = () => navigation.replace('Onboarding');
@@ -36,6 +36,10 @@ const TTS_SCRIPT = '안녕하세요! 저는 꿀비예요. 건강을 함께 지�
   // 꿀비 부유 애니메이션
   useEffect(() => {
     // 카카오 인증 코드는 App.tsx에서 처리
+    const h = new Date().getHours();
+    const gr = h < 12 ? '좋은 아침이에요' : h < 18 ? '좋은 오후예요' : '좋은 저녁이에요';
+    setTimeout(() => speak(`${gr}! 저는 꿀비예요. 건강을 함께 지켜드릴게요!`, 0.85), 700);
+
     Animated.parallel([
       Animated.timing(fadeAnim,  { toValue: 1, duration: 700, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
@@ -60,6 +64,8 @@ const TTS_SCRIPT = '안녕하세요! 저는 꿀비예요. 건강을 함께 지�
     makeRing(ring1, 0).start();
     makeRing(ring2, 600).start();
     makeRing(ring3, 1200).start();
+
+    return () => stopSpeech();
   }, []);
 
   const ringStyle = (anim: Animated.Value) => ({

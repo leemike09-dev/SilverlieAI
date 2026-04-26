@@ -10,6 +10,7 @@ const KAKAO_CLIENT_ID  = 'c102ef257f29dfc4ca9f2062a0c1442d';
 const NAVER_CLIENT_ID  = 'YOUR_NAVER_CLIENT_ID';
 const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID';
 const REDIRECT_BASE    = 'https://leemike09-dev.github.io/SilverlieAI/';
+const BACKEND          = 'https://silverlieai.onrender.com';
 
 const PROVIDERS = [
   { key: 'kakao',  label: '카카오',  icon: '💬', bg: '#FEE500', color: '#3C1E1E', border: '#E6D200' },
@@ -41,6 +42,7 @@ export default function LoginScreen({ navigation }: any) {
       const url = getOAuthUrl(key, mode);
       if (!url) { setLoading(null); return; }
       if (Platform.OS === 'web') {
+        fetch(BACKEND + '/').catch(() => {}); // 서버 웨이크업 — 카카오 인증 동안 백엔드 예열
         (window as any).location.href = url;
         // 리다이렉트 후 페이지가 떠나므로 loading은 자동 해제됨
       } else {

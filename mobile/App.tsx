@@ -252,27 +252,27 @@ export default function App() {
               <Stack.Screen name="Intro"         component={IntroScreen}           />
               <Stack.Screen name="Home"          component={HomeScreen}            />
               <Stack.Screen name="Login"         component={LoginScreen}           />
-              <Stack.Screen name="Health"        component={HealthScreen}          initialParams={DEMO} />
-              <Stack.Screen name="Dashboard"     component={DashboardScreen}       initialParams={DEMO} />
-              <Stack.Screen name="AIChat"        component={AIChatScreen}          initialParams={DEMO} />
-              <Stack.Screen name="Notifications" component={NotificationsScreen}   initialParams={DEMO} />
-              <Stack.Screen name="Settings"      component={SettingsScreen}        initialParams={DEMO} />
-              <Stack.Screen name="WeeklyReport"  component={WeeklyReportScreen}    initialParams={DEMO} />
+              <Stack.Screen name="Health"        component={HealthScreen} />
+              <Stack.Screen name="Dashboard"     component={DashboardScreen} />
+              <Stack.Screen name="AIChat"        component={AIChatScreen} />
+              <Stack.Screen name="Notifications" component={NotificationsScreen} />
+              <Stack.Screen name="Settings"      component={SettingsScreen} />
+              <Stack.Screen name="WeeklyReport"  component={WeeklyReportScreen} />
               <Stack.Screen name="Onboarding"    component={OnboardingScreen}      />
               <Stack.Screen name="ProfileSetup"  component={ProfileSetupScreen}    />
               <Stack.Screen name="HealthInfo"    component={HealthInfoScreen}      />
-              <Stack.Screen name="SeniorHome"    component={SeniorHomeScreen}      initialParams={DEMO} />
-              <Stack.Screen name="Medication"    component={MedicationScreen}      initialParams={DEMO} />
+              <Stack.Screen name="SeniorHome"    component={SeniorHomeScreen} />
+              <Stack.Screen name="Medication"    component={MedicationScreen} />
               <Stack.Screen name="EmailAuth"     component={EmailAuthScreen}       />
-              <Stack.Screen name="FamilyConnect" component={FamilyConnectScreen}   initialParams={DEMO} />
-              <Stack.Screen name="FamilyDashboard" component={FamilyDashboardScreen} initialParams={DEMO} />
-              <Stack.Screen name="LocationMap"   component={LocationMapScreen}     initialParams={DEMO} />
+              <Stack.Screen name="FamilyConnect" component={FamilyConnectScreen} />
+              <Stack.Screen name="FamilyDashboard" component={FamilyDashboardScreen} />
+              <Stack.Screen name="LocationMap"   component={LocationMapScreen} />
               <Stack.Screen name="Profile"            component={ProfileScreen}           />
               <Stack.Screen name="ImportantContacts"  component={ImportantContactsScreen} />
               <Stack.Screen name="SOS"                component={SOSScreen}               />
-              <Stack.Screen name="HealthProfile"      component={HealthProfileScreen}     initialParams={DEMO} />
+              <Stack.Screen name="HealthProfile"      component={HealthProfileScreen} />
               <Stack.Screen name="FAQ"                component={FAQScreen}               />
-              <Stack.Screen name="DoctorMemo"         component={DoctorMemoScreen}        initialParams={DEMO} />
+              <Stack.Screen name="DoctorMemo"         component={DoctorMemoScreen} />
             </Stack.Navigator>
           </NavigationContainer>
         )}
