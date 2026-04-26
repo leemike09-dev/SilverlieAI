@@ -54,6 +54,23 @@ function stripEmoji(text: string): string {
     .trim();
 }
 
+function cleanForTTS(text: string): string {
+  return stripEmoji(text)
+    .replace(/\*{1,3}([^*\n]+)\*{1,3}/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^[-*+]\s+/gm, '')
+    .replace(/^\d+\.\s+/gm, '')
+    .replace(/^-{3,}$/gm, '')
+    .replace(/^={3,}$/gm, '')
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\n{3,}/g, ' ')
+    .replace(/\n/g, ' ')
+    .replace(/ {2,}/g, ' ')
+    .trim();
+}
+
 function getGreeting(name: string): string {
   const h = new Date().getHours();
   if (h < 9)  return `${name}님, 좋은 아침이에요!\n오늘 하루도 건강하게 시작해요`;
@@ -68,7 +85,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const { name = '회원', userId = '' } = route?.params ?? {};
 
   const greeting = getGreeting(name);
-  const [displayMsg,  setDisplayMsg]  = useState<Msg>({ role: 'ai', text: greeting });
+  const [displayMsg,  setDisplayMsg]  = useState<Msg>({ role: 'ai', text: '' });
   const [history,     setHistory]     = useState<HistoryItem[]>([]);
   const [input,       setInput]       = useState('');
   const [loading,     setLoading]     = useState(false);
@@ -93,7 +110,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   // 초기 인사 TTS
   useEffect(() => {
     const t = setTimeout(() => {
-      speak(greeting, 0.85);
+      speak(cleanForTTS(greeting), 0.85);
       setIsSpeaking(true);
     }, 600);
     return () => { clearTimeout(t); stopSpeech(); };
@@ -105,7 +122,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
     if (speakTimerRef.current) clearTimeout(speakTimerRef.current);
     stopSpeech();
     setIsSpeaking(true);
-    speak(displayMsg.text, 0.85);
+    speak(cleanForTTS(displayMsg.text), 0.85);
     const ms = Math.max(4000, displayMsg.text.length * 180);
     speakTimerRef.current = setTimeout(() => setIsSpeaking(false), ms);
     return () => { if (speakTimerRef.current) clearTimeout(speakTimerRef.current); };
@@ -157,7 +174,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const replaySpeech = () => {
     stopSpeakingHandler();
     setIsSpeaking(true);
-    speak(displayMsg.text, 0.85);
+    speak(cleanForTTS(displayMsg.text), 0.85);
     const ms = Math.max(4000, displayMsg.text.length * 180);
     speakTimerRef.current = setTimeout(() => setIsSpeaking(false), ms);
   };
@@ -192,12 +209,12 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
       if (dMemoNeeded && dMemo) {
         setPendingMemo(dMemo);
-        setMemoState('asking');
-        // 메모 질문을 TTS에 추가 (약간 딜레이 후)
-        const mainMs = Math.max(3000, reply.length * 180);
-        speakTimerRef.current = setTimeout(() => {
+        // TTS 완료 후 메모 프롬프트 표시
+        const mainMs = Math.max(4000, reply.length * 180);
+        setTimeout(() => {
+          setMemoState('asking');
           speak('병원 방문하실 때 의사 선생님께 드릴 메모를 작성해 드릴까요?', 0.85);
-        }, mainMs + 200);
+        }, mainMs + 600);
       }
       if (riskLevel === 'critical') {
         setShowEmergency(true);
@@ -325,7 +342,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
         <View style={s.body}>
 
           {/* 상태 표시줄 */}
-          <View style={s.statusRow}>
+          {(loading || displayMsg.text !== '') && <View style={s.statusRow}>
             {loading ? (
               <Animated.Text style={[s.statusTxt, { opacity: dotsAnim.interpolate({ inputRange:[0,1], outputRange:[0.4,1] }) }]}>
                 꿀비가 생각 중...
@@ -349,7 +366,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
                 )}
               </>
             )}
-          </View>
+          </View>}
 
           {/* 위험 배너 (high/medium) */}
           {!loading && displayMsg.role === 'ai' && displayMsg.riskLevel === 'critical' && (
@@ -497,7 +514,7 @@ const s = StyleSheet.create({
   settingsBtn:  { alignItems: 'center' },
 
   // 메인 바디
-  body: { flex: 1, paddingHorizontal: 22, paddingTop: 10, paddingBottom: 6 },
+  body: { flex: 1, flexDirection: 'column', paddingHorizontal: 22, paddingTop: 10, paddingBottom: 6, overflow: 'hidden' },
 
   // 상태줄
   statusRow: {
@@ -520,7 +537,7 @@ const s = StyleSheet.create({
   bannerMediumTxt: { fontSize: 19, color: '#FF8F00', fontWeight: '700', textAlign: 'center' },
 
   // 메시지 텍스트 (스크롤 가능)
-  msgScroll:  { flex: 1 },
+  msgScroll:  { flex: 1, flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 60 },
   msgContent: { paddingBottom: 12 },
   aiTxt:      { fontSize: 28, color: '#16273E', lineHeight: 44, fontWeight: '400' },
   userTxt:    { fontSize: 26, color: '#5E35B1', lineHeight: 40, fontWeight: '500', textAlign: 'right' },

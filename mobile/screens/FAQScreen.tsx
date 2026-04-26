@@ -274,7 +274,7 @@ const s = StyleSheet.create({
     borderTopLeftRadius: 22, borderTopRightRadius: 22,
   },
 
-  body: { padding: 16, paddingBottom: 60 },
+  body: { padding: 12, paddingBottom: 60 },
 
   searchWrap: {
     flexDirection: 'row', alignItems: 'center',
@@ -288,38 +288,38 @@ const s = StyleSheet.create({
   searchClear: { fontSize: 18, color: '#B0B8D8', paddingLeft: 8 },
 
   catBlock: {
-    backgroundColor: '#fff', borderRadius: 16, marginBottom: 12,
+    backgroundColor: '#fff', borderRadius: 14, marginBottom: 8,
     borderWidth: 1.5, borderColor: LINDIGO, overflow: 'hidden',
     shadowColor: INDIGO, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1,
   },
   catHeader: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 18, paddingVertical: 16,
+    paddingHorizontal: 14, paddingVertical: 11,
     backgroundColor: LINDIGO, gap: 10,
   },
-  catIcon:  { fontSize: 22 },
-  catTitle: { flex: 1, fontSize: 20, fontWeight: '800', color: INDIGO },
+  catIcon:  { fontSize: 18 },
+  catTitle: { flex: 1, fontSize: 17, fontWeight: '800', color: INDIGO },
   catArrow: { fontSize: 13, color: INDIGO, fontWeight: '700' },
 
   qRow: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    paddingHorizontal: 18, paddingVertical: 15,
+    paddingHorizontal: 14, paddingVertical: 10,
     borderTopWidth: 1, borderTopColor: '#EEEEF8',
   },
   qRowLast: { borderBottomWidth: 0 },
   qMark: { fontSize: 16, fontWeight: '900', color: INDIGO, width: 24, textAlign: 'center', marginTop: 1 },
-  qText: { flex: 1, fontSize: 18, fontWeight: '700', color: '#222', lineHeight: 26 },
+  qText: { flex: 1, fontSize: 16, fontWeight: '700', color: '#222', lineHeight: 26 },
   qArrow: { fontSize: 12, color: '#B0B8D8', marginTop: 4 },
 
   aBox: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    paddingHorizontal: 18, paddingTop: 4, paddingBottom: 16,
+    paddingHorizontal: 14, paddingTop: 4, paddingBottom: 12,
     backgroundColor: '#FAFAFE',
     borderTopWidth: 1, borderTopColor: '#EEEEF8',
   },
   aBoxLast: { borderBottomWidth: 0 },
   aMark: { fontSize: 16, fontWeight: '900', color: '#7986CB', width: 24, textAlign: 'center', marginTop: 2 },
-  aText: { flex: 1, fontSize: 17, color: '#555', lineHeight: 28 },
+  aText: { flex: 1, fontSize: 15, color: '#555', lineHeight: 28 },
 
   emptyBox:  { alignItems: 'center', paddingVertical: 50 },
   emptyText: { fontSize: 20, fontWeight: '700', color: '#AAA', marginBottom: 8 },
