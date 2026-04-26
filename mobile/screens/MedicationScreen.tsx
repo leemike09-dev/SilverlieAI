@@ -6,6 +6,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SeniorTabBar from '../components/SeniorTabBar';
 import { scheduleMedNotification, cancelMedNotification } from '../utils/notifications';
+import { speak } from '../utils/speech';
 
 const GREEN  = '#2E7D32';
 const LGREEN = '#E8F5E9';
@@ -36,7 +37,9 @@ export default function MedicationScreen({ navigation }: any) {
       setUname(name);
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       if (stored) {
-        setMeds(JSON.parse(stored));
+        const loaded = JSON.parse(stored);
+        setMeds(loaded);
+        announceMeds(loaded);
       } else {
         setMeds([]);
       }
@@ -44,12 +47,31 @@ export default function MedicationScreen({ navigation }: any) {
     init();
   }, []);
 
+  const announceMeds = (medsData: any[]) => {
+    if (!medsData.length) return;
+    const h = new Date().getHours();
+    const slot = h < 10 ? 'morning' : h < 14 ? 'lunch' : h < 20 ? 'evening' : 'bedtime';
+    const slotLabel: Record<string, string> = { morning: '아침', lunch: '점심', evening: '저녁', bedtime: '취침 전' };
+    const slotMeds = medsData.filter((m: any) => m.timeSlot === slot);
+    const pending  = slotMeds.filter((m: any) => !m.taken && !m.skipped);
+    if (pending.length > 0) {
+      setTimeout(() => speak(
+        `${slotLabel[slot]} 약이 ${pending.length}가지 남아있어요. ${pending[0].name} 잊지 마세요.`, 0.85
+      ), 600);
+    } else if (slotMeds.length > 0) {
+      setTimeout(() => speak(`${slotLabel[slot]} 약은 모두 드셨어요. 잘 하셨어요!`, 0.85), 600);
+    }
+  };
+
   const saveMeds = async (updated: any[]) => {
     setMeds(updated);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   };
 
   const toggleTaken = (id: string) => {
+    const med = meds.find(m => m.id === id);
+    const nowTaking = med && !med.taken;
+    if (nowTaking) speak(`${med.name} 복용 완료예요. 건강 챙기셨네요!`, 0.85);
     saveMeds(meds.map(m => m.id === id ? { ...m, taken: !m.taken, skipped: false } : m));
   };
 

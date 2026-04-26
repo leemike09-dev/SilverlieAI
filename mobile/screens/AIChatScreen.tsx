@@ -5,6 +5,7 @@ import {
   StatusBar, Image, Animated, Modal, Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { speak, stopSpeech } from '../utils/speech';
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
@@ -97,6 +98,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<any>(null);
   const toastTimerRef = useRef<any>(null);
+  const [ttsIdx, setTtsIdx] = useState<number | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -144,6 +146,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
   useEffect(() => { scrollRef.current?.scrollToEnd({ animated: true }); }, [msgs]);
 
+  useEffect(() => () => { stopSpeech(); }, []);
+
   useEffect(() => {
     if (isRecording) {
       Animated.loop(Animated.sequence([
@@ -160,6 +164,20 @@ export default function AIChatScreen({ route, navigation }: Props) {
     setToastMsg(msg);
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     toastTimerRef.current = setTimeout(() => setToastMsg(''), 2500);
+  };
+
+  const toggleTts = (idx: number, text: string) => {
+    if (ttsIdx === idx) {
+      stopSpeech();
+      setTtsIdx(null);
+    } else {
+      stopSpeech();
+      setTtsIdx(idx);
+      speak(text, 0.85);
+      // 읽기 완료 후 상태 초기화 (평균 분당 200자 기준)
+      const ms = Math.max(3000, text.length * 180);
+      setTimeout(() => setTtsIdx(prev => prev === idx ? null : prev), ms);
+    }
   };
 
   const saveDoctorMemo = async (memo: string) => {
@@ -339,6 +357,12 @@ export default function AIChatScreen({ route, navigation }: Props) {
                   )}
                   <View style={s.aiBubble}>
                     <Text style={s.aiText}>{m.text}</Text>
+                    <TouchableOpacity
+                      style={s.ttsBtn}
+                      onPress={() => toggleTts(i, m.text)}
+                      activeOpacity={0.7}>
+                      <Text style={s.ttsBtnTxt}>{ttsIdx === i ? '⏹ 정지' : '🔊 읽기'}</Text>
+                    </TouchableOpacity>
                   </View>
                   {m.doctorMemoNeeded && m.doctorMemo && (
                     <TouchableOpacity style={s.doctorMemoBtn}
@@ -468,6 +492,9 @@ const s = StyleSheet.create({
     shadowColor: C.purple1, shadowOpacity: 0.07, shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 }, elevation: 2 },
   aiText: { fontSize: 20, color: C.text, lineHeight: 32 },
+  ttsBtn:    { alignSelf: 'flex-end', marginTop: 10, paddingHorizontal: 14, paddingVertical: 8,
+               backgroundColor: '#EDE7F6', borderRadius: 20 },
+  ttsBtnTxt: { fontSize: 17, color: C.purple1, fontWeight: '700' },
   bannerCritical: { backgroundColor: C.emBg, borderRadius: 10, borderWidth: 2, borderColor: C.emRed,
     paddingHorizontal: 12, paddingVertical: 10, marginBottom: 6 },
   bannerCriticalTxt: { fontSize: 16, color: C.emRed, fontWeight: '800', textAlign: 'center' },

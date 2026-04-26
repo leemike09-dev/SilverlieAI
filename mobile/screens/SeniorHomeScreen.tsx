@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   Platform, StatusBar, Dimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { speak, stopSpeech } from '../utils/speech';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SeniorTabBar from '../components/SeniorTabBar';
 
@@ -21,6 +22,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   const [cards,  setCards]  = useState<any[]>([]);
   const [steps,  setSteps]  = useState<number | null>(null);
   const [locationStatus, setLocationStatus] = useState<'sharing' | 'off' | 'loading'>('off');
+  const ttsDoneRef = useRef(false);
 
   useEffect(() => {
     const init = async () => {
@@ -36,6 +38,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       }
     };
     init();
+    return () => stopSpeech();
   }, []);
 
   const fetchLatest = async (uid: string) => {
@@ -73,6 +76,17 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       ];
       setCards(newCards);
       if (latest.steps) setSteps(latest.steps);
+
+      // 건강요약 TTS — 한 세션 1회
+      if (!ttsDoneRef.current) {
+        ttsDoneRef.current = true;
+        const bp = newCards.find((c: any) => c.label === '혈압');
+        const bpText = bp?.value !== '미측정' ? `혈압은 ${bp.value.replace('/', '에 ')}이에요. ` : '';
+        const h = new Date().getHours();
+        const gr = h < 12 ? '좋은 아침이에요' : h < 18 ? '좋은 오후예요' : '좋은 저녁이에요';
+        const uname = await AsyncStorage.getItem('userName') || '';
+        setTimeout(() => speak(`${gr}, ${uname}님! ${bpText}오늘도 건강하게 지내세요.`, 0.85), 800);
+      }
     } catch (e) {
       console.log('fetchLatest error:', e);
     }

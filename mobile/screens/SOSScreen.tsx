@@ -30,7 +30,7 @@ export default function SOSScreen({ navigation, route }: Props) {
 
     // 화면 진입 시 음성 안내
     setTimeout(() => {
-      speak('긴급 호출 화면입니다. 큰 버튼을 누르면 119에 연결됩니다.', 0.85);
+      speak('괜찮으세요? 큰 빨간 버튼을 누르시면 119로 바로 연결돼요.', 0.85);
     }, 600);
 
     return () => {
@@ -43,15 +43,19 @@ export default function SOSScreen({ navigation, route }: Props) {
     if (counting) return;
     setCounting(true);
     setCount(5);
-    speak('119에 연결합니다. 5초 후 자동 연결됩니다.', 0.85);
+    speak('걱정 마세요. 5초 후 119로 연결할게요.', 0.85);
 
+    const COUNT_WORDS = ['', '하나', '둘', '셋', '넷', '다섯'];
     let c = 5;
     timerRef.current = setInterval(() => {
       c--;
       setCount(c);
-      if (c <= 0) {
+      if (c > 0) {
+        speak(COUNT_WORDS[c], 0.9, 1.15);
+      } else {
         clearInterval(timerRef.current);
-        Linking.openURL('tel:119');
+        speak('지금 연결해요. 조금만 기다려 주세요.', 0.85);
+        setTimeout(() => Linking.openURL('tel:119'), 800);
         setCounting(false);
         setCount(5);
       }
@@ -60,6 +64,7 @@ export default function SOSScreen({ navigation, route }: Props) {
 
   const cancelSOS = () => {
     stopSpeech();
+    setTimeout(() => speak('취소됐어요. 필요하시면 언제든지 다시 눌러 주세요.', 0.85), 200);
     if (timerRef.current) clearInterval(timerRef.current);
     setCounting(false);
     setCount(5);
