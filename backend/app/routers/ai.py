@@ -153,7 +153,8 @@ def load_chat_context(user_id: str, db) -> dict:
 
 
 def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
-                        chat_ctx: Optional[dict] = None) -> str:
+                        chat_ctx: Optional[dict] = None,
+                        turn_count: int = 0, force_summary: bool = False) -> str:
     p   = health_ctx.get('profile', {}) or {}
     meds_raw = health_ctx.get('medications', []) or []
     rec = health_ctx.get('today_record', {}) or {}
@@ -292,6 +293,41 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
                 prompt += f"\n[{role_label}] {msg_text}"
 
     prompt += build_qa_context(relevant_qa)
+
+    # 대화형 상담 진행 방식
+    turn_label = turn_count + 1
+    if force_summary:
+        prompt += (
+            "\n\n[상담 마무리 요청]\n"
+            "사용자가 지금 요약을 요청했습니다.\n"
+            "지금까지 대화에서 파악한 모든 증상과 정보를 바탕으로:\n"
+            "1) 증상 요약\n2) 위험도 판단\n3) 권고사항(병원 방문 여부)을 말씀드리세요.\n"
+            "답변 마지막에 반드시 [FINAL] 태그를 붙이세요.\n"
+        )
+    elif turn_count == 0:
+        prompt += (
+            "\n\n[상담 진행 방식 — 1턴]\n"
+            "지금은 첫 상담입니다. 증상을 들은 후 핵심 파악을 위한 질문 1개만 하세요.\n"
+            "절대 2개 이상 묻지 마세요. 답변이나 설명은 하지 말고 질문만 하세요.\n"
+            "예: \'언제부터 그러셨나요?\' / \'어느 부위가 아프신가요?\'\n"
+        )
+    elif turn_count == 1:
+        prompt += (
+            "\n\n[상담 진행 방식 — 2턴]\n"
+            "대화 정보가 쌓이고 있습니다. 아직 파악이 부족하면 질문 1개만 더 하세요.\n"
+            "충분하다면 지금 요약으로 넘어가도 됩니다.\n"
+            "질문을 한다면 절대 1개만. 복수 질문 금지.\n"
+        )
+    elif turn_count >= 2:
+        prompt += (
+            f"\n\n[상담 진행 방식 — {turn_label}턴, 마무리 단계]\n"
+            "충분한 정보가 수집됐습니다. 이제 다음 순서로 답변하세요:\n"
+            "1) 지금까지 언급된 모든 증상 간략 요약\n"
+            "2) 위험도 판단 및 권고사항 (병원 방문 시기 포함)\n"
+            "3) 추가 주의사항\n"
+            f"{'4) 아직 파악이 부족하면 질문 1개만 추가 가능 (최대 5턴까지)' if turn_count < 4 else '반드시 최종 답변을 제공하세요.'}\n"
+            "최종 요약 시 답변 마지막에 [FINAL] 태그를 붙이세요.\n"
+        )
     return prompt
 
 
@@ -557,7 +593,8 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         except Exception as ex:
             print(f"[user_load] {ex}")
 
-    system_prompt = build_system_prompt(user_row, health_ctx, relevant_qa, chat_ctx)
+    system_prompt = build_system_prompt(user_row, health_ctx, relevant_qa, chat_ctx,
+                                          turn_count=request.turn_count, force_summary=request.force_summary)
     history_msgs  = [{"role": m.role, "content": m.content} for m in (request.history or [])[-10:]]
     model         = choose_model(history_msgs, request.message)
     messages      = history_msgs + [{"role": "user", "content": request.message}]
@@ -572,7 +609,10 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         if risk == 'critical' and model != "claude-opus-4-6":
             reply_raw = call_claude(client, "claude-opus-4-6", system_prompt, messages)
             risk = detect_risk(reply_raw)
-        reply_text  = strip_risk_token(reply_raw)
+        import re as _re
+        is_final_flag = bool(_re.search(r'\[FINAL\]', reply_raw, _re.IGNORECASE)) or request.force_summary
+        reply_raw2  = _re.sub(r'\[FINAL\]', '', reply_raw, flags=_re.IGNORECASE).strip()
+        reply_text  = strip_risk_token(reply_raw2)
         suggestions = get_suggested_questions(relevant_qa)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI 오류: {str(e)}")
@@ -589,8 +629,18 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
             _save_chat_turn, request.user_id, request.message, reply_text, risk, model
         )
 
-    doctor_memo_needed = check_doctor_visit(reply_text)
-    doctor_memo = build_doctor_memo(user_row, health_ctx, request.message) if doctor_memo_needed else None
+    doctor_memo_needed = is_final_flag or check_doctor_visit(reply_text)
+    if doctor_memo_needed:
+        # 대화 전체 증상 수집해서 메모 생성
+        all_symptoms = []
+        for m in (request.history or []):
+            if m.role == 'user' and m.content:
+                all_symptoms.append(m.content)
+        all_symptoms.append(request.message)
+        combined_symptoms = ' / '.join(all_symptoms)
+        doctor_memo = build_doctor_memo(user_row, health_ctx, combined_symptoms)
+    else:
+        doctor_memo = None
 
     return {
         "reply":               reply_text,
@@ -600,6 +650,7 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         "sos_sent":            sos_sent,
         "doctor_memo_needed":  doctor_memo_needed,
         "doctor_memo":         doctor_memo,
+        "is_final":            is_final_flag,
     }
 
 

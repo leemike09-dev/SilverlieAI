@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path } from 'react-native-svg';
-import { speak, stopSpeech } from '../utils/speech';
+import { speak, speakSentences, stopSpeech } from '../utils/speech';
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
@@ -97,6 +97,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [pendingMemo, setPendingMemo] = useState<string>('');
   const [toastMsg,    setToastMsg]    = useState('');
   const [aiMsgIdx,    setAiMsgIdx]    = useState(0);
+  const [turnCount,   setTurnCount]   = useState(0);
 
   const pulseAnim    = useRef(new Animated.Value(1)).current;
   const fadeAnim     = useRef(new Animated.Value(1)).current;
@@ -121,7 +122,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
     if (speakTimerRef.current) clearTimeout(speakTimerRef.current);
     stopSpeech();
     setIsSpeaking(true);
-    speak(cleanForTTS(displayMsg.text), 0.85);
+    speakSentences(cleanForTTS(displayMsg.text));
     const ms = Math.max(4000, displayMsg.text.length * 180);
     speakTimerRef.current = setTimeout(() => setIsSpeaking(false), ms);
     return () => { if (speakTimerRef.current) clearTimeout(speakTimerRef.current); };
@@ -173,7 +174,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const replaySpeech = () => {
     stopSpeakingHandler();
     setIsSpeaking(true);
-    speak(cleanForTTS(displayMsg.text), 0.85);
+    speakSentences(cleanForTTS(displayMsg.text));
     const ms = Math.max(4000, displayMsg.text.length * 180);
     speakTimerRef.current = setTimeout(() => setIsSpeaking(false), ms);
   };
@@ -193,7 +194,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       const res = await fetch(`${API_URL}/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, message: msg, history: history.slice(-10) }),
+        body: JSON.stringify({ user_id: userId, message: msg, history: history.slice(-10), turn_count: turnCount, force_summary: false }),
       });
       const data = await res.json();
       const reply     = stripEmoji(data.reply ?? data.response ?? '죄송합니다, 다시 시도해주세요.');
@@ -201,12 +202,14 @@ export default function AIChatScreen({ route, navigation }: Props) {
       const dMemoNeeded: boolean   = data.doctor_memo_needed ?? false;
       const dMemo: string | undefined = data.doctor_memo ?? undefined;
 
+      const isFinal: boolean = data.is_final ?? false;
       const aiMsg: Msg = { role: 'ai', text: reply, riskLevel, doctorMemoNeeded: dMemoNeeded, doctorMemo: dMemo };
       fadeInMsg(aiMsg);
       setHistory([...newHistory, { role: 'assistant', content: reply }]);
       setAiMsgIdx(i => i + 1);
+      setTurnCount(t => t + 1);
 
-      if (dMemoNeeded && dMemo && ['medium','high','critical'].includes(riskLevel)) {
+      if ((isFinal && dMemo) || (dMemoNeeded && dMemo && ['medium','high','critical'].includes(riskLevel))) {
         setPendingMemo(dMemo);
         // TTS 완료 후 메모 프롬프트 표시
         const mainMs = Math.max(4000, reply.length * 180);
@@ -222,6 +225,42 @@ export default function AIChatScreen({ route, navigation }: Props) {
     } catch {
       fadeInMsg({ role: 'ai', text: '연결에 실패했습니다. 잠시 후 다시 시도해주세요.' });
       setAiMsgIdx(i => i + 1);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendForceSummary = async () => {
+    if (loading || turnCount < 1) return;
+    stopSpeakingHandler();
+    setMemoState('idle');
+    fadeInMsg({ role: 'user', text: '지금까지 내용을 요약해 주세요' });
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/ai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, message: '지금까지 증상을 요약해 주세요', history: history.slice(-10), turn_count: turnCount, force_summary: true }),
+      });
+      const data = await res.json();
+      const reply     = stripEmoji(data.reply ?? '죄송합니다, 다시 시도해주세요.');
+      const riskLevel = (data.risk_level ?? 'normal') as RiskLevel;
+      const dMemo: string | undefined = data.doctor_memo ?? undefined;
+      const aiMsg: Msg = { role: 'ai', text: reply, riskLevel, doctorMemoNeeded: true, doctorMemo: dMemo };
+      fadeInMsg(aiMsg);
+      setHistory(prev => [...prev, { role: 'user', content: '요약 요청' }, { role: 'assistant', content: reply }]);
+      setAiMsgIdx(i => i + 1);
+      setTurnCount(t => t + 1);
+      if (dMemo) {
+        setPendingMemo(dMemo);
+        const mainMs = Math.max(4000, reply.length * 150);
+        setTimeout(() => {
+          setMemoState('asking');
+          speak('병원 방문하실 때 의사 선생님께 드릴 메모를 작성해 드릴까요?', 0.82);
+        }, mainMs + 600);
+      }
+    } catch {
+      fadeInMsg({ role: 'ai', text: '연결에 실패했습니다.' });
     } finally {
       setLoading(false);
     }
@@ -426,6 +465,12 @@ export default function AIChatScreen({ route, navigation }: Props) {
           )}
 
           {/* 빠른 질문 칩 (초기) */}
+          {turnCount >= 2 && !loading && memoState === 'idle' && displayMsg.role === 'ai' && (
+            <TouchableOpacity style={s.summaryBtn} onPress={sendForceSummary} activeOpacity={0.8}>
+              <Text style={s.summaryBtnTxt}>지금 요약해줘</Text>
+            </TouchableOpacity>
+          )}
+
           {isWelcome && memoState === 'idle' && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}
               contentContainerStyle={s.chipsScroll} style={s.chipsWrap}>
@@ -565,6 +610,11 @@ const s = StyleSheet.create({
   memoSavedTxt: { fontSize: 20, color: '#2E7D32', fontWeight: '800' },
 
   // 칩
+  summaryBtn:    { backgroundColor: '#EDE7F6', borderRadius: 20,
+    paddingVertical: 14, alignItems: 'center', marginBottom: 10,
+    borderWidth: 2, borderColor: '#9C27B0' },
+  summaryBtnTxt: { fontSize: 20, color: '#7B1FA2', fontWeight: '800' },
+
   chipsWrap:   { marginTop: 4 },
   chipsScroll: { flexDirection: 'row', gap: 10, paddingHorizontal: 2, paddingBottom: 4 },
   chip: { backgroundColor: '#fff', borderRadius: 22, paddingHorizontal: 18, paddingVertical: 14,
