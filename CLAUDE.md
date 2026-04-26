@@ -488,6 +488,7 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 - [ ] 중국 WeChat 미니프로그램 버전
 
 ### 👨‍👩‍👧 가족 / 연결 기능
+- [ ] ⚠️ Supabase SQL Editor에서 `backend/migrations/002_family_messages_goals.sql` 실행 (family_messages, family_goals 테이블 생성 — 실제 채팅 저장 안됨)
 - [ ] FamilyDashboard AI 건강 요약 카드 (현재 DEMO_MODE)
 - [ ] SOSScreen 가족 전화번호 실제 연동 (현재 FAMILY 배열 phone 빈 문자열)
 - [ ] SOS 발생 시 가족 위치 자동 공유 (백그라운드 위치 추적)
@@ -591,6 +592,80 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 
 ---
 
+
+## 완료 작업 기록 (2026-04-27)
+
+### 가족 탭 재설계 — 감시 → 연결/공감 UX
+- **FamilyDashboardScreen** 전면 재작성
+  - 헤더: "우리 가족" + 사람추가 아이콘 (→ FamilyConnect with `addMode:true`)
+  - 멤버 칩 가로 스크롤
+  - 탭 토글: 메시지 | 건강 목표
+  - 메시지 탭: 대화 목록 + 읽지않음 뱃지 → FamilyChat 이동
+  - 목표 탭: 공유 건강 목표 + 진행률 바
+  - API 실패 시 DEMO 데이터 fallback (앱 무결성 유지)
+- **FamilyChatScreen** 신규 추가
+  - 1:1 가족 채팅 (버블: 내 메시지 오른쪽 / 상대 왼쪽)
+  - 빠른 답장 칩 6개 (어떠세요 / 밥 드셨어요 / 사랑해요 등)
+  - 낙관적 메시지 즉시 표시 (API 응답 대기 없이 UI 업데이트)
+  - 10초 폴링으로 새 메시지 수신
+  - KeyboardAvoidingView + ScrollView 구성
+- **FamilyConnectScreen** addMode 버그 수정
+  - `addMode:true` 파라미터로 진입 시 기존 가족 확인 auto-redirect 우회
+  - 이전: 헤더 사람추가 아이콘 → 즉시 FamilyDashboard 리다이렉트 (아무 반응 없어 보임)
+- **SeniorTabBar**: 가족 탭 → FamilyDashboard로 라우팅 변경
+- **App.tsx**: FamilyChatScreen import + Stack.Screen 등록
+
+### 백엔드 가족 메시징 + 목표 엔드포인트 구현 및 배포
+- `backend/app/routers/family.py` 신규 엔드포인트:
+  - POST/GET `/family/messages` — 메시지 전송/목록
+  - GET `/family/messages/{uid}/{pid}` — 1:1 대화 조회
+  - GET `/family/messages/unread-count/{uid}` — 읽지않음 수
+  - POST/GET/DELETE `/family/goals` — 공유 목표 CRUD
+  - GET `/family/quick-replies` — 빠른 답장 목록
+- `backend/migrations/002_family_messages_goals.sql` 생성
+  - ⚠️ **Supabase SQL Editor에서 수동 실행 필요** (아직 미실행)
+  - 테이블: `family_messages`, `family_goals`
+
+### AI 상담 대화 흐름 개선 — 3턴 의사 문진 방식
+- **ChatRequest** 필드 추가: `turn_count: int = 0`, `force_summary: bool = False`
+- **시스템 프롬프트 로직**:
+  - turn 0: 증상 1가지 질문만
+  - turn 1: 추가 질문 1개 또는 요약 판단
+  - turn 2+: `[FINAL]` 태그 포함 요약 + 병원 권고
+  - `force_summary=true`: 즉시 최종 요약
+- **백엔드 `[FINAL]` 감지**: `is_final` 필드 응답에 포함
+- **증상 누적 메모**: 모든 사용자 발화를 `combined_symptoms`로 합산 → doctor_memo 포함
+- **AIChatScreen** 변경:
+  - `turnCount` 상태 관리
+  - API 호출 시 `turn_count` 전달
+  - AI 응답 후 `isFinal` 확인 → 메모 버튼 표시 조건
+  - `sendForceSummary()` 함수 추가
+  - "지금 요약해줘" 버튼 (turn 3 이상에서 표시)
+  - 메모 상태 `memoState === 'saved'` 보호 — 저장 후 재프롬프트 방지 버그 수정
+
+### TTS 개선 — 문장 단위 읽기 + 마크다운 완전 제거
+- **`speech.ts`** `speakSentences()` 추가
+  - 문장 부호(. ! ? 。)로 분리 → 각 문장 별도 utterance 큐잉
+  - 문장 사이 무음 pause utterance 삽입 (자연스러운 읽기)
+  - rate 0.78 / pitch 1.05
+- **`cleanForTTS()` 강화**:
+  - `.replace(/\*+/g, '')` 추가 — 잔여 별표 제거
+  - `.replace(/^-{2,}\s*/gm, '')` 추가 — 대시(--) 제거
+  - 기존: code block, inline code, heading, 순서없는 목록 제거
+
+### 버그 수정
+- **메모 재프롬프트** : `send()` 내 `setMemoState('idle')` → `if (memoState !== 'saved') setMemoState('idle')` 조건부로 변경
+- **백엔드 500 오류**: `ChatRequest` 필드 추가 시 실제 모델 구조 불일치 → 올바른 클래스 위치 확인 후 재적용
+- **철자 오류 수정**: 혁당→혈당, 꿼비→꿀비, 백→보 (build_doctor_memo 내)
+
+### FAQ 카드 크기 축소 (최종)
+- body padding 8, catBlock borderRadius 10/marginBottom 4
+- catHeader: paddingH 10/paddingV 6, fontSize 14
+- qRow: paddingH 10/paddingV 5/gap 8, qMark 13pt/w18
+- qText: 14pt/lh19, aBox: paddingH 10/paddingT 3/paddingB 6/gap 8
+- aMark: 13pt, aText: 13pt/lh18
+
+---
 ## 구현 현황 (Demo → Real) — 세션 시작 전 반드시 확인
 
 > **규칙:** 코드 변경 전 이 테이블 확인 → 변경 후 즉시 업데이트. 추측 금지.
@@ -612,4 +687,11 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 | FamilyDashboard | AI 건강요약 | 🔲 미완성 | 현재 DEMO_MODE |
 | LoginScreen | 카카오 로그인 | ✅ 완료 | 웹 OAuth 동작 |
 | LoginScreen | 네이버/Apple/Google | 🔲 미완성 | Client ID 미설정 |
+| FamilyDashboardScreen | 가족 탭 UX | ✅ 완료 | 메시지 + 건강목표 탭, addMode 버그 수정 확정 |
+| FamilyChatScreen | 1:1 가족 채팅 | ✅ 완료 | 버블 UI, 빠른답장 칩, 10초 폴링 |
+| AIChatScreen | 3턴 상담 흐름 | ✅ 완료 | turn_count, [FINAL] 감지, 지금요약 버튼 |
+| AIChatScreen | TTS 마크다운 제거 | ✅ 완료 | cleanForTTS 강화 + speakSentences 문장단위 읽기 |
+| AIChatScreen | 메모 재프롬프트 | ✅ 완료 | memoState=saved 보호 버그 수정 |
+| backend/family.py | 메시지+목표 API | ✅ 완료 | 엔드포인트 구현 + 배포 완료 |
+| Supabase | migration 002 | 🔲 미완성 | family_messages/family_goals 테이블 SQL 실행 필요 |
 
