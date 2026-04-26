@@ -384,19 +384,23 @@ export default function AIChatScreen({ route, navigation }: Props) {
             </View>
           )}
 
-          {/* 메시지 텍스트 — 스크롤 가능 */}
-          <ScrollView
-            style={s.msgScroll}
-            contentContainerStyle={s.msgContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <Text style={[
-              displayMsg.role === 'ai' ? s.aiTxt : s.userTxt,
-              loading && s.loadingTxt
-            ]}>
-              {loading ? '...' : displayMsg.text}
-            </Text>
-          </ScrollView>
+          {/* 메시지 텍스트 — 답변 있을 때만 스크롤 */}
+          {(loading || displayMsg.text !== '') ? (
+            <ScrollView
+              style={s.msgScroll}
+              contentContainerStyle={s.msgContent}
+              showsVerticalScrollIndicator={true}
+            >
+              <Text style={[
+                displayMsg.role === 'ai' ? s.aiTxt : s.userTxt,
+                loading && s.loadingTxt,
+              ]}>
+                {loading ? '...' : displayMsg.text}
+              </Text>
+            </ScrollView>
+          ) : (
+            <View style={s.msgPlaceholder} />
+          )}
 
           {/* 의사 메모 제안 */}
           {memoState === 'asking' && (
@@ -537,6 +541,7 @@ const s = StyleSheet.create({
 
   // 메시지 텍스트 (스크롤 가능)
   msgScroll:  { flex: 1, flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 60 },
+  msgPlaceholder: { flex: 1 },
   msgContent: { paddingBottom: 12 },
   aiTxt:      { fontSize: 28, color: '#16273E', lineHeight: 44, fontWeight: '400' },
   userTxt:    { fontSize: 26, color: '#5E35B1', lineHeight: 40, fontWeight: '500', textAlign: 'right' },
