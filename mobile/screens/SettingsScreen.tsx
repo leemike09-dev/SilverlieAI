@@ -34,7 +34,7 @@ interface UserProfile {
 }
 
 export default function SettingsScreen({ route, navigation }: Props) {
-  const { name: paramName = '회원', userId: paramUserId = 'demo-user' } = route?.params ?? {};
+  const { name: paramName = '회원', userId: paramUserId = '' } = route?.params ?? {};
 
   const [userId,      setUserId]      = useState<string>(paramUserId);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -43,18 +43,18 @@ export default function SettingsScreen({ route, navigation }: Props) {
   const [notifMed,    setNotifMed]    = useState(true);
   const [langIdx,     setLangIdx]     = useState(0);
 
-  const isGuest = !userId || userId === 'demo-user';
+  const isGuest = !userId;
   const displayName = userProfile?.name ?? paramName;
 
   useEffect(() => {
     // AsyncStorage에서 userId 로드 (로그인 후 params가 없을 경우 대비)
     AsyncStorage.getItem('userId').then(stored => {
-      if (stored && stored !== 'demo-user') setUserId(stored);
+      if (stored) setUserId(stored);
     });
   }, []);
 
   useEffect(() => {
-    if (!userId || userId === 'demo-user') return;
+    if (!userId) return;
     setLoading(true);
     fetch(`${API_URL}/users/${userId}`)
       .then(r => r.json())

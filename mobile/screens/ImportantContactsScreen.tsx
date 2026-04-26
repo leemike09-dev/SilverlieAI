@@ -39,7 +39,7 @@ export default function ImportantContactsScreen({ navigation, route }: any) {
   }, []);
 
   useEffect(() => {
-    if (!userId || userId === 'demo-user') return;
+    if (!userId) return;
     setLoading(true);
     fetch(`${API_URL}/users/${userId}`)
       .then(r => r.json())
@@ -49,7 +49,7 @@ export default function ImportantContactsScreen({ navigation, route }: any) {
   }, [userId]);
 
   const saveContacts = async (updated: Contact[]) => {
-    if (!userId || userId === 'demo-user') return;
+    if (!userId) return;
     setSaving(true);
     try {
       await fetch(`${API_URL}/users/${userId}`, {

@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DEMO_MODE } from '../App';
 
 const API = 'https://silverlieai.onrender.com';
 
@@ -18,14 +17,6 @@ const RELATION_OPTIONS = [
   { key: 'sibling',  label: '형제/자매', emoji: '👫' },
   { key: 'other',    label: '기타',      emoji: '👤' },
 ];
-
-// DEMO용 가족 데이터
-const DEMO_SENIOR = {
-  id: 'demo-senior-1',
-  name: '홍길동',
-  phone: '010-1234-5678',
-  relation: '',
-};
 
 export default function FamilyConnectScreen({ route, navigation }: any) {
   const [userId,      setUserId]      = useState('');
@@ -56,9 +47,7 @@ export default function FamilyConnectScreen({ route, navigation }: any) {
       }
 
       // 내 연결 코드 가져오기
-      if (DEMO_MODE) {
-        setMyCode('ABC-1234');
-      } else if (uid) {
+      if (uid) {
         try {
           const r = await fetch(`${API}/family/mycode/${uid}`);
           if (r.ok) {
@@ -104,16 +93,6 @@ export default function FamilyConnectScreen({ route, navigation }: any) {
     }
     setConnecting(true);
 
-    if (DEMO_MODE) {
-      // DEMO: API 없이 데모 멤버로 연결 흐름 유지
-      setTimeout(() => {
-        setPendingMember({ ...DEMO_SENIOR, id: `demo-${code}` });
-        setRelModal(true);
-        setConnecting(false);
-      }, 800);
-      return;
-    }
-
     try {
       const r = await fetch(`${API}/family/connect`, {
         method: 'POST',
@@ -152,20 +131,13 @@ export default function FamilyConnectScreen({ route, navigation }: any) {
       await AsyncStorage.setItem('family_members', JSON.stringify(updated));
     } catch {}
 
-    // API 저장 (DEMO_MODE 아닐 때)
-    if (!DEMO_MODE) {
-      try {
-        await fetch(`${API}/family/relation`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId,
-            targetUserId: pendingMember.id,
-            relation: rel.key,
-          }),
-        });
-      } catch {}
-    }
+    try {
+      await fetch(`${API}/family/relation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, targetUserId: pendingMember.id, relation: rel.key }),
+      });
+    } catch {}
 
     setRelModal(false);
     navigation.replace('FamilyDashboard', { userId, name: userName });

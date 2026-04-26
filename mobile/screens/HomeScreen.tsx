@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomTabBar from '../components/BottomTabBar';
-import { DEMO_MODE } from '../App';
 
 const API_URL = 'https://silverlieai.onrender.com';
 const { width } = Dimensions.get('window');
@@ -39,9 +38,9 @@ function calcScore(r: any): number {
 }
 
 export default function HomeScreen({ route, navigation }: any) {
-  const [isGuest,      setIsGuest]      = useState(DEMO_MODE ? false : true);
-  const [name,         setName]         = useState(DEMO_MODE ? '홍길동' : '게스트');
-  const [userId,       setUserId]       = useState(DEMO_MODE ? 'demo-user' : '');
+  const [isGuest,      setIsGuest]      = useState(true);
+  const [name,         setName]         = useState('게스트');
+  const [userId,       setUserId]       = useState('');
   const [record,       setRecord]       = useState<any>(null);
   const [exerciseDone, setExerciseDone] = useState<boolean | null>(null);
   const [showPopup,    setShowPopup]    = useState(false);
@@ -49,7 +48,6 @@ export default function HomeScreen({ route, navigation }: any) {
   const popupAnim  = useRef(new Animated.Value(300)).current;
 
   useEffect(() => {
-    if (DEMO_MODE) return;
     const checkLogin = async () => {
       const storedId   = await AsyncStorage.getItem('userId');
       const storedName = await AsyncStorage.getItem('userName');
@@ -59,7 +57,7 @@ export default function HomeScreen({ route, navigation }: any) {
         const pId    = route?.params?.userId;
         const pName  = route?.params?.name;
         const pGuest = route?.params?.isGuest;
-        if (pId && pId !== 'demo-user' && pGuest === false) {
+        if (pId && pGuest === false) {
           setIsGuest(false); setName(pName || '회원'); setUserId(pId);
         }
       }
@@ -68,7 +66,7 @@ export default function HomeScreen({ route, navigation }: any) {
   }, [route?.params]);
 
   useEffect(() => {
-    if (!userId || userId === 'demo-user') return;
+    if (!userId) return;
     fetch(`${API_URL}/health/history/${userId}?days=1`)
       .then(r => r.json())
       .then(d => { if (d.records?.length > 0) setRecord(d.records[0]); })
@@ -109,7 +107,7 @@ export default function HomeScreen({ route, navigation }: any) {
         <View style={s.headerTop}>
           <Text style={s.appName}>Silver Life</Text>
           <View style={s.headerBtns}>
-            {(isGuest || DEMO_MODE) && (
+            {isGuest && (
               <>
                 <TouchableOpacity style={s.btnLogin} onPress={goLogin}>
                   <Text style={s.btnLoginTxt}>로그인</Text>

@@ -76,7 +76,7 @@ const QUICK_CHIPS = [
 ];
 
 export default function AIChatScreen({ route, navigation }: Props) {
-  const { name = '회원', userId = 'demo-user' } = route?.params ?? {};
+  const { name = '회원', userId = '' } = route?.params ?? {};
 
   const welcomeMsg: Msg = {
     role: 'ai',
@@ -121,7 +121,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!userId || userId === 'demo-user') return;
+    if (!userId) return;
     (async () => {
       try {
         const res = await fetch(`${API_URL}/ai/history/${userId}?limit=20`);

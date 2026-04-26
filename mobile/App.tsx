@@ -51,8 +51,6 @@ if (typeof window !== 'undefined' && window.location?.search) {
 }
 const navigationRef = createNavigationContainerRef<any>();
 
-export const DEMO_MODE = true;
-const DEMO = { name: '홍길동', userId: 'demo-user', isGuest: false };
 
 const BACKEND = 'https://silverlieai.onrender.com';
 const KAKAO_REDIRECT = 'https://leemike09-dev.github.io/SilverlieAI/';
@@ -76,7 +74,7 @@ export default function App() {
     const initNotifications = async () => {
       await initNotificationHandler();
       const firstRun = await AsyncStorage.getItem('notification_init');
-      if (!firstRun && DEMO_MODE) {
+      if (!firstRun) {
         const granted = await requestNotificationPermission();
         if (granted) await scheduleHealthDailyReminder();
         await AsyncStorage.setItem('notification_init', '1');
@@ -252,7 +250,7 @@ export default function App() {
           <NavigationContainer ref={navigationRef} onReady={handleNavigationReady}>
             <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRoute}>
               <Stack.Screen name="Intro"         component={IntroScreen}           />
-              <Stack.Screen name="Home"          component={HomeScreen}            initialParams={DEMO} />
+              <Stack.Screen name="Home"          component={HomeScreen}            />
               <Stack.Screen name="Login"         component={LoginScreen}           />
               <Stack.Screen name="Health"        component={HealthScreen}          initialParams={DEMO} />
               <Stack.Screen name="Dashboard"     component={DashboardScreen}       initialParams={DEMO} />
@@ -271,9 +269,9 @@ export default function App() {
               <Stack.Screen name="LocationMap"   component={LocationMapScreen}     initialParams={DEMO} />
               <Stack.Screen name="Profile"            component={ProfileScreen}           />
               <Stack.Screen name="ImportantContacts"  component={ImportantContactsScreen} />
-              <Stack.Screen name="SOS"                component={SOSScreen}               initialParams={DEMO} />
+              <Stack.Screen name="SOS"                component={SOSScreen}               />
               <Stack.Screen name="HealthProfile"      component={HealthProfileScreen}     initialParams={DEMO} />
-              <Stack.Screen name="FAQ"                component={FAQScreen}               initialParams={DEMO} />
+              <Stack.Screen name="FAQ"                component={FAQScreen}               />
               <Stack.Screen name="DoctorMemo"         component={DoctorMemoScreen}        initialParams={DEMO} />
             </Stack.Navigator>
           </NavigationContainer>

@@ -6,27 +6,19 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SeniorTabBar from '../components/SeniorTabBar';
-import { DEMO_MODE } from '../App';
 
 const API   = 'https://silverlieai.onrender.com';
 const { width } = Dimensions.get('window');
 const CARD_GAP = 8;
 const CARD_W   = (width - 24 - CARD_GAP) / 2;
 
-// 데모용 건강 카드 기본값
-const DEMO_CARDS = [
-  { emoji: '🫀', label: '혈압',  value: '120/80', unit: 'mmHg', bg: '#F57C00' },
-  { emoji: '💉', label: '혈당',  value: '98',     unit: 'mg/dL', bg: '#C2185B' },
-  { emoji: '🌡️', label: '체온',  value: '36.5',  unit: '°C',   bg: '#1565C0' },
-  { emoji: '⚖️', label: '체중',  value: '68.2',   unit: 'kg',   bg: '#2E7D32' },
-];
 
 export default function SeniorHomeScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
 
   const [userId, setUserId] = useState<string>(route?.params?.userId || '');
   const [name,   setName]   = useState<string>(route?.params?.name   || '');
-  const [cards,  setCards]  = useState(DEMO_CARDS);
+  const [cards,  setCards]  = useState<any[]>([]);
   const [steps,  setSteps]  = useState<number | null>(null);
   const [locationStatus, setLocationStatus] = useState<'sharing' | 'off' | 'loading'>('off');
 
@@ -38,11 +30,9 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       if (storedId)   setUserId(storedId);
       if (storedName) setName(storedName);
 
-      if (storedId && storedId !== 'demo-user') {
+      if (storedId) {
         fetchLatest(storedId);
         sendLocation(storedId);
-      } else if (DEMO_MODE) {
-        sendLocation(route?.params?.userId || 'demo-user');
       }
     };
     init();
@@ -114,12 +104,19 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
     } catch { setLocationStatus('off'); }
   };
 
-  const goFamily = () => navigation.navigate(
-    DEMO_MODE ? 'FamilyDashboard' : 'FamilyConnect',
-    DEMO_MODE
-      ? { seniorId: 'demo-senior', seniorName: '홍길동', userId, name }
-      : { userId, name }
-  );
+  const goLocationMap = async () => {
+    try {
+      const r = await fetch(`${API}/location/today/${userId}`);
+      const d = r.ok ? await r.json() : {};
+      navigation.navigate('LocationMap', {
+        logs:       d.logs             || [],
+        seniorName: name,
+        totalDist:  d.total_distance_m || 0,
+      });
+    } catch {
+      navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0 });
+    }
+  };
 
   const hour     = new Date().getHours();
   const greeting = hour < 12 ? '좋은 아침이에요' : hour < 18 ? '좋은 오후예요' : '좋은 저녁이에요';
@@ -182,7 +179,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         </View>
 
         {/* 동선 한 줄 버튼 */}
-        <TouchableOpacity style={s.motionRow} onPress={goFamily} activeOpacity={0.85}>
+        <TouchableOpacity style={s.motionRow} onPress={goLocationMap} activeOpacity={0.85}>
           <Text style={s.motionRowIcon}>🗺️</Text>
           <Text style={s.motionRowLabel}>오늘 동선 확인</Text>
           <View style={s.motionRowSteps}>

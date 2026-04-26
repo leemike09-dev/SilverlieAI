@@ -18,14 +18,6 @@ const TIME_SLOTS = [
   { key: 'bedtime',  label: '취침전', icon: '🌛',  defaultTime: '21:00' },
 ];
 
-const DEMO_MEDS = [
-  { id: '1', name: '혈압약', dosage: '1정', method: '식후 즉시', timeSlot: 'morning', stock: 28, taken: true,  skipped: false },
-  { id: '2', name: '당뇨약', dosage: '1정', method: '식사 중',   timeSlot: 'morning', stock: 14, taken: true,  skipped: false },
-  { id: '3', name: '당뇨약', dosage: '1정', method: '식사 중',   timeSlot: 'lunch',   stock: 14, taken: false, skipped: false },
-  { id: '4', name: '관절약', dosage: '2정', method: '식후 30분', timeSlot: 'lunch',   stock: 5,  taken: false, skipped: false },
-  { id: '5', name: '혈압약', dosage: '1정', method: '식후 즉시', timeSlot: 'evening', stock: 28, taken: false, skipped: false },
-];
-
 const STORAGE_KEY = 'medications';
 const EMPTY_FORM  = { name: '', dosage: '', method: '', timeSlot: 'morning', stock: '' };
 
@@ -46,8 +38,7 @@ export default function MedicationScreen({ navigation }: any) {
       if (stored) {
         setMeds(JSON.parse(stored));
       } else {
-        setMeds(DEMO_MEDS);
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(DEMO_MEDS));
+        setMeds([]);
       }
     };
     init();

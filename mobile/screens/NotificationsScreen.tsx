@@ -16,15 +16,9 @@ type Notification = {
   created_at: string;
 };
 
-const DEMO_NOTIFS: Notification[] = [
-  { id: '1', title: '오늘 걸음수 목표 달성! 🎉', body: '8,000보를 달성했습니다. 훌륭해요!', is_read: false, created_at: new Date().toISOString() },
-  { id: '2', title: 'AI 건강 리포트 준비됨', body: '이번 주 건강 분석이 완료됐습니다.', is_read: false, created_at: new Date(Date.now()-3600000).toISOString() },
-  { id: '3', title: '혈압 기록 알림', body: '오늘 혈압을 아직 기록하지 않으셨습니다.', is_read: true, created_at: new Date(Date.now()-86400000).toISOString() },
-];
-
 export default function NotificationsScreen({ navigation, route }: any) {
-  const { userId = 'demo-user', name = '회원' } = route?.params ?? {};
-  const [notifications, setNotifications] = useState<Notification[]>(DEMO_NOTIFS);
+  const { userId = '', name = '회원' } = route?.params ?? {};
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const loading = false;
 
   useEffect(() => {

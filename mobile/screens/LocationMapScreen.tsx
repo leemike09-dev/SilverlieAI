@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Platform, StyleSheet } from 'react-native';
-import { DEMO_MODE } from '../App';
 
 const C = {
   bg:    '#FDFAF6', card:  '#FFFFFF', sage:  '#6BAE8F',
@@ -8,19 +7,10 @@ const C = {
   sub:   '#8A8A8A', line:  '#F0EDE8', sky:   '#6BA8C8',
 };
 
-// 데모용 서울 강남 동선
-const DEMO_LOGS = [
-  { lat: 37.4979, lng: 127.0276, activity: 'home',    address: '역삼동',   created_at: '2026-04-03T07:30:00Z' },
-  { lat: 37.4985, lng: 127.0290, activity: 'outdoor', address: '역삼공원', created_at: '2026-04-03T09:10:00Z' },
-  { lat: 37.5001, lng: 127.0310, activity: 'outdoor', address: '강남역 근처', created_at: '2026-04-03T09:45:00Z' },
-  { lat: 37.4992, lng: 127.0295, activity: 'outdoor', address: '이마트',   created_at: '2026-04-03T10:20:00Z' },
-  { lat: 37.4981, lng: 127.0280, activity: 'home',    address: '역삼동',   created_at: '2026-04-03T11:05:00Z' },
-];
-
 export default function LocationMapScreen({ route, navigation }: any) {
-  const logs      = route?.params?.logs       || (DEMO_MODE ? DEMO_LOGS : []);
-  const seniorName = route?.params?.seniorName || (DEMO_MODE ? '홍길동' : '');
-  const totalDist  = route?.params?.totalDist  || (DEMO_MODE ? 1240 : 0);
+  const logs      = route?.params?.logs       || [];
+  const seniorName = route?.params?.seniorName || '';
+  const totalDist  = route?.params?.totalDist  || 0;
   const mapRef    = useRef<any>(null);
 
   useEffect(() => {

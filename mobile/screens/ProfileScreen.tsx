@@ -44,7 +44,7 @@ export default function ProfileScreen({ navigation, route }: any) {
   }, []);
 
   useEffect(() => {
-    if (!userId || userId === 'demo-user') return;
+    if (!userId) return;
     setLoading(true);
     fetch(`${API_URL}/users/${userId}`)
       .then(r => r.json())
@@ -66,7 +66,7 @@ export default function ProfileScreen({ navigation, route }: any) {
   };
 
   const handleSave = async () => {
-    if (!userId || userId === 'demo-user') {
+    if (!userId) {
       Alert.alert('\uc54c\ub9bc', '\ub85c\uadf8\uc778 \ud6c4 \ud504\ub85c\ud544\uc744 \uc800\uc7a5\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.'); return;
     }
     setSaving(true);

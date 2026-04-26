@@ -110,7 +110,7 @@ export default function HealthScreen({ navigation }: any) {
       if (cached) setRecords(JSON.parse(cached));
     } catch {}
     // 백엔드에서 최신 데이터 가져오기
-    if (!id || id === 'demo-user') return;
+    if (!id) return;
     try {
       const res = await fetch('https://silverlieai.onrender.com/health/records/' + id);
       if (!res.ok) return;
@@ -150,7 +150,7 @@ export default function HealthScreen({ navigation }: any) {
 
     try {
       // 백엔드 저장 (실제 사용자만)
-      if (userId && userId !== 'demo-user') {
+      if (userId) {
         const apiBody: any = {
           user_id: userId,
           date: record.date,

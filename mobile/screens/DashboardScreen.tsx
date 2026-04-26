@@ -26,31 +26,19 @@ const C = {
   line:     '#DDE8F4',
 };
 
-const DEMO_DATA = {
-  score: 82, scoreChange: +3,
-  aiAnalysis: '혈압이 다소 높은 편입니다. 나트륨 섭취를 줄이고 오늘 오후 20분 걷기를 권장합니다. 맥박과 혈당은 정상 범위로 유지되고 있어 좋습니다.',
-  points: [
-    { icon: '⚠️', label: '혈압',   value: '138/88', status: '주의',     color: C.amber, bg: C.amberLt },
-    { icon: '✅', label: '맥박',   value: '72 bpm', status: '정상',     color: C.sage,  bg: C.sageLt  },
-    { icon: '🚶', label: '걸음수', value: '4,230보', status: '목표 84%', color: C.sky,   bg: C.skyLt   },
-    { icon: '✅', label: '혈당',   value: '104 mg', status: '정상',     color: C.sage,  bg: C.sageLt  },
-  ],
-  recs: [
-    { icon: '🚶', title: '1,770보 더 걷기',  desc: '오후 20분 산책으로 목표 달성',    color: C.sky,   bg: C.skyLt   },
-    { icon: '🥗', title: '저염식 권장',       desc: '혈압 관리를 위해 나트륨 줄이기',   color: C.sage,  bg: C.sageLt  },
-    { icon: '😴', title: '7시간 수면',        desc: '규칙적인 수면이 혈압 안정에 도움', color: '#A78BCA', bg: '#F4EDFB' },
-    { icon: '💧', title: '수분 보충',         desc: '하루 1.5L 이상 물 마시기',        color: C.peach, bg: C.peachLt },
-  ],
-  weeklyScores: [74, 78, 75, 80, 79, 82, 82],
+const EMPTY_DATA = {
+  score: 0, scoreChange: 0,
+  aiAnalysis: '',
+  points: [] as any[],
+  recs: [] as any[],
+  weeklyScores: [] as number[],
   weekDays: ['월', '화', '수', '목', '금', '토', '오늘'],
 };
 
-const maxScore = Math.max(...DEMO_DATA.weeklyScores);
-
 export default function DashboardScreen({ route, navigation }: any) {
-  const { name = '홍길동', userId = 'demo-user' } = route?.params ?? {};
+  const { name = '회원', userId = '' } = route?.params ?? {};
 
-  const [data, setData]       = useState(DEMO_DATA);
+  const [data, setData]       = useState(EMPTY_DATA);
   const [loading, setLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scoreAnim = useRef(new Animated.Value(0)).current;
@@ -75,7 +63,7 @@ export default function DashboardScreen({ route, navigation }: any) {
       const ad = await ar.json();
       if (ad.score) setData(prev => ({ ...prev, score: ad.score, aiAnalysis: ad.analysis || prev.aiAnalysis }));
     } catch {
-      // DEMO_MODE fallback already set
+      // 데이터 없음 — 빈 상태 유지
     } finally {
       setLoading(false);
     }
@@ -119,7 +107,8 @@ export default function DashboardScreen({ route, navigation }: any) {
               <Text style={s.weekChartTitle}>주간 점수 추이</Text>
               <View style={s.chartBars}>
                 {data.weeklyScores.map((sc, i) => {
-                  const pct = sc / maxScore;
+                  const maxSc = Math.max(...data.weeklyScores, 1);
+                  const pct = sc / maxSc;
                   const isToday = i === data.weeklyScores.length - 1;
                   return (
                     <View key={i} style={s.chartCol}>

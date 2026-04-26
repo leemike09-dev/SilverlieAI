@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { DEMO_MODE } from '../App';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = {
@@ -15,7 +14,7 @@ const GUEST_TABS = ['health', 'community', 'settings'];
 
 export default function BottomTabBar({ navigation, activeTab = 'Home', userId = '', name = '', onGuestPress }: Props) {
   const insets = useSafeAreaInsets();
-  const isGuest = DEMO_MODE ? false : (!userId || userId === 'demo-user');
+  const isGuest = !userId;
 
   const tabs = [
     { key: 'Home',      icon: '🏠', label: '홈',      screen: 'Home'      },

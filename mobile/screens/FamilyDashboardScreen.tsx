@@ -4,7 +4,6 @@ import {
   StatusBar, Platform, Linking, Alert, Modal, ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DEMO_MODE } from '../App';
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const API = 'https://silverlieai.onrender.com';
@@ -26,33 +25,6 @@ const RELATION_OPTIONS = [
   { key: 'daughter', label: '딸',        emoji: '👧' },
   { key: 'sibling',  label: '형제/자매', emoji: '👫' },
   { key: 'other',    label: '기타',      emoji: '👤' },
-];
-
-// ── DEMO 데이터 ──
-const DEMO_MEMBERS = [
-  { id: 'demo-senior-1', name: '홍길동', phone: '010-1234-5678', relation: 'father' },
-  { id: 'demo-senior-2', name: '박영희', phone: '010-9876-5432', relation: 'mother' },
-];
-const DEMO_LOCATION = {
-  address: '서울 강남구 역삼동 자택',
-  timestamp: '오전 11시 05분',
-  totalDist: 1240,
-  points: 5,
-  logs: [
-    { lat: 37.4979, lng: 127.0276, activity: 'home',    address: '역삼동',      created_at: '2026-04-17T07:30:00Z' },
-    { lat: 37.4985, lng: 127.0290, activity: 'outdoor', address: '역삼공원',    created_at: '2026-04-17T09:10:00Z' },
-    { lat: 37.5001, lng: 127.0310, activity: 'outdoor', address: '강남역 근처', created_at: '2026-04-17T09:45:00Z' },
-    { lat: 37.4992, lng: 127.0295, activity: 'outdoor', address: '이마트',      created_at: '2026-04-17T10:20:00Z' },
-    { lat: 37.4981, lng: 127.0280, activity: 'home',    address: '역삼동',      created_at: '2026-04-17T11:05:00Z' },
-  ],
-};
-const DEMO_ADVICE = '오늘 혈압이 정상 범위입니다. 혈압약을 꾸준히 드시고 계세요. 물을 충분히 드시면 더욱 좋습니다.';
-const DEMO_MEDS = [
-  { name: '혈압약', time: '08:00', taken: true,  stock: 28 },
-  { name: '당뇨약', time: '08:00', taken: true,  stock: 14 },
-  { name: '당뇨약', time: '12:00', taken: false, stock: 14 },
-  { name: '관절약', time: '12:00', taken: false, stock: 5  },
-  { name: '혈압약', time: '20:00', taken: false, stock: 28 },
 ];
 
 export default function FamilyDashboardScreen({ route, navigation }: any) {
@@ -93,33 +65,25 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
         } catch {}
       }
 
-      // AsyncStorage에 없는 경우
-      if (DEMO_MODE) {
-        console.log('DEMO_MODE: 데모 멤버 사용');
-        setMembers(DEMO_MEMBERS);
-        setSelected(DEMO_MEMBERS[0]);
-        setSelectedId(DEMO_MEMBERS[0].id);
-      } else {
-        // 실제 API로 멤버 조회 시도
-        if (uid) {
-          try {
-            const r = await fetch(`${API}/family/members/${uid}`);
-            if (r.ok) {
-              const d = await r.json();
-              const mems: any[] = d.members || [];
-              if (mems.length > 0) {
-                await AsyncStorage.setItem('family_members', JSON.stringify(mems));
-                setMembers(mems);
-                setSelected(mems[0]);
-                setSelectedId(mems[0].id);
-                return;
-              }
+      // 실제 API로 멤버 조회 시도
+      if (uid) {
+        try {
+          const r = await fetch(`${API}/family/members/${uid}`);
+          if (r.ok) {
+            const d = await r.json();
+            const mems: any[] = d.members || [];
+            if (mems.length > 0) {
+              await AsyncStorage.setItem('family_members', JSON.stringify(mems));
+              setMembers(mems);
+              setSelected(mems[0]);
+              setSelectedId(mems[0].id);
+              return;
             }
-          } catch {}
-        }
-        // 연결된 가족 없음 → FamilyConnect로
-        navigation.replace('FamilyConnect', { userId: uid, name: uname });
+          }
+        } catch {}
       }
+      // 연결된 가족 없음 → FamilyConnect로
+      navigation.replace('FamilyConnect', { userId: uid, name: uname });
     };
     init();
   }, []);
@@ -184,13 +148,6 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
       }
     } catch {}
 
-    // DEMO 폴백
-    if (DEMO_MODE) {
-      if (!gotLoc) setLocation(DEMO_LOCATION);
-      if (!gotAi)  setAiAdvice(DEMO_ADVICE);
-      if (!gotMed) setMedications(DEMO_MEDS);
-    }
-
     setLoading(false);
   };
 
@@ -228,15 +185,13 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
       setSelected(updatedMember);
     }
 
-    if (!DEMO_MODE) {
-      try {
-        await fetch(`${API}/family/relation`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, targetUserId: relTarget.id, relation: rel.key }),
-        });
-      } catch {}
-    }
+    try {
+      await fetch(`${API}/family/relation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, targetUserId: relTarget.id, relation: rel.key }),
+      });
+    } catch {}
 
     setRelModal(false);
   };

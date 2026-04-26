@@ -38,7 +38,7 @@ export default function ProfileSetupScreen({ navigation, route }: any) {
     setSaving(true);
     try {
       const interests = [...selected, ...(custom.trim() ? [custom.trim()] : [])];
-      if (userId && userId !== 'demo-user') {
+      if (userId) {
         await fetch(`${API_URL}/users/${userId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },

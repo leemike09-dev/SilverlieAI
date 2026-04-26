@@ -79,7 +79,7 @@ export default function WeeklyReportScreen({ route, navigation }: any) {
     const init = async () => {
       const storedId = await AsyncStorage.getItem('userId') || paramId;
       setUserId(storedId);
-      if (storedId && storedId !== 'demo-user') {
+      if (storedId) {
         await loadData(storedId);
       } else {
         setLoading(false);
