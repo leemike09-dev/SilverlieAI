@@ -531,6 +531,15 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 - [ ] 1차 출시 후 3~6개월 실사용 데이터 기반으로 임계값 설계
 ---
 
+## 완료 작업 기록 (2026-04-26)
+
+### 데모 모드 제거 — 실제 앱 전환
+- `DEMO_MODE = true` 및 `DEMO` 객체 App.tsx에서 완전 제거
+- 모든 `DEMO_*` 상수 → `mobile/_demo_backup/demo_data.ts`에 백업 보존
+- `demo-user` 참조 전체 제거 (guard 조건 → `!userId`로 단순화)
+- 동선확인 버그 수정: `SeniorHomeScreen` goFamily() (FamilyDashboard 이동) → goLocationMap() (GET /location/today/{userId} → LocationMapScreen)
+- 영향 파일: App.tsx, SeniorHomeScreen, MedicationScreen, NotificationsScreen, FamilyDashboardScreen, FamilyConnectScreen, LocationMapScreen, HomeScreen, DashboardScreen, BottomTabBar, AIChatScreen, SettingsScreen, HealthScreen, 기타 7개
+
 ## 완료 작업 기록 (2026-04-20)
 
 ### AI 채팅 컨텍스트 고도화
@@ -570,6 +579,8 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 | 화면 | 항목 | 상태 | 확정 내용 |
 |------|------|------|-----------|
 | SeniorHomeScreen | 헤더 | ✅ 완료 | ⚙️ 설정버튼 (꿀비 이미지 제거 확정), `{name}님` (어르신 제거 확정) |
+| 전체 앱 | DEMO_MODE | ✅ 완료 | DEMO_MODE 제거, demo-user 제거, 백업: `mobile/_demo_backup/demo_data.ts` |
+| SeniorHomeScreen | 동선확인 버튼 | ✅ 완료 | GET /location/today/{userId} → LocationMapScreen (버그 수정) |
 | SeniorHomeScreen | 건강카드 | ✅ 완료 | 혈압/혈당/체온/체중 4개, 실데이터(fetchLatest) |
 | SeniorHomeScreen | 걸음수 | ✅ 완료 | 실데이터(steps) — 없으면 '--' |
 | HealthScreen | 건강기록 입력 | ✅ 완료 | 실데이터 백엔드 저장 (혈압/혈당/체온/체중/걸음수) |
