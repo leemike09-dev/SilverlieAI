@@ -517,6 +517,12 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 - [ ] 앱스토어 제출 준비 (iOS)
 - [ ] 플레이스토어 제출 준비 (Android)
 
+### 🌙 낮/밤 자동 테마 (출시 직전 활성화)
+- [ ] ThemeContext 생성 — 오전 7시~오후 8시 = 낮(현재 밝은 테마), 그 외 = 밤(짙은 남색 테마)
+- [ ] 적용 범위: 홈(SeniorHomeScreen) + 하단 탭바(SeniorTabBar) + AI상담(AIChatScreen) 우선
+- [ ] 낮 배경 `#F0F5FB` → 밤 `#121A2A` / 헤더 `#1A4A8A` → `#0D1F3C` / 카드 `#fff` → `#1E2D42`
+- [ ] 나머지 화면은 2차로 확장
+
 ### 🎨 UI / UX 정리
 - [ ] 전체 글자 크기 일괄 정리 (시니어 기준 18px 이상)
 - [ ] 가족 화면 UI 정리

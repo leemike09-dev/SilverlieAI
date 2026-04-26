@@ -24,7 +24,7 @@ const C = {
   purple1: '#7B1FA2',
   purple2: '#9C27B0',
   purpleCard:'#F3E5F5',
-  bg:      '#F9F4FC',
+  bg:      '#FBF8FF',
   card:    '#FFFFFF',
   text:    '#16273E',
   sub:     '#7A90A8',
@@ -46,8 +46,8 @@ const KKULBI_IMAGES = {
   sos:     require('../assets/Kkulbi_1.png'),
 };
 
-const SLEEP_KEYWORDS  = ['수면', '잠', '불면', '존림', '피로', '잠이', '자다', '못자'];
-const CHEER_KEYWORDS  = ['잘하셨', '좋아요', '괴찮아', '다행', '건강하', '운동', '식단', '걸기', '정상'];
+const SLEEP_KEYWORDS  = ['수면', '잠', '불면', '졸림', '피로', '잠이', '자다', '못자'];
+const CHEER_KEYWORDS  = ['잘하셨', '좋아요', '괴찮아', '다행', '건강하', '운동', '식단', '걷기', '정상'];
 
 function getKkulbiImage(riskLevel?: RiskLevel, text: string = '') {
   if (riskLevel === 'critical') return KKULBI_IMAGES.sos;
@@ -57,23 +57,33 @@ function getKkulbiImage(riskLevel?: RiskLevel, text: string = '') {
   return KKULBI_IMAGES.default;
 }
 
+function stripEmoji(text: string): string {
+  return text
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+    .replace(/[\u{2600}-\u{27BF}]/gu, '')
+    .replace(/[\u{2300}-\u{23FF}]/gu, '')
+    .replace(/\uFE0F/gu, '')
+    .replace(/ {2,}/g, ' ')
+    .trim();
+}
+
 function getGreeting(): string {
   const h = new Date().getHours();
-  if (h < 9)  return '좋은 아침이에요! 🌅\n오늘 하루도 건강하게 시작해요';
-  if (h < 12) return '오전이 활기차네요! ☀️\n무엇이든 편하게 물어보세요';
-  if (h < 14) return '점심 시간이에요! 🍱\n건강한 하루를 보내고 계신가요?';
-  if (h < 18) return '오후도 건강하게! 🌤️\n궁금한 건강 정보가 있으신가요?';
-  if (h < 21) return '좋은 저녁이에요! 🌙\n오늘 하루 어디요?';
-  return '잠자리 준비가 되셨나요? 🌛\n편안한 밤 되세요';
+  if (h < 9)  return '좋은 아침이에요!\n오늘 하루도 건강하게 시작해요';
+  if (h < 12) return '오전이 활기차네요!\n무엇이든 편하게 물어보세요';
+  if (h < 14) return '점심 시간이에요!\n건강한 하루를 보내고 계신가요?';
+  if (h < 18) return '오후도 건강하게!\n궁금한 건강 정보가 있으신가요?';
+  if (h < 21) return '좋은 저녁이에요!\n오늘 하루 어떠세요?';
+  return '잠자리 준비가 되셨나요?\n편안한 밤 되세요';
 }
 
 const QUICK_CHIPS = [
-  { emoji: '💊', label: '약 부작용' },
-  { emoji: '🩸', label: '혈압이 높아요' },
-  { emoji: '😴', label: '잠이 안와요' },
-  { emoji: '🦵', label: '무릅 아파요' },
-  { emoji: '😵', label: '어지러워요' },
-  { emoji: '🤢', label: '속이 메스껌워요' },
+  { label: '약 부작용' },
+  { label: '혈압이 높아요' },
+  { label: '잠이 안와요' },
+  { label: '무릎 아파요' },
+  { label: '어지러워요' },
+  { label: '속이 메스꺼워요' },
 ];
 
 export default function AIChatScreen({ route, navigation }: Props) {
@@ -81,7 +91,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
   const welcomeMsg: Msg = {
     role: 'ai',
-    text: getGreeting() + '\n건강에 대해 편하게 물어보세요 😊',
+    text: getGreeting() + '\n건강에 대해 편하게 물어보세요.',
   };
   const [msgs, setMsgs] = useState<Msg[]>([welcomeMsg]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -90,8 +100,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [isRecording, setIsRecording] = useState(false);
   const [showEmergency,  setShowEmergency]  = useState(false);
   const [familyNotified, setFamilyNotified] = useState(false);
-  const [profileTags,    setProfileTags]    = useState<string[]>([]);
-  const [todayBP,        setTodayBP]        = useState('');
   const [toastMsg,       setToastMsg]       = useState('');
   const scrollRef = useRef<ScrollView>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -100,27 +108,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const toastTimerRef = useRef<any>(null);
   const [ttsIdx, setTtsIdx] = useState<number | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const stored = await AsyncStorage.getItem('health_profile');
-        if (stored) {
-          const prof = JSON.parse(stored);
-          const tags: string[] = [];
-          if (prof.diseases?.length)      tags.push(...prof.diseases.slice(0, 2));
-          if (prof.drugAllergies?.length) tags.push('알레르기: ' + prof.drugAllergies[0]);
-          setProfileTags(tags);
-        }
-        const recStr = await AsyncStorage.getItem('health_records');
-        if (recStr) {
-          const recs = JSON.parse(recStr);
-          const today = new Date().toISOString().slice(0, 10);
-          const rec = recs.find((r: any) => r.date === today);
-          if (rec?.bp_sys && rec?.bp_dia) setTodayBP(rec.bp_sys + '/' + rec.bp_dia);
-        }
-      } catch {}
-    })();
-  }, []);
 
   useEffect(() => {
     if (!userId) return;
@@ -204,7 +191,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
         body: JSON.stringify({ user_id: userId, message: msg, history: history.slice(-10) }),
       });
       const data = await res.json();
-      const reply = data.reply ?? data.response ?? '죄송합니다, 다시 시도해주세요.';
+      const reply = stripEmoji(data.reply ?? data.response ?? '죄송합니다, 다시 시도해주세요.');
       const riskLevel = data.risk_level ?? 'normal';
       const doctorMemoNeeded: boolean = data.doctor_memo_needed ?? false;
       const doctorMemo: string | undefined = data.doctor_memo ?? undefined;
@@ -277,7 +264,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
         </TouchableOpacity>
         <View style={s.headerCenter}>
           <Text style={s.headerTitle}>AI 건강 상담</Text>
-          <Text style={s.headerSub}>꿼비와 함께하는 건강 관리</Text>
+          <Text style={s.headerSub}>꿀비와 함께하는 건강 관리</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <View style={s.onlineDot} />
@@ -289,21 +276,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
         </View>
       </View>
 
-      {/* 의료 고지 배너 */}
-      <View style={s.disclaimer}>
-        <Text style={s.disclaimerTxt}>⚕️ AI 답변은 참고용입니다. 정확한 진단은 의사 선생님께 확인하세요.</Text>
-      </View>
-
-      {/* 건강 프로필 태그 */}
-      {(profileTags.length > 0 || todayBP) && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}
-          style={s.tagsBar} contentContainerStyle={s.tagsContent}>
-          {todayBP ? <View style={s.tagBP}><Text style={s.tagBPTxt}>🩸 혈압 {todayBP}</Text></View> : null}
-          {profileTags.map((tag, i) => (
-            <View key={i} style={s.tag}><Text style={s.tagTxt}>{tag}</Text></View>
-          ))}
-        </ScrollView>
-      )}
 
       {/* CRITICAL 인라인 카드 */}
       {showEmergency && (
@@ -332,6 +304,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
                 <Image source={KKULBI_IMAGES.happy} style={s.beeImg} resizeMode="contain" />
               </View>
               <Text style={s.welcomeName}>{name}님, 안녕하세요!</Text>
+              <Text style={s.welcomeSub}>무엇이든 편하게 물어보세요</Text>
             </View>
           )}
 
@@ -394,18 +367,15 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
           {showChips && (
             <View style={s.chipsWrap}>
-              <Text style={s.chipsLabel}>자주 묻는 질문</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}
                 contentContainerStyle={s.chipsScroll}>
                 {QUICK_CHIPS.map(q => (
                   <TouchableOpacity key={q.label} style={s.chip}
                     onPress={() => send(q.label)} activeOpacity={0.75}>
-                    <Text style={s.chipEmoji}>{q.emoji}</Text>
                     <Text style={s.chipTxt}>{q.label}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-              <Text style={s.chipsHint}>아래 입력창에서 원하는 질문을 직접 해보세요 👇</Text>
             </View>
           )}
           <View style={{ height: 8 }} />
@@ -473,9 +443,6 @@ const s = StyleSheet.create({
   headerSub:    { fontSize: 18, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
   onlineDot:    { width: 10, height: 10, borderRadius: 5, backgroundColor: '#3DAB7B',
     shadowColor: '#3DAB7B', shadowRadius: 4, shadowOpacity: 0.8 },
-  disclaimer:    { backgroundColor: '#FFF8E1', paddingHorizontal: 16, paddingVertical: 8,
-    borderBottomWidth: 1, borderBottomColor: '#FFE082' },
-  disclaimerTxt: { fontSize: 16, color: '#795548', textAlign: 'center', lineHeight: 22 },
   chatArea:    { flex: 1, backgroundColor: C.bg },
   chatContent: { padding: 16, paddingBottom: 8 },
   welcomeArea: { alignItems: 'center', marginBottom: 20, marginTop: 4 },
@@ -484,7 +451,8 @@ const s = StyleSheet.create({
     shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6,
     marginBottom: 10, backgroundColor: '#EDE7F6' },
   beeImg:      { width: 120, height: 120 },
-  welcomeName: { fontSize: 26, fontWeight: '700', color: C.text },
+  welcomeName: { fontSize: 28, fontWeight: '700', color: C.text, marginBottom: 4 },
+  welcomeSub:   { fontSize: 20, color: C.sub, fontWeight: '500' },
   aiRow:    { flexDirection: 'row', gap: 10, marginBottom: 14, alignItems: 'flex-start' },
   aiAvatar: { width: 44, height: 44, borderRadius: 22, flexShrink: 0, backgroundColor: '#EDE7F6' },
   aiBubble: { backgroundColor: C.card, borderRadius: 4, borderTopLeftRadius: 18,
@@ -515,13 +483,10 @@ const s = StyleSheet.create({
   typingDots: { flexDirection: 'row', gap: 5, paddingVertical: 4 },
   dot:        { width: 8, height: 8, borderRadius: 4, backgroundColor: C.purple2 },
   chipsWrap:  { marginTop: 4, marginBottom: 8 },
-  chipsLabel: { fontSize: 17, fontWeight: '700', color: C.sub, marginBottom: 10, textAlign: 'center' },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.card,
     borderRadius: 22, paddingHorizontal: 14, paddingVertical: 9, borderWidth: 1.5,
     borderColor: C.line, shadowColor: C.purple1, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
-  chipEmoji: { fontSize: 20 },
   chipTxt:   { fontSize: 18, color: C.purple1, fontWeight: '600' },
-  chipsHint: { fontSize: 17, color: C.sub, textAlign: 'center', lineHeight: 26 },
   inputWrap: { backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.line,
     paddingHorizontal: 12, paddingVertical: 10 },
   inputRow:  { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
@@ -553,14 +518,6 @@ const s = StyleSheet.create({
   btnFamilyTxt: { fontSize: 20, fontWeight: '700', color: '#fff' },
   btnDismiss:    { paddingVertical: 10 },
   btnDismissTxt: { fontSize: 17, color: C.sub },
-  tagsBar:     { maxHeight: 44, backgroundColor: C.purpleCard, borderBottomWidth: 1, borderBottomColor: C.line },
-  tagsContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
-  tag:    { backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 5,
-    borderWidth: 1, borderColor: C.line },
-  tagTxt: { fontSize: 16, color: C.purple1, fontWeight: '700' },
-  tagBP:    { backgroundColor: '#FFF0F0', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 5,
-    borderWidth: 1, borderColor: '#FFAAAA' },
-  tagBPTxt: { fontSize: 16, color: '#C62828', fontWeight: '700' },
   criticalCard:          { backgroundColor: '#FFF0F0', borderTopWidth: 2, borderBottomWidth: 2,
     borderColor: '#C62828', padding: 14, alignItems: 'center' },
   criticalCardTitle:     { fontSize: 20, fontWeight: '900', color: '#C62828', marginBottom: 8 },
