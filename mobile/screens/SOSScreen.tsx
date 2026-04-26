@@ -1,26 +1,42 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { speak, stopSpeech } from '../utils/speech';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   Animated, Linking, Platform, StatusBar,
 } from 'react-native';
 
-type Props = { navigation: any; route: any };
+const API = 'https://silverlieai.onrender.com';
 
-const FAMILY = [
-  { label: '딸에게 연락', emoji: '👧', phone: '' },
-  { label: '아들에게 연락', emoji: '👦', phone: '' },
-];
+const RELATION_EMOJI: Record<string, string> = {
+  father: '\u{1F474}', mother: '\u{1F475}', spouse: '\u{1F491}',
+  son: '\u{1F466}', daughter: '\u{1F467}', sibling: '\u{1F46B}', other: '\u{1F464}',
+};
+const RELATION_LABEL: Record<string, string> = {
+  father: '아버지', mother: '어머니', spouse: '배우자',
+  son: '아들', daughter: '딸', sibling: '형제/자매', other: '가족',
+};
+
+type FamilyMember = { id: string; name: string; phone: string; relation: string };
+
+type Props = { navigation: any; route: any };
 
 export default function SOSScreen({ navigation, route }: Props) {
   const { userId, name } = route?.params ?? {};
-  const [counting, setCounting] = useState(false);
-  const [count, setCount] = useState(5);
+  const [counting,  setCounting]  = useState(false);
+  const [count,     setCount]     = useState(5);
+  const [family,    setFamily]    = useState<FamilyMember[]>([]);
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const timerRef  = useRef<any>(null);
 
-  // SOS 버튼 맥박 애니메이션
   useEffect(() => {
+    // AsyncStorage 에서 가족 연락체 로드
+    AsyncStorage.getItem('family_members').then(raw => {
+      if (raw) {
+        try { setFamily(JSON.parse(raw).slice(0, 3)); } catch {}
+      }
+    });
+
     Animated.loop(
       Animated.sequence([
         Animated.timing(scaleAnim, { toValue: 1.06, duration: 800, useNativeDriver: true }),
@@ -28,7 +44,6 @@ export default function SOSScreen({ navigation, route }: Props) {
       ])
     ).start();
 
-    // 화면 진입 시 음성 안내
     setTimeout(() => {
       speak('괜찮으세요? 큰 빨간 버튼을 누르시면 일일구로 바로 연결돼요.', 0.85);
     }, 600);
@@ -39,11 +54,22 @@ export default function SOSScreen({ navigation, route }: Props) {
     };
   }, []);
 
+  // SOS 트리거 시 백엔드에 가족 푸시 알림 요청
+  const notifyFamily = () => {
+    if (!userId) return;
+    fetch(`${API}/sos/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, name: name || '' }),
+    }).catch(() => {});
+  };
+
   const startCountdown = () => {
     if (counting) return;
     setCounting(true);
     setCount(5);
     speak('걱정 마세요. 5초 후 일일구로 연결할게요.', 0.85);
+    notifyFamily();
 
     const COUNT_WORDS = ['', '하나', '둘', '셋', '넷', '다섯'];
     let c = 5;
@@ -71,6 +97,13 @@ export default function SOSScreen({ navigation, route }: Props) {
     navigation.navigate('SeniorHome', { userId, name });
   };
 
+  const callFamily = (member: FamilyMember) => {
+    if (!member.phone) return;
+    const label = RELATION_LABEL[member.relation] || member.name;
+    speak(`${label}에게 전화할게요.`, 0.85);
+    setTimeout(() => Linking.openURL(`tel:${member.phone}`), 600);
+  };
+
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor="#B71C1C" />
@@ -81,7 +114,6 @@ export default function SOSScreen({ navigation, route }: Props) {
         <Text style={s.headerTitle}>긴급 호출</Text>
       </View>
 
-      {/* 메인 콘텐츠 */}
       <View style={s.body}>
         {/* SOS 큰 버튼 */}
         <TouchableOpacity onPress={startCountdown} activeOpacity={0.85}>
@@ -92,7 +124,9 @@ export default function SOSScreen({ navigation, route }: Props) {
           </Animated.View>
         </TouchableOpacity>
 
-        <Text style={s.guide} numberOfLines={1} adjustsFontSizeToFit>큰 버튼을 누르면 자동으로 신고됩니다</Text>
+        <Text style={s.guide} numberOfLines={1} adjustsFontSizeToFit>
+          큰 버튼을 누르면 자동으로 신고됩니다
+        </Text>
 
         {/* 카운트다운 */}
         <View style={s.cdWrap}>
@@ -106,16 +140,31 @@ export default function SOSScreen({ navigation, route }: Props) {
 
         {/* 가족 연락 버튼 */}
         <View style={s.famRow}>
-          {FAMILY.map(f => (
+          {family.length > 0 ? (
+            <>
+              {family.map(m => (
+                <TouchableOpacity
+                  key={m.id}
+                  style={[s.famBtn, !m.phone && s.famBtnDisabled]}
+                  onPress={() => callFamily(m)}
+                  activeOpacity={m.phone ? 0.8 : 1}>
+                  <Text style={s.famEmoji}>{RELATION_EMOJI[m.relation] || '\u{1F464}'}</Text>
+                  <Text style={s.famLabel}>{m.name}</Text>
+                  <Text style={s.famSub}>
+                    {m.phone ? RELATION_LABEL[m.relation] || '가족' : '번호 없음'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </>
+          ) : (
             <TouchableOpacity
-              key={f.label}
-              style={s.famBtn}
-              onPress={() => f.phone && Linking.openURL(`tel:${f.phone}`)}
+              style={[s.famBtn, s.famBtnAdd]}
+              onPress={() => navigation.navigate('FamilyConnect', { userId, name })}
               activeOpacity={0.8}>
-              <Text style={s.famEmoji}>{f.emoji}</Text>
-              <Text style={s.famLabel}>{f.label}</Text>
+              <Text style={s.famEmoji}>👨‍👩‍👧</Text>
+              <Text style={s.famLabel}>가족 연결하기</Text>
             </TouchableOpacity>
-          ))}
+          )}
           <TouchableOpacity
             style={s.famBtn}
             onPress={() => Linking.openURL('tel:119')}
@@ -139,7 +188,9 @@ export default function SOSScreen({ navigation, route }: Props) {
           <Text style={s.aiLinkSub}>AI에게 증상을 말씀해주세요 →</Text>
         </TouchableOpacity>
 
-        <Text style={s.locationTxt}>📍 현재 위치를 가족에게 전송 중</Text>
+        {family.length > 0 && (
+          <Text style={s.locationTxt}>📍 가족에게 알림을 전송하고 있어요</Text>
+        )}
       </View>
     </View>
   );
@@ -162,17 +213,19 @@ const s = StyleSheet.create({
   sosSub:   { fontSize: 14, fontWeight: '700', color: '#C62828', marginTop: 2 },
   sos119:   { fontSize: 36, fontWeight: '900', color: '#C62828', marginTop: 2, letterSpacing: 2 },
 
-  cdWrap:  { alignItems: 'center', minHeight: 60, justifyContent: 'center' },
-  cdNum:   { fontSize: 56, fontWeight: '900', color: '#FFD600', lineHeight: 60 },
-  cdTxt:   { fontSize: 16, color: 'rgba(255,255,255,0.85)' },
-  cdGuide: { fontSize: 24, fontWeight: '700', color: 'rgba(255,255,255,0.7)' },
+  cdWrap: { alignItems: 'center', minHeight: 60, justifyContent: 'center' },
+  cdNum:  { fontSize: 56, fontWeight: '900', color: '#FFD600', lineHeight: 60 },
+  cdTxt:  { fontSize: 16, color: 'rgba(255,255,255,0.85)' },
 
-  famRow: { flexDirection: 'row', gap: 10, width: '100%' },
-  famBtn: { flex: 1, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1.5,
-            borderColor: 'rgba(255,255,255,0.4)', borderRadius: 18,
-            paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center' },
-  famEmoji: { fontSize: 28, marginBottom: 6 },
-  famLabel: { fontSize: 18, color: '#fff', fontWeight: '700', textAlign: 'center' },
+  famRow:        { flexDirection: 'row', gap: 10, width: '100%' },
+  famBtn:        { flex: 1, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1.5,
+                   borderColor: 'rgba(255,255,255,0.4)', borderRadius: 18,
+                   paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center' },
+  famBtnDisabled:{ opacity: 0.45 },
+  famBtnAdd:     { flex: 2 },
+  famEmoji:      { fontSize: 28, marginBottom: 4 },
+  famLabel:      { fontSize: 17, color: '#fff', fontWeight: '800', textAlign: 'center' },
+  famSub:        { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2, textAlign: 'center' },
 
   cancelBtn: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)', borderRadius: 12,
                paddingVertical: 10, paddingHorizontal: 32, alignItems: 'center' },
