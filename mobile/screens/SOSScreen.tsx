@@ -126,10 +126,9 @@ export default function SOSScreen({ navigation, route }: Props) {
       setAfterCall(false);
       setTimeout(() => Linking.openURL(`tel:${family[next].phone}`), 600);
     } else {
-      // 모든 가족 시도 후 → 119
-      speak('일일구로 연결할게요.', 0.85);
+      // 모든 가족 시도 완료 — 119는 사용자가 직접 선택
+      speak('등록된 가족에게 모두 연결을 시도했어요. 필요하시면 일일구 버튼을 눌러 주세요.', 0.85);
       setAfterCall(false);
-      setTimeout(() => Linking.openURL('tel:119'), 600);
     }
   };
 
