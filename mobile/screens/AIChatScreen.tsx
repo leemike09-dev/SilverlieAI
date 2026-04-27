@@ -735,7 +735,7 @@ const s = StyleSheet.create({
   settingsBtn:  { alignItems: 'center' },
 
   // 메인 바디
-  body: { flex: 1, flexDirection: 'column', paddingHorizontal: 22, paddingTop: 10, paddingBottom: 6, overflow: 'hidden' },
+  body: { flex: 1, flexDirection: 'column', paddingHorizontal: 22, paddingTop: 10, paddingBottom: 6 },
 
   // 상태줄
   statusRow: {
@@ -768,7 +768,7 @@ const s = StyleSheet.create({
   // 의사 메모 제안
   memoPrompt: {
     backgroundColor: '#F3E5F5', borderRadius: 20, padding: 22, marginBottom: 12,
-    borderWidth: 2, borderColor: '#CE93D8',
+    borderWidth: 2, borderColor: '#CE93D8', flexShrink: 0,
   },
   memoPromptTxt: { fontSize: 24, color: '#4A148C', fontWeight: '700', lineHeight: 36, textAlign: 'center', marginBottom: 18 },
   memoBtns:  { flexDirection: 'row', gap: 12 },
