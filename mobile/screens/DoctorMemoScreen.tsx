@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Platform, StatusBar, Alert, Share,
+  TextInput, Platform, Alert, Share,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -84,7 +84,7 @@ export default function DoctorMemoScreen({ route, navigation }: Props) {
     if (Platform.OS === 'web') {
       window.print();
     } else {
-      showToast('인솤은 웹 버전에서 사용해주세요');
+      showToast('인쇄는 웹 버전에서 사용해주세요');
     }
   };
 
@@ -176,7 +176,7 @@ export default function DoctorMemoScreen({ route, navigation }: Props) {
                 <Text style={s.btnTxt}>📱 공유</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[s.btn, s.btnPrint]} onPress={handlePrint} activeOpacity={0.85}>
-                <Text style={s.btnTxt}>🖨️ 인솤</Text>
+                <Text style={s.btnTxt}>🖨️ 인쇄</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[s.btn, s.btnEdit]} onPress={() => setIsEditing(true)} activeOpacity={0.85}>
                 <Text style={s.btnTxt}>✏️ 수정</Text>

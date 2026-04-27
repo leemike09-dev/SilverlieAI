@@ -1,4 +1,6 @@
 import os
+import base64
+import json
 import requests as http_requests
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -196,6 +198,45 @@ def kakao_login(req: KakaoLoginRequest):
         result = db.table("users").insert({
             "email": kakao_email,
             "name": kakao_name,
+            "language": "ko",
+        }).execute()
+        if not result.data:
+            raise HTTPException(status_code=400, detail="사용자 생성 실패")
+        user = result.data[0]
+
+    return {"id": user["id"], "name": user["name"], "email": user["email"]}
+
+
+class AppleLoginRequest(BaseModel):
+    identity_token: str
+    name: Optional[str] = None
+    email: Optional[str] = None
+
+
+@router.post("/apple-login")
+def apple_login(req: AppleLoginRequest):
+    try:
+        payload_b64 = req.identity_token.split('.')[1]
+        payload_b64 += '=' * (4 - len(payload_b64) % 4)
+        payload = json.loads(base64.b64decode(payload_b64))
+    except Exception:
+        raise HTTPException(status_code=401, detail="Apple 토큰 파싱 실패")
+
+    apple_sub = payload.get('sub', '')
+    if not apple_sub:
+        raise HTTPException(status_code=401, detail="Apple 사용자 ID 없음")
+
+    apple_email = req.email or payload.get('email') or f"apple_{apple_sub}@apple.local"
+    apple_name  = req.name or "Apple 사용자"
+
+    db = get_supabase()
+    existing = db.table("users").select("*").eq("email", apple_email).execute()
+    if existing.data:
+        user = existing.data[0]
+    else:
+        result = db.table("users").insert({
+            "email": apple_email,
+            "name": apple_name,
             "language": "ko",
         }).execute()
         if not result.data:

@@ -169,6 +169,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [currentIntent, setCurrentIntent] = useState<Intent>('health');
   const [showCrisis,    setShowCrisis]    = useState(false);
   const [healthProfile, setHealthProfile] = useState<any>(null);
+  const [ttsEnabled,   setTtsEnabled]   = useState(true);
 
   const scrollRef          = useRef<ScrollView>(null);
   const pulseAnim          = useRef(new Animated.Value(1)).current;
@@ -181,10 +182,14 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const isWelcome = messages.length === 0 && !loading;
   const lastAiMsg = [...messages].reverse().find(m => m.role === 'ai');
 
-  // 초기 선제적 인사 + 건강프로필 로드
+  // 초기 선제적 인사 + 건강프로필 + TTS 설정 로드
   useEffect(() => {
-    AsyncStorage.getItem('health_profile').then(stored => {
-      if (stored) { try { setHealthProfile(JSON.parse(stored)); } catch {} }
+    Promise.all([
+      AsyncStorage.getItem('health_profile'),
+      AsyncStorage.getItem('tts_enabled'),
+    ]).then(([hp, tts]) => {
+      if (hp) { try { setHealthProfile(JSON.parse(hp)); } catch {} }
+      if (tts !== null) setTtsEnabled(tts === 'true');
     });
     fetchProactiveGreeting();
     return () => { stopSpeech(); };
@@ -249,9 +254,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
       await AsyncStorage.setItem('ai_greeting_cache', msg);
     };
 
-    // 첫 방문: TTS만 재생, 버블 없음 → messages 배열 비어 있어 퀵카드 유지
+    // 첫 방문: 버블 없음 → messages 배열 비어 있어 퀵카드 유지
     if (!userId || userId === 'guest') {
-      setTimeout(() => speak(cleanForTTS(fallback), 0.85), 600);
       await save(fallback);
       return;
     }
@@ -260,10 +264,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
       const res  = await fetch(`${API_URL}/ai/proactive-greeting/${userId}`);
       const data = await res.json();
       const msg  = data.message || fallback;
-      setTimeout(() => speak(cleanForTTS(msg), 0.85), 400);
       await save(msg);
     } catch {
-      setTimeout(() => speak(cleanForTTS(fallback), 0.85), 600);
       await save(fallback);
     } finally {
       setLoading(false);
@@ -450,7 +452,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
               if (dMemo) {
                 setPendingMemo(dMemo);
                 const mainMs = Math.max(4000, cleanText.length * 150);
-                setTimeout(() => { setMemoState('asking'); speak('병원 방문하실 때 의사 선생님께 드릴 메모를 작성해 드릴까요?', 0.82); }, mainMs + 600);
+                setTimeout(() => setMemoState('asking'), mainMs + 600);
               }
             }
           } catch {}
@@ -470,14 +472,12 @@ export default function AIChatScreen({ route, navigation }: Props) {
     try {
       await AsyncStorage.setItem('doctor_memo', pendingMemo);
       await AsyncStorage.setItem('doctor_memo_date', new Date().toISOString());
-      speak('메모를 저장했습니다. 설정에서 의사 전달 메모를 확인하실 수 있어요.', 0.85);
       showToast('메모가 저장되었습니다');
     } catch { showToast('저장에 실패했습니다'); }
   };
 
   const handleMemoNo = () => {
     setMemoState('idle');
-    speak('알겠습니다. 필요하실 때 언제든지 말씀해 주세요.', 0.85);
   };
 
   const stopVoice = () => {
@@ -639,6 +639,15 @@ export default function AIChatScreen({ route, navigation }: Props) {
                         </Animated.Text>
                       ) : msg.text}
                     </Text>
+                    {msg.role === 'ai' && !isStreaming && msg.text.length > 0 && ttsEnabled && (
+                      <TouchableOpacity
+                        onPress={() => speak(cleanForTTS(msg.text), 0.85)}
+                        style={s.ttsBtnInline}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={s.ttsBtnTxt}>🔊</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 );
               })}
@@ -915,4 +924,6 @@ const s = StyleSheet.create({
 
   // criticalCard desc 추가
   criticalCardDesc: { fontSize: 16, color: '#C62828', marginBottom: 8, textAlign: 'center' },
+  ttsBtnInline: { alignSelf: 'flex-end', marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  ttsBtnTxt:    { fontSize: 18 },
 });

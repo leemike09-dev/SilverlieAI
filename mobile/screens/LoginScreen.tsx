@@ -1,8 +1,9 @@
 import * as WebBrowser from 'expo-web-browser';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Platform, ScrollView,
+  ActivityIndicator, Platform, ScrollView, Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,6 +38,40 @@ export default function LoginScreen({ navigation }: any) {
         setLoading(null);
       }
     } catch {
+      setLoading(null);
+    }
+  };
+
+  const handleApple = async () => {
+    setLoading('apple');
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      const fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
+        .filter(Boolean).join(' ') || undefined;
+      const res = await fetch(`${BACKEND}/users/apple-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identity_token: credential.identityToken,
+          name: fullName,
+          email: credential.email ?? undefined,
+        }),
+      });
+      if (!res.ok) throw new Error('서버 오류');
+      const data = await res.json();
+      await AsyncStorage.setItem('userId',   String(data.id));
+      await AsyncStorage.setItem('userName', data.name || 'Apple 사용자');
+      navigation.replace('SeniorHome', { userId: String(data.id), name: data.name });
+    } catch (e: any) {
+      if (e?.code !== 'ERR_REQUEST_CANCELED') {
+        Alert.alert('오류', 'Apple 로그인에 실패했습니다. 다시 시도해주세요.');
+      }
+    } finally {
       setLoading(null);
     }
   };
@@ -105,6 +140,32 @@ export default function LoginScreen({ navigation }: any) {
             <Text style={[s.cardLabel, { color: '#1A4A8A' }]}>이메일로 {mode === 'login' ? '로그인' : '회원가입'}</Text>
           </TouchableOpacity>
 
+          {/* Apple Sign In — iOS 네이티브 전용 */}
+          {Platform.OS === 'ios' && (
+            <>
+              <View style={s.divider}>
+                <View style={s.divLine} />
+                <Text style={s.divTxt}>또는</Text>
+                <View style={s.divLine} />
+              </View>
+              <TouchableOpacity
+                style={[s.card, s.appleCard]}
+                onPress={handleApple}
+                activeOpacity={0.85}
+                disabled={loading !== null}
+              >
+                {loading === 'apple' ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text style={s.cardIcon}></Text>
+                    <Text style={[s.cardLabel, { color: '#fff' }]}>Apple로 {mode === 'login' ? '로그인' : '가입'}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
+
         </View>
       </ScrollView>
     </View>
@@ -139,6 +200,7 @@ const s = StyleSheet.create({
   cardIcon:  { fontSize: 30, marginRight: 16 },
   cardLabel: { fontSize: 24, fontWeight: '800', flex: 1 },
   emailCard: { backgroundColor: '#EBF3FB', borderColor: '#1A4A8A' },
+  appleCard: { backgroundColor: '#000', borderColor: '#000' },
 
   divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 20 },
   divLine: { flex: 1, height: 2, backgroundColor: '#E0E0E0', borderRadius: 1 },

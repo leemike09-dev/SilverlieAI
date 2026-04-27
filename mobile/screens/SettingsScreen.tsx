@@ -45,6 +45,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
   const [loading,     setLoading]     = useState(false);
   const [notifHealth, setNotifHealth] = useState(true);
   const [notifMed,    setNotifMed]    = useState(true);
+  const [ttsEnabled,  setTtsEnabled]  = useState(true);
   const [termsModal,  setTermsModal]  = useState(false);
 
   const isGuest     = !userId || userId === 'guest';
@@ -54,10 +55,12 @@ export default function SettingsScreen({ route, navigation }: Props) {
     const init = async () => {
       const stored = await AsyncStorage.getItem('userId');
       if (stored) setUserId(stored);
-      const nh = await AsyncStorage.getItem('notif_health');
-      const nm = await AsyncStorage.getItem('notif_med');
-      if (nh !== null) setNotifHealth(nh === 'true');
-      if (nm !== null) setNotifMed(nm === 'true');
+      const nh  = await AsyncStorage.getItem('notif_health');
+      const nm  = await AsyncStorage.getItem('notif_med');
+      const tts = await AsyncStorage.getItem('tts_enabled');
+      if (nh  !== null) setNotifHealth(nh === 'true');
+      if (nm  !== null) setNotifMed(nm === 'true');
+      if (tts !== null) setTtsEnabled(tts === 'true');
     };
     init();
   }, []);
@@ -79,6 +82,10 @@ export default function SettingsScreen({ route, navigation }: Props) {
   const toggleNotifMed = async (val: boolean) => {
     setNotifMed(val);
     await AsyncStorage.setItem('notif_med', String(val));
+  };
+  const toggleTts = async (val: boolean) => {
+    setTtsEnabled(val);
+    await AsyncStorage.setItem('tts_enabled', String(val));
   };
 
   const handlePasswordChange = () => {
@@ -190,6 +197,20 @@ export default function SettingsScreen({ route, navigation }: Props) {
           </View>
         </View>
 
+        {/* 음성 설정 */}
+        <Text style={s.sectionTitle}>음성 설정</Text>
+        <View style={s.listBlock}>
+          <View style={[s.listItem, s.listItemLast]}>
+            <Text style={s.listIcon}>🔊</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.listLabel}>꿀비 음성 응답</Text>
+              <Text style={s.listSub}>AI 답변에 🔊 버튼 표시</Text>
+            </View>
+            <Switch value={ttsEnabled} onValueChange={toggleTts}
+              trackColor={{ false: '#C5C9E8', true: C.indigoLt }} thumbColor="#fff" />
+          </View>
+        </View>
+
         {/* 기타 */}
         <Text style={s.sectionTitle}>기타</Text>
         <View style={s.listBlock}>
@@ -275,7 +296,8 @@ const s = StyleSheet.create({
                   borderBottomWidth: 1, borderBottomColor: '#ECEDF8' },
   listItemLast: { borderBottomWidth: 0 },
   listIcon:     { fontSize: 26, width: 34, textAlign: 'center' },
-  listLabel:    { flex: 1, fontSize: 20, fontWeight: '600', color: '#16273E' },
+  listLabel:    { fontSize: 20, fontWeight: '600', color: '#16273E' },
+  listSub:      { fontSize: 14, color: '#90A4AE', marginTop: 2 },
   listArrow:    { fontSize: 24, color: '#C5C9E8' },
 
   versionText: { textAlign: 'center', color: '#C5C9E8', fontSize: 16, marginTop: 24, marginBottom: 8 },

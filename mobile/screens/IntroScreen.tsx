@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Image,
-  Animated, Platform, StatusBar, Dimensions,
+  Animated, Platform, Dimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { speak, stopSpeech } from '../utils/speech';
 
 const { height } = Dimensions.get('window');
@@ -26,8 +27,8 @@ export default function IntroScreen({ navigation }: any) {
   const ring2     = useRef(new Animated.Value(0)).current;
   const ring3     = useRef(new Animated.Value(0)).current;
 
+  const insets = useSafeAreaInsets();
   const [greetIdx] = useState(0);
-  const [dotIdx]   = useState(0);
 
 
   const handleLogin  = async () => { await AsyncStorage.setItem('onboarding_seen', '1'); navigation.replace('Login'); };
@@ -79,7 +80,7 @@ export default function IntroScreen({ navigation }: any) {
 
       {/* ══ 상단 블루 섹션 (44%) ══ */}
       <View style={[s.topSection, Platform.OS !== 'web' && s.topSectionNative]}>
-        <Animated.View style={[s.topContent, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+        <Animated.View style={[s.topContent, { paddingTop: Math.max(insets.top + 8, 20), opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
           <Text style={s.appName}>Silver Life AI</Text>
           <Text style={s.appSub} numberOfLines={1} adjustsFontSizeToFit>어르신의 건강한 삶을 함께합니다</Text>
           <View style={s.ringWrap}>
@@ -155,7 +156,6 @@ const s = StyleSheet.create({
   },
   topContent: {
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 20 : 10,
   },
 
   /* 파동 링 */
@@ -249,7 +249,10 @@ const s = StyleSheet.create({
   },
 
   /* 버튼 */
+  btnCol: { gap: 12, width: '100%' },
   btnRow: { flexDirection: 'row', gap: 12, width: '100%' },
+  guestBtn: { paddingVertical: 14, alignItems: 'center' },
+  guestBtnTxt: { fontSize: 20, color: '#90A4AE', textDecorationLine: 'underline' },
   loginBtn: {
     flex: 1, backgroundColor: '#fff', borderRadius: 16,
     paddingVertical: 18, alignItems: 'center',

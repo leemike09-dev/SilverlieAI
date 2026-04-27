@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Platform, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const C = {
   bg:    '#FDFAF6', card:  '#FFFFFF', sage:  '#6BAE8F',
@@ -8,10 +9,11 @@ const C = {
 };
 
 export default function LocationMapScreen({ route, navigation }: any) {
-  const logs      = route?.params?.logs       || [];
+  const insets     = useSafeAreaInsets();
+  const logs       = route?.params?.logs       || [];
   const seniorName = route?.params?.seniorName || '';
   const totalDist  = route?.params?.totalDist  || 0;
-  const mapRef    = useRef<any>(null);
+  const mapRef     = useRef<any>(null);
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
@@ -160,7 +162,7 @@ export default function LocationMapScreen({ route, navigation }: any) {
       
 
       {/* 헤더 */}
-      <View style={s.header}>
+      <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 24) }]}>
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
           <Text style={s.backTxt}>← 돌아가기</Text>
         </TouchableOpacity>
@@ -227,7 +229,7 @@ export default function LocationMapScreen({ route, navigation }: any) {
 const s = StyleSheet.create({
   root:           { flex: 1, backgroundColor: C.bg },
   header:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14,
-                    paddingTop: Platform.OS === 'web' ? 10 : 48, paddingBottom: 8,
+                    paddingBottom: 8,
                     backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.line, gap: 8 },
   backBtn:        { paddingVertical: 4, paddingHorizontal: 8 },
   backTxt:        { fontSize: 16, color: C.sky, fontWeight: '600' },
