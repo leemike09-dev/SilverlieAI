@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Platform, StatusBar, Dimensions, Image,
+  StatusBar, Dimensions, Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { speak, stopSpeech } from '../utils/speech';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const API = 'https://silverlieai.onrender.com';
@@ -147,13 +148,13 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   const greeting = hour < 12 ? '좋은 아침이에요 ☀️' : hour < 18 ? '좋은 오후예요 🌤️' : '좋은 저녁이에요 🌙';
   const isGuest  = !userId || userId === 'guest';
 
-  const rootBg: any = Platform.OS === 'web'
-    ? { background: 'linear-gradient(180deg, #EAE0F8 0%, #F7F3FF 100%)' }
-    : { backgroundColor: '#EDE6F7' };
-
   return (
-    <View style={[s.root, rootBg]}>
-      <StatusBar barStyle="dark-content" backgroundColor="#EDE6F7" />
+    <LinearGradient
+      colors={['#DDD0F5', '#EDE6F7', '#F7F4FF']}
+      locations={[0, 0.45, 1]}
+      style={s.root}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor="#DDD0F5" />
 
       {/* ══ 상단 미니멀 바 ══ */}
       <View style={[s.topBar, { paddingTop: Math.max(insets.top + 6, 18) }]}>
@@ -171,7 +172,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
       {/* ══ 캐릭터 + 인사 (배경 위에 직접) ══ */}
       <View style={s.charSection}>
-        <LumiCharacter size={110} />
+        <LumiCharacter size={130} />
         <View style={s.greetText}>
           <Text style={s.greetHello}>안녕하세요! 👋</Text>
           <Text style={s.greetName}>{name ? `${name}님` : '어서오세요'}</Text>
@@ -236,7 +237,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       </View>
 
       <SeniorTabBar navigation={navigation} activeTab="home" userId={userId} name={name} />
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -271,11 +272,11 @@ const s = StyleSheet.create({
     paddingHorizontal: 20, paddingVertical: 16,
     gap: 16,
   },
-  greetText:  { flex: 1, gap: 3 },
-  greetHello: { fontSize: 20, fontWeight: '900', color: '#2D1B4E' },
-  greetName:  { fontSize: 17, fontWeight: '700', color: '#6B21B0' },
-  greetSub:   { fontSize: 13, color: '#8A6BAA', fontWeight: '500' },
-  locBadge:   { fontSize: 12, color: '#43A047', marginTop: 2 },
+  greetText:  { flex: 1, gap: 6 },
+  greetHello: { fontSize: 26, fontWeight: '900', color: '#2D1B4E' },
+  greetName:  { fontSize: 22, fontWeight: '700', color: '#6B21B0' },
+  greetSub:   { fontSize: 16, color: '#8A6BAA', fontWeight: '500' },
+  locBadge:   { fontSize: 14, color: '#43A047', marginTop: 2 },
 
   /* ── 카드 그리드 ── */
   cardGrid: {
@@ -283,20 +284,20 @@ const s = StyleSheet.create({
     gap: CARD_GAP, paddingHorizontal: 16, marginBottom: 12,
   },
   card: {
-    width: CARD_W, borderRadius: 20,
-    paddingVertical: 18, paddingHorizontal: 16, gap: 5,
-    shadowColor: '#000', shadowOpacity: 0.09,
-    shadowRadius: 8, shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
+    width: CARD_W, borderRadius: 22,
+    paddingVertical: 22, paddingHorizontal: 18, gap: 8,
+    shadowColor: '#000', shadowOpacity: 0.10,
+    shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
   },
   cardBlue:   { backgroundColor: '#5BA8E8' },
   cardTeal:   { backgroundColor: '#48BFA8' },
   cardPurple: { backgroundColor: '#9278D0' },
   cardCoral:  { backgroundColor: '#F09070' },
 
-  cardEmoji: { fontSize: 28, marginBottom: 2 },
-  cardLabel: { fontSize: 18, fontWeight: '900', color: '#fff' },
-  cardSub:   { fontSize: 12, fontWeight: '500', color: 'rgba(255,255,255,0.88)' },
+  cardEmoji: { fontSize: 32, marginBottom: 4 },
+  cardLabel: { fontSize: 20, fontWeight: '900', color: '#fff' },
+  cardSub:   { fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.88)' },
 
   /* ── 응급 카드 ── */
   sosWrap: { paddingHorizontal: 16 },
