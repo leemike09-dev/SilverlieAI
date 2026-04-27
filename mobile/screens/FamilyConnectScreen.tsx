@@ -163,6 +163,9 @@ export default function FamilyConnectScreen({ route, navigation }: any) {
 
       {/* 헤더 */}
       <View style={[s.header, { paddingTop: PT }]}>
+        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+          <Text style={s.backArrow}>←</Text>
+        </TouchableOpacity>
         <Text style={s.headerTitle}>가족 연결</Text>
         <Text style={s.headerSub}>가족과 건강을 함께 확인해 보세요</Text>
       </View>
@@ -248,6 +251,8 @@ const s = StyleSheet.create({
   center: { justifyContent: 'center', alignItems: 'center', gap: 16 },
 
   header:      { backgroundColor: '#1A4A8A', paddingHorizontal: 24, paddingBottom: 28 },
+  backBtn:     { marginBottom: 12, alignSelf: 'flex-start' },
+  backArrow:   { fontSize: 28, color: '#fff', fontWeight: '300', lineHeight: 32 },
   headerTitle: { fontSize: 32, fontWeight: '900', color: '#fff', marginBottom: 6 },
   headerSub:   { fontSize: 20, color: 'rgba(255,255,255,0.85)' },
 
