@@ -1,7 +1,6 @@
 import React from 'react';
-import { StatusBar,
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform,
-} from 'react-native';
+import {
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const HEALTH_DATA: Record<string, any> = {
@@ -17,8 +16,7 @@ const HEALTH_DATA: Record<string, any> = {
       { title: '금연·절주', desc: '흡연은 심혈관 위험을 2배 높입니다. 음주는 하루 1잔 이내로 줄이세요.' },
       { title: '스트레스 관리', desc: '명상, 복식호흡, 산책으로 스트레스를 낮추면 혈압이 안정됩니다.' },
     ],
-    info: '65세 이상은 1년에 1회 이상 혈압·콜레스테롤 검사를 받으세요.',
-  },
+    info: '65세 이상은 1년에 1회 이상 혈압·콜레스테롤 검사를 받으세요.'},
   '관절·뼈 건강': {
     icon: '🦴',
     color: '#f57c00',
@@ -31,8 +29,7 @@ const HEALTH_DATA: Record<string, any> = {
       { title: '낙상 예방', desc: '미끄럼 방지 매트, 욕실 손잡이 설치 등 가정 내 환경을 개선하세요.' },
       { title: '관절 부담 줄이기', desc: '체중 감량과 수영·자전거 같은 관절에 부담이 적은 운동을 선택하세요.' },
     ],
-    info: '65세 이상 여성, 70세 이상 남성은 골밀도 검사(DEXA)를 받으세요.',
-  },
+    info: '65세 이상 여성, 70세 이상 남성은 골밀도 검사(DEXA)를 받으세요.'},
   '식이·혈당': {
     icon: '🥗',
     color: '#388e3c',
@@ -45,8 +42,7 @@ const HEALTH_DATA: Record<string, any> = {
       { title: '규칙적인 식사', desc: '하루 3끼를 일정한 시간에 드시면 혈당 변동을 줄일 수 있습니다.' },
       { title: '식후 가벼운 산책', desc: '식후 10~15분 산책이 혈당 조절에 효과적입니다.' },
     ],
-    info: '공복 혈당 100mg/dL 이상이면 의사와 상담하세요.',
-  },
+    info: '공복 혈당 100mg/dL 이상이면 의사와 상담하세요.'},
   '두뇌·수면': {
     icon: '🧠',
     color: '#5c35cc',
@@ -59,9 +55,7 @@ const HEALTH_DATA: Record<string, any> = {
       { title: '지중해식 식단', desc: '올리브유, 생선, 채소, 견과류 중심의 식단이 두뇌 건강에 좋습니다.' },
       { title: '수면 환경 개선', desc: '취침 1시간 전 스마트폰을 끄고, 어둡고 서늘한 환경에서 주무세요.' },
     ],
-    info: '기억력 저하, 길 잃음 등 초기 증상이 있으면 치매 검진을 받으세요.',
-  },
-};
+    info: '기억력 저하, 길 잃음 등 초기 증상이 있으면 치매 검진을 받으세요.'}};
 
 export default function HealthInfoScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -122,8 +116,7 @@ export default function HealthInfoScreen({ route, navigation }: any) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#f5f7fa' },
   header: {
-    paddingBottom: 24, paddingHorizontal: 20,
-  },
+    paddingBottom: 24, paddingHorizontal: 20},
   headerIcon: { fontSize: 40, marginBottom: 6 },
   headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 6 },
   headerSummary: { fontSize: 16, color: 'rgba(255,255,255,0.88)', lineHeight: 20 },
@@ -131,8 +124,7 @@ const s = StyleSheet.create({
   catRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 10 },
   catChip: {
     borderRadius: 20, paddingVertical: 6, paddingHorizontal: 14,
-    backgroundColor: '#f0f2f7', borderWidth: 1, borderColor: '#e0e4ea',
-  },
+    backgroundColor: '#f0f2f7', borderWidth: 1, borderColor: '#e0e4ea'},
   catChipTxt: { fontSize: 18, fontWeight: '600', color: '#555' },
   scroll: { flex: 1 },
   scrollContent: { padding: 16 },
@@ -141,17 +133,14 @@ const s = StyleSheet.create({
     backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 10,
     flexDirection: 'row', gap: 12, alignItems: 'flex-start',
     borderLeftWidth: 4,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
-  },
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2},
   tipNum: { fontSize: 22, fontWeight: '800', lineHeight: 28, minWidth: 24 },
   tipTitle: { fontSize: 16, fontWeight: '700', color: '#1a2a3a', marginBottom: 4 },
   tipDesc: { fontSize: 18, color: '#555', lineHeight: 19 },
   infoBox: {
     borderRadius: 14, padding: 16, flexDirection: 'row', gap: 10,
-    alignItems: 'center', marginTop: 8,
-  },
+    alignItems: 'center', marginTop: 8},
   infoIcon: { fontSize: 24 },
   infoTxt: { flex: 1, fontSize: 18, fontWeight: '600', lineHeight: 19 },
   homeBtn: { backgroundColor: '#fff', borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 16, borderWidth: 1.5, borderColor: '#e0e4ea' },
-  homeBtnTxt: { fontSize: 16, fontWeight: '700', color: '#1a5fbc' },
-});
+  homeBtnTxt: { fontSize: 16, fontWeight: '700', color: '#1a5fbc' }});

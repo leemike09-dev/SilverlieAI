@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Platform, TextInput, ActivityIndicator,
+  TextInput, ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -67,12 +67,10 @@ export default function HealthProfileScreen({ navigation, route }: any) {
         }).catch(() => {});
       }
       setSaved(true);
+      const uname = route?.params?.name || (await AsyncStorage.getItem('userName')) || '';
       setTimeout(() => {
         if (fromRegister) {
-          navigation.replace('SeniorHome', {
-            userId: uid,
-            name: route?.params?.name || (AsyncStorage.getItem('userName') as any) || '',
-          });
+          navigation.replace('SeniorHome', { userId: uid, name: uname });
         } else {
           navigation.goBack();
         }

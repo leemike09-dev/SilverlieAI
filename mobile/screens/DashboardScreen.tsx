@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StatusBar,
+import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Platform, Animated, ActivityIndicator,
-} from 'react-native';
+  Platform, Animated, ActivityIndicator} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SeniorTabBar from '../components/SeniorTabBar';
 
@@ -24,8 +23,7 @@ const C = {
   redLt:    '#FDEAEA',
   text:     '#1E2D3D',
   sub:      '#7A8FA0',
-  line:     '#DDE8F4',
-};
+  line:     '#DDE8F4'};
 
 const EMPTY_DATA = {
   score: 0, scoreChange: 0,
@@ -33,8 +31,7 @@ const EMPTY_DATA = {
   points: [] as any[],
   recs: [] as any[],
   weeklyScores: [] as number[],
-  weekDays: ['월', '화', '수', '목', '금', '토', '오늘'],
-};
+  weekDays: ['월', '화', '수', '목', '금', '토', '오늘']};
 
 export default function DashboardScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -59,8 +56,7 @@ export default function DashboardScreen({ route, navigation }: any) {
         fetch(`${API}/health/analyze`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: userId }),
-        }),
+          body: JSON.stringify({ user_id: userId })}),
       ]);
       const ad = await ar.json();
       if (ad.score) setData(prev => ({ ...prev, score: ad.score, aiAnalysis: ad.analysis || prev.aiAnalysis }));
@@ -117,8 +113,7 @@ export default function DashboardScreen({ route, navigation }: any) {
                       <View style={s.chartBarWrap}>
                         <View style={[s.chartBar, {
                           height: `${Math.round(pct * 100)}%` as any,
-                          backgroundColor: isToday ? scoreColor : C.line,
-                        }]} />
+                          backgroundColor: isToday ? scoreColor : C.line}]} />
                       </View>
                       <Text style={[s.chartDay, isToday && { color: scoreColor, fontWeight: '800' }]}>
                         {data.weekDays[i]}
@@ -194,8 +189,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: '#1A4A8A',
     paddingHorizontal: 22, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.2)',
-  },
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.2)'},
   headerSub:   { fontSize: 18, color: 'rgba(255,255,255,0.75)', marginBottom: 2 },
   headerTitle: { fontSize: 28, fontWeight: '800', color: '#fff' },
 
@@ -250,5 +244,4 @@ const s = StyleSheet.create({
   // AI 상담
   chatBtn:    { backgroundColor: C.sky, borderRadius: 18, paddingVertical: 16, alignItems: 'center',
                 shadowColor: C.sky, shadowOpacity: 0.3, shadowRadius: 10, elevation: 3 },
-  chatBtnTxt: { fontSize: 18, fontWeight: '800', color: '#FFFFFF' },
-});
+  chatBtnTxt: { fontSize: 18, fontWeight: '800', color: '#FFFFFF' }});

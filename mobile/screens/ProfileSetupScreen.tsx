@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, Platform, StatusBar,
+  ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -67,6 +67,9 @@ export default function ProfileSetupScreen({ navigation, route }: any) {
 
       {/* 헤더 */}
       <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 24) }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
+          <Text style={s.backTxt}>‹</Text>
+        </TouchableOpacity>
         <Text style={s.headerIcon}>🤖</Text>
         <Text style={s.headerTitle}>AI 맞춤 설정</Text>
         <Text style={s.headerSub}>더 정확한 건강 추천을 위해</Text>
@@ -191,4 +194,6 @@ const s = StyleSheet.create({
   skipTxt:      { fontSize: 18, color: '#90a4ae', borderBottomWidth: 1, borderBottomColor: '#cfd8dc' },
   completeBtn:  { flex: 1, backgroundColor: '#1a5fbc', borderRadius: 13, paddingVertical: 15, alignItems: 'center', shadowColor: '#1a5fbc', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
   completeTxt:  { fontSize: 16, fontWeight: '800', color: '#fff' },
+  backBtn:  { position: 'absolute', left: 16, top: 0, bottom: 0, justifyContent: 'center', paddingHorizontal: 8 },
+  backTxt:  { fontSize: 32, color: 'rgba(255,255,255,0.9)', fontWeight: '300', lineHeight: 36 },
 });

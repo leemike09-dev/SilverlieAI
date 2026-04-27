@@ -176,6 +176,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const recognitionRef     = useRef<any>(null);
   const silenceTimerRef    = useRef<any>(null);
   const toastTimerRef      = useRef<any>(null);
+  const finalTranscriptRef = useRef<string>('');
 
   const isWelcome = messages.length === 0 && !loading;
   const lastAiMsg = [...messages].reverse().find(m => m.role === 'ai');
