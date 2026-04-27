@@ -203,7 +203,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
           <View style={[s.listItem, s.listItemLast]}>
             <Text style={s.listIcon}>🔊</Text>
             <View style={{ flex: 1 }}>
-              <Text style={s.listLabel}>꿀비 음성 응답</Text>
+              <Text style={s.listLabel}>루미 음성 응답</Text>
               <Text style={s.listSub}>AI 답변에 🔊 버튼 표시</Text>
             </View>
             <Switch value={ttsEnabled} onValueChange={toggleTts}

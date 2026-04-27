@@ -315,7 +315,7 @@ export default function SOSScreen({ navigation, route }: Props) {
         {/* AI 상담 */}
         <TouchableOpacity style={s.aiBtn}
           onPress={() => navigation.navigate('AIChat', { userId, name })} activeOpacity={0.8}>
-          <Text style={s.aiBtnTxt}>🐝 증상이 확실하지 않으세요? AI에게 여쭤보기 →</Text>
+          <Text style={s.aiBtnTxt}>✨ 증상이 확실하지 않으세요? AI에게 여쭤보기 →</Text>
         </TouchableOpacity>
       </View>
     </View>

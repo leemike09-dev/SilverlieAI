@@ -30,7 +30,7 @@ const SLIDES = [
   {
     icon: null,
     title: '이제 걱정 마세요\nSilver Life AI가 함께합니다',
-    desc: '꿀비가 매일 건강을\n지켜드릴게요',
+    desc: '루미가 매일 건강을\n지켜드릴게요',
     color: '#7B1FA2',
   },
 ];

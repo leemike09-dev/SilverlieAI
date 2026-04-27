@@ -146,7 +146,7 @@ function getGreeting(name: string): string {
   if (h < 9)  return `${name}님, 좋은 아침이에요! 오늘 하루도 건강하고 행복하게 시작해요. 무엇이든 편하게 물어보세요.`;
   if (h < 12) return `${name}님, 안녕하세요! 오늘 컨디션은 어떠신가요? 건강이든 일상이든 편하게 이야기해요.`;
   if (h < 14) return `${name}님, 점심은 맛있게 드셨나요? 오늘도 곁에 있을게요. 궁금한 것 있으시면 말씀해요.`;
-  if (h < 18) return `${name}님, 오후도 잘 보내고 계신가요? 무엇이든 편하게 물어보세요. 저 꿀비가 여기 있어요.`;
+  if (h < 18) return `${name}님, 오후도 잘 보내고 계신가요? 무엇이든 편하게 물어보세요. 저 루미가 여기 있어요.`;
   if (h < 21) return `${name}님, 좋은 저녁이에요! 오늘 하루 어떠셨나요? 무엇이든 편하게 이야기해요.`;
   return `${name}님, 편안한 밤 되세요. 잠 자기 전 건강이나 걱정되는 것 있으시면 언제든 말씀해요.`;
 }
@@ -305,7 +305,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       return;
     }
     if (detectedIntent === 'crisis') {
-      const crisisMsg = `${name}님, 지금 많이 힘드신 거 느껴져요. 저 꿀비가 여기 있어요. 혼자 감당하지 않아도 돼요.`;
+      const crisisMsg = `${name}님, 지금 많이 힘드신 거 느껴져요. 저 루미가 여기 있어요. 혼자 감당하지 않아도 돼요.`;
       addMsg({ role: 'user', text: msg });
       addMsg({ role: 'ai', text: crisisMsg });
       speak(cleanForTTS(crisisMsg));
@@ -533,7 +533,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
         </TouchableOpacity>
         <View style={s.headerCenter}>
           <Text style={s.headerTitle}>AI 건강 상담</Text>
-          <Text style={s.headerSub}>꿀비와 함께하는 건강 관리</Text>
+          <Text style={s.headerSub}>루미와 함께하는 건강 관리</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <View style={s.onlineDot} />
@@ -562,7 +562,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       {showEmergency && (
         <View style={s.criticalCard}>
           <Text style={s.criticalCardTitle}>지금 즉시 도움을 받으세요</Text>
-          <Text style={s.criticalCardDesc}>꿀비가 걱정돼요. 아래 버튼을 눌러주세요.</Text>
+          <Text style={s.criticalCardDesc}>루미가 걱정돼요. 아래 버튼을 눌러주세요.</Text>
           {familyNotified && <Text style={s.familyNotified}>가족에게 알림 전송됨</Text>}
           <View style={s.criticalBtns}>
             <TouchableOpacity style={s.btnCritical119} onPress={call119}>
@@ -594,7 +594,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       {/* 감정 공감 배너 */}
       {currentIntent === 'emotional' && !loading && !!lastAiMsg && history.length > 0 && (
         <View style={s.emotionalBanner}>
-          <Text style={s.emotionalBannerTxt}>꿀비가 마음으로 함께할게요</Text>
+          <Text style={s.emotionalBannerTxt}>루미가 마음으로 함께할게요</Text>
         </View>
       )}
 
@@ -631,7 +631,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
                 const isStreaming = i === messages.length - 1 && msg.role === 'ai' && loading && msg.text === '';
                 return (
                   <View key={i} style={msg.role === 'ai' ? s.aiBubble : s.userBubble}>
-                    {msg.role === 'ai' && <Text style={s.bubbleName}>꿀비</Text>}
+                    {msg.role === 'ai' && <Text style={s.bubbleName}>루미</Text>}
                     <Text style={msg.role === 'ai' ? s.aiTxt : s.userTxt}>
                       {isStreaming ? (
                         <Animated.Text style={{ opacity: dotsAnim.interpolate({ inputRange:[0,1], outputRange:[0.3,1] }) }}>
