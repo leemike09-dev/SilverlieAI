@@ -237,10 +237,28 @@ export default function AIChatScreen({ route, navigation }: Props) {
   };
 
   const fetchProactiveGreeting = async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const [lastDate, cached] = await Promise.all([
+      AsyncStorage.getItem('ai_greeting_date'),
+      AsyncStorage.getItem('ai_greeting_cache'),
+    ]);
+
+    // 오늘 이미 인사했으면 캐시 표시만 (TTS 없음)
+    if (lastDate === today && cached) {
+      fadeInMsg({ role: 'ai', text: cached });
+      return;
+    }
+
     const fallback = getGreeting(name);
+    const save = async (msg: string) => {
+      await AsyncStorage.setItem('ai_greeting_date', today);
+      await AsyncStorage.setItem('ai_greeting_cache', msg);
+    };
+
     if (!userId || userId === 'guest') {
       fadeInMsg({ role: 'ai', text: fallback });
       setTimeout(() => speak(cleanForTTS(fallback), 0.85), 600);
+      await save(fallback);
       return;
     }
     setLoading(true);
@@ -250,9 +268,11 @@ export default function AIChatScreen({ route, navigation }: Props) {
       const msg  = data.message || fallback;
       fadeInMsg({ role: 'ai', text: msg });
       setTimeout(() => speak(cleanForTTS(msg), 0.85), 400);
+      await save(msg);
     } catch {
       fadeInMsg({ role: 'ai', text: fallback });
       setTimeout(() => speak(cleanForTTS(fallback), 0.85), 600);
+      await save(fallback);
     } finally {
       setLoading(false);
     }
@@ -599,21 +619,22 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
           {/* 2열 빠른 질문 카드 그리드 */}
           {isWelcome && memoState === 'idle' && !loading && (
-            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-              <View style={s.cardGrid}>
-                {QUICK_CARDS.map(q => (
-                  <TouchableOpacity
-                    key={q.label}
-                    style={[s.cardItem, { backgroundColor: q.bg, borderColor: q.color + '44' }]}
-                    onPress={() => send(q.label.replace(/
-/g, ' '))}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={s.cardEmoji}>{q.emoji}</Text>
-                    <Text style={[s.cardLabel, { color: q.color }]}>{q.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
+              {Array.from({ length: Math.ceil(QUICK_CARDS.length / 2) }, (_, ri) => (
+                <View key={ri} style={s.cardRow}>
+                  {QUICK_CARDS.slice(ri * 2, ri * 2 + 2).map(q => (
+                    <TouchableOpacity
+                      key={q.label}
+                      style={[s.cardItem, { backgroundColor: q.bg, borderColor: q.color + '44' }]}
+                      onPress={() => send(q.label.replace(/\n/g, ' '))}
+                      activeOpacity={0.75}
+                    >
+                      <Text style={s.cardEmoji}>{q.emoji}</Text>
+                      <Text style={[s.cardLabel, { color: q.color }]}>{q.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ))}
             </ScrollView>
           )}
         </View>
@@ -750,15 +771,16 @@ const s = StyleSheet.create({
   summaryBtnTxt: { fontSize: 20, color: '#7B1FA2', fontWeight: '800' },
 
   // 2열 카드 그리드
-  msgScrollWelcome: { flexGrow: 0, maxHeight: 150 },
-  cardGrid:  { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingBottom: 8, marginTop: 8 },
+  msgScrollWelcome: { flexGrow: 0, maxHeight: 130 },
+  cardGrid:  { paddingBottom: 8, marginTop: 6 },
+  cardRow:   { flexDirection: 'row', gap: 8, marginBottom: 8 },
   cardItem:  {
-    width: '47.5%', borderRadius: 18, padding: 16, minHeight: 90,
-    justifyContent: 'center', borderWidth: 1.5, gap: 6,
-    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
+    flex: 1, borderRadius: 14, padding: 10, minHeight: 66,
+    justifyContent: 'center', borderWidth: 1.5, gap: 4,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
   },
-  cardEmoji: { fontSize: 30 },
-  cardLabel: { fontSize: 20, fontWeight: '800', lineHeight: 28 },
+  cardEmoji: { fontSize: 22 },
+  cardLabel: { fontSize: 15, fontWeight: '800', lineHeight: 22 },
 
   // 입력
   inputWrap: { backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#E1BEE7',
