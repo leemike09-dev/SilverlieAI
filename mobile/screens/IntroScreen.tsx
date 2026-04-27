@@ -1,275 +1,205 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Image,
   Animated, Platform, Dimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { speak, stopSpeech } from '../utils/speech';
+import { VideoView, useVideoPlayer } from 'expo-video';
 
-const { height } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
-const beeSource = Platform.OS === 'web'
-  ? { uri: 'https://raw.githubusercontent.com/leemike09-dev/SilverlieAI/main/mobile/assets/Kkulbi_happy.png' }
-  : require('../assets/Kkulbi_happy.png');
-
-const GREETINGS = [
-  '안녕하세요! 저는 꿀비예요',
-  '오늘도 건강한 하루 보내세요!',
-  '함께라면 더 건강해질 수 있어요 💪',
-];
+const webBgSource = Platform.OS === 'web'
+  ? { uri: 'https://raw.githubusercontent.com/leemike09-dev/SilverlieAI/main/mobile/assets/lumi.png' }
+  : require('../assets/lumi.png');
 
 export default function IntroScreen({ navigation }: any) {
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-  const floatAnim = useRef(new Animated.Value(0)).current;
-  const ring1     = useRef(new Animated.Value(0)).current;
-  const ring2     = useRef(new Animated.Value(0)).current;
-  const ring3     = useRef(new Animated.Value(0)).current;
+  const insets      = useSafeAreaInsets();
+  const fadeAnim    = useRef(new Animated.Value(0)).current;
+  const vid1Opacity = useRef(new Animated.Value(1)).current;
+  const vid2Opacity = useRef(new Animated.Value(0)).current;
 
-  const insets = useSafeAreaInsets();
-  const [greetIdx] = useState(0);
+  const player1 = useVideoPlayer(
+    Platform.OS !== 'web' ? require('../assets/lumi3.mp4') : null,
+    p => { p.muted = true; p.loop = false; }
+  );
+  const player2 = useVideoPlayer(
+    Platform.OS !== 'web' ? require('../assets/lumi4.mp4') : null,
+    p => { p.muted = true; p.loop = true; }
+  );
 
+  const handleLogin = async () => {
+    await AsyncStorage.setItem('onboarding_seen', '1');
+    navigation.replace('Login');
+  };
+  const handleStart = () => navigation.replace('Onboarding');
+  const handleGuest = () => navigation.replace('SeniorHome', { userId: 'guest', name: '게스트' });
 
-  const handleLogin  = async () => { await AsyncStorage.setItem('onboarding_seen', '1'); navigation.replace('Login'); };
-  const handleStart  = () => navigation.replace('Onboarding');
-  const handleGuest  = () => navigation.replace('SeniorHome', { userId: 'guest', name: '게스트' });
-
-  // 꿀비 부유 애니메이션
   useEffect(() => {
-    // 카카오 인증 코드는 App.tsx에서 처리
-    const h = new Date().getHours();
-    const gr = h < 12 ? '좋은 아침이에요' : h < 18 ? '좋은 오후예요' : '좋은 저녁이에요';
-    setTimeout(() => speak(`${gr}! 저는 꿀비예요. 건강을 함께 지켜드릴게요!`, 0.85), 700);
+    // 콘텐츠 페이드인
+    Animated.timing(fadeAnim, { toValue: 1, duration: 900, useNativeDriver: true }).start();
 
-    Animated.parallel([
-      Animated.timing(fadeAnim,  { toValue: 1, duration: 700, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
-    ]).start();
+    if (Platform.OS === 'web') return;
 
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnim, { toValue: -6, duration: 1400, useNativeDriver: true }),
-        Animated.timing(floatAnim, { toValue: 0,   duration: 1400, useNativeDriver: true }),
-      ])
-    ).start();
+    // 영상 1 재생
+    player1.play();
 
-    const makeRing = (anim: Animated.Value, delay: number) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(anim, { toValue: 1, duration: 1800, useNativeDriver: true }),
-          Animated.timing(anim, { toValue: 0, duration: 0,    useNativeDriver: true }),
-        ])
-      );
+    // 영상 1 종료 → 크로스페이드 → 영상 2
+    const sub = player1.addListener('playToEnd', () => {
+      player2.play();
+      Animated.parallel([
+        Animated.timing(vid1Opacity, { toValue: 0, duration: 1500, useNativeDriver: true }),
+        Animated.timing(vid2Opacity, { toValue: 1, duration: 1500, useNativeDriver: true }),
+      ]).start();
+    });
 
-    makeRing(ring1, 0).start();
-    makeRing(ring2, 600).start();
-    makeRing(ring3, 1200).start();
-
-    return () => stopSpeech();
+    return () => sub.remove();
   }, []);
-
-  const ringStyle = (anim: Animated.Value) => ({
-    transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [1, 2.2] }) }],
-    opacity:   anim.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.5, 0.25, 0] }),
-  });
 
   return (
     <View style={s.root}>
 
-      {/* ══ 상단 블루 섹션 (44%) ══ */}
-      <View style={[s.topSection, Platform.OS !== 'web' && s.topSectionNative]}>
-        <Animated.View style={[s.topContent, { paddingTop: Math.max(insets.top + 8, 20), opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-          <Text style={s.appName}>Silver Life AI</Text>
-          <Text style={s.appSub} numberOfLines={1} adjustsFontSizeToFit>어르신의 건강한 삶을 함께합니다</Text>
-          <View style={s.ringWrap}>
-            <Animated.View style={[s.ring, ringStyle(ring1)]} />
-            <Animated.View style={[s.ring, ringStyle(ring2)]} />
-            <Animated.View style={[s.ring, ringStyle(ring3)]} />
-            <Animated.View style={{ transform: [{ translateY: floatAnim }] }}>
-              <View style={s.beeCircle}>
-                <Image source={beeSource} style={s.beeImg} resizeMode="contain" />
-              </View>
-            </Animated.View>
-          </View>
-        </Animated.View>
+      {/* ── 배경 ── */}
+      {Platform.OS !== 'web' ? (
+        <>
+          <Animated.View style={[StyleSheet.absoluteFill, { opacity: vid1Opacity }]}>
+            <VideoView
+              player={player1}
+              style={s.video}
+              contentFit="cover"
+              nativeControls={false}
+            />
+          </Animated.View>
+          <Animated.View style={[StyleSheet.absoluteFill, { opacity: vid2Opacity }]}>
+            <VideoView
+              player={player2}
+              style={s.video}
+              contentFit="cover"
+              nativeControls={false}
+            />
+          </Animated.View>
+        </>
+      ) : (
+        <Image source={webBgSource} style={s.webBg} resizeMode="cover" />
+      )}
 
-        {/* 웹 전용 SVG 웨이브 */}
-        {Platform.OS === 'web' && (
-          // @ts-ignore
-          <svg viewBox="0 0 375 60" style={{ position: 'absolute', bottom: -1, left: 0, right: 0, width: '100%', display: 'block', pointerEvents: 'none' }}>
-            {/* @ts-ignore */}
-            <path d="M0 60 Q94 0 188 30 Q282 60 375 10 L375 60 Z" fill="white" />
-          </svg>
-        )}
-      </View>
+      {/* 어두운 오버레이 */}
+      <View style={s.overlay} />
 
-      {/* ══ 하단 흰 섹션 ══ */}
-      <View style={s.bottomSection}>
+      {/* ── 상단: 앱 이름 ── */}
+      <Animated.View style={[s.topContent, { paddingTop: Math.max(insets.top + 24, 48), opacity: fadeAnim }]}>
+        <Text style={s.appName}>Silver Life AI</Text>
+        <Text style={s.appSub}>어르신의 건강한 삶을 함께합니다</Text>
+      </Animated.View>
 
-        <Animated.View style={[s.bottomContent, { opacity: fadeAnim }]}>
-          {/* 꿀비 말풍선 */}
-          <View style={s.bubble}>
-            <Text style={s.bubbleMsg}>{GREETINGS[greetIdx]}</Text>
-          </View>
+      {/* ── 하단: 말풍선 + 버튼 ── */}
+      <Animated.View style={[s.bottomContent, { paddingBottom: Math.max(insets.bottom + 24, 40), opacity: fadeAnim }]}>
 
-          {/* 버튼 */}
-          <View style={s.btnCol}>
-            <View style={s.btnRow}>
-              <TouchableOpacity style={s.loginBtn} onPress={handleLogin} activeOpacity={0.85}>
-                <Text style={s.loginBtnTxt}>로그인</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.startBtn} onPress={handleStart} activeOpacity={0.85}>
-                <Text style={s.startBtnTxt}>시작하기</Text>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity style={s.guestBtn} onPress={handleGuest} activeOpacity={0.75}>
-              <Text style={s.guestBtnTxt}>로그인 없이 훑어보기</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={s.bubble}>
+          <Text style={s.bubbleMsg}>안녕하세요! 건강을 함께 지켜드릴게요 💙</Text>
+        </View>
 
-        </Animated.View>
-      </View>
+        <View style={s.btnRow}>
+          <TouchableOpacity style={s.loginBtn} onPress={handleLogin} activeOpacity={0.85}>
+            <Text style={s.loginBtnTxt}>로그인</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.startBtn} onPress={handleStart} activeOpacity={0.85}>
+            <Text style={s.startBtnTxt}>시작하기</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity style={s.guestBtn} onPress={handleGuest} activeOpacity={0.75}>
+          <Text style={s.guestBtnTxt}>로그인 없이 둘러보기</Text>
+        </TouchableOpacity>
+
+      </Animated.View>
 
     </View>
   );
 }
 
-const RING_SIZE = 240;
-
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#fff' },
+  root: { flex: 1, backgroundColor: '#000' },
 
-  /* 상단 (44%) */
-  topSection: {
-    height: height * 0.64,
-    backgroundColor: '#0D3470',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+  video:  { width, height },
+  webBg:  { ...StyleSheet.absoluteFillObject, width: '100%' as any, height: '100%' as any },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
-  /* 네이티브 전용: 하단 border radius로 웨이브 */
-  topSectionNative: {
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
-  },
+
   topContent: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
     alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  appName: {
+    fontSize: 42,
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+  },
+  appSub: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
 
-  /* 파동 링 */
-  ringWrap: {
-    width: RING_SIZE,
-    height: RING_SIZE,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 60,
-  },
-  ring: {
+  bottomContent: {
     position: 'absolute',
-    width: RING_SIZE,
-    height: RING_SIZE,
-    borderRadius: RING_SIZE / 2,
+    bottom: 0, left: 0, right: 0,
+    paddingHorizontal: 24,
+    gap: 12,
+  },
+  bubble: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.4)',
+    padding: 18,
+    marginBottom: 4,
+  },
+  bubbleMsg: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#fff',
+    textAlign: 'center',
+    lineHeight: 32,
+  },
+
+  btnRow: { flexDirection: 'row', gap: 12 },
+  loginBtn: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 16,
+    paddingVertical: 20,
+    alignItems: 'center',
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.6)',
   },
-  beeCircle: {
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    overflow: 'hidden',
-    backgroundColor: 'transparent',
-  },
-  beeImg: {
-    width: 300,
-    height: 300,
-    marginLeft: -30,   // 수평 센터 (300-240)/2
-    marginTop: -20,    // 원 안에서 위치 조정
-  },
-
-  /* 앱 이름 */
-  appName: {
-    color: '#fff',
-    fontSize: 40,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-  },
-  appSub: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: '700',
-    textAlign: 'center',
-    paddingHorizontal: 16,
-    alignSelf: 'stretch',
-    marginBottom: 20,
-  },
-
-
-  /* 하단 */
-  bottomSection: {
-    flex: 1,
-    backgroundColor: '#fff',
-    overflow: 'hidden',
-  },
-  elderlyBg: {
-    ...StyleSheet.absoluteFillObject,
-    width: '100%',
-    height: '100%',
-    opacity: 0.12,
-  },
-  bottomContent: {
-    flex: 1,
-    paddingHorizontal: 28,
-    paddingTop: 16,
-    paddingBottom: 40,
-    justifyContent: 'flex-end',
-  },
-
-  /* 말풍선 */
-  bubble: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: '#1A4A8A',
-    padding: 20,
-    alignSelf: 'stretch',
-    width: '100%',
-    marginBottom: 16,
-  },
-  bubbleMsg:  { fontSize: 26, fontWeight: '800', color: '#1A4A8A', textAlign: 'center', lineHeight: 36 },
-  bubbleTail: {
-    position: 'absolute',
-    bottom: -10, left: 20,
-    width: 0, height: 0,
-    borderLeftWidth: 10, borderRightWidth: 10, borderTopWidth: 10,
-    borderLeftColor: 'transparent', borderRightColor: 'transparent',
-    borderTopColor: '#C8D8F8',
-  },
-
-  /* 버튼 */
-  btnCol: { gap: 12, width: '100%' },
-  btnRow: { flexDirection: 'row', gap: 12, width: '100%' },
-  guestBtn: { paddingVertical: 14, alignItems: 'center' },
-  guestBtnTxt: { fontSize: 20, color: '#90A4AE', textDecorationLine: 'underline' },
-  loginBtn: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 16,
-    paddingVertical: 18, alignItems: 'center',
-    borderWidth: 2, borderColor: '#1A4A8A',
-  },
-  loginBtnTxt: { color: '#1A4A8A', fontSize: 28, fontWeight: '900' },
+  loginBtnTxt: { color: '#fff', fontSize: 26, fontWeight: '800' },
   startBtn: {
-    flex: 1, backgroundColor: '#0D3470', borderRadius: 16,
-    paddingVertical: 18, alignItems: 'center',
-    shadowColor: '#1A4A8A', shadowOpacity: 0.3,
-    shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
+    flex: 1,
+    backgroundColor: '#1A4A8A',
+    borderRadius: 16,
+    paddingVertical: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
-  startBtnTxt: { color: '#fff', fontSize: 28, fontWeight: '900' },
-
-  /* 점 인디케이터 */
-  dots:      { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 14 },
-  dot:       { width: 8, height: 8, borderRadius: 4, backgroundColor: '#D0D8E8' },
-  dotActive: { backgroundColor: '#0D3470', width: 24, borderRadius: 4 },
+  startBtnTxt: { color: '#fff', fontSize: 26, fontWeight: '800' },
+  guestBtn: { alignItems: 'center', paddingVertical: 10 },
+  guestBtnTxt: { fontSize: 18, color: 'rgba(255,255,255,0.65)' },
 });

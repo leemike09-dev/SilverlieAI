@@ -15,7 +15,9 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.silverlifeai.app",
       "entitlements": {
-        "com.apple.developer.applesignin": ["Default"]
+        "com.apple.developer.applesignin": [
+          "Default"
+        ]
       }
     },
     "android": {
@@ -86,7 +88,8 @@
           "sounds": [],
           "iosDisplayInForeground": true
         }
-      ]
+      ],
+      "expo-video"
     ],
     "scheme": "silverliveai",
     "experiments": {
