@@ -160,6 +160,20 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
 
+      {/* 게스트 배너 */}
+      {(userId === 'guest' || !userId) && (
+        <TouchableOpacity
+          style={s.guestBanner}
+          onPress={() => navigation.navigate('Login')}
+          activeOpacity={0.85}
+        >
+          <Text style={s.guestBannerTxt}>
+            👤 둘러보기 중 — 로그인하면 기록이 저장돼요
+          </Text>
+          <Text style={s.guestBannerBtn}>로그인 →</Text>
+        </TouchableOpacity>
+      )}
+
       {/* ══ 헤더 ══ */}
       <View style={[s.header, headerStyle, { paddingTop: Math.max(insets.top + 14, 28) }]}>
         <View style={s.headerRow}>
@@ -308,4 +322,9 @@ const s = StyleSheet.create({
   },
   aiBtnIcon: { fontSize: 22 },
   aiBtnTxt:  { color: '#fff', fontSize: 13, fontWeight: '700', textAlign: 'center', lineHeight: 18 },
+
+  guestBanner:    { backgroundColor: '#FF8F00', flexDirection: 'row', alignItems: 'center',
+                    justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 12 },
+  guestBannerTxt: { fontSize: 16, fontWeight: '600', color: '#fff', flex: 1 },
+  guestBannerBtn: { fontSize: 16, fontWeight: '800', color: '#fff', marginLeft: 10 },
 });
