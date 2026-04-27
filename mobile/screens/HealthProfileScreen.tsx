@@ -9,6 +9,7 @@ const INDIGO  = '#5C6BC0';
 const LINDIGO = '#E8EAF6';
 const BG      = '#F8F7FF';
 const STORAGE_KEY = 'health_profile';
+const API_URL = 'https://silverlieai.onrender.com';
 
 // ── 선택 항목 정의 ──
 const DISEASES = [
@@ -84,8 +85,17 @@ export default function HealthProfileScreen({ navigation, route }: any) {
     setSaving(true);
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-      // TODO: Supabase health_profiles 저장
-      // await supabase.from('health_profiles').upsert({ userId, ...profile });
+      // Supabase 동기화 (JSONB — 항목 추가/삭제 시 DB 마이그레이션 불필요)
+      const uid = route?.params?.userId || (await AsyncStorage.getItem('userId')) || '';
+      if (uid) {
+        try {
+          await fetch(`${API_URL}/users/${uid}/health-profile`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profile }),
+          });
+        } catch { /* 오프라인이어도 AsyncStorage 저장은 완료됨 */ }
+      }
       showToast('프로필이 저장됐습니다');
       setTimeout(() => {
         if (fromRegister) {

@@ -132,6 +132,25 @@ class KakaoLoginRequest(BaseModel):
     redirect_uri: str
 
 
+
+class HealthProfileRequest(BaseModel):
+    profile: dict
+
+
+@router.put("/{user_id}/health-profile")
+def save_health_profile(user_id: str, req: HealthProfileRequest):
+    """건강프로필 전체를 JSONB로 저장 — 항목 변경 시 DB 마이그레이션 불필요."""
+    db = get_supabase()
+    try:
+        result = db.table("users").update({"health_profile": req.profile}).eq("id", user_id).execute()
+        if not result.data:
+            raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다")
+        return {"ok": True}
+    except Exception as e:
+        # health_profile 컬럼이 없을 경우 (마이그레이션 미실행) 무시
+        print(f"[health_profile_save] {e}")
+        return {"ok": False, "note": "Supabase migration needed: ALTER TABLE users ADD COLUMN IF NOT EXISTS health_profile JSONB;"}
+
 @router.post("/kakao-login")
 def kakao_login(req: KakaoLoginRequest):
     client_id = os.getenv("KAKAO_CLIENT_ID", "")

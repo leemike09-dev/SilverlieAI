@@ -638,6 +638,9 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
             for k, v in server_ctx.items():
                 if v:
                     health_ctx[k] = v
+            # Supabase에 저장된 health_profile JSONB → client_profile 미전송 시 폴백
+            if user_row.get("health_profile") and not health_ctx.get("profile"):
+                health_ctx["profile"] = user_row["health_profile"]
             chat_ctx = load_chat_context(request.user_id, db)
         except Exception as ex:
             print(f"[user_load] {ex}")

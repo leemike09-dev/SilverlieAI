@@ -153,6 +153,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [turnCount,   setTurnCount]   = useState(0);
   const [currentIntent, setCurrentIntent] = useState<Intent>('health');
   const [showCrisis,    setShowCrisis]    = useState(false);
+  const [healthProfile, setHealthProfile] = useState<any>(null);
 
   const pulseAnim    = useRef(new Animated.Value(1)).current;
   const fadeAnim     = useRef(new Animated.Value(1)).current;
@@ -163,8 +164,11 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const speakTimerRef   = useRef<any>(null);
   const isWelcome = history.length === 0 && !loading;
 
-  // 초기 선제적 인사 — 서버에서 컨텍스트 기반 메시지 로드
+  // 초기 선제적 인사 + 건강프로필 로드
   useEffect(() => {
+    AsyncStorage.getItem('health_profile').then(stored => {
+      if (stored) { try { setHealthProfile(JSON.parse(stored)); } catch {} }
+    });
     fetchProactiveGreeting();
     return () => { stopSpeech(); };
   }, []);
@@ -293,7 +297,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       const res = await fetch(`${API_URL}/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, message: msg, history: history.slice(-10), turn_count: turnCount, force_summary: false, intent: detectedIntent }),
+        body: JSON.stringify({ user_id: userId, message: msg, history: history.slice(-10), turn_count: turnCount, force_summary: false, intent: detectedIntent, client_profile: healthProfile }),
       });
       const data = await res.json();
       const reply     = stripEmoji(data.reply ?? data.response ?? '죄송합니다, 다시 시도해주세요.');
@@ -339,7 +343,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       const res = await fetch(`${API_URL}/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, message: '지금까지 증상을 요약해 주세요', history: history.slice(-10), turn_count: turnCount, force_summary: true }),
+        body: JSON.stringify({ user_id: userId, message: '지금까지 증상을 요약해 주세요', history: history.slice(-10), turn_count: turnCount, force_summary: true, client_profile: healthProfile }),
       });
       const data = await res.json();
       const reply     = stripEmoji(data.reply ?? '죄송합니다, 다시 시도해주세요.');
