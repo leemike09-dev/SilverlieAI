@@ -153,33 +153,34 @@ function getGreeting(name: string): string {
 export default function AIChatScreen({ route, navigation }: Props) {
   const { name = '회원', userId = '' } = route?.params ?? {};
 
-  const greeting = getGreeting(name);
-  const [displayMsg,  setDisplayMsg]  = useState<Msg>({ role: 'ai', text: '' });
-  const [history,     setHistory]     = useState<HistoryItem[]>([]);
-  const [input,       setInput]       = useState('');
-  const [loading,     setLoading]     = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isSpeaking,  setIsSpeaking]  = useState(false);
-  const [showEmergency,  setShowEmergency]  = useState(false);
-  const [familyNotified, setFamilyNotified] = useState(false);
-  const [memoState,   setMemoState]   = useState<'idle' | 'asking' | 'saved'>('idle');
-  const [pendingMemo, setPendingMemo] = useState<string>('');
-  const [toastMsg,    setToastMsg]    = useState('');
-  const [aiMsgIdx,    setAiMsgIdx]    = useState(0);
-  const [turnCount,   setTurnCount]   = useState(0);
+  const [messages,     setMessages]     = useState<Msg[]>([]);
+  const [history,      setHistory]      = useState<HistoryItem[]>([]);
+  const [input,        setInput]        = useState('');
+  const [loading,      setLoading]      = useState(false);
+  const [isRecording,  setIsRecording]  = useState(false);
+  const [isSpeaking,   setIsSpeaking]   = useState(false);
+  const [showEmergency,   setShowEmergency]   = useState(false);
+  const [familyNotified,  setFamilyNotified]  = useState(false);
+  const [memoState,    setMemoState]    = useState<'idle' | 'asking' | 'saved'>('idle');
+  const [pendingMemo,  setPendingMemo]  = useState<string>('');
+  const [toastMsg,     setToastMsg]     = useState('');
+  const [lastAiText,   setLastAiText]   = useState('');
+  const [turnCount,    setTurnCount]    = useState(0);
   const [currentIntent, setCurrentIntent] = useState<Intent>('health');
   const [showCrisis,    setShowCrisis]    = useState(false);
   const [healthProfile, setHealthProfile] = useState<any>(null);
 
-  const pulseAnim    = useRef(new Animated.Value(1)).current;
-  const fadeAnim     = useRef(new Animated.Value(1)).current;
-  const dotsAnim     = useRef(new Animated.Value(0)).current;
-  const recognitionRef  = useRef<any>(null);
-  const silenceTimerRef = useRef<any>(null);
-  const toastTimerRef   = useRef<any>(null);
+  const scrollRef          = useRef<ScrollView>(null);
+  const pulseAnim          = useRef(new Animated.Value(1)).current;
+  const dotsAnim           = useRef(new Animated.Value(0)).current;
+  const recognitionRef     = useRef<any>(null);
+  const silenceTimerRef    = useRef<any>(null);
+  const toastTimerRef      = useRef<any>(null);
   const speakTimerRef      = useRef<any>(null);
-  const finalTranscriptRef = useRef<string>('');
-  const isWelcome = history.length === 0 && !loading;
+  const lastAiTextRef      = useRef('');
+
+  const isWelcome = messages.length === 0 && !loading;
+  const lastAiMsg = [...messages].reverse().find(m => m.role === 'ai');
 
   // 초기 선제적 인사 + 건강프로필 로드
   useEffect(() => {
@@ -190,17 +191,25 @@ export default function AIChatScreen({ route, navigation }: Props) {
     return () => { stopSpeech(); };
   }, []);
 
-  // 새 AI 메시지 TTS 자동 재생
+  // 새 AI 메시지 TTS (lastAiText 변경 시 1회 재생)
   useEffect(() => {
-    if (aiMsgIdx === 0) return;
+    if (!lastAiText || lastAiText === lastAiTextRef.current) return;
+    lastAiTextRef.current = lastAiText;
     if (speakTimerRef.current) clearTimeout(speakTimerRef.current);
     stopSpeech();
     setIsSpeaking(true);
-    speakSentences(cleanForTTS(displayMsg.text));
-    const ms = Math.max(4000, displayMsg.text.length * 180);
+    speakSentences(cleanForTTS(lastAiText));
+    const ms = Math.max(4000, lastAiText.length * 180);
     speakTimerRef.current = setTimeout(() => setIsSpeaking(false), ms);
     return () => { if (speakTimerRef.current) clearTimeout(speakTimerRef.current); };
-  }, [aiMsgIdx]);
+  }, [lastAiText]);
+
+  // Render 콜드스타트 방지 Keep-alive (13분마다 ping)
+  useEffect(() => {
+    const ping = () => fetch(`${API_URL}/`).catch(() => {});
+    const id = setInterval(ping, 13 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // 로딩 애니메이션
   useEffect(() => {
@@ -233,10 +242,9 @@ export default function AIChatScreen({ route, navigation }: Props) {
     toastTimerRef.current = setTimeout(() => setToastMsg(''), 2500);
   };
 
-  const fadeInMsg = (msg: Msg) => {
-    fadeAnim.setValue(0);
-    setDisplayMsg(msg);
-    Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+  const addMsg = (msg: Msg) => {
+    setMessages(prev => [...prev, msg]);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   };
 
   const stopSpeakingHandler = () => {
@@ -246,10 +254,11 @@ export default function AIChatScreen({ route, navigation }: Props) {
   };
 
   const replaySpeech = () => {
+    if (!lastAiMsg) return;
     stopSpeakingHandler();
     setIsSpeaking(true);
-    speakSentences(cleanForTTS(displayMsg.text));
-    const ms = Math.max(4000, displayMsg.text.length * 180);
+    speakSentences(cleanForTTS(lastAiMsg.text));
+    const ms = Math.max(4000, lastAiMsg.text.length * 180);
     speakTimerRef.current = setTimeout(() => setIsSpeaking(false), ms);
   };
 
@@ -273,7 +282,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
     };
 
     if (!userId || userId === 'guest') {
-      fadeInMsg({ role: 'ai', text: fallback });
       setTimeout(() => speak(cleanForTTS(fallback), 0.85), 600);
       await save(fallback);
       return;
@@ -283,11 +291,9 @@ export default function AIChatScreen({ route, navigation }: Props) {
       const res  = await fetch(`${API_URL}/ai/proactive-greeting/${userId}`);
       const data = await res.json();
       const msg  = data.message || fallback;
-      fadeInMsg({ role: 'ai', text: msg });
       setTimeout(() => speak(cleanForTTS(msg), 0.85), 400);
       await save(msg);
     } catch {
-      fadeInMsg({ role: 'ai', text: fallback });
       setTimeout(() => speak(cleanForTTS(fallback), 0.85), 600);
       await save(fallback);
     } finally {
@@ -302,109 +308,181 @@ export default function AIChatScreen({ route, navigation }: Props) {
     stopSpeakingHandler();
     if (memoState !== 'saved') setMemoState('idle');
 
-    // ── Intent 분류 ──
     const detectedIntent = classifyIntent(msg, history);
     setCurrentIntent(detectedIntent);
 
-    // ── 응급 Pre-filter: API 호출 없이 즉시 SOS 표시 ──
     if (detectedIntent === 'emergency') {
       const emMsg = `${name}님, 지금 많이 불편하신가요? 걱정이 돼요. 아래 버튼으로 즉시 도움을 받으세요.`;
-      fadeInMsg({ role: 'ai', text: emMsg, riskLevel: 'critical' });
-      setAiMsgIdx(i => i + 1);
+      addMsg({ role: 'user', text: msg });
+      addMsg({ role: 'ai', text: emMsg, riskLevel: 'critical' });
+      setLastAiText(emMsg);
       setShowEmergency(true);
-      setTimeout(() => speak(cleanForTTS(emMsg), 0.82), 300);
       return;
     }
-
-    // ── 위기 Pre-filter: 위기 카드 표시 후 API도 호출 ──
     if (detectedIntent === 'crisis') {
       const crisisMsg = `${name}님, 지금 많이 힘드신 거 느껴져요. 저 꿀비가 여기 있어요. 혼자 감당하지 않아도 돼요.`;
-      fadeInMsg({ role: 'ai', text: crisisMsg });
-      setAiMsgIdx(i => i + 1);
+      addMsg({ role: 'user', text: msg });
+      addMsg({ role: 'ai', text: crisisMsg });
+      setLastAiText(crisisMsg);
       setShowCrisis(true);
-      setTimeout(() => speak(cleanForTTS(crisisMsg), 0.82), 300);
-      // 위기는 API도 호출해서 공감 응답 받기 (아래 계속 실행)
+    } else {
+      addMsg({ role: 'user', text: msg });
     }
 
-    fadeInMsg({ role: 'user', text: msg });
     setLoading(true);
-
     const newHistory: HistoryItem[] = [...history, { role: 'user', content: msg }];
+
+    // 빈 AI 메시지 선점 (스트리밍 채움용)
+    setMessages(prev => [...prev, { role: 'ai', text: '' }]);
+
     try {
-      const res = await fetch(`${API_URL}/ai/chat`, {
+      const res = await fetch(`${API_URL}/ai/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, message: msg, history: history.slice(-10), turn_count: turnCount, force_summary: false, intent: detectedIntent, client_profile: healthProfile }),
+        body: JSON.stringify({
+          user_id: userId, message: msg, history: history.slice(-10),
+          turn_count: turnCount, force_summary: false,
+          intent: detectedIntent, client_profile: healthProfile,
+        }),
       });
-      const data = await res.json();
-      const reply     = stripEmoji(data.reply ?? data.response ?? '죄송합니다, 다시 시도해주세요.');
-      const riskLevel = (data.risk_level ?? 'normal') as RiskLevel;
-      const dMemoNeeded: boolean   = data.doctor_memo_needed ?? false;
-      const dMemo: string | undefined = data.doctor_memo ?? undefined;
 
-      const isFinal: boolean = data.is_final ?? false;
-      const aiMsg: Msg = { role: 'ai', text: reply, riskLevel, doctorMemoNeeded: dMemoNeeded, doctorMemo: dMemo };
-      fadeInMsg(aiMsg);
-      setHistory([...newHistory, { role: 'assistant', content: reply }]);
-      setAiMsgIdx(i => i + 1);
-      setTurnCount(t => t + 1);
+      if (!res.ok || !res.body) throw new Error('stream error');
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = '';
+      let buf = '';
 
-      if (memoState === 'idle' && ((isFinal && dMemo) || (dMemoNeeded && dMemo && ['medium','high','critical'].includes(riskLevel)))) {
-        setPendingMemo(dMemo);
-        // TTS 완료 후 메모 프롬프트 표시
-        const mainMs = Math.max(4000, reply.length * 180);
-        setTimeout(() => {
-          setMemoState('asking');
-          speak('병원 방문하실 때 의사 선생님께 드릴 메모를 작성해 드릴까요?', 0.85);
-        }, mainMs + 600);
-      }
-      if (riskLevel === 'critical') {
-        setShowEmergency(true);
-        if (data.sos_sent) setFamilyNotified(true);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payload = line.slice(6).trim();
+          if (!payload) continue;
+          try {
+            const data = JSON.parse(payload);
+            if (data.token) {
+              accumulated += data.token;
+              const partial = stripEmoji(accumulated);
+              setMessages(prev => {
+                const next = [...prev];
+                next[next.length - 1] = { role: 'ai', text: partial };
+                return next;
+              });
+              scrollRef.current?.scrollToEnd({ animated: false });
+            }
+            if (data.done || data.error) {
+              const riskLevel  = (data.risk_level ?? 'normal') as RiskLevel;
+              const dMemo: string | undefined = data.doctor_memo ?? undefined;
+              const dMemoNeeded: boolean = data.doctor_memo_needed ?? false;
+              const isFinal: boolean     = data.is_final ?? false;
+              const cleanText = stripEmoji(accumulated) || '죄송합니다, 다시 시도해주세요.';
+
+              setMessages(prev => {
+                const next = [...prev];
+                next[next.length - 1] = { role: 'ai', text: cleanText, riskLevel, doctorMemoNeeded: dMemoNeeded, doctorMemo: dMemo };
+                return next;
+              });
+              setLastAiText(cleanText);
+              setHistory([...newHistory, { role: 'assistant', content: cleanText }]);
+              setTurnCount(t => t + 1);
+              if (riskLevel === 'critical') { setShowEmergency(true); if (data.sos_sent) setFamilyNotified(true); }
+              if (memoState === 'idle' && ((isFinal && dMemo) || (dMemoNeeded && dMemo && ['medium','high','critical'].includes(riskLevel)))) {
+                setPendingMemo(dMemo!);
+                const mainMs = Math.max(4000, cleanText.length * 180);
+                setTimeout(() => { setMemoState('asking'); speak('병원 방문하실 때 의사 선생님께 드릴 메모를 작성해 드릴까요?', 0.85); }, mainMs + 600);
+              }
+            }
+          } catch {}
+        }
       }
     } catch {
-      fadeInMsg({ role: 'ai', text: '연결에 실패했습니다. 잠시 후 다시 시도해주세요.' });
-      setAiMsgIdx(i => i + 1);
+      setMessages(prev => {
+        const next = [...prev];
+        const last = next[next.length - 1];
+        if (last?.role === 'ai' && last.text === '') {
+          next[next.length - 1] = { role: 'ai', text: '연결에 실패했습니다. 잠시 후 다시 시도해주세요.' };
+        } else {
+          next.push({ role: 'ai', text: '연결에 실패했습니다. 잠시 후 다시 시도해주세요.' });
+        }
+        return next;
+      });
     } finally {
       setLoading(false);
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     }
   };
+
 
   const sendForceSummary = async () => {
     if (loading || turnCount < 1) return;
     stopSpeakingHandler();
     setMemoState('idle');
-    fadeInMsg({ role: 'user', text: '지금까지 내용을 요약해 주세요' });
+    addMsg({ role: 'user', text: '지금까지 내용을 요약해 주세요' });
     setLoading(true);
+    setMessages(prev => [...prev, { role: 'ai', text: '' }]);
     try {
-      const res = await fetch(`${API_URL}/ai/chat`, {
+      const res = await fetch(`${API_URL}/ai/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, message: '지금까지 증상을 요약해 주세요', history: history.slice(-10), turn_count: turnCount, force_summary: true, client_profile: healthProfile }),
+        body: JSON.stringify({
+          user_id: userId, message: '지금까지 증상을 요약해 주세요',
+          history: history.slice(-10), turn_count: turnCount,
+          force_summary: true, client_profile: healthProfile,
+        }),
       });
-      const data = await res.json();
-      const reply     = stripEmoji(data.reply ?? '죄송합니다, 다시 시도해주세요.');
-      const riskLevel = (data.risk_level ?? 'normal') as RiskLevel;
-      const dMemo: string | undefined = data.doctor_memo ?? undefined;
-      const aiMsg: Msg = { role: 'ai', text: reply, riskLevel, doctorMemoNeeded: true, doctorMemo: dMemo };
-      fadeInMsg(aiMsg);
-      setHistory(prev => [...prev, { role: 'user', content: '요약 요청' }, { role: 'assistant', content: reply }]);
-      setAiMsgIdx(i => i + 1);
-      setTurnCount(t => t + 1);
-      if (dMemo) {
-        setPendingMemo(dMemo);
-        const mainMs = Math.max(4000, reply.length * 150);
-        setTimeout(() => {
-          setMemoState('asking');
-          speak('병원 방문하실 때 의사 선생님께 드릴 메모를 작성해 드릴까요?', 0.82);
-        }, mainMs + 600);
+      if (!res.ok || !res.body) throw new Error('stream error');
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = '';
+      let buf = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payload = line.slice(6).trim();
+          if (!payload) continue;
+          try {
+            const data = JSON.parse(payload);
+            if (data.token) {
+              accumulated += data.token;
+              const partial = stripEmoji(accumulated);
+              setMessages(prev => { const next = [...prev]; next[next.length-1] = { role: 'ai', text: partial }; return next; });
+              scrollRef.current?.scrollToEnd({ animated: false });
+            }
+            if (data.done || data.error) {
+              const riskLevel = (data.risk_level ?? 'normal') as RiskLevel;
+              const dMemo: string | undefined = data.doctor_memo ?? undefined;
+              const cleanText = stripEmoji(accumulated) || '요약 실패. 다시 시도해주세요.';
+              setMessages(prev => { const next=[...prev]; next[next.length-1]={ role:'ai', text:cleanText, riskLevel, doctorMemoNeeded:true, doctorMemo:dMemo }; return next; });
+              setLastAiText(cleanText);
+              setHistory(prev => [...prev, { role:'user', content:'요약 요청' }, { role:'assistant', content:cleanText }]);
+              setTurnCount(t => t + 1);
+              if (dMemo) {
+                setPendingMemo(dMemo);
+                const mainMs = Math.max(4000, cleanText.length * 150);
+                setTimeout(() => { setMemoState('asking'); speak('병원 방문하실 때 의사 선생님께 드릴 메모를 작성해 드릴까요?', 0.82); }, mainMs + 600);
+              }
+            }
+          } catch {}
+        }
       }
     } catch {
-      fadeInMsg({ role: 'ai', text: '연결에 실패했습니다.' });
+      setMessages(prev => { const next=[...prev]; next[next.length-1]={ role:'ai', text:'연결에 실패했습니다.' }; return next; });
     } finally {
       setLoading(false);
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     }
   };
+
 
   const handleMemoYes = async () => {
     setMemoState('saved');
@@ -544,65 +622,67 @@ export default function AIChatScreen({ route, navigation }: Props) {
         <View style={s.body}>
 
           {/* 상태 표시줄 */}
-          {(loading || displayMsg.text !== '') && <View style={s.statusRow}>
-            {loading ? (
-              <Animated.Text style={[s.statusTxt, { opacity: dotsAnim.interpolate({ inputRange:[0,1], outputRange:[0.4,1] }) }]}>
-                꿀비가 생각 중...
-              </Animated.Text>
-            ) : isSpeaking ? (
-              <>
-                <Text style={s.statusTxt}>꿀비가 말하는 중</Text>
-                <TouchableOpacity onPress={stopSpeakingHandler} style={s.speakCtrlBtn}>
-                  <Text style={s.speakCtrlTxt}>정지</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <Text style={[s.statusTxt, { color: C.sub }]}>
-                  {displayMsg.role === 'ai' ? '꿀비' : '내 질문'}
-                </Text>
-                {displayMsg.role === 'ai' && (
-                  <TouchableOpacity onPress={replaySpeech} style={s.speakCtrlBtn}>
-                    <Text style={s.speakCtrlTxt}>다시 듣기</Text>
+          {(isSpeaking || (!loading && lastAiMsg)) && (
+            <View style={s.statusRow}>
+              {isSpeaking ? (
+                <>
+                  <Text style={s.statusTxt}>꿀비가 말하는 중</Text>
+                  <TouchableOpacity onPress={stopSpeakingHandler} style={s.speakCtrlBtn}>
+                    <Text style={s.speakCtrlTxt}>정지</Text>
                   </TouchableOpacity>
-                )}
-              </>
-            )}
-          </View>}
+                </>
+              ) : (
+                <>
+                  <View style={{ flex: 1 }} />
+                  <TouchableOpacity onPress={replaySpeech} style={s.speakCtrlBtn}>
+                    <Text style={s.speakCtrlTxt}>🔊 다시 듣기</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          )}
 
-          {/* 위험 배너 (high/medium) */}
-          {!loading && displayMsg.role === 'ai' && displayMsg.riskLevel === 'critical' && (
+          {/* 위험 배너 */}
+          {lastAiMsg?.riskLevel === 'critical' && (
             <TouchableOpacity style={s.bannerCritical} onPress={() => setShowEmergency(true)}>
               <Text style={s.bannerCriticalTxt}>즉시 119 또는 응급실이 필요합니다</Text>
             </TouchableOpacity>
           )}
-          {!loading && displayMsg.role === 'ai' && displayMsg.riskLevel === 'high' && (
+          {lastAiMsg?.riskLevel === 'high' && (
             <View style={s.bannerHigh}>
               <Text style={s.bannerHighTxt}>오늘 안에 병원 방문을 강력히 권고합니다</Text>
             </View>
           )}
-          {!loading && displayMsg.role === 'ai' && displayMsg.riskLevel === 'medium' && (
+          {lastAiMsg?.riskLevel === 'medium' && (
             <View style={s.bannerMedium}>
               <Text style={s.bannerMediumTxt}>증상이 지속되면 병원 방문을 권장합니다</Text>
             </View>
           )}
 
-          {/* 메시지 텍스트 — 웰컴(카드) 상태에서는 숨김 */}
-          {!isWelcome && (loading || displayMsg.text !== '') ? (
+          {/* 대화 버블 리스트 */}
+          {!isWelcome && (
             <ScrollView
+              ref={scrollRef}
               style={s.msgScroll}
               contentContainerStyle={s.msgContent}
               showsVerticalScrollIndicator={false}
             >
-              <Text style={[
-                displayMsg.role === 'ai' ? s.aiTxt : s.userTxt,
-                loading && s.loadingTxt,
-              ]}>
-                {loading ? '...' : displayMsg.text}
-              </Text>
+              {messages.map((msg, i) => {
+                const isStreaming = i === messages.length - 1 && msg.role === 'ai' && loading && msg.text === '';
+                return (
+                  <View key={i} style={msg.role === 'ai' ? s.aiBubble : s.userBubble}>
+                    {msg.role === 'ai' && <Text style={s.bubbleName}>꿀비</Text>}
+                    <Text style={msg.role === 'ai' ? s.aiTxt : s.userTxt}>
+                      {isStreaming ? (
+                        <Animated.Text style={{ opacity: dotsAnim.interpolate({ inputRange:[0,1], outputRange:[0.3,1] }) }}>
+                          ···
+                        </Animated.Text>
+                      ) : msg.text}
+                    </Text>
+                  </View>
+                );
+              })}
             </ScrollView>
-          ) : (
-            !isWelcome && <View style={s.msgPlaceholder} />
           )}
 
           {/* 의사 메모 제안 */}
@@ -757,13 +837,24 @@ const s = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 10, marginBottom: 10 },
   bannerMediumTxt: { fontSize: 19, color: '#FF8F00', fontWeight: '700', textAlign: 'center' },
 
-  // 메시지 텍스트 (스크롤 가능)
-  msgScroll:  { flex: 1, flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 60 },
+  // 메시지 버블
+  msgScroll:   { flex: 1, flexGrow: 1, flexShrink: 1, flexBasis: 0 },
   msgPlaceholder: { flex: 1 },
-  msgContent: { paddingBottom: 12 },
-  aiTxt:      { fontSize: 28, color: '#16273E', lineHeight: 44, fontWeight: '400' },
-  userTxt:    { fontSize: 26, color: '#5E35B1', lineHeight: 40, fontWeight: '500', textAlign: 'right' },
-  loadingTxt: { fontSize: 40, color: '#9C27B0', letterSpacing: 6 },
+  msgContent:  { paddingVertical: 12, gap: 10 },
+  aiBubble:    {
+    alignSelf: 'flex-start', maxWidth: '88%',
+    backgroundColor: '#F3E5F5', borderRadius: 18,
+    borderTopLeftRadius: 4, padding: 14,
+  },
+  userBubble:  {
+    alignSelf: 'flex-end', maxWidth: '88%',
+    backgroundColor: '#7B1FA2', borderRadius: 18,
+    borderTopRightRadius: 4, padding: 14,
+  },
+  bubbleName:  { fontSize: 14, color: '#7B1FA2', fontWeight: '700', marginBottom: 4 },
+  aiTxt:       { fontSize: 22, color: '#16273E', lineHeight: 34, fontWeight: '400' },
+  userTxt:     { fontSize: 22, color: '#fff',     lineHeight: 34, fontWeight: '500' },
+  loadingTxt:  { fontSize: 30, color: '#9C27B0', letterSpacing: 6 },
 
   // 의사 메모 제안
   memoPrompt: {
@@ -789,7 +880,6 @@ const s = StyleSheet.create({
   summaryBtnTxt: { fontSize: 20, color: '#7B1FA2', fontWeight: '800' },
 
   // 2열 카드 그리드
-  msgScrollWelcome: { flexGrow: 0, maxHeight: 130 },
   cardGrid:  { paddingBottom: 8, marginTop: 6 },
   cardRow:   { flexDirection: 'row', gap: 8, marginBottom: 8 },
   cardItem:  {

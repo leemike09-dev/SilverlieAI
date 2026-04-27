@@ -1,6 +1,7 @@
 import os, re, json, httpx
 import anthropic
 from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date, datetime, timedelta, timezone
@@ -610,6 +611,96 @@ class ChatRequest(BaseModel):
     turn_count:     int = 0
     force_summary:  bool = False
     intent:         str  = "health"   # health|emotional|cognitive|crisis|daily
+
+
+@router.post("/chat/stream")
+async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
+    """스트리밍 채팅 — SSE로 토큰 단위 전송, 마지막에 메타데이터 이벤트."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        async def _err():
+            yield f"data: {json.dumps({'error': 'API key missing', 'done': True, 'risk_level': 'normal', 'doctor_memo_needed': False, 'is_final': False})}\n\n"
+        return StreamingResponse(_err(), media_type="text/event-stream")
+
+    relevant_qa = find_relevant_qa(request.message)
+    user_row: dict = {}
+    health_ctx: dict = {
+        'profile':      request.client_profile or {},
+        'medications':  request.client_meds    or [],
+        'today_record': request.client_record  or {},
+    }
+    chat_ctx = None
+    db = None
+
+    if request.user_id and request.user_id not in ("demo-user", "guest"):
+        try:
+            db = get_supabase()
+            u = db.table("users").select("*").eq("id", request.user_id).execute()
+            if u.data:
+                user_row = u.data[0]
+            server_ctx = load_health_context(request.user_id, db)
+            for k, v in server_ctx.items():
+                if v:
+                    health_ctx[k] = v
+            if user_row.get("health_profile") and not health_ctx.get("profile"):
+                health_ctx["profile"] = user_row["health_profile"]
+            chat_ctx = load_chat_context(request.user_id, db)
+        except Exception as ex:
+            print(f"[stream/user_load] {ex}")
+
+    system_prompt = build_system_prompt(user_row, health_ctx, relevant_qa, chat_ctx,
+                                        turn_count=request.turn_count,
+                                        force_summary=request.force_summary,
+                                        intent=request.intent)
+    history_msgs = [{"role": m.role, "content": m.content} for m in (request.history or [])[-10:]]
+    model        = choose_model(history_msgs, request.message)
+    ai_messages  = history_msgs + [{"role": "user", "content": request.message}]
+
+    async def event_gen():
+        import re as _re
+        full_text = ""
+        try:
+            client_ai = anthropic.Anthropic(api_key=api_key)
+            with client_ai.messages.stream(
+                model=model,
+                max_tokens=1200,
+                system=system_prompt,
+                messages=ai_messages,
+            ) as stream:
+                for text in stream.text_stream:
+                    full_text += text
+                    yield f"data: {json.dumps({'token': text}, ensure_ascii=False)}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e), 'done': True, 'risk_level': 'normal', 'doctor_memo_needed': False, 'is_final': False})}\n\n"
+            return
+
+        is_final_flag = bool(_re.search(r'\[FINAL\]', full_text, _re.IGNORECASE)) or request.force_summary
+        full_text2 = _re.sub(r'\[FINAL\]', '', full_text, flags=_re.IGNORECASE).strip()
+        risk       = detect_risk(full_text2)
+        reply_text = strip_risk_token(full_text2)
+
+        sos_sent = False
+        if risk == 'critical' and request.user_id and request.user_id not in ("demo-user", "guest"):
+            uname = user_row.get('name', '사용자')
+            background_tasks.add_task(_send_family_alert, request.user_id, uname)
+            sos_sent = True
+
+        if request.user_id and request.user_id not in ("demo-user", "guest"):
+            background_tasks.add_task(_save_chat_turn, request.user_id, request.message, reply_text, risk, model)
+
+        doctor_memo_needed = is_final_flag or check_doctor_visit(reply_text)
+        doctor_memo = None
+        if doctor_memo_needed:
+            all_syms = [m.content for m in (request.history or []) if m.role == 'user'] + [request.message]
+            doctor_memo = build_doctor_memo(user_row, health_ctx, ' / '.join(all_syms))
+
+        yield f"data: {json.dumps({'done': True, 'risk_level': risk, 'doctor_memo_needed': doctor_memo_needed, 'doctor_memo': doctor_memo, 'is_final': is_final_flag, 'sos_sent': sos_sent}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.post("/chat")
