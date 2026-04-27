@@ -245,19 +245,9 @@ const s = StyleSheet.create({
   settingIco: { fontSize: 28 },
 
   lumiImgWrap: {
-    width: 90, height: 90,
-    borderRadius: 45,
-    overflow: 'hidden',
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.7)',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    shadowColor: '#fff',
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 8,
+    width: 100, height: 100,
   },
-  lumiImg: { width: 90, height: 90 },
+  lumiImg: { width: 100, height: 100 },
 
   lumiGreetWrap: { flex: 1 },
   lumiName:  { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: 1, marginBottom: 2 },
