@@ -111,9 +111,33 @@ function cleanForTTS(text: string): string {
     .replace(/^\d+\.\s+/gm, '')
     .replace(/^={3,}$/gm, '')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // 혈압 표기 변환: 139/94 mmHg → 백삼십구 구십사
+    .replace(/(\d+)\/(\d+)\s*mmHg/gi, (_, s, d) => `${numToKorean(+s)} ${numToKorean(+d)}`)
+    .replace(/(\d+)\/(\d+)/g, (_, a, b) => `${numToKorean(+a)} ${numToKorean(+b)}`)
+    // 단위 자연스럽게
+    .replace(/mg\/dL/gi, '밀리그램')
+    .replace(/bpm/gi, '비피엠')
+    .replace(/mmHg/gi, '')
     .replace(/\n/g, ' ')
     .replace(/ {2,}/g, ' ')
     .trim();
+}
+
+function numToKorean(n: number): string {
+  if (n === 0) return '영';
+  const ones = ['','일','이','삼','사','오','육','칠','팔','구'];
+  const tens = ['','십','이십','삼십','사십','오십','육십','칠십','팔십','구십'];
+  const hundreds = ['','백','이백','삼백','사백','오백','육백','칠백','팔백','구백'];
+  const h = Math.floor(n / 100);
+  const t = Math.floor((n % 100) / 10);
+  const o = n % 10;
+  let result = '';
+  if (h === 1) result += '백';
+  else if (h > 1) result += hundreds[h];
+  if (t === 1) result += '십';
+  else if (t > 1) result += tens[t];
+  if (o > 0) result += ones[o];
+  return result || String(n);
 }
 
 function getGreeting(name: string): string {
