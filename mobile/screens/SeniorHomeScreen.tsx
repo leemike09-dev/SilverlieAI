@@ -169,17 +169,9 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      {/* 게스트 배너 */}
-      {isGuest && (
-        <TouchableOpacity style={s.guestBanner} onPress={() => navigation.navigate('Login')} activeOpacity={0.85}>
-          <Text style={s.guestTxt}>👤 로그인하면 건강기록이 저장돼요</Text>
-          <Text style={s.guestBtn}>로그인 →</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* ══ 인사 카드 ══ */}
-      <View style={s.greetCard}>
-        <LumiCharacter size={80} />
+      {/* ══ 캐릭터 + 인사 (배경 위에 직접) ══ */}
+      <View style={s.charSection}>
+        <LumiCharacter size={110} />
         <View style={s.greetText}>
           <Text style={s.greetHello}>안녕하세요! 👋</Text>
           <Text style={s.greetName}>{name ? `${name}님` : '어서오세요'}</Text>
@@ -189,6 +181,14 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           )}
         </View>
       </View>
+
+      {/* 게스트 배너 */}
+      {isGuest && (
+        <TouchableOpacity style={s.guestBanner} onPress={() => navigation.navigate('Login')} activeOpacity={0.85}>
+          <Text style={s.guestTxt}>👤 로그인하면 건강기록이 저장돼요</Text>
+          <Text style={s.guestBtn}>로그인 →</Text>
+        </TouchableOpacity>
+      )}
 
       {/* ══ 4개 카드 ══ */}
       <View style={s.cardGrid}>
@@ -265,15 +265,11 @@ const s = StyleSheet.create({
   guestTxt: { fontSize: 13, fontWeight: '600', color: '#6B21B0', flex: 1 },
   guestBtn: { fontSize: 13, fontWeight: '800', color: '#6B21B0' },
 
-  /* ── 인사 카드 ── */
-  greetCard: {
+  /* ── 캐릭터 섹션 (박스 없음, 배경 위에 직접) ── */
+  charSection: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff',
-    marginHorizontal: 16, borderRadius: 24,
-    padding: 18, gap: 16, marginBottom: 14,
-    shadowColor: '#9B59D8', shadowOpacity: 0.10,
-    shadowRadius: 14, shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    paddingHorizontal: 20, paddingVertical: 16,
+    gap: 16,
   },
   greetText:  { flex: 1, gap: 3 },
   greetHello: { fontSize: 20, fontWeight: '900', color: '#2D1B4E' },
