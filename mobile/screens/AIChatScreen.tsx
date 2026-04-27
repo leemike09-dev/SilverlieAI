@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path } from 'react-native-svg';
-import { speak, speakSentences, stopSpeech } from '../utils/speech';
+import { speak, stopSpeech } from '../utils/speech';
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const API_URL = 'https://silverlieai.onrender.com';
@@ -158,13 +158,11 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [input,        setInput]        = useState('');
   const [loading,      setLoading]      = useState(false);
   const [isRecording,  setIsRecording]  = useState(false);
-  const [isSpeaking,   setIsSpeaking]   = useState(false);
   const [showEmergency,   setShowEmergency]   = useState(false);
   const [familyNotified,  setFamilyNotified]  = useState(false);
   const [memoState,    setMemoState]    = useState<'idle' | 'asking' | 'saved'>('idle');
   const [pendingMemo,  setPendingMemo]  = useState<string>('');
   const [toastMsg,     setToastMsg]     = useState('');
-  const [lastAiText,   setLastAiText]   = useState('');
   const [turnCount,    setTurnCount]    = useState(0);
   const [currentIntent, setCurrentIntent] = useState<Intent>('health');
   const [showCrisis,    setShowCrisis]    = useState(false);
@@ -176,8 +174,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const recognitionRef     = useRef<any>(null);
   const silenceTimerRef    = useRef<any>(null);
   const toastTimerRef      = useRef<any>(null);
-  const speakTimerRef      = useRef<any>(null);
-  const lastAiTextRef      = useRef('');
 
   const isWelcome = messages.length === 0 && !loading;
   const lastAiMsg = [...messages].reverse().find(m => m.role === 'ai');
@@ -190,19 +186,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
     fetchProactiveGreeting();
     return () => { stopSpeech(); };
   }, []);
-
-  // 새 AI 메시지 TTS (lastAiText 변경 시 1회 재생)
-  useEffect(() => {
-    if (!lastAiText || lastAiText === lastAiTextRef.current) return;
-    lastAiTextRef.current = lastAiText;
-    if (speakTimerRef.current) clearTimeout(speakTimerRef.current);
-    stopSpeech();
-    setIsSpeaking(true);
-    speakSentences(cleanForTTS(lastAiText));
-    const ms = Math.max(4000, lastAiText.length * 180);
-    speakTimerRef.current = setTimeout(() => setIsSpeaking(false), ms);
-    return () => { if (speakTimerRef.current) clearTimeout(speakTimerRef.current); };
-  }, [lastAiText]);
 
   // Render 콜드스타트 방지 Keep-alive (13분마다 ping)
   useEffect(() => {
@@ -247,21 +230,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   };
 
-  const stopSpeakingHandler = () => {
-    stopSpeech();
-    setIsSpeaking(false);
-    if (speakTimerRef.current) clearTimeout(speakTimerRef.current);
-  };
-
-  const replaySpeech = () => {
-    if (!lastAiMsg) return;
-    stopSpeakingHandler();
-    setIsSpeaking(true);
-    speakSentences(cleanForTTS(lastAiMsg.text));
-    const ms = Math.max(4000, lastAiMsg.text.length * 180);
-    speakTimerRef.current = setTimeout(() => setIsSpeaking(false), ms);
-  };
-
   const fetchProactiveGreeting = async () => {
     const today = new Date().toISOString().slice(0, 10);
     const [lastDate, cached] = await Promise.all([
@@ -303,7 +271,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
     const msg = (text ?? input).trim();
     if (!msg || loading) return;
     setInput('');
-    stopSpeakingHandler();
+    stopSpeech();
     if (memoState !== 'saved') setMemoState('idle');
 
     const detectedIntent = classifyIntent(msg, history);
@@ -313,7 +281,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       const emMsg = `${name}님, 지금 많이 불편하신가요? 걱정이 돼요. 아래 버튼으로 즉시 도움을 받으세요.`;
       addMsg({ role: 'user', text: msg });
       addMsg({ role: 'ai', text: emMsg, riskLevel: 'critical' });
-      setLastAiText(emMsg);
+      speak(cleanForTTS(emMsg));
       setShowEmergency(true);
       return;
     }
@@ -321,7 +289,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       const crisisMsg = `${name}님, 지금 많이 힘드신 거 느껴져요. 저 꿀비가 여기 있어요. 혼자 감당하지 않아도 돼요.`;
       addMsg({ role: 'user', text: msg });
       addMsg({ role: 'ai', text: crisisMsg });
-      setLastAiText(crisisMsg);
+      speak(cleanForTTS(crisisMsg));
       setShowCrisis(true);
     } else {
       addMsg({ role: 'user', text: msg });
@@ -385,14 +353,13 @@ export default function AIChatScreen({ route, navigation }: Props) {
                 next[next.length - 1] = { role: 'ai', text: cleanText, riskLevel, doctorMemoNeeded: dMemoNeeded, doctorMemo: dMemo };
                 return next;
               });
-              setLastAiText(cleanText);
               setHistory([...newHistory, { role: 'assistant', content: cleanText }]);
               setTurnCount(t => t + 1);
               if (riskLevel === 'critical') { setShowEmergency(true); if (data.sos_sent) setFamilyNotified(true); }
               if (memoState === 'idle' && ((isFinal && dMemo) || (dMemoNeeded && dMemo && ['medium','high','critical'].includes(riskLevel)))) {
                 setPendingMemo(dMemo!);
                 const mainMs = Math.max(4000, cleanText.length * 180);
-                setTimeout(() => { setMemoState('asking'); speak('병원 방문하실 때 의사 선생님께 드릴 메모를 작성해 드릴까요?', 0.85); }, mainMs + 600);
+                setTimeout(() => setMemoState('asking'), mainMs + 600);
               }
             }
           } catch {}
@@ -418,7 +385,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
   const sendForceSummary = async () => {
     if (loading || turnCount < 1) return;
-    stopSpeakingHandler();
+    stopSpeech();
     setMemoState('idle');
     addMsg({ role: 'user', text: '지금까지 내용을 요약해 주세요' });
     setLoading(true);
@@ -461,7 +428,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
               const dMemo: string | undefined = data.doctor_memo ?? undefined;
               const cleanText = stripEmoji(accumulated) || '요약 실패. 다시 시도해주세요.';
               setMessages(prev => { const next=[...prev]; next[next.length-1]={ role:'ai', text:cleanText, riskLevel, doctorMemoNeeded:true, doctorMemo:dMemo }; return next; });
-              setLastAiText(cleanText);
               setHistory(prev => [...prev, { role:'user', content:'요약 요청' }, { role:'assistant', content:cleanText }]);
               setTurnCount(t => t + 1);
               if (dMemo) {
@@ -619,28 +585,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
         {/* ── 메인 바디 ── */}
         <View style={s.body}>
 
-          {/* 상태 표시줄 */}
-          {(isSpeaking || (!loading && lastAiMsg)) && (
-            <View style={s.statusRow}>
-              {isSpeaking ? (
-                <>
-                  <Text style={s.statusTxt}>꿀비가 말하는 중</Text>
-                  <TouchableOpacity onPress={stopSpeakingHandler} style={s.speakCtrlBtn}>
-                    <Text style={s.speakCtrlTxt}>정지</Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  <View style={{ flex: 1 }} />
-                  <TouchableOpacity onPress={replaySpeech} style={s.speakCtrlBtn}>
-                    <Text style={s.speakCtrlTxt}>🔊 다시 듣기</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-          )}
-
-          {/* 위험 배너 */}
+                    {/* 위험 배너 */}
           {lastAiMsg?.riskLevel === 'critical' && (
             <TouchableOpacity style={s.bannerCritical} onPress={() => setShowEmergency(true)}>
               <Text style={s.bannerCriticalTxt}>즉시 119 또는 응급실이 필요합니다</Text>
@@ -816,13 +761,9 @@ const s = StyleSheet.create({
   body: { flex: 1, flexDirection: 'column', paddingHorizontal: 22, paddingTop: 10, paddingBottom: 6 },
 
   // 상태줄
-  statusRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginBottom: 10,
   },
-  statusTxt:    { fontSize: 20, fontWeight: '700', color: '#7B1FA2' },
-  speakCtrlBtn: { backgroundColor: '#EDE7F6', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 6 },
-  speakCtrlTxt: { fontSize: 18, color: '#7B1FA2', fontWeight: '700' },
 
   // 위험 배너
   bannerCritical: { backgroundColor: '#FFEBEE', borderRadius: 12, borderWidth: 2, borderColor: '#D32F2F',
