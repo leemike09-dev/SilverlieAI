@@ -108,7 +108,6 @@ export default function WeeklyReportScreen({ route, navigation }: any) {
         }
       }
     } catch (e) {
-      console.log('health history error:', e);
     } finally {
       setLoading(false);
     }
@@ -139,7 +138,6 @@ export default function WeeklyReportScreen({ route, navigation }: any) {
         setAiReport(d.data);
       }
     } catch (e) {
-      console.log('weekly report ai error:', e);
     } finally {
       setAiLoading(false);
     }

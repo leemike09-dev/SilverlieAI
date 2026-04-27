@@ -28,13 +28,6 @@ const RELATION_OPTIONS = [
   { key: 'other',    label: '기타',      emoji: '👤' },
 ];
 
-const DEMO_CONVERSATIONS = [
-  { partner_id: 'demo-son-1',    last_message: '아버지 오늘 점심은 드셨어요?', last_at: new Date().toISOString(), unread_count: 2 },
-  { partner_id: 'demo-daughter-1', last_message: '이번 주말에 방문할게요! 😊', last_at: new Date(Date.now() - 3600000).toISOString(), unread_count: 0 },
-];
-const DEMO_GOALS = [
-  { id: 'g1', goal_type: 'steps', target: 5000, period: 'daily', progress_pct: 84, created_by: 'demo-son-1' },
-];
 
 export default function FamilyDashboardScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -77,13 +70,13 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
         const cd = await cr.json();
         setConvs(cd.conversations || []);
       } else {
-        setConvs(DEMO_CONVERSATIONS);
+        setConvs([]);
       }
       if (gr.ok) {
         const gd = await gr.json();
-        setGoals(gd.goals || DEMO_GOALS);
+        setGoals(gd.goals || []);
       } else {
-        setGoals(DEMO_GOALS);
+        setGoals([]);
       }
       if (mr.ok) {
         const md = await mr.json();
@@ -100,8 +93,8 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
         }
       }
     } catch {
-      setConvs(DEMO_CONVERSATIONS);
-      setGoals(DEMO_GOALS);
+      setConvs([]);
+      setGoals([]);
     }
     setLoading(false);
   };

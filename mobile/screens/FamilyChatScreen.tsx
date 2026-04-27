@@ -25,12 +25,6 @@ const QUICK_REPLIES = [
   '밥 잘 먹었어요 🍚',
 ];
 
-const DEMO_MESSAGES = [
-  { sender_id: 'demo-son-1',  message: '아버지 오늘 점심은 드셨어요?', created_at: new Date(Date.now() - 3600000).toISOString() },
-  { sender_id: 'demo-user',   message: '응, 잘 먹었어! 오늘 날씨 좋더라', created_at: new Date(Date.now() - 3500000).toISOString() },
-  { sender_id: 'demo-son-1',  message: '다행이에요 :) 이번 주말에 방문할게요!', created_at: new Date(Date.now() - 3400000).toISOString() },
-  { sender_id: 'demo-user',   message: '그래, 기다릴게 😊', created_at: new Date(Date.now() - 3300000).toISOString() },
-];
 
 export default function FamilyChatScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -55,12 +49,12 @@ export default function FamilyChatScreen({ route, navigation }: any) {
       const r = await fetch(`${API}/family/messages/${userId}/${partnerId}`);
       if (r.ok) {
         const d = await r.json();
-        setMessages(d.messages || DEMO_MESSAGES);
+        setMessages(d.messages || []);
       } else {
-        setMessages(DEMO_MESSAGES);
+        setMessages([]);
       }
     } catch {
-      setMessages(DEMO_MESSAGES);
+      setMessages([]);
     }
     setLoading(false);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 100);
