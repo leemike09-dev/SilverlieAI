@@ -271,7 +271,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
     // 오늘 이미 인사했으면 캐시 표시만 (TTS 없음)
     if (lastDate === today && cached) {
-      fadeInMsg({ role: 'ai', text: cached });
+      addMsg({ role: 'ai', text: cached });
       return;
     }
 
@@ -611,7 +611,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       )}
 
       {/* 감정 공감 배너 */}
-      {currentIntent === 'emotional' && !loading && displayMsg.role === 'ai' && history.length > 0 && (
+      {currentIntent === 'emotional' && !loading && !!lastAiMsg && history.length > 0 && (
         <View style={s.emotionalBanner}>
           <Text style={s.emotionalBannerTxt}>꿀비가 마음으로 함께할게요</Text>
         </View>
@@ -709,7 +709,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
           )}
 
           {/* 빠른 질문 칩 (초기) */}
-          {turnCount >= 2 && !loading && memoState === 'idle' && displayMsg.role === 'ai' && (
+          {turnCount >= 2 && !loading && memoState === 'idle' && !!lastAiMsg && (
             <TouchableOpacity style={s.summaryBtn} onPress={sendForceSummary} activeOpacity={0.8}>
               <Text style={s.summaryBtnTxt}>지금 요약해줘</Text>
             </TouchableOpacity>

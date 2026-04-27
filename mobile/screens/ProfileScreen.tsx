@@ -18,10 +18,10 @@ const C = {
   reason:    '#E8EAF6',
 };
 
-const CHAT_OPTIONS      = ['\uc9e7\uace0 \ud575\uc2ec\ub9cc', '\uc790\uc138\ud558\uac8c'];
+const CHAT_OPTIONS      = ['짧고 핵심만', '자세하게'];
 const INTERESTS_OPTIONS = [
-  '\uac74\uac15\u00b7\uc6b4\ub3d9', '\uc694\ub9ac\u00b7\uc2dd\ub2e8', '\uc5ec\ud589', '\ub3c5\uc11c',
-  '\uc74c\uc545\u00b7\uc601\ud654', '\uc190\uc8fc\u00b7\uac00\uc871', '\uc885\uad50\u00b7\uba85\uc0c1', '\uc0ac\uad50\ubaa8\uc784',
+  '건강·운동', '요리·식단', '여행', '독서',
+  '음악·영화', '손주·가족', '종교·명상', '사교모임',
 ];
 
 export default function ProfileScreen({ navigation, route }: any) {
@@ -30,12 +30,12 @@ export default function ProfileScreen({ navigation, route }: any) {
   const [loading, setLoading] = useState(false);
   const [saving,  setSaving]  = useState(false);
 
-  // \uae30\ubcf8 \uc815\ubcf4
+  // 기본 정보
   const [name,   setName]   = useState(paramName || '');
   const [phone,  setPhone]  = useState('');
   const [region, setRegion] = useState('');
 
-  // AI \uc131\ud5a5
+  // AI 성향
   const [chatStyle, setChatStyle] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
 
@@ -67,7 +67,7 @@ export default function ProfileScreen({ navigation, route }: any) {
 
   const handleSave = async () => {
     if (!userId) {
-      Alert.alert('\uc54c\ub9bc', '\ub85c\uadf8\uc778 \ud6c4 \ud504\ub85c\ud544\uc744 \uc800\uc7a5\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.'); return;
+      Alert.alert('알림', '로그인 후 프로필을 저장할 수 있습니다.'); return;
     }
     setSaving(true);
     try {
@@ -85,14 +85,14 @@ export default function ProfileScreen({ navigation, route }: any) {
       });
       if (res.ok) {
         if (name.trim()) await AsyncStorage.setItem('userName', name.trim());
-        Alert.alert('\uc800\uc7a5 \uc644\ub8cc', '\ud504\ub85c\ud544\uc774 \uc800\uc7a5\ub418\uc5c8\uc2b5\ub2c8\ub2e4!', [
-          { text: '\ud655\uc778', onPress: () => navigation.goBack() },
+        Alert.alert('저장 완료', '프로필이 저장되었습니다!', [
+          { text: '확인', onPress: () => navigation.goBack() },
         ]);
       } else {
-        Alert.alert('\uc624\ub958', '\uc800\uc7a5\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.');
+        Alert.alert('오류', '저장에 실패했습니다.');
       }
     } catch {
-      Alert.alert('\uc624\ub958', '\uc11c\ubc84 \uc5f0\uacb0\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.');
+      Alert.alert('오류', '서버 연결에 실패했습니다.');
     } finally {
       setSaving(false);
     }
@@ -108,12 +108,12 @@ export default function ProfileScreen({ navigation, route }: any) {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      {/* \ud5e4\ub354 */}
+      {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backTxt}>\u2190 \ub4a4\ub85c</Text>
+          <Text style={styles.backTxt}>← 뒤로</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>\ub0b4 \ud504\ub85c\ud544</Text>
+        <Text style={styles.headerTitle}>내 프로필</Text>
         <View style={{ width: 60 }} />
       </View>
 
@@ -122,64 +122,64 @@ export default function ProfileScreen({ navigation, route }: any) {
           ? <ActivityIndicator size="large" color={C.indigo} style={{ marginTop: 60 }} />
           : (
           <>
-            {/* \uae30\ubcf8 \uc815\ubcf4 */}
-            <Text style={styles.sectionTitle}>\uae30\ubcf8 \uc815\ubcf4</Text>
+            {/* 기본 정보 */}
+            <Text style={styles.sectionTitle}>기본 정보</Text>
             <View style={styles.card}>
               <View style={styles.reasonBox}>
                 <Text style={styles.reasonTxt}>
-                  \U0001f4a1 \uc774\ub984\uacfc \uc5f0\ub77d\ucc98\ub294 \uac00\uc871 \uc5f0\uacb0\uacfc SOS \ub3c4\uc6c0 \uc694\uccad \uc2dc \uc0ac\uc6a9\ub429\ub2c8\ub2e4
+                  💡 이름과 연락처는 가족 연결과 SOS 도움 요청 시 사용됩니다
                 </Text>
               </View>
-              <Text style={styles.label}>\uc774\ub984</Text>
+              <Text style={styles.label}>이름</Text>
               <TextInput style={styles.input} value={name} onChangeText={setName}
-                placeholder="\uc774\ub984\uc744 \uc785\ub825\ud558\uc138\uc694" placeholderTextColor={C.sub} maxLength={20} />
-              <Text style={styles.label}>\uc804\ud654\ubc88\ud638</Text>
+                placeholder="이름을 입력하세요" placeholderTextColor={C.sub} maxLength={20} />
+              <Text style={styles.label}>전화번호</Text>
               <TextInput style={styles.input} value={phone} onChangeText={setPhone}
-                placeholder="\uc608: 010-1234-5678" placeholderTextColor={C.sub}
+                placeholder="예: 010-1234-5678" placeholderTextColor={C.sub}
                 keyboardType="phone-pad" maxLength={15} />
-              <Text style={styles.label}>\uac70\uc8fc \uc9c0\uc5ed</Text>
+              <Text style={styles.label}>거주 지역</Text>
               <TextInput style={styles.input} value={region} onChangeText={setRegion}
-                placeholder="\uc608: \uc11c\uc6b8 \uac15\ub0a8\uad6c" placeholderTextColor={C.sub} maxLength={20} />
+                placeholder="예: 서울 강남구" placeholderTextColor={C.sub} maxLength={20} />
             </View>
 
-            {/* AI \uc0c1\ub2f4 \uc124\uc815 */}
-            <Text style={styles.sectionTitle}>AI \uc0c1\ub2f4 \uc124\uc815</Text>
+            {/* AI 상담 설정 */}
+            <Text style={styles.sectionTitle}>AI 상담 설정</Text>
             <View style={styles.card}>
               <View style={styles.reasonBox}>
                 <Text style={styles.reasonTxt}>
-                  \U0001f4a1 \uad00\uc2ec\uc0ac\uc640 \ub300\ud654 \uc2a4\ud0c0\uc77c\uc744 \uc54c\uba74 \uaf2d\ube44\uac00 \ub354 \ub9de\uce68\ud615\uc73c\ub85c \ub300\ud654\ud560 \uc218 \uc788\uc5b4\uc694
+                  💡 관심사와 대화 스타일을 알면 꼭비가 더 맞침형으로 대화할 수 있어요
                 </Text>
               </View>
-              <Text style={styles.label}>AI \ub300\ud654 \uc2a4\ud0c0\uc77c</Text>
+              <Text style={styles.label}>AI 대화 스타일</Text>
               <View style={styles.chipRow}>
                 {CHAT_OPTIONS.map(c => renderChip(c, chatStyle === c, () => setChatStyle(c)))}
               </View>
-              <Text style={styles.label}>\uad00\uc2ec \ubd84\uc57c (\uc5ec\ub7ec \uac1c \uc120\ud0dd)</Text>
+              <Text style={styles.label}>관심 분야 (여러 개 선택)</Text>
               <View style={styles.chipRow}>
                 {INTERESTS_OPTIONS.map(i => renderChip(i, interests.includes(i), () => toggleInterest(i)))}
               </View>
             </View>
 
-            {/* \uac74\uac15 \ud504\ub85c\ud544 \uc548\ub0b4 */}
+            {/* 건강 프로필 안내 */}
             <TouchableOpacity
               style={styles.healthProfileBtn}
               onPress={() => navigation.navigate('HealthProfile', { userId })}
               activeOpacity={0.85}>
-              <Text style={styles.healthProfileIco}>\U0001f3e5</Text>
+              <Text style={styles.healthProfileIco}>🏥</Text>
               <View style={{ flex: 1 }}>
-                <Text style={styles.healthProfileTxt}>\uac74\uac15 \ud504\ub85c\ud544 \ud3b8\uc9d1</Text>
-                <Text style={styles.healthProfileSub}>\ub098\uc774\u00b7\ud0f4\u00b7\uccb4\uc911\u00b7\uc9c8\ud658\u00b7\uc54c\ub808\ub974\uae30 \ub4f1</Text>
+                <Text style={styles.healthProfileTxt}>건강 프로필 편집</Text>
+                <Text style={styles.healthProfileSub}>나이·탴·체중·질환·알레르기 등</Text>
               </View>
-              <Text style={styles.healthProfileArrow}>\u203a</Text>
+              <Text style={styles.healthProfileArrow}>›</Text>
             </TouchableOpacity>
 
-            {/* \uc800\uc7a5 \ubc84\ud2bc */}
+            {/* 저장 버튼 */}
             <TouchableOpacity
               style={[styles.saveBtn, saving && { opacity: 0.6 }]}
               onPress={handleSave} disabled={saving}>
               {saving
                 ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.saveTxt}>\uc800\uc7a5\ud558\uae30</Text>}
+                : <Text style={styles.saveTxt}>저장하기</Text>}
             </TouchableOpacity>
           </>
         )}
