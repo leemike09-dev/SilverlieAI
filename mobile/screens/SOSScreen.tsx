@@ -132,7 +132,7 @@ export default function SOSScreen({ navigation, route }: Props) {
   // 백엔드 푸시
   const notifyBackend = useCallback(() => {
     if (!userId) return;
-    fetch(`${API}/sos/push`, {
+    fetch(`${API}/notifications/sos-push`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: userId, name: name || '' }),
     }).catch(() => {});

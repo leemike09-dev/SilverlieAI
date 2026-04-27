@@ -6,6 +6,37 @@ from app.database import get_supabase
 router = APIRouter()
 
 
+class SOSPushRequest(BaseModel):
+    user_id: str
+    name: Optional[str] = ''
+
+
+@router.post("/sos-push")
+def sos_push(req: SOSPushRequest):
+    """SOS 발생 시 연결된 가족 전원의 알림함에 긴급 알림 기록."""
+    db = get_supabase()
+    try:
+        links = db.table("family_links").select("family_id").eq("senior_id", req.user_id).eq("status", "connected").execute()
+        family_ids = [r["family_id"] for r in (links.data or []) if r.get("family_id")]
+    except Exception:
+        family_ids = []
+
+    inserted = 0
+    for fid in family_ids:
+        try:
+            db.table("notifications").insert({
+                "user_id": fid,
+                "title":   f"🚨 {req.name or '사용자'}님 SOS 발생",
+                "body":    "앱에서 동선과 상태를 확인해주세요.",
+                "is_read": False,
+            }).execute()
+            inserted += 1
+        except Exception:
+            pass
+
+    return {"ok": True, "notified": inserted}
+
+
 class NotificationCreate(BaseModel):
     user_id: str
     title: str
