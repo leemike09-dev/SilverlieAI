@@ -269,11 +269,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
       AsyncStorage.getItem('ai_greeting_cache'),
     ]);
 
-    // 오늘 이미 인사했으면 캐시 표시만 (TTS 없음)
-    if (lastDate === today && cached) {
-      addMsg({ role: 'ai', text: cached });
-      return;
-    }
+    // 오늘 이미 인사했으면 조용히 넘김 (버블·TTS 없음, 퀵카드만 표시)
+    if (lastDate === today && cached) return;
 
     const fallback = getGreeting(name);
     const save = async (msg: string) => {
@@ -281,6 +278,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       await AsyncStorage.setItem('ai_greeting_cache', msg);
     };
 
+    // 첫 방문: TTS만 재생, 버블 없음 → messages 배열 비어 있어 퀵카드 유지
     if (!userId || userId === 'guest') {
       setTimeout(() => speak(cleanForTTS(fallback), 0.85), 600);
       await save(fallback);
