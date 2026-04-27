@@ -100,12 +100,13 @@ export default function OnboardingScreen({ navigation }: Props) {
           <Text style={s.btnTxt}>{idx < SLIDES.length - 1 ? '다음' : '시작하기'}</Text>
         </TouchableOpacity>
 
-        {/* 건너뛰기 */}
-        {idx < SLIDES.length - 1 && (
-          <TouchableOpacity onPress={async () => { await AsyncStorage.setItem('onboarding_seen', 'true'); navigation.replace('Login'); }}>
-            <Text style={s.skip}>건너뛰기</Text>
-          </TouchableOpacity>
-        )}
+        {/* 건너뛰기 — 마지막 슬라이드도 동일 높이 유지 */}
+        <TouchableOpacity
+          onPress={async () => { await AsyncStorage.setItem('onboarding_seen', 'true'); navigation.replace('Login'); }}
+          disabled={idx >= SLIDES.length - 1}
+        >
+          <Text style={[s.skip, idx >= SLIDES.length - 1 && { opacity: 0 }]}>건너뛰기</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
