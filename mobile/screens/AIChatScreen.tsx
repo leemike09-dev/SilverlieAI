@@ -153,7 +153,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const recognitionRef  = useRef<any>(null);
   const silenceTimerRef = useRef<any>(null);
   const toastTimerRef   = useRef<any>(null);
-  const speakTimerRef   = useRef<any>(null);
+  const speakTimerRef      = useRef<any>(null);
+  const finalTranscriptRef = useRef<string>('');
   const isWelcome = history.length === 0 && !loading;
 
   // 초기 선제적 인사 + 건강프로필 로드
@@ -415,13 +416,14 @@ export default function AIChatScreen({ route, navigation }: Props) {
     recognition.onstart = () => setIsRecording(true);
     recognition.onend   = () => setIsRecording(false);
     recognition.onerror = () => setIsRecording(false);
+    finalTranscriptRef.current = '';
     recognition.onresult = (e: any) => {
-      let final = '', interim = '';
-      for (let i = 0; i < e.results.length; i++) {
-        if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finalTranscriptRef.current += e.results[i][0].transcript;
         else interim += e.results[i][0].transcript;
       }
-      const combined = (final + interim).trim();
+      const combined = (finalTranscriptRef.current + interim).trim();
       if (combined) setInput(combined);
       if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = setTimeout(stopVoice, 1500);
@@ -561,10 +563,10 @@ export default function AIChatScreen({ route, navigation }: Props) {
             </View>
           )}
 
-          {/* 메시지 텍스트 */}
-          {(loading || displayMsg.text !== '') ? (
+          {/* 메시지 텍스트 — 웰컴(카드) 상태에서는 숨김 */}
+          {!isWelcome && (loading || displayMsg.text !== '') ? (
             <ScrollView
-              style={[s.msgScroll, isWelcome && s.msgScrollWelcome]}
+              style={s.msgScroll}
               contentContainerStyle={s.msgContent}
               showsVerticalScrollIndicator={false}
             >
