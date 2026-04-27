@@ -13,9 +13,7 @@ const { width } = Dimensions.get('window');
 const CARD_GAP = 12;
 const CARD_W   = (width - 32 - CARD_GAP) / 2;
 
-// ── 캐릭터 이미지 준비되면 여기만 교체 ──
-// const LUMI_IMG = require('../assets/lumi_character.png');
-const LUMI_IMG = null;
+const LUMI_IMG = require('../assets/lumi8.png');
 
 function LumiCharacter({ size = 80 }: { size?: number }) {
   if (LUMI_IMG) {
