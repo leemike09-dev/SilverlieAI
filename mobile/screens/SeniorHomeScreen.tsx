@@ -1,15 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Image,
+  View, Text, TouchableOpacity, StyleSheet,
   Platform, StatusBar, Dimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { speak, stopSpeech } from '../utils/speech';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SeniorTabBar from '../components/SeniorTabBar';
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const lumiChar = require('../assets/lumi1.png') as number;
 
 const API = 'https://silverlieai.onrender.com';
 const { width } = Dimensions.get('window');
@@ -120,16 +117,16 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   const greeting = hour < 12 ? '좋은 아침이에요 ☀️' : hour < 18 ? '좋은 오후예요 🌤️' : '좋은 저녁이에요 🌙';
   const isGuest  = !userId || userId === 'guest';
 
-  const headerBg: any = Platform.OS === 'web'
-    ? { background: 'linear-gradient(160deg, #6A1B9A 0%, #AB47BC 100%)' }
-    : { backgroundColor: '#7B2FBE' };
+  const topBg: any = Platform.OS === 'web'
+    ? { background: 'linear-gradient(160deg, #5B1FA2 0%, #9B59D0 100%)' }
+    : { backgroundColor: '#6B24B8' };
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#6A1B9A" />
+      <StatusBar barStyle="light-content" backgroundColor="#5B1FA2" />
 
-      {/* ══ 루미 캐릭터 헤더 ══ */}
-      <View style={[s.lumiHeader, headerBg, { paddingTop: Math.max(insets.top + 10, 24) }]}>
+      {/* ══ 루미 캐릭터 섹션 ══ */}
+      <View style={[s.topSection, topBg, { paddingTop: Math.max(insets.top + 16, 32) }]}>
 
         {/* 설정 버튼 */}
         <TouchableOpacity
@@ -140,20 +137,23 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           <Text style={s.settingIco}>⚙️</Text>
         </TouchableOpacity>
 
-        {/* 루미 캐릭터 이미지 */}
-        <View style={s.lumiImgWrap}>
-          <Image source={lumiChar} style={s.lumiImg} resizeMode="cover" />
+        {/* 루미 캐릭터 */}
+        <View style={s.lumiOrbOuter}>
+          <View style={s.lumiOrbMid}>
+            <View style={s.lumiOrbInner}>
+              <Text style={s.lumiOrbEmoji}>✨</Text>
+            </View>
+          </View>
         </View>
 
-        {/* 인사말 */}
-        <View style={s.lumiGreetWrap}>
-          <Text style={s.lumiName}>루미</Text>
-          <Text style={s.lumiGreet}>안녕하세요!</Text>
-          <Text style={s.lumiSub}>{name ? `${name}님, ` : ''}{greeting}</Text>
-          {locationStatus === 'sharing' && (
-            <Text style={s.locBadge}>🟢 위치 공유 중</Text>
-          )}
-        </View>
+        {/* 이름 + 인사 */}
+        <Text style={s.lumiLabel}>루미</Text>
+        <Text style={s.lumiGreet}>
+          {name ? `${name}님, ` : ''}{greeting}
+        </Text>
+        {locationStatus === 'sharing' && (
+          <Text style={s.locBadge}>🟢 위치 공유 중</Text>
+        )}
 
       </View>
 
@@ -171,33 +171,27 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         {/* ── 메인 4개 카드 ── */}
         <View style={s.cardGrid}>
 
-          {/* 내 위치 */}
           <TouchableOpacity style={[s.card, s.cardBlue]} onPress={goLocationMap} activeOpacity={0.85}>
             <Text style={s.cardEmoji}>📍</Text>
             <Text style={s.cardLabel}>내 위치</Text>
-            <Text style={s.cardSub}>
-              {steps !== null ? `${steps.toLocaleString()} 걸음` : '오늘 동선 확인'}
-            </Text>
+            <Text style={s.cardSub}>{steps !== null ? `${steps.toLocaleString()} 걸음` : '동선 확인'}</Text>
           </TouchableOpacity>
 
-          {/* 건강 체크 */}
-          <TouchableOpacity style={[s.card, s.cardGreen]}
+          <TouchableOpacity style={[s.card, s.cardTeal]}
             onPress={() => navigation.navigate('Health', { userId, name })} activeOpacity={0.85}>
             <Text style={s.cardEmoji}>🏥</Text>
             <Text style={s.cardLabel}>건강 체크</Text>
             <Text style={s.cardSub}>혈압·혈당·체온</Text>
           </TouchableOpacity>
 
-          {/* AI 상담 */}
-          <TouchableOpacity style={[s.card, s.cardPurple]}
+          <TouchableOpacity style={[s.card, s.cardViolet]}
             onPress={() => navigation.navigate('AIChat', { userId, name })} activeOpacity={0.85}>
             <Text style={s.cardEmoji}>✨</Text>
             <Text style={s.cardLabel}>AI 상담</Text>
             <Text style={s.cardSub}>루미와 대화하기</Text>
           </TouchableOpacity>
 
-          {/* 보호자 */}
-          <TouchableOpacity style={[s.card, s.cardOrange]}
+          <TouchableOpacity style={[s.card, s.cardCoral]}
             onPress={() => navigation.navigate('ImportantContacts', { userId })} activeOpacity={0.85}>
             <Text style={s.cardEmoji}>👨‍👩‍👧</Text>
             <Text style={s.cardLabel}>보호자</Text>
@@ -225,88 +219,92 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F5F0FF' },
+  root: { flex: 1, backgroundColor: '#F0EBF8' },
 
-  /* ── 루미 헤더 ── */
-  lumiHeader: {
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    flexDirection: 'row',
+  /* ── 루미 섹션 ── */
+  topSection: {
     alignItems: 'center',
-    gap: 16,
-    position: 'relative',
+    paddingHorizontal: 24,
+    paddingBottom: 28,
   },
   settingBtn: {
     position: 'absolute',
     top: 16, right: 16,
-    zIndex: 10,
-    padding: 6,
+    zIndex: 10, padding: 8,
   },
-  settingIco: { fontSize: 28 },
+  settingIco: { fontSize: 26 },
 
-  lumiImgWrap: {
-    width: 100, height: 100,
+  /* 루미 글로우 오브 */
+  lumiOrbOuter: {
+    width: 110, height: 110, borderRadius: 55,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#fff',
+    shadowOpacity: 0.5, shadowRadius: 24,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 10,
+    marginBottom: 10,
   },
-  lumiImg: { width: 100, height: 100 },
+  lumiOrbMid: {
+    width: 86, height: 86, borderRadius: 43,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
+  lumiOrbInner: {
+    width: 64, height: 64, borderRadius: 32,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  lumiOrbEmoji: { fontSize: 34 },
 
-  lumiGreetWrap: { flex: 1 },
-  lumiName:  { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: 1, marginBottom: 2 },
-  lumiGreet: { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 2 },
-  lumiSub:   { fontSize: 16, color: 'rgba(255,255,255,0.85)', fontWeight: '500', flexWrap: 'wrap' },
-  locBadge:  { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
+  lumiLabel: { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: 2, marginBottom: 6 },
+  lumiGreet: { fontSize: 22, fontWeight: '700', color: '#fff', textAlign: 'center' },
+  locBadge:  { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 6 },
 
   /* ── 게스트 배너 ── */
-  guestBanner:    { backgroundColor: '#FF8F00', flexDirection: 'row', alignItems: 'center',
-                    justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 12 },
-  guestBannerTxt: { fontSize: 16, fontWeight: '600', color: '#fff', flex: 1 },
-  guestBannerBtn: { fontSize: 16, fontWeight: '800', color: '#fff', marginLeft: 10 },
+  guestBanner:    { backgroundColor: '#E65100', flexDirection: 'row', alignItems: 'center',
+                    justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 11 },
+  guestBannerTxt: { fontSize: 15, fontWeight: '600', color: '#fff', flex: 1 },
+  guestBannerBtn: { fontSize: 15, fontWeight: '800', color: '#fff', marginLeft: 10 },
 
   /* ── 본문 ── */
   body: { flex: 1, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8, gap: 14 },
 
-  /* ── 4개 카드 그리드 ── */
+  /* ── 4개 카드 ── */
   cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: CARD_GAP },
-
   card: {
-    width: CARD_W,
-    borderRadius: 22,
-    paddingVertical: 22,
-    paddingHorizontal: 16,
-    alignItems: 'flex-start',
-    shadowColor: '#000',
-    shadowOpacity: 0.13,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
-    gap: 6,
+    width: CARD_W, borderRadius: 20,
+    paddingVertical: 20, paddingHorizontal: 16,
+    shadowColor: '#000', shadowOpacity: 0.12,
+    shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
+    elevation: 5, gap: 6,
   },
-  cardBlue:   { backgroundColor: '#29B6F6' },
-  cardGreen:  { backgroundColor: '#43A047' },
-  cardPurple: { backgroundColor: '#8E24AA' },
-  cardOrange: { backgroundColor: '#FB8C00' },
 
-  cardEmoji: { fontSize: 36, marginBottom: 4 },
-  cardLabel: { fontSize: 22, fontWeight: '900', color: '#fff' },
-  cardSub:   { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.85)' },
+  /* 정제된 카드 색상 — Lumi 팔레트 기반 */
+  cardBlue:   { backgroundColor: '#3A7BD5' },   /* 딥 스카이 블루 */
+  cardTeal:   { backgroundColor: '#2A9D8F' },   /* 세이지 틸 */
+  cardViolet: { backgroundColor: '#7B5EA7' },   /* 소프트 바이올렛 */
+  cardCoral:  { backgroundColor: '#E07850' },   /* 웜 코랄 */
 
-  /* ── 응급 도움 카드 ── */
+  cardEmoji: { fontSize: 34, marginBottom: 2 },
+  cardLabel: { fontSize: 21, fontWeight: '900', color: '#fff' },
+  cardSub:   { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.82)' },
+
+  /* ── 응급 카드 ── */
   sosCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E53935',
-    borderRadius: 22,
-    paddingVertical: 20,
-    paddingHorizontal: 22,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#C0392B',
+    borderRadius: 20, paddingVertical: 18, paddingHorizontal: 22,
     gap: 16,
-    shadowColor: '#C62828',
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 5 },
+    shadowColor: '#C0392B', shadowOpacity: 0.35,
+    shadowRadius: 12, shadowOffset: { width: 0, height: 5 },
     elevation: 7,
   },
-  sosEmoji:   { fontSize: 40 },
+  sosEmoji:   { fontSize: 38 },
   sosTxtWrap: { flex: 1 },
-  sosLabel:   { fontSize: 26, fontWeight: '900', color: '#fff' },
-  sosSub:     { fontSize: 15, fontWeight: '600', color: 'rgba(255,255,255,0.85)', marginTop: 2 },
-  sosArrow:   { fontSize: 36, color: 'rgba(255,255,255,0.7)', fontWeight: '300' },
+  sosLabel:   { fontSize: 24, fontWeight: '900', color: '#fff' },
+  sosSub:     { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+  sosArrow:   { fontSize: 34, color: 'rgba(255,255,255,0.65)' },
 });
