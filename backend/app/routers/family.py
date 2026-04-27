@@ -20,6 +20,80 @@ class JoinRequest(BaseModel):
 class FamilyStatus(BaseModel):
     senior_id: str
 
+class ConnectRequest(BaseModel):
+    myUserId: str
+    code: str
+
+class RelationRequest(BaseModel):
+    userId: str
+    targetUserId: str
+    relation: str
+
+@router.get("/mycode/{user_id}")
+def get_my_code(user_id: str):
+    """Generate or retrieve this user's family link code (for FamilyConnectScreen)"""
+    db = get_supabase()
+    existing = db.table("family_links") \
+        .select("link_code") \
+        .eq("senior_id", user_id) \
+        .eq("status", "pending") \
+        .execute()
+    if existing.data:
+        return {"code": existing.data[0]["link_code"]}
+    user_row = db.table("users").select("name").eq("id", user_id).execute()
+    senior_name = user_row.data[0]["name"] if user_row.data else "사용자"
+    chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    code = ''.join(random.choices(chars, k=3)) + '-' + ''.join(random.choices(chars, k=4))
+    db.table("family_links").insert({
+        "senior_id": user_id,
+        "senior_name": senior_name,
+        "link_code": code,
+        "status": "pending",
+    }).execute()
+    return {"code": code}
+
+@router.post("/connect")
+def connect_family(req: ConnectRequest):
+    """Connect using a link code — frontend-compatible wrapper around /join"""
+    db = get_supabase()
+    code = req.code.strip().upper()
+    link = db.table("family_links").select("*").eq("link_code", code).execute()
+    if not link.data:
+        raise HTTPException(status_code=404, detail="유효하지 않은 코드입니다")
+    row = link.data[0]
+    if row["status"] == "linked":
+        raise HTTPException(status_code=400, detail="이미 연결된 코드입니다")
+    user_row = db.table("users").select("name").eq("id", req.myUserId).execute()
+    family_name = user_row.data[0]["name"] if user_row.data else "가족"
+    db.table("family_links") \
+        .update({"family_id": req.myUserId, "family_name": family_name, "status": "linked"}) \
+        .eq("link_code", code) \
+        .execute()
+    return {
+        "ok": True,
+        "targetUserId": row["senior_id"],
+        "userId": row["senior_id"],
+        "name": row.get("senior_name", "가족"),
+        "phone": "",
+    }
+
+@router.post("/relation")
+def save_relation(req: RelationRequest):
+    """Save relation label for a family link (requires 003_family_links_relation.sql migration)"""
+    db = get_supabase()
+    try:
+        db.table("family_links") \
+            .update({"relation": req.relation}) \
+            .or_(
+                f"and(senior_id.eq.{req.targetUserId},family_id.eq.{req.userId}),"
+                f"and(senior_id.eq.{req.userId},family_id.eq.{req.targetUserId})"
+            ) \
+            .execute()
+    except Exception:
+        pass
+    return {"ok": True}
+
+
 @router.post("/generate-code")
 def generate_code(req: LinkRequest):
     db = get_supabase()

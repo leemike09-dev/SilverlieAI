@@ -66,9 +66,10 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
   const fetchData = async (uid: string) => {
     setLoading(true);
     try {
-      const [cr, gr] = await Promise.all([
+      const [cr, gr, mr] = await Promise.all([
         fetch(`${API}/family/messages/${uid}`),
         fetch(`${API}/family/goals/${uid}`),
+        fetch(`${API}/family/members/${uid}`),
       ]);
       if (cr.ok) {
         const cd = await cr.json();
@@ -81,6 +82,20 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
         setGoals(gd.goals || DEMO_GOALS);
       } else {
         setGoals(DEMO_GOALS);
+      }
+      if (mr.ok) {
+        const md = await mr.json();
+        const serverMembers: any[] = md.members || [];
+        if (serverMembers.length > 0) {
+          const stored = await AsyncStorage.getItem('family_members');
+          const local: any[] = stored ? JSON.parse(stored) : [];
+          const merged = serverMembers.map((sm: any) => {
+            const lm = local.find((l: any) => l.id === sm.id);
+            return { ...sm, relation: lm?.relation || sm.relation || '' };
+          });
+          setMembers(merged);
+          await AsyncStorage.setItem('family_members', JSON.stringify(merged));
+        }
       }
     } catch {
       setConvs(DEMO_CONVERSATIONS);
