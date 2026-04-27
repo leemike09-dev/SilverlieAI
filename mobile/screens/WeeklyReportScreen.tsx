@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Platform, StatusBar, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, StatusBar, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SeniorTabBar from '../components/SeniorTabBar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const API = 'https://silverlieai.onrender.com';
 const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
@@ -68,6 +69,7 @@ function bpTrend(vals: number[]): { arrow: string; color: string } {
 
 export default function WeeklyReportScreen({ route, navigation }: any) {
   const { name = '', userId: paramId = '' } = route?.params ?? {};
+  const insets = useSafeAreaInsets();
   const [userId, setUserId] = useState(paramId);
   const [records, setRecords]   = useState<any[]>([]);
   const [aiReport, setAiReport] = useState<any>(null);
@@ -116,7 +118,9 @@ export default function WeeklyReportScreen({ route, navigation }: any) {
     setAiLoading(true);
     try {
       const userName = (await AsyncStorage.getItem('userName')) || name || '회원';
-      const userAge  = 70; // TODO: 프로필에서 가져오기
+      const hpRaw    = await AsyncStorage.getItem('health_profile');
+      const hp       = hpRaw ? JSON.parse(hpRaw) : {};
+      const userAge  = hp.age ? Number(hp.age) : 70;
       const weeklyData = recs.map(r => ({
         date: r.date,
         steps: r.steps || null,
@@ -182,7 +186,7 @@ export default function WeeklyReportScreen({ route, navigation }: any) {
   return (
     <View style={[styles.safe, { flex: 1 }]}>
       <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top + 10, 24) }]}>
         <Text style={styles.title}>7일 건강 리포트</Text>
         <Text style={styles.sub}>
           {dateRange || '기록 없음'}{avgScore > 0 ? ` · 평균 ${avgScore}점` : ''}
@@ -404,9 +408,7 @@ export default function WeeklyReportScreen({ route, navigation }: any) {
 
 const styles = StyleSheet.create({
   safe:       { flex: 1, backgroundColor: BG },
-  header:     { backgroundColor: '#1A4A8A', padding: 18,
-                paddingTop: Platform.OS === 'web' ? 20 : (StatusBar.currentHeight ?? 28) + 8,
-                paddingBottom: 16 },
+  header:     { backgroundColor: '#1A4A8A', padding: 18, paddingBottom: 16 },
   title:      { fontSize: 26, fontWeight: '800', color: '#fff' },
   sub:        { fontSize: 16, color: 'rgba(255,255,255,0.75)', marginTop: 4 },
 
