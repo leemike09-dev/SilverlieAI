@@ -7,44 +7,29 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const KAKAO_CLIENT_ID  = 'c102ef257f29dfc4ca9f2062a0c1442d';
-const NAVER_CLIENT_ID  = 'YOUR_NAVER_CLIENT_ID';
-const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID';
 const REDIRECT_BASE    = 'https://leemike09-dev.github.io/SilverlieAI/';
 const BACKEND          = 'https://silverlieai.onrender.com';
 
 const PROVIDERS = [
-  { key: 'kakao',  label: '카카오',  icon: '💬', bg: '#FEE500', color: '#3C1E1E', border: '#E6D200' },
-  { key: 'naver',  label: '네이버',  icon: '🟢', bg: '#03C75A', color: '#FFFFFF', border: '#02A84A' },
-  { key: 'apple',  label: 'Apple',   icon: '🍎', bg: '#000000', color: '#FFFFFF', border: '#333333' },
-  { key: 'google', label: 'Google',  icon: '🔵', bg: '#FFFFFF', color: '#444444', border: '#DADCE0' },
+  { key: 'kakao', label: '카카오', icon: '💬', bg: '#FEE500', color: '#3C1E1E', border: '#E6D200' },
 ];
 
-function getOAuthUrl(key: string, mode: 'login' | 'register') {
-  const state = key + '_' + mode;
-  if (key === 'kakao')  return 'https://kauth.kakao.com/oauth/authorize?client_id=' + KAKAO_CLIENT_ID + '&redirect_uri=' + encodeURIComponent(REDIRECT_BASE) + '&response_type=code&state=' + state;
-  if (key === 'naver')  return 'https://nid.naver.com/oauth2.0/authorize?client_id=' + NAVER_CLIENT_ID + '&redirect_uri=' + encodeURIComponent(REDIRECT_BASE) + '&response_type=code&state=' + state;
-  if (key === 'apple')  return 'https://appleid.apple.com/auth/authorize?client_id=' + REDIRECT_BASE + '&redirect_uri=' + encodeURIComponent(REDIRECT_BASE) + '&response_type=code id_token&scope=name email&response_mode=form_post';
-  if (key === 'google') return 'https://accounts.google.com/o/oauth2/v2/auth?client_id=' + GOOGLE_CLIENT_ID + '&redirect_uri=' + encodeURIComponent(REDIRECT_BASE) + '&response_type=code&scope=openid email profile&state=' + state;
-  return '';
+function getOAuthUrl(mode: 'login' | 'register') {
+  const state = 'kakao_' + mode;
+  return 'https://kauth.kakao.com/oauth/authorize?client_id=' + KAKAO_CLIENT_ID + '&redirect_uri=' + encodeURIComponent(REDIRECT_BASE) + '&response_type=code&state=' + state;
 }
 
 export default function LoginScreen({ navigation }: any) {
   const [mode,    setMode]    = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState<string | null>(null);
 
-  const handleSocial = async (key: string) => {
-    if (key === 'naver' || key === 'apple' || key === 'google') {
-      alert('카카오 또는 이메일 로그인을 사용해 주세요.');
-      return;
-    }
-    setLoading(key);
+  const handleKakao = async () => {
+    setLoading('kakao');
     try {
-      const url = getOAuthUrl(key, mode);
-      if (!url) { setLoading(null); return; }
+      const url = getOAuthUrl(mode);
       if (Platform.OS === 'web') {
-        fetch(BACKEND + '/').catch(() => {}); // 서버 웨이크업 — 카카오 인증 동안 백엔드 예열
+        fetch(BACKEND + '/').catch(() => {}); // 서버 웨이크업
         (window as any).location.href = url;
-        // 리다이렉트 후 페이지가 떠나므로 loading은 자동 해제됨
       } else {
         await WebBrowser.openBrowserAsync(url);
         setLoading(null);
@@ -88,7 +73,7 @@ export default function LoginScreen({ navigation }: any) {
             <TouchableOpacity
               key={p.key}
               style={[s.card, { backgroundColor: p.bg, borderColor: p.border }]}
-              onPress={() => handleSocial(p.key)}
+              onPress={handleKakao}
               activeOpacity={0.82}
               disabled={loading !== null}
             >
