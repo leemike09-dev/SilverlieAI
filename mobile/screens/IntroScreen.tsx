@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Image,
+  View, Text, StyleSheet, TouchableOpacity,
   Animated, Platform, Dimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,10 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VideoView, useVideoPlayer } from 'expo-video';
 
 const { width, height } = Dimensions.get('window');
-
-const webBgSource = Platform.OS === 'web'
-  ? { uri: 'https://raw.githubusercontent.com/leemike09-dev/SilverlieAI/main/mobile/assets/lumi.png' }
-  : require('../assets/lumi.png');
+const isNative = Platform.OS !== 'web';
 
 export default function IntroScreen({ navigation }: any) {
   const insets      = useSafeAreaInsets();
@@ -19,14 +16,14 @@ export default function IntroScreen({ navigation }: any) {
   const vid1Opacity = useRef(new Animated.Value(1)).current;
   const vid2Opacity = useRef(new Animated.Value(0)).current;
 
-  const player1 = useVideoPlayer(
-    Platform.OS !== 'web' ? require('../assets/lumi3.mp4') : null,
-    p => { p.muted = true; p.loop = false; }
-  );
-  const player2 = useVideoPlayer(
-    Platform.OS !== 'web' ? require('../assets/lumi4.mp4') : null,
-    p => { p.muted = true; p.loop = true; }
-  );
+  const player1 = useVideoPlayer(require('../assets/lumi3.mp4'), p => {
+    p.muted = true;
+    p.loop  = false;
+  });
+  const player2 = useVideoPlayer(require('../assets/lumi4.mp4'), p => {
+    p.muted = true;
+    p.loop  = true;
+  });
 
   const handleLogin = async () => {
     await AsyncStorage.setItem('onboarding_seen', '1');
@@ -36,20 +33,17 @@ export default function IntroScreen({ navigation }: any) {
   const handleGuest = () => navigation.replace('SeniorHome', { userId: 'guest', name: '게스트' });
 
   useEffect(() => {
-    // 콘텐츠 페이드인
-    Animated.timing(fadeAnim, { toValue: 1, duration: 900, useNativeDriver: true }).start();
+    Animated.timing(fadeAnim, {
+      toValue: 1, duration: 900, useNativeDriver: isNative,
+    }).start();
 
-    if (Platform.OS === 'web') return;
-
-    // 영상 1 재생
     player1.play();
 
-    // 영상 1 종료 → 크로스페이드 → 영상 2
     const sub = player1.addListener('playToEnd', () => {
       player2.play();
       Animated.parallel([
-        Animated.timing(vid1Opacity, { toValue: 0, duration: 1500, useNativeDriver: true }),
-        Animated.timing(vid2Opacity, { toValue: 1, duration: 1500, useNativeDriver: true }),
+        Animated.timing(vid1Opacity, { toValue: 0, duration: 1500, useNativeDriver: isNative }),
+        Animated.timing(vid2Opacity, { toValue: 1, duration: 1500, useNativeDriver: isNative }),
       ]).start();
     });
 
@@ -59,29 +53,23 @@ export default function IntroScreen({ navigation }: any) {
   return (
     <View style={s.root}>
 
-      {/* ── 배경 ── */}
-      {Platform.OS !== 'web' ? (
-        <>
-          <Animated.View style={[StyleSheet.absoluteFill, { opacity: vid1Opacity }]}>
-            <VideoView
-              player={player1}
-              style={s.video}
-              contentFit="cover"
-              nativeControls={false}
-            />
-          </Animated.View>
-          <Animated.View style={[StyleSheet.absoluteFill, { opacity: vid2Opacity }]}>
-            <VideoView
-              player={player2}
-              style={s.video}
-              contentFit="cover"
-              nativeControls={false}
-            />
-          </Animated.View>
-        </>
-      ) : (
-        <Image source={webBgSource} style={s.webBg} resizeMode="cover" />
-      )}
+      {/* ── 배경 영상 ── */}
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: vid1Opacity }]}>
+        <VideoView
+          player={player1}
+          style={s.video}
+          contentFit="cover"
+          nativeControls={false}
+        />
+      </Animated.View>
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: vid2Opacity }]}>
+        <VideoView
+          player={player2}
+          style={s.video}
+          contentFit="cover"
+          nativeControls={false}
+        />
+      </Animated.View>
 
       {/* 어두운 오버레이 */}
       <View style={s.overlay} />
@@ -119,10 +107,8 @@ export default function IntroScreen({ navigation }: any) {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000' },
-
-  video:  { width, height },
-  webBg:  { ...StyleSheet.absoluteFillObject, width: '100%' as any, height: '100%' as any },
+  root:    { flex: 1, backgroundColor: '#000' },
+  video:   { width, height },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -200,6 +186,6 @@ const s = StyleSheet.create({
     elevation: 6,
   },
   startBtnTxt: { color: '#fff', fontSize: 26, fontWeight: '800' },
-  guestBtn: { alignItems: 'center', paddingVertical: 10 },
+  guestBtn:    { alignItems: 'center', paddingVertical: 10 },
   guestBtnTxt: { fontSize: 18, color: 'rgba(255,255,255,0.65)' },
 });
