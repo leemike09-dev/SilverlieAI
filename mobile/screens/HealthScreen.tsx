@@ -4,6 +4,7 @@ import {
   StatusBar, Platform, TextInput, Alert, ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const BLUE    = '#1A4A8A';
@@ -48,6 +49,7 @@ const STATUS_BG:    Record<string, string> = { normal: LGREEN, caution: LORANGE,
 const todayKey = () => new Date().toISOString().slice(0, 10);
 
 export default function HealthScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const [userId, setUserId] = useState('');
   const [uname,  setUname]  = useState('');
   const [tab,    setTab]    = useState<'input' | 'history'>('input');
@@ -186,14 +188,13 @@ export default function HealthScreen({ navigation }: any) {
 
   const stepsGoal = 8000;
   const stepsPct  = steps ? Math.min(Number(steps) / stepsGoal, 1) : 0;
-  const PT = Platform.OS === 'ios' ? 54 : 32;
 
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={BLUE} />
 
       {/* ── 헤더 ── */}
-      <View style={[s.header, { paddingTop: PT }]}>
+      <View style={[s.header, { paddingTop: Math.max(insets.top + 14, 28) }]}>
         <View style={s.headerTopRow}>
           <View>
             <Text style={s.headerTitle}>📊 건강 기록</Text>

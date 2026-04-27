@@ -4,6 +4,7 @@ import {
   StatusBar, Platform, TextInput, Modal, Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SeniorTabBar from '../components/SeniorTabBar';
 import { scheduleMedNotification, cancelMedNotification } from '../utils/notifications';
 import { speak } from '../utils/speech';
@@ -26,6 +27,7 @@ const STORAGE_KEY = 'medications';
 const EMPTY_FORM  = { name: '', dosage: '', method: '', timeSlot: 'morning', stock: '' };
 
 export default function MedicationScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const [userId,   setUserId]   = useState('');
   const [uname,    setUname]    = useState('');
   const [meds,     setMeds]     = useState<any[]>([]);
@@ -162,14 +164,13 @@ export default function MedicationScreen({ navigation }: any) {
   const taken = meds.filter(m => m.taken).length;
   const pct   = total > 0 ? Math.round((taken / total) * 100) : 0;
 
-  const PT = Platform.OS === 'ios' ? 54 : 32;
 
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={GREEN} />
 
       {/* ── 헤더 ── */}
-      <View style={[s.header, { paddingTop: PT }]}>
+      <View style={[s.header, { paddingTop: Math.max(insets.top + 14, 28) }]}>
         <View style={s.headerRow}>
           <View>
             <Text style={s.headerTitle}>💊 약 관리</Text>

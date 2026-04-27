@@ -5,6 +5,7 @@ import {
   ActivityIndicator, Platform, ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const KAKAO_CLIENT_ID  = 'c102ef257f29dfc4ca9f2062a0c1442d';
 const REDIRECT_BASE    = 'https://leemike09-dev.github.io/SilverlieAI/';
@@ -20,6 +21,7 @@ function getOAuthUrl(mode: 'login' | 'register') {
 }
 
 export default function LoginScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const [mode,    setMode]    = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState<string | null>(null);
 
@@ -39,7 +41,6 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
-  const PT = Platform.OS === 'ios' ? 54 : 32;
   const modeLabel = mode === 'login' ? '로 로그인' : '로 가입';
 
   return (
@@ -47,7 +48,7 @@ export default function LoginScreen({ navigation }: any) {
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* 헤더 */}
-        <View style={[s.header, { paddingTop: PT }]}>
+        <View style={[s.header, { paddingTop: Math.max(insets.top + 14, 28) }]}>
           <Text style={s.appName}>🌿 Silver Life</Text>
           <Text style={s.appSub}>시니어를 위한 AI 건강 파트너</Text>
         </View>

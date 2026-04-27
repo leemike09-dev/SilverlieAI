@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   TextInput, StatusBar, Platform, Linking,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const INDIGO  = '#5C6BC0';
 const LINDIGO = '#E8EAF6';
@@ -126,11 +127,11 @@ const FAQ_DATA: Category[] = [
 ];
 
 export default function FAQScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const [query,     setQuery]     = useState('');
   const [openCats,  setOpenCats]  = useState<Set<number>>(new Set([0]));
   const [openItems, setOpenItems] = useState<Set<string>>(new Set());
 
-  const PT = Platform.OS === 'ios' ? 54 : Platform.OS === 'web' ? 20 : 32;
 
   const filtered = useMemo(() => {
     if (!query.trim()) return FAQ_DATA;
@@ -153,7 +154,7 @@ export default function FAQScreen({ navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor={INDIGO} />
 
       {/* 헤더 */}
-      <View style={[s.header, { paddingTop: PT }]}>
+      <View style={[s.header, { paddingTop: Math.max(insets.top + 14, 28) }]}>
         <View style={s.headerRow}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
             <Text style={s.backTxt}>← 뒤로</Text>

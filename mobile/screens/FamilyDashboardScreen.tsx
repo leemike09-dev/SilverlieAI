@@ -4,6 +4,7 @@ import {
   StatusBar, Platform, ActivityIndicator, Modal,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SeniorTabBar from '../components/SeniorTabBar';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -36,6 +37,7 @@ const DEMO_GOALS = [
 ];
 
 export default function FamilyDashboardScreen({ route, navigation }: any) {
+  const insets = useSafeAreaInsets();
   const [userId,   setUserId]   = useState<string>(route?.params?.userId || '');
   const [name,     setName]     = useState<string>(route?.params?.name   || '');
   const [members,  setMembers]  = useState<any[]>([]);
@@ -118,14 +120,13 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
     setRelModal(false);
   };
 
-  const PT = Platform.OS === 'ios' ? 54 : 32;
 
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
 
       {/* Header */}
-      <View style={[s.header, { paddingTop: PT }]}>
+      <View style={[s.header, { paddingTop: Math.max(insets.top + 14, 28) }]}>
         <View>
           <Text style={s.headerTitle}>우리 가족</Text>
           <Text style={s.headerSub}>{name ? `${name}님의 가족 공간` : '가족과 소통해요'}</Text>

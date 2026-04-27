@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   TextInput, Platform, StatusBar, KeyboardAvoidingView, ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const API = 'https://silverlieai.onrender.com';
 
@@ -32,6 +33,7 @@ const DEMO_MESSAGES = [
 ];
 
 export default function FamilyChatScreen({ route, navigation }: any) {
+  const insets = useSafeAreaInsets();
   const { userId, name, partnerId, partnerName, partnerRelation } = route?.params || {};
   const [messages,  setMessages]  = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
@@ -39,7 +41,6 @@ export default function FamilyChatScreen({ route, navigation }: any) {
   const [loading,   setLoading]   = useState(true);
   const scrollRef = useRef<ScrollView>(null);
 
-  const PT = Platform.OS === 'ios' ? 54 : 32;
   const relLabel = partnerRelation ? (RELATION_LABEL[partnerRelation] || '') : '';
   const relEmoji = partnerRelation ? (RELATION_EMOJI[partnerRelation] || '👤') : '👤';
 
@@ -97,7 +98,7 @@ export default function FamilyChatScreen({ route, navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
 
       {/* Header */}
-      <View style={[s.header, { paddingTop: PT }]}>
+      <View style={[s.header, { paddingTop: Math.max(insets.top + 14, 28) }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
           <Text style={s.backTxt}>‹</Text>
         </TouchableOpacity>

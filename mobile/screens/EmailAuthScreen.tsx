@@ -4,11 +4,13 @@ import {
   ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { requestNotificationPermission, scheduleHealthDailyReminder } from '../utils/notifications';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
 export default function EmailAuthScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const [mode,      setMode]      = useState<'login' | 'register'>('login');
   const [name,      setName]      = useState('');
   const [email,     setEmail]     = useState('');
@@ -56,7 +58,6 @@ export default function EmailAuthScreen({ navigation }: any) {
     }
   };
 
-  const PT = Platform.OS === 'ios' ? 54 : 32;
 
   return (
     <View style={s.root}>
@@ -64,7 +65,7 @@ export default function EmailAuthScreen({ navigation }: any) {
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
           {/* 헤더 */}
-          <View style={[s.header, { paddingTop: PT }]}>
+          <View style={[s.header, { paddingTop: Math.max(insets.top + 14, 28) }]}>
             <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
               <Text style={s.backTxt}>← 돌아가기</Text>
             </TouchableOpacity>

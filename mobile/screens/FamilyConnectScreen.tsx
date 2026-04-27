@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const API = 'https://silverlieai.onrender.com';
 
@@ -19,6 +20,7 @@ const RELATION_OPTIONS = [
 ];
 
 export default function FamilyConnectScreen({ route, navigation }: any) {
+  const insets = useSafeAreaInsets();
   const [userId,      setUserId]      = useState('');
   const [userName,    setUserName]    = useState('');
   const [myCode,      setMyCode]      = useState('');
@@ -146,7 +148,6 @@ export default function FamilyConnectScreen({ route, navigation }: any) {
     navigation.replace('FamilyDashboard', { userId, name: userName });
   };
 
-  const PT = Platform.OS === 'ios' ? 54 : 32;
 
   if (loading) {
     return (
@@ -162,7 +163,7 @@ export default function FamilyConnectScreen({ route, navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
 
       {/* 헤더 */}
-      <View style={[s.header, { paddingTop: PT }]}>
+      <View style={[s.header, { paddingTop: Math.max(insets.top + 14, 28) }]}>
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
           <Text style={s.backArrow}>←</Text>
         </TouchableOpacity>
