@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import SeniorTabBar from '../components/SeniorTabBar';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Switch, Alert, Platform, ActivityIndicator, StatusBar, Modal,
+  Switch, Alert, Platform, ActivityIndicator, Modal,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const API_URL = 'https://silverlieai.onrender.com';
 type Props = { route: any; navigation: any };
@@ -37,6 +38,7 @@ AI 답변은 참고용이며 전문 의료 상담을 대체하지 않습니다.
 
 export default function SettingsScreen({ route, navigation }: Props) {
   const { name: paramName = '회원', userId: paramUserId = '' } = route?.params ?? {};
+  const insets = useSafeAreaInsets();
 
   const [userId,      setUserId]      = useState<string>(paramUserId);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -111,7 +113,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
 
         {/* 프로필 헤더 */}
-        <View style={s.profileHeader}>
+        <View style={[s.profileHeader, { paddingTop: Math.max(insets.top + 14, 28) }]}>
           <View style={s.avatarWrap}>
             {loading
               ? <ActivityIndicator color="#fff" size="small" />
@@ -221,7 +223,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
         <Text style={s.versionText}>Silver Life AI v0.1.0</Text>
       </ScrollView>
 
-      <SeniorTabBar navigation={navigation} activeTab="Settings"
+      <SeniorTabBar navigation={navigation} activeTab=""
         userId={userId} name={displayName} />
 
       {/* 이용약관 모달 */}
@@ -245,7 +247,6 @@ export default function SettingsScreen({ route, navigation }: Props) {
 const s = StyleSheet.create({
   profileHeader: {
     backgroundColor: '#5C6BC0',
-    paddingTop: Platform.OS === 'web' ? 40 : (StatusBar.currentHeight ?? 28) + 12,
     paddingBottom: 28, paddingHorizontal: 22,
     flexDirection: 'row', alignItems: 'center', gap: 18,
   },
