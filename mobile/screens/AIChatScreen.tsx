@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   TextInput, KeyboardAvoidingView, Platform,
-  StatusBar, Animated, Modal, Linking,
+  StatusBar, Animated, Modal, Linking, Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { Path } from 'react-native-svg';
@@ -270,6 +270,20 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const send = async (text?: string) => {
     const msg = (text ?? input).trim();
     if (!msg || loading) return;
+
+    // 게스트 5회 제한
+    if (userId === 'guest' && turnCount >= 5) {
+      if (Platform.OS === 'web') {
+        window.alert('로그인하면 계속 이용할 수 있어요.\n로그인 후 무제한으로 상담할 수 있습니다.');
+      } else {
+        Alert.alert('이용 제한', '로그인하면 계속 이용할 수 있어요.\n로그인 후 무제한으로 상담할 수 있습니다.', [
+          { text: '로그인하기', onPress: () => navigation.navigate('Login') },
+          { text: '닫기', style: 'cancel' },
+        ]);
+      }
+      return;
+    }
+
     setInput('');
     stopSpeech();
     if (memoState !== 'saved') setMemoState('idle');

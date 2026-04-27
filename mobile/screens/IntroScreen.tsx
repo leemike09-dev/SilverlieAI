@@ -32,6 +32,7 @@ export default function IntroScreen({ navigation }: any) {
 
   const handleLogin  = async () => { await AsyncStorage.setItem('onboarding_seen', '1'); navigation.replace('Login'); };
   const handleStart  = () => navigation.replace('Onboarding');
+  const handleGuest  = () => navigation.replace('SeniorHome', { userId: 'guest', name: '게스트' });
 
   // 꿀비 부유 애니메이션
   useEffect(() => {
@@ -112,13 +113,18 @@ export default function IntroScreen({ navigation }: any) {
             <Text style={s.bubbleMsg}>{GREETINGS[greetIdx]}</Text>
           </View>
 
-          {/* 버튼 2개 */}
-          <View style={s.btnRow}>
-            <TouchableOpacity style={s.loginBtn} onPress={handleLogin} activeOpacity={0.85}>
-              <Text style={s.loginBtnTxt}>로그인</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.startBtn} onPress={handleStart} activeOpacity={0.85}>
-              <Text style={s.startBtnTxt}>시작하기</Text>
+          {/* 버튼 */}
+          <View style={s.btnCol}>
+            <View style={s.btnRow}>
+              <TouchableOpacity style={s.loginBtn} onPress={handleLogin} activeOpacity={0.85}>
+                <Text style={s.loginBtnTxt}>로그인</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.startBtn} onPress={handleStart} activeOpacity={0.85}>
+                <Text style={s.startBtnTxt}>시작하기</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity style={s.guestBtn} onPress={handleGuest} activeOpacity={0.75}>
+              <Text style={s.guestBtnTxt}>로그인 없이 훑어보기</Text>
             </TouchableOpacity>
           </View>
 

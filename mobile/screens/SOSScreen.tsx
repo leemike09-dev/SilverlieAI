@@ -128,6 +128,18 @@ export default function SOSScreen({ navigation, route }: Props) {
   // SOS 카운트다운
   const startCountdown = () => {
     if (counting) return;
+    if (userId === 'guest') {
+      if (Platform.OS === 'web') {
+        window.alert('로그인 후 이용할 수 있는 기능입니다.\n119 긴급 연락은 로그인 회원에게만 제공됩니다.');
+      } else {
+        const { Alert } = require('react-native');
+        Alert.alert('로그인 필요', '119 긴급 연락은 로그인 회원에게만 제공됩니다.', [
+          { text: '로그인하기', onPress: () => navigation.navigate('Login') },
+          { text: '닫기', style: 'cancel' },
+        ]);
+      }
+      return;
+    }
     setCounting(true);
     setAfterCall(false);
     setSmsSent(false);
