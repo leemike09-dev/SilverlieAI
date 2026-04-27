@@ -2,6 +2,7 @@ import React from 'react';
 import { StatusBar,
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const HEALTH_DATA: Record<string, any> = {
   '심혈관 건강': {
@@ -63,6 +64,7 @@ const HEALTH_DATA: Record<string, any> = {
 };
 
 export default function HealthInfoScreen({ route, navigation }: any) {
+  const insets = useSafeAreaInsets();
   const category = route?.params?.category || '심혈관 건강';
   const data = HEALTH_DATA[category] || HEALTH_DATA['심혈관 건강'];
   const categories = Object.keys(HEALTH_DATA);
@@ -70,7 +72,7 @@ export default function HealthInfoScreen({ route, navigation }: any) {
   return (
     <View style={s.root}>
       {/* 헤더 */}
-      <View style={[s.header, { backgroundColor: data.color }]}>
+      <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 24) }, { backgroundColor: data.color }]}>
         <Text style={s.headerIcon}>{data.icon}</Text>
         <Text style={s.headerTitle}>{category}</Text>
         <Text style={s.headerSummary}>{data.summary}</Text>
@@ -120,7 +122,6 @@ export default function HealthInfoScreen({ route, navigation }: any) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#f5f7fa' },
   header: {
-    paddingTop: Platform.OS === 'web' ? 20 : (StatusBar.currentHeight ?? 28) + 8,
     paddingBottom: 24, paddingHorizontal: 20,
   },
   headerIcon: { fontSize: 40, marginBottom: 6 },

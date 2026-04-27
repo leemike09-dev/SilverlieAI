@@ -4,10 +4,12 @@ import {
   ScrollView, Platform, Alert, ActivityIndicator, StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
 export default function ProfileScreen({ navigation, route }: any) {
+  const insets = useSafeAreaInsets();
   const { userId: paramUserId, name: paramName } = route?.params ?? {};
   const [userId,  setUserId]  = useState(paramUserId || '');
   const [loading, setLoading] = useState(false);
@@ -65,7 +67,7 @@ export default function ProfileScreen({ navigation, route }: any) {
 
   return (
     <View style={s.root}>
-      <View style={s.header}>
+      <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 24) }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
           <Text style={s.backTxt}>← 뒤로</Text>
         </TouchableOpacity>
@@ -137,7 +139,6 @@ const s = StyleSheet.create({
 
   header: {
     backgroundColor: '#5C6BC0',
-    paddingTop: Platform.OS === 'web' ? 30 : (StatusBar.currentHeight ?? 28) + 8,
     paddingBottom: 18, paddingHorizontal: 18,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },

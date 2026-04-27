@@ -5,6 +5,7 @@ import {
   StatusBar, Animated, Modal, Linking, Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { speak, stopSpeech } from '../utils/speech';
 import SeniorTabBar from '../components/SeniorTabBar';
@@ -151,6 +152,7 @@ function getGreeting(name: string): string {
 }
 
 export default function AIChatScreen({ route, navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const { name = '회원', userId = '' } = route?.params ?? {};
 
   const [messages,     setMessages]     = useState<Msg[]>([]);
@@ -524,7 +526,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   return (
     <View style={s.root}>
       {/* ── 헤더 + 파도 웨이브 ── */}
-      <View style={[s.header, webBg]}>
+      <View style={[s.header, webBg, { paddingTop: Math.max(insets.top + 8, 24) }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
           <Text style={s.backTxt}>‹</Text>
         </TouchableOpacity>
@@ -759,7 +761,7 @@ const s = StyleSheet.create({
   // 헤더
   header: {
     flexDirection: 'row', alignItems: 'center',
-    paddingTop: Platform.OS === 'web' ? 20 : (StatusBar.currentHeight ?? 28) + 8,
+
     paddingHorizontal: 18, paddingBottom: 16, gap: 12,
   },
   backBtn:      { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
@@ -773,11 +775,6 @@ const s = StyleSheet.create({
 
   // 메인 바디
   body: { flex: 1, flexDirection: 'column', paddingHorizontal: 22, paddingTop: 10, paddingBottom: 6 },
-
-  // 상태줄
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginBottom: 10,
-  },
 
   // 위험 배너
   bannerCritical: { backgroundColor: '#FFEBEE', borderRadius: 12, borderWidth: 2, borderColor: '#D32F2F',

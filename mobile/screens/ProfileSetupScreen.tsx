@@ -4,6 +4,7 @@ import {
   ScrollView, Platform, StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -19,6 +20,7 @@ const INTERESTS = [
 ];
 
 export default function ProfileSetupScreen({ navigation, route }: any) {
+  const insets = useSafeAreaInsets();
   const { name = '', userId = '' } = route?.params ?? {};
 
   const [age,      setAge]      = useState('');
@@ -64,7 +66,7 @@ export default function ProfileSetupScreen({ navigation, route }: any) {
     <View style={s.root}>
 
       {/* 헤더 */}
-      <View style={s.header}>
+      <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 24) }]}>
         <Text style={s.headerIcon}>🤖</Text>
         <Text style={s.headerTitle}>AI 맞춤 설정</Text>
         <Text style={s.headerSub}>더 정확한 건강 추천을 위해</Text>
@@ -153,7 +155,6 @@ const s = StyleSheet.create({
   root:         { flex: 1, backgroundColor: '#f0f2f7' },
   header:       {
     backgroundColor: '#1a5fbc', alignItems: 'center',
-    paddingTop: Platform.OS === 'web' ? 20 : (StatusBar.currentHeight ?? 28) + 8,
     paddingBottom: 24,
   },
   headerIcon:   { fontSize: 30, marginBottom: 6 },

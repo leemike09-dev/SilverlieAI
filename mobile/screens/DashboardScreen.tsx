@@ -3,6 +3,7 @@ import { StatusBar,
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Platform, Animated, ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const API = 'https://silverlieai.onrender.com';
@@ -36,6 +37,7 @@ const EMPTY_DATA = {
 };
 
 export default function DashboardScreen({ route, navigation }: any) {
+  const insets = useSafeAreaInsets();
   const { name = '회원', userId = '' } = route?.params ?? {};
 
   const [data, setData]       = useState(EMPTY_DATA);
@@ -77,7 +79,7 @@ export default function DashboardScreen({ route, navigation }: any) {
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
 
         {/* 헤더 */}
-        <View style={s.header}>
+        <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 24) }]}>
           <View>
             <Text style={s.headerSub}>AI 건강 분석</Text>
             <Text style={s.headerTitle}>{name}님 오늘 리포트</Text>
@@ -191,7 +193,6 @@ const s = StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: '#1A4A8A',
-    paddingTop: Platform.OS === 'web' ? 20 : (StatusBar.currentHeight ?? 28) + 8,
     paddingHorizontal: 22, paddingBottom: 14,
     borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.2)',
   },

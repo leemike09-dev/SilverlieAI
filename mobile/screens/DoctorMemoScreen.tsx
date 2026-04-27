@@ -4,6 +4,7 @@ import {
   TextInput, Platform, StatusBar, Alert, Share,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = { route: any; navigation: any };
 
@@ -20,6 +21,7 @@ const C = {
 };
 
 export default function DoctorMemoScreen({ route, navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const { userId } = route?.params ?? {};
   const [memo, setMemo]       = useState('');
   const [memoDate, setMemoDate] = useState('');
@@ -105,7 +107,7 @@ export default function DoctorMemoScreen({ route, navigation }: Props) {
   return (
     <View style={s.root}>
       {/* 헤더 */}
-      <View style={s.header}>
+      <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 24) }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
           <Text style={s.backTxt}>‹</Text>
         </TouchableOpacity>
@@ -193,7 +195,6 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   header: {
     flexDirection: 'row', alignItems: 'center',
-    paddingTop: Platform.OS === 'web' ? 20 : (StatusBar.currentHeight ?? 28) + 8,
     paddingHorizontal: 18, paddingBottom: 16, gap: 12,
     backgroundColor: C.purple1,
   },
