@@ -36,22 +36,14 @@ const C = {
 };
 
 const QUICK_CARDS = [
-  { emoji: '💉', label: '약 부작용이
-걱정돼요',    color: '#3949AB', bg: '#E8EAF6' },
-  { emoji: '❤️',  label: '혈압이
-높아요',          color: '#C62828', bg: '#FFEBEE' },
-  { emoji: '😔', label: '기분이
-울적해요',         color: '#7B1FA2', bg: '#F3E5F5' },
-  { emoji: '🦵', label: '무릎이
-아파요',          color: '#E65100', bg: '#FFF3E0' },
-  { emoji: '👪', label: '가족이
-보고 싶어요',     color: '#2E7D32', bg: '#E8F5E9' },
-  { emoji: '😴', label: '잠을 못 자고
-있어요',   color: '#1565C0', bg: '#E3F2FD' },
-  { emoji: '😵', label: '어지럽고
-힘들어요',      color: '#6A1B9A', bg: '#EDE7F6' },
-  { emoji: '🏃', label: '가볍게 걸어도
-될까요?', color: '#00695C', bg: '#E0F2F1' },
+  { emoji: '💉', label: '약 부작용이\n걱정돼요',    color: '#3949AB', bg: '#E8EAF6' },
+  { emoji: '❤️',  label: '혈압이\n높아요',          color: '#C62828', bg: '#FFEBEE' },
+  { emoji: '😔', label: '기분이\n울적해요',          color: '#7B1FA2', bg: '#F3E5F5' },
+  { emoji: '🦵', label: '무릎이\n아파요',            color: '#E65100', bg: '#FFF3E0' },
+  { emoji: '👪', label: '가족이\n보고 싶어요',       color: '#2E7D32', bg: '#E8F5E9' },
+  { emoji: '😴', label: '잠을 못 자고\n있어요',      color: '#1565C0', bg: '#E3F2FD' },
+  { emoji: '😵', label: '어지럽고\n힘들어요',        color: '#6A1B9A', bg: '#EDE7F6' },
+  { emoji: '🏃', label: '가볍게 걸어도\n될까요?',    color: '#00695C', bg: '#E0F2F1' },
 ];
 
 // ── Intent 분류 ──
