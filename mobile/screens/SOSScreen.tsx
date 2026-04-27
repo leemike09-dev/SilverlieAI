@@ -3,8 +3,9 @@ import { speak, stopSpeech } from '../utils/speech';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Animated, Linking, Platform, StatusBar, AppState,
+  Animated, Linking, Platform, StatusBar, AppState, Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const API = 'https://silverlieai.onrender.com';
 
@@ -22,6 +23,7 @@ type Props = { navigation: any; route: any };
 
 export default function SOSScreen({ navigation, route }: Props) {
   const { userId, name } = route?.params ?? {};
+  const insets = useSafeAreaInsets();
   const [counting,  setCounting]  = useState(false);
   const [count,     setCount]     = useState(5);
   const [family,    setFamily]    = useState<FamilyMember[]>([]);
@@ -33,11 +35,41 @@ export default function SOSScreen({ navigation, route }: Props) {
   const timerRef    = useRef<any>(null);
   const appStateRef = useRef(AppState.currentState);
   const callingRef  = useRef(false);
+  const familyRef   = useRef<FamilyMember[]>([]);  // 카운트다운 클로저용
+
+  // 앱 연결 가족 + 중요연락처(가족/응급) 합산 로드
+  const loadContacts = useCallback(async () => {
+    const uid = (await AsyncStorage.getItem('userId')) || userId || '';
+
+    // 1. AsyncStorage family_members (앱 연결된 가족)
+    const raw = await AsyncStorage.getItem('family_members');
+    const appFamily: FamilyMember[] = raw ? JSON.parse(raw) : [];
+
+    // 2. API important_contacts 중 '가족' / '응급' 타입
+    let apiContacts: FamilyMember[] = [];
+    if (uid && uid !== 'guest') {
+      try {
+        const r = await fetch(`${API}/users/${uid}`);
+        if (r.ok) {
+          const d = await r.json();
+          const list: { type: string; name: string; phone: string }[] = d.important_contacts || [];
+          apiContacts = list
+            .filter(c => (c.type === '가족' || c.type === '응급') && c.phone)
+            .map(c => ({ id: `ic-${c.phone}`, name: c.name, phone: c.phone, relation: 'other' }));
+        }
+      } catch {}
+    }
+
+    // 3. 합산 (phone 중복 제거), 최대 3명
+    const seen = new Set(appFamily.map(m => m.phone).filter(Boolean));
+    const extra = apiContacts.filter(c => !seen.has(c.phone));
+    const merged = [...appFamily, ...extra].slice(0, 3);
+    setFamily(merged);
+    familyRef.current = merged;
+  }, [userId]);
 
   useEffect(() => {
-    AsyncStorage.getItem('family_members').then(raw => {
-      if (raw) { try { setFamily(JSON.parse(raw).slice(0, 3)); } catch {} }
-    });
+    loadContacts();
     Animated.loop(
       Animated.sequence([
         Animated.timing(scaleAnim, { toValue: 1.06, duration: 800, useNativeDriver: true }),
@@ -132,7 +164,6 @@ export default function SOSScreen({ navigation, route }: Props) {
       if (Platform.OS === 'web') {
         window.alert('로그인 후 이용할 수 있는 기능입니다.\n119 긴급 연락은 로그인 회원에게만 제공됩니다.');
       } else {
-        const { Alert } = require('react-native');
         Alert.alert('로그인 필요', '119 긴급 연락은 로그인 회원에게만 제공됩니다.', [
           { text: '로그인하기', onPress: () => navigation.navigate('Login') },
           { text: '닫기', style: 'cancel' },
@@ -160,16 +191,13 @@ export default function SOSScreen({ navigation, route }: Props) {
         setCounting(false);
         setCount(5);
         speak('지금 연결해요.', 0.85);
-        setTimeout(async () => {
-          const raw = await AsyncStorage.getItem('family_members');
-          const fam: FamilyMember[] = raw ? JSON.parse(raw).slice(0, 3) : [];
-          setFamily(fam);
+        setTimeout(() => {
+          const fam = familyRef.current;
           if (fam.filter(m => m.phone).length > 0) {
             setSosActive(true);
-            sendSMSToAll(fam, name || '');        // 위치 문자 전송
-            setTimeout(() => callByIdx(0, fam), 1500); // SMS 앱 닫힌 후 순차 전화 시작
+            sendSMSToAll(fam, name || '');
+            setTimeout(() => callByIdx(0, fam), 1500);
           } else {
-            // 가족 없으면 바로 119
             Linking.openURL('tel:119');
           }
         }, 800);
@@ -213,7 +241,7 @@ export default function SOSScreen({ navigation, route }: Props) {
   return (
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor="#B71C1C" />
-      <View style={s.header}>
+      <View style={[s.header, { paddingTop: Math.max(insets.top + 10, 28) }]}>
         <Text style={s.headerSub}>EMERGENCY</Text>
         <Text style={s.headerTitle}>긴급 호출</Text>
       </View>
@@ -296,8 +324,7 @@ export default function SOSScreen({ navigation, route }: Props) {
 
 const s = StyleSheet.create({
   root:        { flex: 1, backgroundColor: '#C62828' },
-  header:      { paddingTop: Platform.OS === 'web' ? 20 : (StatusBar.currentHeight ?? 28) + 8,
-                  paddingBottom: 14, alignItems: 'center' },
+  header:      { paddingBottom: 14, alignItems: 'center' },
   headerSub:   { fontSize: 18, fontWeight: '700', color: 'rgba(255,255,255,0.8)', letterSpacing: 3 },
   headerTitle: { fontSize: 28, fontWeight: '900', color: '#fff', marginTop: 2 },
   body:        { flex: 1, alignItems: 'center', paddingHorizontal: 20, paddingBottom: 20, justifyContent: 'space-between' },

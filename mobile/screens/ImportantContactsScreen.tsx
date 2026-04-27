@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, Platform, Alert, Linking, ActivityIndicator, StatusBar,
+  ScrollView, Alert, Linking, ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -25,6 +26,7 @@ interface Contact { type: string; name: string; phone: string; }
 
 export default function ImportantContactsScreen({ navigation, route }: any) {
   const { userId: paramUserId } = route?.params ?? {};
+  const insets = useSafeAreaInsets();
   const [userId,   setUserId]   = useState(paramUserId || '');
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading,  setLoading]  = useState(false);
@@ -88,7 +90,7 @@ export default function ImportantContactsScreen({ navigation, route }: any) {
   return (
     <View style={{ flex: 1, backgroundColor: '#F0F0F8' }}>
       {/* 헤더 */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top + 12, 28) }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backTxt}>← 뒤로</Text>
         </TouchableOpacity>
@@ -184,7 +186,6 @@ export default function ImportantContactsScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   header: {
     backgroundColor: '#5C6BC0',
-    paddingTop: Platform.OS === 'web' ? 30 : (StatusBar.currentHeight ?? 28) + 8,
     paddingBottom: 16, paddingHorizontal: 16,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
