@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Platform, StatusBar, Dimensions,
+  Platform, StatusBar, Dimensions, Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { speak, stopSpeech } from '../utils/speech';
@@ -12,6 +12,44 @@ const API = 'https://silverlieai.onrender.com';
 const { width } = Dimensions.get('window');
 const CARD_GAP = 12;
 const CARD_W   = (width - 32 - CARD_GAP) / 2;
+
+// ── 캐릭터 이미지 준비되면 여기만 교체 ──
+// const LUMI_IMG = require('../assets/lumi_character.png');
+const LUMI_IMG = null;
+
+function LumiCharacter({ size = 80 }: { size?: number }) {
+  if (LUMI_IMG) {
+    return <Image source={LUMI_IMG} style={{ width: size, height: size }} resizeMode="contain" />;
+  }
+  const s = size;
+  return (
+    <View style={{ width: s, height: s, justifyContent: 'center', alignItems: 'center' }}>
+      {/* 바깥 글로우 링 */}
+      <View style={{
+        position: 'absolute',
+        width: s, height: s, borderRadius: s / 2,
+        backgroundColor: '#EAD5FB',
+      }} />
+      {/* 중간 링 */}
+      <View style={{
+        position: 'absolute',
+        width: s * 0.78, height: s * 0.78, borderRadius: s * 0.39,
+        backgroundColor: '#D4AEEF',
+      }} />
+      {/* 핵심 오브 */}
+      <View style={{
+        width: s * 0.58, height: s * 0.58, borderRadius: s * 0.29,
+        backgroundColor: '#BE8DE6',
+        justifyContent: 'center', alignItems: 'center',
+      }}>
+        <Text style={{ fontSize: s * 0.3 }}>✨</Text>
+      </View>
+      {/* 반짝임 */}
+      <Text style={{ position: 'absolute', top: 2, right: 4, fontSize: s * 0.14, color: '#C8A0E8' }}>✦</Text>
+      <Text style={{ position: 'absolute', bottom: 4, left: 2, fontSize: s * 0.10, color: '#D4AEEF' }}>✦</Text>
+    </View>
+  );
+}
 
 export default function SeniorHomeScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -111,46 +149,26 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   const greeting = hour < 12 ? '좋은 아침이에요 ☀️' : hour < 18 ? '좋은 오후예요 🌤️' : '좋은 저녁이에요 🌙';
   const isGuest  = !userId || userId === 'guest';
 
-  /* 웹 전용 그라디언트 */
   const rootBg: any = Platform.OS === 'web'
-    ? { background: 'linear-gradient(175deg, #6B21B0 0%, #9B59D8 45%, #C8A8F0 100%)' }
-    : { backgroundColor: '#7B2FC8' };
-
-  /* 웹 전용 카드 글래스 효과 */
-  const glassWeb: any = Platform.OS === 'web'
-    ? { backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }
-    : {};
+    ? { background: 'linear-gradient(180deg, #EAE0F8 0%, #F7F3FF 100%)' }
+    : { backgroundColor: '#EDE6F7' };
 
   return (
     <View style={[s.root, rootBg]}>
-      <StatusBar barStyle="light-content" backgroundColor="#6B21B0" translucent />
+      <StatusBar barStyle="dark-content" backgroundColor="#EDE6F7" />
 
-      {/* ══ 루미 캐릭터 영역 ══ */}
-      <View style={[s.characterArea, { paddingTop: Math.max(insets.top + 20, 40) }]}>
-
-        {/* 설정 버튼 */}
+      {/* ══ 상단 미니멀 바 ══ */}
+      <View style={[s.topBar, { paddingTop: Math.max(insets.top + 6, 18) }]}>
+        <View style={s.topLeft}>
+          <LumiCharacter size={34} />
+          <Text style={s.topTitle}>루미나</Text>
+        </View>
         <TouchableOpacity
-          style={s.settingBtn}
           onPress={() => navigation.navigate('Settings', { userId, name })}
           activeOpacity={0.7}
         >
-          <Text style={s.settingIco}>⚙️</Text>
+          <Text style={s.topBell}>🔔</Text>
         </TouchableOpacity>
-
-        {/* 루미 캐릭터 — 글로우 오브 */}
-        <View style={s.orbOuter}>
-          <View style={s.orbMid}>
-            <View style={s.orbInner}>
-              <Text style={s.orbFace}>🌟</Text>
-            </View>
-          </View>
-        </View>
-
-        <Text style={s.lumiTitle}>루미</Text>
-        <Text style={s.lumiGreeting}>{name ? `${name}님, ` : ''}{greeting}</Text>
-        {locationStatus === 'sharing' && (
-          <Text style={s.locBadge}>🟢 위치 공유 중</Text>
-        )}
       </View>
 
       {/* 게스트 배너 */}
@@ -161,58 +179,53 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         </TouchableOpacity>
       )}
 
-      {/* ══ 카드 영역 ══ */}
-      <View style={s.body}>
-
-        <View style={s.cardGrid}>
-
-          {/* 내 위치 */}
-          <TouchableOpacity
-            style={[s.card, glassWeb, { borderColor: 'rgba(120,200,255,0.4)' }]}
-            onPress={goLocationMap} activeOpacity={0.82}
-          >
-            <Text style={s.cardEmoji}>📍</Text>
-            <Text style={s.cardLabel}>내 위치</Text>
-            <Text style={s.cardSub}>{steps !== null ? `${steps.toLocaleString()} 걸음` : '동선 확인'}</Text>
-            <View style={[s.cardAccent, { backgroundColor: 'rgba(120,200,255,0.35)' }]} />
-          </TouchableOpacity>
-
-          {/* 건강 체크 */}
-          <TouchableOpacity
-            style={[s.card, glassWeb, { borderColor: 'rgba(100,220,180,0.4)' }]}
-            onPress={() => navigation.navigate('Health', { userId, name })} activeOpacity={0.82}
-          >
-            <Text style={s.cardEmoji}>🏥</Text>
-            <Text style={s.cardLabel}>건강 체크</Text>
-            <Text style={s.cardSub}>혈압·혈당·체온</Text>
-            <View style={[s.cardAccent, { backgroundColor: 'rgba(100,220,180,0.35)' }]} />
-          </TouchableOpacity>
-
-          {/* AI 상담 */}
-          <TouchableOpacity
-            style={[s.card, glassWeb, { borderColor: 'rgba(220,180,255,0.4)' }]}
-            onPress={() => navigation.navigate('AIChat', { userId, name })} activeOpacity={0.82}
-          >
-            <Text style={s.cardEmoji}>✨</Text>
-            <Text style={s.cardLabel}>AI 상담</Text>
-            <Text style={s.cardSub}>루미와 대화하기</Text>
-            <View style={[s.cardAccent, { backgroundColor: 'rgba(220,180,255,0.35)' }]} />
-          </TouchableOpacity>
-
-          {/* 보호자 */}
-          <TouchableOpacity
-            style={[s.card, glassWeb, { borderColor: 'rgba(255,190,130,0.4)' }]}
-            onPress={() => navigation.navigate('ImportantContacts', { userId })} activeOpacity={0.82}
-          >
-            <Text style={s.cardEmoji}>👨‍👩‍👧</Text>
-            <Text style={s.cardLabel}>보호자</Text>
-            <Text style={s.cardSub}>연락처 확인</Text>
-            <View style={[s.cardAccent, { backgroundColor: 'rgba(255,190,130,0.35)' }]} />
-          </TouchableOpacity>
-
+      {/* ══ 인사 카드 ══ */}
+      <View style={s.greetCard}>
+        <LumiCharacter size={80} />
+        <View style={s.greetText}>
+          <Text style={s.greetHello}>안녕하세요! 👋</Text>
+          <Text style={s.greetName}>{name ? `${name}님` : '어서오세요'}</Text>
+          <Text style={s.greetSub}>{greeting}</Text>
+          {locationStatus === 'sharing' && (
+            <Text style={s.locBadge}>🟢 위치 공유 중</Text>
+          )}
         </View>
+      </View>
 
-        {/* 응급 도움 */}
+      {/* ══ 4개 카드 ══ */}
+      <View style={s.cardGrid}>
+
+        <TouchableOpacity style={[s.card, s.cardBlue]} onPress={goLocationMap} activeOpacity={0.85}>
+          <Text style={s.cardEmoji}>📍</Text>
+          <Text style={s.cardLabel}>내 위치</Text>
+          <Text style={s.cardSub}>{steps !== null ? `${steps.toLocaleString()} 걸음` : '동선 확인'}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[s.card, s.cardTeal]}
+          onPress={() => navigation.navigate('Health', { userId, name })} activeOpacity={0.85}>
+          <Text style={s.cardEmoji}>🏥</Text>
+          <Text style={s.cardLabel}>건강 체크</Text>
+          <Text style={s.cardSub}>혈압·혈당·체온</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[s.card, s.cardPurple]}
+          onPress={() => navigation.navigate('AIChat', { userId, name })} activeOpacity={0.85}>
+          <Text style={s.cardEmoji}>✨</Text>
+          <Text style={s.cardLabel}>AI 상담</Text>
+          <Text style={s.cardSub}>루미와 대화하기</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[s.card, s.cardCoral]}
+          onPress={() => navigation.navigate('ImportantContacts', { userId })} activeOpacity={0.85}>
+          <Text style={s.cardEmoji}>👨‍👩‍👧</Text>
+          <Text style={s.cardLabel}>보호자</Text>
+          <Text style={s.cardSub}>연락처 확인</Text>
+        </TouchableOpacity>
+
+      </View>
+
+      {/* ══ 응급 도움 ══ */}
+      <View style={s.sosWrap}>
         <TouchableOpacity style={s.sosCard}
           onPress={() => navigation.navigate('SOS', { userId, name })} activeOpacity={0.85}>
           <Text style={s.sosEmoji}>🆘</Text>
@@ -222,7 +235,6 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           </View>
           <Text style={s.sosArrow}>›</Text>
         </TouchableOpacity>
-
       </View>
 
       <SeniorTabBar navigation={navigation} activeTab="home" userId={userId} name={name} />
@@ -233,100 +245,79 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 const s = StyleSheet.create({
   root: { flex: 1 },
 
-  /* ── 캐릭터 영역 ── */
-  characterArea: {
-    alignItems: 'center',
-    paddingBottom: 24,
-    paddingHorizontal: 20,
+  /* ── 상단 바 ── */
+  topBar: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingBottom: 8,
   },
-  settingBtn: {
-    position: 'absolute', top: 16, right: 16,
-    zIndex: 10, padding: 8,
-  },
-  settingIco: { fontSize: 26 },
-
-  /* 루미 글로우 오브 */
-  orbOuter: {
-    width: 120, height: 120, borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center', alignItems: 'center',
-    marginBottom: 12,
-    shadowColor: '#E0C8FF',
-    shadowOpacity: 0.8, shadowRadius: 30,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 0,
-  },
-  orbMid: {
-    width: 90, height: 90, borderRadius: 45,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  orbInner: {
-    width: 66, height: 66, borderRadius: 33,
-    backgroundColor: 'rgba(255,255,255,0.28)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  orbFace: { fontSize: 38 },
-
-  lumiTitle:    { fontSize: 18, fontWeight: '900', color: 'rgba(255,255,255,0.9)', letterSpacing: 3, marginBottom: 6 },
-  lumiGreeting: { fontSize: 20, fontWeight: '700', color: '#fff', textAlign: 'center' },
-  locBadge:     { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 5 },
+  topLeft:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  topTitle: { fontSize: 20, fontWeight: '900', color: '#6B21B0' },
+  topBell:  { fontSize: 24, padding: 4 },
 
   /* ── 게스트 배너 ── */
   guestBanner: {
-    backgroundColor: 'rgba(0,0,0,0.25)',
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 18, paddingVertical: 10,
-    marginHorizontal: 16, borderRadius: 12, marginBottom: 4,
+    backgroundColor: 'rgba(107,33,176,0.08)',
+    borderWidth: 1, borderColor: 'rgba(107,33,176,0.18)',
+    paddingHorizontal: 16, paddingVertical: 9,
+    marginHorizontal: 16, borderRadius: 12, marginBottom: 6,
   },
-  guestTxt: { fontSize: 14, fontWeight: '600', color: '#fff', flex: 1 },
-  guestBtn: { fontSize: 14, fontWeight: '800', color: '#FFD580', marginLeft: 8 },
+  guestTxt: { fontSize: 13, fontWeight: '600', color: '#6B21B0', flex: 1 },
+  guestBtn: { fontSize: 13, fontWeight: '800', color: '#6B21B0' },
 
-  /* ── 카드 영역 ── */
-  body: { flex: 1, paddingHorizontal: 16, paddingBottom: 8, gap: 12 },
+  /* ── 인사 카드 ── */
+  greetCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#fff',
+    marginHorizontal: 16, borderRadius: 24,
+    padding: 18, gap: 16, marginBottom: 14,
+    shadowColor: '#9B59D8', shadowOpacity: 0.10,
+    shadowRadius: 14, shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  greetText:  { flex: 1, gap: 3 },
+  greetHello: { fontSize: 20, fontWeight: '900', color: '#2D1B4E' },
+  greetName:  { fontSize: 17, fontWeight: '700', color: '#6B21B0' },
+  greetSub:   { fontSize: 13, color: '#8A6BAA', fontWeight: '500' },
+  locBadge:   { fontSize: 12, color: '#43A047', marginTop: 2 },
 
-  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: CARD_GAP },
-
+  /* ── 카드 그리드 ── */
+  cardGrid: {
+    flexDirection: 'row', flexWrap: 'wrap',
+    gap: CARD_GAP, paddingHorizontal: 16, marginBottom: 12,
+  },
   card: {
-    width: CARD_W,
-    borderRadius: 22,
-    paddingVertical: 20, paddingHorizontal: 16,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderWidth: 1.5,
-    overflow: 'hidden',
-    gap: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.08, shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    width: CARD_W, borderRadius: 20,
+    paddingVertical: 18, paddingHorizontal: 16, gap: 5,
+    shadowColor: '#000', shadowOpacity: 0.09,
+    shadowRadius: 8, shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
-  /* 카드 하단 컬러 악센트 */
-  cardAccent: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
-    height: 5, borderBottomLeftRadius: 22, borderBottomRightRadius: 22,
-  },
+  cardBlue:   { backgroundColor: '#5BA8E8' },
+  cardTeal:   { backgroundColor: '#48BFA8' },
+  cardPurple: { backgroundColor: '#9278D0' },
+  cardCoral:  { backgroundColor: '#F09070' },
 
-  cardEmoji: { fontSize: 32, marginBottom: 4 },
-  cardLabel: { fontSize: 20, fontWeight: '900', color: '#fff' },
-  cardSub:   { fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.8)' },
+  cardEmoji: { fontSize: 28, marginBottom: 2 },
+  cardLabel: { fontSize: 18, fontWeight: '900', color: '#fff' },
+  cardSub:   { fontSize: 12, fontWeight: '500', color: 'rgba(255,255,255,0.88)' },
 
   /* ── 응급 카드 ── */
+  sosWrap: { paddingHorizontal: 16 },
   sosCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(192,40,40,0.88)',
-    borderRadius: 22, paddingVertical: 18, paddingHorizontal: 22,
-    gap: 16, borderWidth: 1.5, borderColor: 'rgba(255,120,120,0.4)',
-    shadowColor: '#C02828', shadowOpacity: 0.4,
-    shadowRadius: 14, shadowOffset: { width: 0, height: 5 },
-    elevation: 7,
+    backgroundColor: '#D63031',
+    borderRadius: 20, paddingVertical: 16, paddingHorizontal: 20,
+    gap: 14,
+    shadowColor: '#D63031', shadowOpacity: 0.3,
+    shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
-  sosEmoji:   { fontSize: 36 },
+  sosEmoji:   { fontSize: 32 },
   sosTxtWrap: { flex: 1 },
-  sosLabel:   { fontSize: 24, fontWeight: '900', color: '#fff' },
-  sosSub:     { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.85)', marginTop: 2 },
-  sosArrow:   { fontSize: 32, color: 'rgba(255,255,255,0.6)' },
+  sosLabel:   { fontSize: 21, fontWeight: '900', color: '#fff' },
+  sosSub:     { fontSize: 12, fontWeight: '500', color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+  sosArrow:   { fontSize: 28, color: 'rgba(255,255,255,0.6)' },
 });
