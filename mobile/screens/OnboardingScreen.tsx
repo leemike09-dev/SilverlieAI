@@ -2,8 +2,9 @@ import React, { useState, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, Dimensions, Platform, Image,
+  ScrollView, Dimensions, Image,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 type Props = { navigation: any };
@@ -28,7 +29,7 @@ const SLIDES = [
     color: '#2E7D32',
   },
   {
-    icon: null,
+    icon: '✨',
     title: '이제 걱정 마세요\nSilver Life AI가 함께합니다',
     desc: '루미가 매일 건강을\n지켜드릴게요',
     color: '#7B1FA2',
@@ -36,6 +37,7 @@ const SLIDES = [
 ];
 
 export default function OnboardingScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const [idx, setIdx] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
 
@@ -58,7 +60,7 @@ export default function OnboardingScreen({ navigation }: Props) {
   const slide = SLIDES[idx];
 
   return (
-    <View style={s.root}>
+    <View style={[s.root, { paddingTop: insets.top }]}>
 
       {/* 슬라이드 영역 */}
       <ScrollView
@@ -70,12 +72,10 @@ export default function OnboardingScreen({ navigation }: Props) {
         {SLIDES.map((sl, i) => (
           <View key={i} style={[s.slide, { width }]}>
             <View style={[s.iconWrap, { backgroundColor: sl.color + '18' }]}>
-              {sl.icon === null && i === 0 ? (
+              {sl.icon === null ? (
                 <Image source={require('../assets/family.png')} style={s.beeImg} resizeMode="contain" />
-              ) : sl.icon ? (
-                <Text style={s.icon}>{sl.icon}</Text>
               ) : (
-                <Image source={require('../assets/bee_nobg.png')} style={s.beeImg} resizeMode="contain" />
+                <Text style={s.icon}>{sl.icon}</Text>
               )}
             </View>
             <Text style={[s.title, { color: sl.color }]}>{sl.title}</Text>
