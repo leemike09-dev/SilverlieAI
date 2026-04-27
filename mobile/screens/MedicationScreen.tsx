@@ -8,6 +8,9 @@ import SeniorTabBar from '../components/SeniorTabBar';
 import { scheduleMedNotification, cancelMedNotification } from '../utils/notifications';
 import { speak } from '../utils/speech';
 
+const API_URL = 'https://silverlieai.onrender.com';
+const isDemo  = (uid: string) => !uid || uid === 'demo-user' || uid === 'guest';
+
 const GREEN  = '#2E7D32';
 const LGREEN = '#E8F5E9';
 const BG     = '#F4F7FC';
@@ -35,13 +38,25 @@ export default function MedicationScreen({ navigation }: any) {
       const name = (await AsyncStorage.getItem('userName')) || '';
       setUserId(uid);
       setUname(name);
+
+      // 서버 우선 로드, 실패 시 로컬 폴백
+      if (!isDemo(uid)) {
+        try {
+          const res  = await fetch(`${API_URL}/medications/today/${uid}`);
+          if (res.ok) {
+            const data = await res.json();
+            setMeds(data);
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            announceMeds(data);
+            return;
+          }
+        } catch {}
+      }
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       if (stored) {
         const loaded = JSON.parse(stored);
         setMeds(loaded);
         announceMeds(loaded);
-      } else {
-        setMeds([]);
       }
     };
     init();
@@ -68,15 +83,34 @@ export default function MedicationScreen({ navigation }: any) {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   };
 
+  const apiToggle = (uid: string, medId: string, field: string, value: boolean) => {
+    if (isDemo(uid)) return;
+    fetch(`${API_URL}/medications/toggle`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: uid, med_id: medId, field, value }),
+    }).catch(() => {});
+  };
+
   const toggleTaken = (id: string) => {
     const med = meds.find(m => m.id === id);
-    const nowTaking = med && !med.taken;
+    if (!med) return;
+    const nowTaking = !med.taken;
     if (nowTaking) speak(`${med.name} 복용 완료예요. 건강 챙기셨네요!`, 0.85);
-    saveMeds(meds.map(m => m.id === id ? { ...m, taken: !m.taken, skipped: false } : m));
+    const updated = meds.map(m => m.id === id ? { ...m, taken: nowTaking, skipped: false } : m);
+    saveMeds(updated);
+    apiToggle(userId, id, 'taken', nowTaking);
+    if (!nowTaking) apiToggle(userId, id, 'skipped', false);
   };
 
   const toggleSkipped = (id: string) => {
-    saveMeds(meds.map(m => m.id === id ? { ...m, skipped: !m.skipped, taken: false } : m));
+    const med = meds.find(m => m.id === id);
+    if (!med) return;
+    const nowSkipping = !med.skipped;
+    const updated = meds.map(m => m.id === id ? { ...m, skipped: nowSkipping, taken: false } : m);
+    saveMeds(updated);
+    apiToggle(userId, id, 'skipped', nowSkipping);
+    if (!nowSkipping) apiToggle(userId, id, 'taken', false);
   };
 
   const addMed = async () => {
@@ -97,6 +131,17 @@ export default function MedicationScreen({ navigation }: any) {
     const updatedMeds = [...meds, newMed];
     await saveMeds(updatedMeds);
     scheduleMedNotification(newMed.id, newMed.name, newMed.timeSlot);
+    // 서버 저장 (오프라인 안전)
+    if (!isDemo(userId)) {
+      fetch(`${API_URL}/medications/add-simple/${userId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: newMed.id, name: newMed.name, dosage: newMed.dosage,
+          method: newMed.method, time_slot: newMed.timeSlot, stock: newMed.stock,
+        }),
+      }).catch(() => {});
+    }
     setForm(EMPTY_FORM);
     setAddModal(false);
   };
@@ -104,7 +149,12 @@ export default function MedicationScreen({ navigation }: any) {
   const deleteMed = (id: string) => {
     Alert.alert('약 삭제', '이 약을 목록에서 삭제할까요?', [
       { text: '취소', style: 'cancel' },
-      { text: '삭제', style: 'destructive', onPress: () => saveMeds(meds.filter(m => m.id !== id)) },
+      { text: '삭제', style: 'destructive', onPress: () => {
+          saveMeds(meds.filter(m => m.id !== id));
+          if (!isDemo(userId)) {
+            fetch(`${API_URL}/medications/delete/${userId}/${id}`, { method: 'DELETE' }).catch(() => {});
+          }
+        }},
     ]);
   };
 

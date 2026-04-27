@@ -136,3 +136,104 @@ def get_low_stock(user_id: str):
     # 긴급순 정렬 (days_left 적은 순)
     low.sort(key=lambda x: x["days_left"])
     return low
+
+
+# ── 프론트 MedicationScreen 전용 심플 API ──────────────────────────
+
+class SimpleMedRequest(BaseModel):
+    id: str
+    name: str
+    dosage: str = '1정'
+    method: str = '식후'
+    time_slot: str = 'morning'
+    stock: int = 0
+
+class ToggleRequest(BaseModel):
+    user_id: str
+    med_id: str
+    field: str   # 'taken' | 'skipped'
+    value: bool
+
+def _med_to_front(med: dict, log: dict) -> dict:
+    """medications 행 + medication_logs 행 → 프론트 포맷."""
+    times = med.get('times') or []
+    time_slot = med.get('time_slot') or (times[0] if times else 'morning')
+    return {
+        'id':       med['id'],
+        'name':     med['name'],
+        'dosage':   med.get('dosage') or '1정',
+        'method':   med.get('method') or '식후',
+        'timeSlot': time_slot,
+        'stock':    med.get('stock') or 0,
+        'taken':    log.get('status') == 'taken',
+        'skipped':  log.get('status') == 'skipped',
+    }
+
+@router.get("/today/{user_id}")
+def get_today_meds(user_id: str):
+    """오늘 복약 현황 포함 약 목록 (프론트 MedicationScreen용)."""
+    db = get_supabase()
+    today = date.today().isoformat()
+    meds = db.table("medications").select("*").eq("user_id", user_id).order("created_at").execute().data or []
+    logs_list = db.table("medication_logs").select("*").eq("user_id", user_id).eq("date", today).execute().data or []
+    logs = {l['medication_id']: l for l in logs_list}
+    return [_med_to_front(m, logs.get(m['id'], {})) for m in meds]
+
+@router.post("/add-simple/{user_id}")
+def add_med_simple(user_id: str, med: SimpleMedRequest):
+    """약 추가 (프론트 단순 포맷)."""
+    db = get_supabase()
+    try:
+        db.table("medications").insert({
+            "id":        med.id,
+            "user_id":   user_id,
+            "name":      med.name,
+            "dosage":    med.dosage,
+            "method":    med.method,
+            "time_slot": med.time_slot,
+            "stock":     med.stock,
+            "times":     [med.time_slot],
+        }).execute()
+    except Exception as e:
+        print(f"[add_med_simple] {e}")
+        return {"ok": False, "note": str(e)}
+    return {"ok": True}
+
+@router.put("/toggle")
+def toggle_med_status(req: ToggleRequest):
+    """복용/건너뜀 토글 (오늘 날짜 기준)."""
+    db = get_supabase()
+    today = date.today().isoformat()
+    status = None
+    if req.field == 'taken'   and req.value: status = 'taken'
+    if req.field == 'skipped' and req.value: status = 'skipped'
+
+    existing = db.table("medication_logs").select("id") \
+        .eq("user_id", req.user_id) \
+        .eq("medication_id", req.med_id) \
+        .eq("date", today).execute().data
+
+    if status is None:
+        if existing:
+            db.table("medication_logs").delete().eq("id", existing[0]["id"]).execute()
+    elif existing:
+        db.table("medication_logs").update({"taken": req.field == 'taken', "status": status}) \
+            .eq("id", existing[0]["id"]).execute()
+    else:
+        db.table("medication_logs").insert({
+            "user_id":         req.user_id,
+            "medication_id":   req.med_id,
+            "medication_name": "",
+            "scheduled_time":  req.field,
+            "date":            today,
+            "taken":           req.field == 'taken',
+            "status":          status,
+        }).execute()
+    return {"ok": True}
+
+@router.delete("/delete/{user_id}/{med_id}")
+def delete_med_v2(user_id: str, med_id: str):
+    db = get_supabase()
+    db.table("medications").delete().eq("id", med_id).eq("user_id", user_id).execute()
+    db.table("medication_logs").delete().eq("medication_id", med_id).eq("user_id", user_id).execute()
+    return {"ok": True}
