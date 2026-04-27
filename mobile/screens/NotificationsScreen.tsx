@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import SeniorTabBar from '../components/SeniorTabBar';
-import { StatusBar,
+import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator,
 } from 'react-native';
-import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const API_URL = 'https://silverlieai.onrender.com';
 
@@ -17,16 +18,28 @@ type Notification = {
 };
 
 export default function NotificationsScreen({ navigation, route }: any) {
-  const { userId = '', name = '회원' } = route?.params ?? {};
+  const { userId: paramId = '', name = '회원' } = route?.params ?? {};
+  const insets = useSafeAreaInsets();
+  const [userId,        setUserId]        = useState(paramId);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const loading = false;
+  const [loading,       setLoading]       = useState(true);
 
   useEffect(() => {
-    fetch(`${API_URL}/notifications/${userId}`)
-      .then(r => r.json())
-      .then(data => { if (Array.isArray(data) && data.length) setNotifications(data); })
-      .catch(() => {});
-  }, [userId]);
+    const init = async () => {
+      const uid = (await AsyncStorage.getItem('userId')) || paramId;
+      if (uid) setUserId(uid);
+      if (!uid) { setLoading(false); return; }
+      try {
+        const r = await fetch(`${API_URL}/notifications/${uid}`);
+        if (r.ok) {
+          const data = await r.json();
+          if (Array.isArray(data)) setNotifications(data);
+        }
+      } catch {}
+      setLoading(false);
+    };
+    init();
+  }, []);
 
   const markAsRead = (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
@@ -46,7 +59,7 @@ export default function NotificationsScreen({ navigation, route }: any) {
 
   return (
     <View style={[styles.safe, {flex:1}]}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top + 10, 24) }]}>
         <View>
           <Text style={styles.title}>🔔 알림</Text>
           {unreadCount > 0 && (
@@ -102,7 +115,7 @@ const styles = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: '#f0f2f7' },
   header: {
     backgroundColor: '#1a5fbc', paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'web' ? 18 : (StatusBar.currentHeight ?? 28) + 4, paddingBottom: 18,
+    paddingBottom: 18,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
   title:       { fontSize: 26, fontWeight: '800', color: '#fff' },
