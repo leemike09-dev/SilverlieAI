@@ -35,15 +35,23 @@ const C = {
   emRed:   '#D32F2F',
 };
 
-const QUICK_CHIPS = [
-  { label: '혈압이 높아요' },
-  { label: '약 부작용이 걱정돼요' },
-  { label: '잠을 못 자고 있어요' },
-  { label: '무릎이 아파요' },
-  { label: '어지러워요' },
-  { label: '기분이 울적해요' },
-  { label: '산책 운동 추천해줘' },
-  { label: '가족이 보고 싶어요' },
+const QUICK_CARDS = [
+  { emoji: '💉', label: '약 부작용이
+걱정돼요',    color: '#3949AB', bg: '#E8EAF6' },
+  { emoji: '❤️',  label: '혈압이
+높아요',          color: '#C62828', bg: '#FFEBEE' },
+  { emoji: '😔', label: '기분이
+울적해요',         color: '#7B1FA2', bg: '#F3E5F5' },
+  { emoji: '🦵', label: '무릎이
+아파요',          color: '#E65100', bg: '#FFF3E0' },
+  { emoji: '👪', label: '가족이
+보고 싶어요',     color: '#2E7D32', bg: '#E8F5E9' },
+  { emoji: '😴', label: '잠을 못 자고
+있어요',   color: '#1565C0', bg: '#E3F2FD' },
+  { emoji: '😵', label: '어지럽고
+힘들어요',      color: '#6A1B9A', bg: '#EDE7F6' },
+  { emoji: '🏃', label: '가볍게 걸어도
+될까요?', color: '#00695C', bg: '#E0F2F1' },
 ];
 
 // ── Intent 분류 ──
@@ -537,12 +545,12 @@ export default function AIChatScreen({ route, navigation }: Props) {
             </View>
           )}
 
-          {/* 메시지 텍스트 — 답변 있을 때만 스크롤 */}
+          {/* 메시지 텍스트 */}
           {(loading || displayMsg.text !== '') ? (
             <ScrollView
-              style={s.msgScroll}
+              style={[s.msgScroll, isWelcome && s.msgScrollWelcome]}
               contentContainerStyle={s.msgContent}
-              showsVerticalScrollIndicator={true}
+              showsVerticalScrollIndicator={false}
             >
               <Text style={[
                 displayMsg.role === 'ai' ? s.aiTxt : s.userTxt,
@@ -552,7 +560,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
               </Text>
             </ScrollView>
           ) : (
-            <View style={s.msgPlaceholder} />
+            !isWelcome && <View style={s.msgPlaceholder} />
           )}
 
           {/* 의사 메모 제안 */}
@@ -585,15 +593,23 @@ export default function AIChatScreen({ route, navigation }: Props) {
             </TouchableOpacity>
           )}
 
-          {isWelcome && memoState === 'idle' && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}
-              contentContainerStyle={s.chipsScroll} style={s.chipsWrap}>
-              {QUICK_CHIPS.map(q => (
-                <TouchableOpacity key={q.label} style={s.chip}
-                  onPress={() => send(q.label)} activeOpacity={0.75}>
-                  <Text style={s.chipTxt}>{q.label}</Text>
-                </TouchableOpacity>
-              ))}
+          {/* 2열 빠른 질문 카드 그리드 */}
+          {isWelcome && memoState === 'idle' && !loading && (
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+              <View style={s.cardGrid}>
+                {QUICK_CARDS.map(q => (
+                  <TouchableOpacity
+                    key={q.label}
+                    style={[s.cardItem, { backgroundColor: q.bg, borderColor: q.color + '44' }]}
+                    onPress={() => send(q.label.replace(/
+/g, ' '))}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={s.cardEmoji}>{q.emoji}</Text>
+                    <Text style={[s.cardLabel, { color: q.color }]}>{q.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </ScrollView>
           )}
         </View>
@@ -729,12 +745,16 @@ const s = StyleSheet.create({
     borderWidth: 2, borderColor: '#9C27B0' },
   summaryBtnTxt: { fontSize: 20, color: '#7B1FA2', fontWeight: '800' },
 
-  chipsWrap:   { marginTop: 4 },
-  chipsScroll: { flexDirection: 'row', gap: 10, paddingHorizontal: 2, paddingBottom: 4 },
-  chip: { backgroundColor: '#fff', borderRadius: 22, paddingHorizontal: 18, paddingVertical: 14,
-    borderWidth: 1.5, borderColor: '#E1BEE7',
-    shadowColor: '#7B1FA2', shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 },
-  chipTxt: { fontSize: 20, color: '#7B1FA2', fontWeight: '600' },
+  // 2열 카드 그리드
+  msgScrollWelcome: { flexGrow: 0, maxHeight: 150 },
+  cardGrid:  { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingBottom: 8, marginTop: 8 },
+  cardItem:  {
+    width: '47.5%', borderRadius: 18, padding: 16, minHeight: 90,
+    justifyContent: 'center', borderWidth: 1.5, gap: 6,
+    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
+  },
+  cardEmoji: { fontSize: 30 },
+  cardLabel: { fontSize: 20, fontWeight: '800', lineHeight: 28 },
 
   // 입력
   inputWrap: { backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#E1BEE7',
