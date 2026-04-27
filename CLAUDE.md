@@ -445,253 +445,74 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 ## 미완성 / 추후작업 / 2차개발
 
 > ⚠️ 이 섹션은 대화 중 언급된 모든 미완성·추후 작업·2차 개발 항목을 자동으로 누적합니다.
-> 새 항목이 나올 때마다 여기에 추가하세요.
 
-### 🔒 보안 강화
+### ✅ 2025-04-27 완료 항목
+- [x] AIChatScreen 버블 채팅 히스토리 (messages[] 배열)
+- [x] AIChatScreen SSE 스트리밍 응답 + keep-alive ping
+- [x] AIChatScreen STT 중복 입력 수정 (resultIndex 방식)
+- [x] AIChatScreen 답변 TTS 제거 (STT 입력 + 긴급 한 줄 멘트만 유지)
+- [x] AIChatScreen 인사말 버블 제거 (TTS 음성만, 퀵카드 유지)
+- [x] AIChatScreen 게스트 5회 제한
+- [x] AIChatScreen 크래시 수정 (fadeInMsg→addMsg, displayMsg→lastAiMsg)
+- [x] MedicationScreen 백엔드 동기화 완료
+- [x] FamilyConnectScreen 백엔드 엔드포인트 매칭 (mycode/connect/relation)
+- [x] FamilyDashboardScreen 서버 멤버 로드
+- [x] ProfileScreen 단순화 (이름+전화 2항목, 대글자)
+- [x] HealthProfileScreen 단순화 (나이/성별/만성질환/알레르기/흡연/음주 6항목)
+- [x] LoginScreen Naver/Apple/Google 제거 (카카오+이메일만)
+- [x] IntroScreen 게스트 훑어보기 버튼 추가
+- [x] SOSScreen 게스트 119 차단
+- [x] SettingsScreen activeTab 수정, isGuest 버그, 알림저장, 약관모달, 비밀번호 안내
+- [x] SeniorHomeScreen 게스트 주황 배너
+- [x] Supabase 마이그레이션 002 (family_messages, family_goals) 실행 완료
+- [x] Supabase 마이그레이션 003 (family_links.relation 컬럼) 실행 완료
+
+---
+
+### 🔴 출시 전 필수
+
+- [ ] **SOSScreen 가족 전화번호 실제 연동** — ImportantContacts에서 번호 읽어서 자동 연결
+- [ ] **NotificationsScreen 실제 알림 연동** — UI만 존재, 실제 알림 목록 API 연결 필요
+- [ ] **WeeklyReport 나이 하드코딩** — `userAge = 70` → 건강프로필 `age` 필드에서 로드
+- [ ] **카카오 백엔드 callback 완전 연동** — `/users/kakao-callback` 검증
+
+### 🔒 보안 강화 (앱스토어 이후)
 - [ ] JWT 토큰 기반 인증 도입 (현재: userId 직접 전달)
-- [ ] Supabase RLS (Row Level Security) — JWT 도입 후 적용 (service_role key 필요)
+- [ ] Supabase RLS 적용 (JWT 도입 후)
 - [ ] CORS 도메인 제한 (현재 `*` 허용)
-- [ ] API Rate limiting 적용
-
-### 🔑 OAuth / 소셜 로그인
-- [ ] 네이버 OAuth Client ID 실제 값 입력 (현재 `YOUR_NAVER_CLIENT_ID`)
-- [ ] Apple OAuth Client ID 실제 값 입력
-- [ ] Google OAuth Client ID 실제 값 입력
-- [ ] 카카오 네이티브 앱 지원 (현재 웹 OAuth만)
-- [ ] 카카오 백엔드 `/users/kakao-callback` 완전 연동
+- [ ] API Rate limiting
 
 ### 🤖 AI 고도화
-- [ ] 에이전트 오케스트라 적용 (멀티에이전트 협업)
 - [ ] 벡터 검색 기반 장기 대화 맥락 유지
-- [ ] 일일 대화 요약 자동 생성 (현재 수동 엔드포인트)
-- [ ] 모델 동적 선택: CRITICAL→Opus 4 / 일반→Sonnet / 요약→Haiku (현재 로직 존재, 고도화 필요)
-- [ ] 인텐트 라우팅: 건강/여가/감정/일상 카테고리별 분기 처리
-- [ ] 여가·문화·감정 Q&A DB 구축 (lumina_health_500.json 확장)
-- [ ] 실사용자 대화 데이터 파이프라인 구축 (AI 생성 Q&A보다 가치 높음)
-- [ ] 중국 시장용 별도 데이터셋 — 한의학·식문화·의료체계 반영
+- [ ] 일일 대화 요약 자동 생성
+- [ ] 모델 동적 선택 고도화 (CRITICAL→Opus / 일반→Sonnet / 요약→Haiku)
+- [ ] 실사용자 대화 데이터 파이프라인
 
 ### 🏥 헬스케어 API 연동
-- [ ] 마이헬스웨이 API 연동 (공공 건강 데이터)
-- [ ] 건강보험심사평가원 API 연동
-- [ ] 삼성헬스 SDK 연동 → 걸음수/심박수/수면 데이터 자동 수집
-- [ ] Apple HealthKit 연동 → 걸음수/심박수/수면 데이터 자동 수집
-- [ ] 웨어러블 데이터 + 건강프로필 연계 → AI 상담 컨텍스트에 자동 반영
-  - 흐름: 웨어러블 수집 → health_records 저장 → load_health_context() → AI 시스템 프롬프트 포함
+- [ ] 삼성헬스 SDK / Apple HealthKit 연동 → 걸음수/심박수 자동 수집
+- [ ] 마이헬스웨이 API 연동
 
-### 🎤 음성 기능 ⚠️ 출시 전 필수
-- [x] AIChatScreen 음성 입력 (STT) — 🎤 버튼 구현 완료 (Web Speech API)
-- [x] SOSScreen TTS 음성 안내 — 완료: 진입 안내 + 카운트다운(하나/둘/셋/넷/다섯) + 취소 안심 메시지
-- [x] AIChatScreen TTS 답변 읽기 — 🔊/⏹ 읽기·정지 버튼 각 AI 메시지에 추가 완료
-- [ ] 인트로 TTS 음성 안내 (시간대별 인사말 — "좋은 아침이에요" 등)
-
-### 🌏 글로벌 / 플랫폼 확장
-- [ ] 중국 WeChat 미니프로그램 버전
-
-### 👨‍👩‍👧 가족 / 연결 기능
-- [ ] ⚠️ Supabase SQL Editor에서 `backend/migrations/002_family_messages_goals.sql` 실행 (family_messages, family_goals 테이블 생성 — 실제 채팅 저장 안됨)
-- [ ] FamilyDashboard AI 건강 요약 카드 (현재 DEMO_MODE)
-- [ ] SOSScreen 가족 전화번호 실제 연동 (현재 FAMILY 배열 phone 빈 문자열)
-- [ ] SOS 발생 시 가족 위치 자동 공유 (백그라운드 위치 추적)
+### 👨‍👩‍👧 가족 기능
+- [ ] SOS 발생 시 가족 위치 자동 공유
 - [ ] sendSOSPushToFamily 완전 구현
 
 ### 📍 위치 / 지도
-- [ ] LocationMapScreen 지도 카카오맵으로 전환 (현재 Leaflet+OpenStreetMap)
-  - 웹: Kakao Maps JS API (카카오 개발자 계정 사용)
-  - 중국 사용자: AutoNavi (高德地图) 분기 — 언어/지역 감지로 자동 전환
-  - 구조: `getMapProvider()` → 'kakao' | 'autonavi' | 'osm'
-- [ ] LocationMapScreen 네이티브 앱 지도 지원 (현재 웹만)
+- [ ] LocationMapScreen 카카오맵 전환 (현재 OpenStreetMap)
 - [ ] 백그라운드 위치 추적 (산책 동선 자동 기록)
 
-### 📋 미완성 화면 기능
-- [ ] HealthProfileScreen 프로필 작성 중요성 팝업 안내
-  - 회원가입 후 어드 시: "글비가 회원님의 건강 정보를 정확히 알아야 AI 상담이 더 정확해질니다" 등 구체적 이유 안내
-  - 프로필 편집(수정) 진입 시도 리마인드 팝업 표시 (중요성 강조)
-  - 팝업 내용: 맞치형 AI 상담 / 응급 상황 신속 대응 / 복약 안전 안내 혼동 방지 등 혜택 선명화
-  - 시니어 기준 큰 글씨 + 주요 포인트 3개 이내로 짧고 명확하게
-- [ ] DoctorMemoScreen 인쇄 기능 구현
-- [ ] Kkulbi SOS 전용 이미지 제작
-- [ ] 백엔드 `/users/{userId}/push-token` API 구현 확인
-- [ ] NotificationsScreen 실제 알림 목록 연동
+### 📋 미완성 화면
+- [ ] DoctorMemoScreen 인쇄 기능
+- [ ] HealthProfileScreen 작성 중요성 팝업 안내
 
 ### 🏗️ 빌드 / 배포
 - [ ] EAS Build 설정 (앱스토어/플레이스토어 제출용)
-- [ ] 앱스토어 제출 준비 (iOS)
-- [ ] 플레이스토어 제출 준비 (Android)
+- [ ] iOS App Store 제출 (Apple 로그인 추가 필요)
+- [ ] Android Play Store 제출
 
-### 🌙 낮/밤 자동 테마 (출시 직전 활성화)
-- [ ] ThemeContext 생성 — 오전 7시~오후 8시 = 낮(현재 밝은 테마), 그 외 = 밤(짙은 남색 테마)
-- [ ] 적용 범위: 홈(SeniorHomeScreen) + 하단 탭바(SeniorTabBar) + AI상담(AIChatScreen) 우선
-- [ ] 낮 배경 `#F0F5FB` → 밤 `#121A2A` / 헤더 `#1A4A8A` → `#0D1F3C` / 카드 `#fff` → `#1E2D42`
-- [ ] 나머지 화면은 2차로 확장
+### 🌙 낮/밤 자동 테마 (출시 직전)
+- [ ] ThemeContext — 오전 7시~오후 8시 낮 테마, 그 외 야간 테마
 
-### 🎨 UI / UX 정리
-- [ ] 전체 글자 크기 일괄 정리 (시니어 기준 18px 이상)
-- [ ] 가족 화면 UI 정리
-- [ ] 최종 통합 테스트
-
-
-### 🔔 자동 건강 이상 알림 (2차 업그레이드)
-- [ ] 백엔드 스케줄러 — 매일 새벽 health_records 자동 체크
-- [ ] 임계값 초과 시 푸시 알림 (예: 혈압 3일 연속 상승, 혈당 기준 초과)
-- [ ] 알림 탭 → AIChatScreen 연결 (꿀비에게 바로 물어보기)
-- [ ] 통계 이상 감지 로직 (단순 임계값 → 추세 기반으로 고도화)
-
-### 📊 AI 주도 건강 리포트 (3차 업그레이드)
-- [ ] 꿀비가 주간/월간 트렌드 요약 자동 생성
-- [ ] FamilyDashboard 가족 공유 연동
-- [ ] 1차 출시 후 3~6개월 실사용 데이터 기반으로 임계값 설계
----
-
-## 완료 작업 기록 (2026-04-26)
-
-### TTS/STT 음성기능 전면 적용 — 편안·보호·공감 목소리
-- `speech.ts`: rate 0.85 / pitch 1.1 / 한국어 여성 목소리 우선 (Yuna·Heami·Google) / voices 비동기 로드 대응
-- `SOSScreen`: "괜찮으세요?" 진입 → 카운트다운 하나/둘/셋/넷/다섯 → "지금 연결해요" → 취소 시 "걱정 마세요"
-- `AIChatScreen`: 각 AI 답변에 🔊 읽기 버튼, 탭하면 ⏹ 정지 토글
-- `SeniorHomeScreen`: 건강기록 로드 후 시간대별 인사 + 혈압요약 TTS (세션 1회)
-- `MedicationScreen`: 화면 진입 시 미복용 약 안내 + 복용 완료 탭 시 칭찬 피드백
-
-## 완료 작업 기록 (2026-04-26)
-
-### 데모 모드 제거 — 실제 앱 전환
-- `DEMO_MODE = true` 및 `DEMO` 객체 App.tsx에서 완전 제거
-- 모든 `DEMO_*` 상수 → `mobile/_demo_backup/demo_data.ts`에 백업 보존
-- `demo-user` 참조 전체 제거 (guard 조건 → `!userId`로 단순화)
-- 동선확인 버그 수정: `SeniorHomeScreen` goFamily() (FamilyDashboard 이동) → goLocationMap() (GET /location/today/{userId} → LocationMapScreen)
-- 영향 파일: App.tsx, SeniorHomeScreen, MedicationScreen, NotificationsScreen, FamilyDashboardScreen, FamilyConnectScreen, LocationMapScreen, HomeScreen, DashboardScreen, BottomTabBar, AIChatScreen, SettingsScreen, HealthScreen, 기타 7개
-
-## 완료 작업 기록 (2026-04-20)
-
-### AI 채팅 컨텍스트 고도화
-- `load_health_context()`: medications(times/med_type), medication_logs(오늘), health_records(최근 7일) 연동
-- `build_system_prompt()`: 복용약별 시간대 ✅/❌/⬜ 복용 현황, 최근 4일 트렌드 포함
-- 이전 오류: `time_slot`/`active`/`recorded_at` → 올바른 컬럼명으로 수정
-
-### 가족 대시보드 API 수정
-- `GET /family/members/{user_id}` 신규 추가 — 연결된 시니어 목록
-- `GET /family/dashboard/{senior_id}` 신규 추가 — 프론트 기대 형식 (name/time/taken/stock)
-- 기존 `/family/status`는 내부용으로 유지
-
-### 주간 건강 리포트 실데이터 연동 (WeeklyReportScreen)
-- `GET /health/history/{uid}?days=7` → 7일 건강 기록
-- 건강 점수 자동 계산 함수 `calcScore()` — 혈압/혈당/심박수/걸음수 기반
-- 주간 평균 수치, 트렌드 분석 (↑↓→ 자동 판별)
-- `POST /health/weekly-report` → Claude AI 총평 (잘한점/개선점/권고사항)
-- HealthScreen 기록 탭 상단에 "7일 주간 리포트" 진입 버튼 추가
-
-### SeniorHomeScreen 버그 수정
-- '{name} 어르신' → '{name}님' (stash 충돌로 원격 버전 덮어써진 것 복구)
-- 꿀비 이미지 → ⚙️ 설정 버튼 복구
-- 하드코딩 건강 카드 → fetchLatest() 실데이터
-- AsyncStorage userId 우선 읽기
-
-### 크롬 입력창 개선 (index.html + HealthScreen)
-- `input:focus { outline: none }` — 파란 포커스 테두리 제거
-- `-webkit-autofill` box-shadow 오버라이드 — 자동완성 노란/파란 배경 제거
-- TextInput 6개 `autoComplete="off"` 추가
-
----
-
-
-## 완료 작업 기록 (2026-04-27)
-
-### 가족 탭 재설계 — 감시 → 연결/공감 UX
-- **FamilyDashboardScreen** 전면 재작성
-  - 헤더: "우리 가족" + 사람추가 아이콘 (→ FamilyConnect with `addMode:true`)
-  - 멤버 칩 가로 스크롤
-  - 탭 토글: 메시지 | 건강 목표
-  - 메시지 탭: 대화 목록 + 읽지않음 뱃지 → FamilyChat 이동
-  - 목표 탭: 공유 건강 목표 + 진행률 바
-  - API 실패 시 DEMO 데이터 fallback (앱 무결성 유지)
-- **FamilyChatScreen** 신규 추가
-  - 1:1 가족 채팅 (버블: 내 메시지 오른쪽 / 상대 왼쪽)
-  - 빠른 답장 칩 6개 (어떠세요 / 밥 드셨어요 / 사랑해요 등)
-  - 낙관적 메시지 즉시 표시 (API 응답 대기 없이 UI 업데이트)
-  - 10초 폴링으로 새 메시지 수신
-  - KeyboardAvoidingView + ScrollView 구성
-- **FamilyConnectScreen** addMode 버그 수정
-  - `addMode:true` 파라미터로 진입 시 기존 가족 확인 auto-redirect 우회
-  - 이전: 헤더 사람추가 아이콘 → 즉시 FamilyDashboard 리다이렉트 (아무 반응 없어 보임)
-- **SeniorTabBar**: 가족 탭 → FamilyDashboard로 라우팅 변경
-- **App.tsx**: FamilyChatScreen import + Stack.Screen 등록
-
-### 백엔드 가족 메시징 + 목표 엔드포인트 구현 및 배포
-- `backend/app/routers/family.py` 신규 엔드포인트:
-  - POST/GET `/family/messages` — 메시지 전송/목록
-  - GET `/family/messages/{uid}/{pid}` — 1:1 대화 조회
-  - GET `/family/messages/unread-count/{uid}` — 읽지않음 수
-  - POST/GET/DELETE `/family/goals` — 공유 목표 CRUD
-  - GET `/family/quick-replies` — 빠른 답장 목록
-- `backend/migrations/002_family_messages_goals.sql` 생성
-  - ⚠️ **Supabase SQL Editor에서 수동 실행 필요** (아직 미실행)
-  - 테이블: `family_messages`, `family_goals`
-
-### AI 상담 대화 흐름 개선 — 3턴 의사 문진 방식
-- **ChatRequest** 필드 추가: `turn_count: int = 0`, `force_summary: bool = False`
-- **시스템 프롬프트 로직**:
-  - turn 0: 증상 1가지 질문만
-  - turn 1: 추가 질문 1개 또는 요약 판단
-  - turn 2+: `[FINAL]` 태그 포함 요약 + 병원 권고
-  - `force_summary=true`: 즉시 최종 요약
-- **백엔드 `[FINAL]` 감지**: `is_final` 필드 응답에 포함
-- **증상 누적 메모**: 모든 사용자 발화를 `combined_symptoms`로 합산 → doctor_memo 포함
-- **AIChatScreen** 변경:
-  - `turnCount` 상태 관리
-  - API 호출 시 `turn_count` 전달
-  - AI 응답 후 `isFinal` 확인 → 메모 버튼 표시 조건
-  - `sendForceSummary()` 함수 추가
-  - "지금 요약해줘" 버튼 (turn 3 이상에서 표시)
-  - 메모 상태 `memoState === 'saved'` 보호 — 저장 후 재프롬프트 방지 버그 수정
-
-### TTS 개선 — 문장 단위 읽기 + 마크다운 완전 제거
-- **`speech.ts`** `speakSentences()` 추가
-  - 문장 부호(. ! ? 。)로 분리 → 각 문장 별도 utterance 큐잉
-  - 문장 사이 무음 pause utterance 삽입 (자연스러운 읽기)
-  - rate 0.78 / pitch 1.05
-- **`cleanForTTS()` 강화**:
-  - `.replace(/\*+/g, '')` 추가 — 잔여 별표 제거
-  - `.replace(/^-{2,}\s*/gm, '')` 추가 — 대시(--) 제거
-  - 기존: code block, inline code, heading, 순서없는 목록 제거
-
-### 버그 수정
-- **메모 재프롬프트** : `send()` 내 `setMemoState('idle')` → `if (memoState !== 'saved') setMemoState('idle')` 조건부로 변경
-- **백엔드 500 오류**: `ChatRequest` 필드 추가 시 실제 모델 구조 불일치 → 올바른 클래스 위치 확인 후 재적용
-- **철자 오류 수정**: 혁당→혈당, 꿼비→꿀비, 백→보 (build_doctor_memo 내)
-
-### FAQ 카드 크기 축소 (최종)
-- body padding 8, catBlock borderRadius 10/marginBottom 4
-- catHeader: paddingH 10/paddingV 6, fontSize 14
-- qRow: paddingH 10/paddingV 5/gap 8, qMark 13pt/w18
-- qText: 14pt/lh19, aBox: paddingH 10/paddingT 3/paddingB 6/gap 8
-- aMark: 13pt, aText: 13pt/lh18
-
----
-## 구현 현황 (Demo → Real) — 세션 시작 전 반드시 확인
-
-> **규칙:** 코드 변경 전 이 테이블 확인 → 변경 후 즉시 업데이트. 추측 금지.
-
-| 화면 | 항목 | 상태 | 확정 내용 |
-|------|------|------|-----------|
-| SeniorHomeScreen | 헤더 | ✅ 완료 | ⚙️ 설정버튼 (꿀비 이미지 제거 확정), `{name}님` (어르신 제거 확정) |
-| 전체 앱 | DEMO_MODE | ✅ 완료 | DEMO_MODE 제거, demo-user 제거, 백업: `mobile/_demo_backup/demo_data.ts` |
-| SeniorHomeScreen | 동선확인 버튼 | ✅ 완료 | GET /location/today/{userId} → LocationMapScreen (버그 수정) |
-| SeniorHomeScreen | 건강카드 | ✅ 완료 | 혈압/혈당/체온/체중 4개, 실데이터(fetchLatest) |
-| SeniorHomeScreen | 걸음수 | ✅ 완료 | 실데이터(steps) — 없으면 '--' |
-| HealthScreen | 건강기록 입력 | ✅ 완료 | 실데이터 백엔드 저장 (혈압/혈당/체온/체중/걸음수) |
-| WeeklyReportScreen | 주간 리포트 | ✅ 완료 | 실데이터 + AI 총평 |
-| AIChatScreen | AI 상담 | ✅ 완료 | 실데이터 컨텍스트 (복약/건강기록 7일) + 과거 데이터 tool use (query_health_records) |
-| AIChatScreen | STT 음성입력 | ✅ 완료 | 🎤 버튼 — Web Speech API |
-| AIChatScreen | TTS 읽어주기 | ✅ 완료 | 🔊 읽기/⏹ 정지 토글 버튼 |
-| SOSScreen | TTS 음성안내 | ✅ 완료 | 진입 안내 + 카운트다운 + 취소 메시지 |
-| SOSScreen | 가족 전화번호 | 🔲 미완성 | 현재 phone 빈 문자열 |
-| FamilyDashboard | AI 건강요약 | 🔲 미완성 | 현재 DEMO_MODE |
-| LoginScreen | 카카오 로그인 | ✅ 완료 | 웹 OAuth 동작 |
-| LoginScreen | 네이버/Apple/Google | 🔲 미완성 | Client ID 미설정 |
-| FamilyDashboardScreen | 가족 탭 UX | ✅ 완료 | 메시지 + 건강목표 탭, addMode 버그 수정 확정 |
-| FamilyChatScreen | 1:1 가족 채팅 | ✅ 완료 | 버블 UI, 빠른답장 칩, 10초 폴링 |
-| AIChatScreen | 3턴 상담 흐름 | ✅ 완료 | turn_count, [FINAL] 감지, 지금요약 버튼 |
-| AIChatScreen | TTS 마크다운 제거 | ✅ 완료 | cleanForTTS 강화 + speakSentences 문장단위 읽기 |
-| AIChatScreen | 메모 재프롬프트 | ✅ 완료 | memoState=saved 보호 버그 수정 |
-| backend/family.py | 메시지+목표 API | ✅ 완료 | 엔드포인트 구현 + 배포 완료 |
-| Supabase | migration 002 | 🔲 미완성 | family_messages/family_goals 테이블 SQL 실행 필요 |
-
+### 🌏 글로벌 확장 (2차)
+- [ ] Google / Apple 로그인 (글로벌 출시 시)
+- [ ] 네이버 로그인 (한국 추가 커버)
+- [ ] 일본·동남아 현지화
