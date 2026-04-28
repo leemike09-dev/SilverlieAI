@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const BLUE    = '#1A4A8A';
@@ -314,34 +315,28 @@ export default function HealthScreen({ navigation }: any) {
   const stepsPct  = steps ? Math.min(Number(steps) / stepsGoal, 1) : 0;
 
   return (
-    <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor={BLUE} />
+    <LinearGradient
+      colors={['#FFF8FA', '#FFE6EE', '#FFD5E4']}
+      locations={[0, 0.55, 1]}
+      style={s.root}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor="#FFF8FA" />
 
-      {/* ── 헤더 ── */}
-      <View style={[s.header, { paddingTop: Math.max(insets.top + 14, 28) }]}>
-        <View style={s.headerTopRow}>
-          <View>
-            <Text style={s.headerTitle}>📊 건강 기록</Text>
-            <Text style={s.headerSub}>오늘 수치를 입력해주세요</Text>
-          </View>
-          <TouchableOpacity style={s.settingsBtn}
-            onPress={() => navigation.navigate('Settings', { userId, name: uname })}>
-            <Text style={s.settingsBtnTxt}>⚙️</Text>
-            <Text style={s.settingsBtnLabel}>설정</Text>
-          </TouchableOpacity>
+      {/* ── 상단 바 ── */}
+      <View style={[s.topBar, { paddingTop: Math.max(insets.top + 10, 20) }]}>
+        <View>
+          <Text style={s.topTitle}>❤️ 건강 기록</Text>
+          <Text style={s.topSub}>오늘 수치를 입력해주세요</Text>
         </View>
-        {Platform.OS === 'web' ? (
-          <View style={s.waveWrap}>
-            {/* @ts-ignore */}
-            <svg width="100%" height="20" viewBox="0 0 100 20"
-              preserveAspectRatio="none"
-              style={{ width: '100%', display: 'block', marginBottom: '-1px' }}>
-              <path d="M0 20 Q25 0 50 12 Q75 24 100 5 L100 20 L0 20 Z" fill={BG} />
-            </svg>
-          </View>
-        ) : (
-          <View style={s.waveNative} />
-        )}
+        <TouchableOpacity
+          style={s.gearBtn}
+          onPress={() => navigation.navigate('Settings', { userId, name: uname })}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={s.gearEmoji}>⚙️</Text>
+          <Text style={s.gearLabel}>설정</Text>
+        </TouchableOpacity>
       </View>
 
       {/* ── 탭 ── */}
@@ -598,7 +593,7 @@ export default function HealthScreen({ navigation }: any) {
       )}
 
       <SeniorTabBar activeTab="health" userId={userId} name={uname} navigation={navigation} />
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -650,27 +645,28 @@ const hs = StyleSheet.create({
 });
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: BG },
+  root: { flex: 1 },
 
-  header:       { backgroundColor: BLUE, paddingHorizontal: 20, paddingBottom: 0 },
-  headerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  settingsBtn:  { padding: 8, marginTop: 4 },
-  settingsBtnTxt:   { fontSize: 28, textAlign: 'center' },
-  settingsBtnLabel: { fontSize: 18, color: 'rgba(255,255,255,0.9)', fontWeight: '700', textAlign: 'center', marginTop: -2 },
-  headerTitle:  { fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: 4 },
-  headerSub:    { fontSize: 18, color: 'rgba(255,255,255,0.8)', marginBottom: 14 },
-  waveWrap:     { height: 20, overflow: 'hidden' },
-  waveNative:   { height: 22, backgroundColor: BG, borderTopLeftRadius: 22, borderTopRightRadius: 22 },
+  /* ── 상단 바 ── */
+  topBar:  { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
+             paddingHorizontal: 20, paddingBottom: 12 },
+  topTitle:{ fontSize: 26, fontWeight: '900', color: '#1A2C4E', letterSpacing: 0.3 },
+  topSub:  { fontSize: 13, color: '#8A6070', fontWeight: '600', marginTop: 2 },
+  gearBtn: { backgroundColor: 'rgba(255,255,255,0.65)', borderRadius: 14,
+             paddingHorizontal: 9, paddingVertical: 4,
+             borderWidth: 1, borderColor: 'rgba(200,140,160,0.4)', alignItems: 'center' },
+  gearEmoji: { fontSize: 20 },
+  gearLabel: { fontSize: 10, color: '#6A3050', fontWeight: '700', textAlign: 'center', marginTop: 1 },
 
-  tabBar:   { flexDirection: 'row', backgroundColor: '#fff',
-              borderBottomWidth: 1, borderBottomColor: '#E0E8F0' },
+  tabBar:   { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.85)',
+              borderBottomWidth: 1, borderBottomColor: 'rgba(255,200,215,0.6)' },
   tabBtn:   { flex: 1, paddingVertical: 16, alignItems: 'center',
               borderBottomWidth: 3, borderBottomColor: 'transparent' },
-  tabBtnOn: { borderBottomColor: BLUE },
+  tabBtnOn: { borderBottomColor: '#C2185B' },
   tabTxt:   { fontSize: 20, fontWeight: '700', color: '#90A4AE' },
-  tabTxtOn: { color: BLUE, fontWeight: '900' },
+  tabTxtOn: { color: '#C2185B', fontWeight: '900' },
 
-  scroll:  { flex: 1 },
+  scroll:  { flex: 1, backgroundColor: 'transparent' },
   content: { padding: 16, paddingBottom: 120 },
 
   card:      { backgroundColor: '#fff', borderRadius: 22, padding: 20, marginBottom: 14,
