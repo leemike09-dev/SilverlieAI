@@ -482,7 +482,7 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 - [ ] **SOSScreen 가족 전화번호 실제 연동** — ImportantContacts에서 번호 읽어서 자동 연결
 - [ ] **NotificationsScreen 실제 알림 연동** — UI만 존재, 실제 알림 목록 API 연결 필요
 - [ ] **WeeklyReport 나이 하드코딩** — `userAge = 70` → 건강프로필 `age` 필드에서 로드
-- [ ] **카카오 백엔드 callback 완전 연동** — `/users/kakao-callback` 검증
+- [x] **카카오 로그인 연동 완료** — 실사용자 카카오 로그인 정상 작동 확인 (2026-04-28)
 
 ### 🔒 보안 강화 (앱스토어 이후)
 - [ ] JWT 토큰 기반 인증 도입 (현재: userId 직접 전달)
