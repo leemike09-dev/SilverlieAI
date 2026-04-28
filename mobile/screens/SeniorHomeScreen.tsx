@@ -19,7 +19,6 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
   const [userId, setUserId] = useState<string>(route?.params?.userId || '');
   const [name,   setName]   = useState<string>(route?.params?.name   || '');
-  const [steps,  setSteps]  = useState<number | null>(null);
   const ttsDoneRef = useRef(false);
 
   useEffect(() => {
@@ -38,9 +37,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
     try {
       const r = await fetch(`${API}/health/records/${uid}`);
       if (!r.ok) return;
-      const d    = await r.json();
-      const recs: any[] = d.records || [];
-      if (recs.length > 0 && recs[0].steps) setSteps(recs[0].steps);
+
 
       const today         = new Date().toISOString().slice(0, 10);
       const lastGreetDate = await AsyncStorage.getItem('tts_greeting_date');
@@ -128,14 +125,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           </View>
         </View>
 
-        {/* ── 히어로: 서브텍스트 + 루미 ── */}
+        {/* ── 히어로: 루미 ── */}
         <View style={s.hero}>
-          <View style={s.heroLeft}>
-            <Text style={s.heroSub}>오늘도 건강하고{'\n'}행복한 하루 보내세요 💙</Text>
-            {steps !== null && (
-              <Text style={s.stepsTxt}>👟 {steps.toLocaleString()} 걸음</Text>
-            )}
-          </View>
           <Image
             source={require('../assets/lumi10.png')}
             style={s.lumiImg}
@@ -246,11 +237,8 @@ const s = StyleSheet.create({
   topTime:   { fontSize: 21, fontWeight: '900', color: '#fff' },
 
   /* ── 히어로 ── */
-  hero:     { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, gap: 4 },
-  heroLeft: { flex: 1, gap: 8 },
-  heroSub:  { fontSize: 14, fontWeight: '700', color: 'rgba(255,255,255,0.92)', lineHeight: 21 },
-  lumiImg:  { width: 260, height: 290 },
-  stepsTxt: { fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
+  hero:    { alignItems: 'center', paddingVertical: 4 },
+  lumiImg: { width: '100%', aspectRatio: 0.9 },
 
   /* ── 게스트 배너 ── */
   guestBanner: {
