@@ -101,7 +101,16 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             <Text style={s.topSub}>65+ 건강·안심·친구</Text>
           </View>
           <View style={s.topRight}>
-            <Text style={s.topDate}>{weather}  {dateStr}</Text>
+            <View style={s.topDateRow}>
+              <Text style={s.topDate}>{weather}  {dateStr}</Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Settings', { userId, name })}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={s.topGear}>⚙️</Text>
+              </TouchableOpacity>
+            </View>
             <Text style={s.topTime}>{timeStr}</Text>
           </View>
         </View>
@@ -250,9 +259,11 @@ const s = StyleSheet.create({
   },
   topTitle: { fontSize: 26, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
   topSub:   { fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: '600', marginTop: 1 },
-  topRight: { alignItems: 'flex-end', gap: 2 },
-  topDate:  { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
-  topTime:  { fontSize: 22, fontWeight: '900', color: '#fff' },
+  topRight:   { alignItems: 'flex-end', gap: 2 },
+  topDateRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  topDate:    { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
+  topGear:    { fontSize: 18 },
+  topTime:    { fontSize: 22, fontWeight: '900', color: '#fff' },
 
   /* ── 인사 영역 ── */
   greetArea: { gap: 6 },
