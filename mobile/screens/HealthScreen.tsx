@@ -536,6 +536,8 @@ export default function HealthScreen({ navigation }: any) {
               autoComplete="off"
             />
 
+            <Text style={hs.hospHint}>💡 저장하면 루미가 하루 전 저녁과 당일 4시간 전에 음성으로 알려드려요</Text>
+
             <View style={hs.btnRow}>
               <TouchableOpacity
                 style={[hs.saveBtn, hospSaving && { backgroundColor: '#90A4AE' }]}
@@ -644,6 +646,7 @@ const hs = StyleSheet.create({
   delBtn:     { flex: 0, backgroundColor: '#FFEBEE', borderRadius: 16,
                 paddingVertical: 18, paddingHorizontal: 22, alignItems: 'center' },
   delBtnTxt:  { fontSize: 20, fontWeight: '700', color: '#C62828' },
+  hospHint:   { fontSize: 13, color: '#5C7A9A', fontWeight: '500', lineHeight: 19, marginBottom: 10 },
 });
 
 const s = StyleSheet.create({
