@@ -500,6 +500,9 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 - [ ] LocationMapScreen 카카오맵 전환 (현재 OpenStreetMap)
 - [ ] 백그라운드 위치 추적 (산책 동선 자동 기록)
 
+### 💊 약 관리 고도화
+- [ ] **처방전·약 봉지 OCR 스캔** — 카메라로 사진 촬영 → Google Cloud Vision API로 텍스트 추출 → Claude API로 약 이름 파싱 → 약 이름 입력창 자동 완성 (삼성 갤럭시 헬스 유사 기능)
+
 ### 📋 미완성 화면
 - [ ] DoctorMemoScreen 인쇄 기능
 - [ ] HealthProfileScreen 작성 중요성 팝업 안내

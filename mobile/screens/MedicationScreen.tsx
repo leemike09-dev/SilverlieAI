@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Platform, TextInput, Modal, Alert,
+  TextInput, Modal, Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import SeniorTabBar from '../components/SeniorTabBar';
 import { scheduleMedNotification, cancelMedNotification } from '../utils/notifications';
 import { speak } from '../utils/speech';
@@ -14,7 +15,6 @@ const isDemo  = (uid: string) => !uid || uid === 'demo-user' || uid === 'guest';
 
 const GREEN  = '#2E7D32';
 const LGREEN = '#E8F5E9';
-const BG     = '#F4F7FC';
 
 const TIME_SLOTS = [
   { key: 'morning',  label: '아침',   icon: '🌅', defaultTime: '08:00' },
@@ -166,39 +166,22 @@ export default function MedicationScreen({ navigation }: any) {
 
 
   return (
-    <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor={GREEN} />
+    <LinearGradient colors={['#F4FBF6', '#DFF2E8', '#C5E8D3']} locations={[0, 0.55, 1]} style={s.root}>
 
-      {/* ── 헤더 ── */}
-      <View style={[s.header, { paddingTop: Math.max(insets.top + 14, 28) }]}>
-        <View style={s.headerRow}>
-          <View>
-            <Text style={s.headerTitle}>💊 약 관리</Text>
-            <Text style={s.headerSub}>오늘도 건강하게 복용해요</Text>
-          </View>
-          <View style={s.headerBtns}>
-            <TouchableOpacity style={s.settingsBtn}
-              onPress={() => navigation.navigate('Settings', { userId, name: uname })}>
-              <Text style={s.settingsBtnTxt}>⚙️</Text>
-              <Text style={s.settingsBtnLabel}>설정</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.addHeaderBtn} onPress={() => setAddModal(true)}>
-              <Text style={s.addHeaderTxt}>+ 약 추가</Text>
-            </TouchableOpacity>
-          </View>
+      {/* ── 탑바 ── */}
+      <View style={[s.topBar, { paddingTop: Math.max(insets.top + 10, 20) }]}>
+        <View>
+          <Text style={s.topTitle}>💊 약 관리</Text>
+          <TouchableOpacity style={s.addBtn} onPress={() => setAddModal(true)} activeOpacity={0.8}>
+            <Text style={s.addBtnTxt}>+ 약 추가</Text>
+          </TouchableOpacity>
         </View>
-        {/* 웨이브: 웹 전용 */}
-        {Platform.OS === 'web' ? (
-          <View style={s.waveWrap}>
-            {/* @ts-ignore */}
-            <svg width="100%" height="30" viewBox="0 0 200 30" preserveAspectRatio="none"
-              style={{ display: 'block' }}>
-              <path d="M0 20 Q50 0 100 15 Q150 30 200 10 L200 30 L0 30 Z" fill={BG} />
-            </svg>
-          </View>
-        ) : (
-          <View style={s.waveNative} />
-        )}
+        <TouchableOpacity style={s.gearBtn}
+          onPress={() => navigation.navigate('Settings', { userId, name: uname })}
+          activeOpacity={0.7}>
+          <Text style={s.gearEmoji}>⚙️</Text>
+          <Text style={s.gearLabel}>설정</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
@@ -377,28 +360,26 @@ export default function MedicationScreen({ navigation }: any) {
       </Modal>
 
       <SeniorTabBar activeTab="med" userId={userId} name={uname} navigation={navigation} />
-    </View>
+    </LinearGradient>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: BG },
+  root: { flex: 1 },
 
-  // 헤더
-  header:      { backgroundColor: GREEN, paddingHorizontal: 20, paddingBottom: 0, zIndex: 10 },
-  headerRow:   { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
-                 paddingBottom: 16 },
-  headerBtns:     { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  settingsBtn:    { padding: 8 },
-  settingsBtnTxt:   { fontSize: 28, textAlign: 'center' },
-  settingsBtnLabel: { fontSize: 18, color: 'rgba(255,255,255,0.9)', fontWeight: '700', textAlign: 'center', marginTop: -2 },
-  headerTitle: { fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: 4 },
-  headerSub:   { fontSize: 18, color: 'rgba(255,255,255,0.75)' },
-  addHeaderBtn:{ backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 14,
-                 paddingHorizontal: 18, paddingVertical: 10, marginTop: 4 },
-  addHeaderTxt:{ fontSize: 18, fontWeight: '800', color: '#fff' },
-  waveWrap:    { height: 30, overflow: 'hidden' },
-  waveNative:  { height: 24, backgroundColor: BG, borderTopLeftRadius: 22, borderTopRightRadius: 22 },
+  // 탑바
+  topBar:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+               backgroundColor: '#fff', paddingHorizontal: 16, paddingBottom: 12,
+               borderBottomWidth: 1, borderBottomColor: '#C8E6C9' },
+  topTitle:  { fontSize: 22, fontWeight: '900', color: '#1A2C4E', marginBottom: 8 },
+  addBtn:    { backgroundColor: GREEN, borderRadius: 14,
+               paddingHorizontal: 18, paddingVertical: 10, alignSelf: 'flex-start' },
+  addBtnTxt: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  gearBtn:   { backgroundColor: LGREEN, borderRadius: 14,
+               paddingHorizontal: 9, paddingVertical: 4,
+               borderWidth: 1, borderColor: '#A5D6A7', alignItems: 'center' },
+  gearEmoji: { fontSize: 20 },
+  gearLabel: { fontSize: 10, color: GREEN, fontWeight: '700', textAlign: 'center', marginTop: 1 },
 
   // 스크롤
   scroll:  { flex: 1 },
