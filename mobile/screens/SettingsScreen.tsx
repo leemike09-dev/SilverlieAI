@@ -100,6 +100,23 @@ export default function SettingsScreen({ route, navigation }: Props) {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    const confirmed1 = Platform.OS === 'web'
+      ? window.confirm('회원탈퇴 하시겠습니까?\n모든 건강기록, 약 정보, 대화 내용이 삭제됩니다.')
+      : await new Promise(resolve =>
+          Alert.alert('회원탈퇴', '모든 건강기록, 약 정보, 대화 내용이 영구 삭제됩니다.\n정말 탈퇴하시겠습니까?', [
+            { text: '취소', style: 'cancel', onPress: () => resolve(false) },
+            { text: '탈퇴하기', style: 'destructive', onPress: () => resolve(true) },
+          ])
+        );
+    if (!confirmed1) return;
+    try {
+      await fetch(`${API_URL}/users/${userId}`, { method: 'DELETE' });
+    } catch {}
+    await AsyncStorage.clear();
+    navigation.reset({ index: 0, routes: [{ name: 'Intro' }] });
+  };
+
   const handleLogout = async () => {
     const confirmed = Platform.OS === 'web'
       ? window.confirm('로그아웃 하시겠습니까?')
@@ -232,13 +249,20 @@ export default function SettingsScreen({ route, navigation }: Props) {
             <Text style={s.listLabel}>서비스 이용약관</Text>
             <Text style={s.listArrow}>›</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[s.listItem, s.listItemLast]} onPress={handleLogout}>
+          <TouchableOpacity style={s.listItem} onPress={handleLogout}>
             <Text style={s.listIcon}>🚪</Text>
             <Text style={[s.listLabel, { color: C.red }]}>
               {isGuest ? '처음으로 돌아가기' : '로그아웃'}
             </Text>
             <Text style={[s.listArrow, { color: C.red }]}>›</Text>
           </TouchableOpacity>
+          {!isGuest && (
+            <TouchableOpacity style={[s.listItem, s.listItemLast]} onPress={handleDeleteAccount}>
+              <Text style={s.listIcon}>🗑️</Text>
+              <Text style={[s.listLabel, { color: C.red, fontWeight: '700' }]}>회원탈퇴</Text>
+              <Text style={[s.listArrow, { color: C.red }]}>›</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <Text style={s.versionText}>Silver Life AI v0.1.0</Text>

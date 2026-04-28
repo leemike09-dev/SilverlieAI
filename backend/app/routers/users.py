@@ -244,3 +244,29 @@ def apple_login(req: AppleLoginRequest):
         user = result.data[0]
 
     return {"id": user["id"], "name": user["name"], "email": user["email"]}
+
+
+@router.delete("/{user_id}")
+def delete_account(user_id: str):
+    """회원탈퇴: 해당 유저의 모든 데이터 삭제"""
+    for table in ["medications", "health_records", "ai_chat_logs", "ai_chat_summaries",
+                  "medication_logs", "notifications", "push_tokens", "location_logs"]:
+        try:
+            db.table(table).delete().eq("user_id", user_id).execute()
+        except Exception:
+            pass
+    for col in ["senior_id", "family_id"]:
+        try:
+            db.table("family_links").delete().eq(col, user_id).execute()
+        except Exception:
+            pass
+    for table, col in [("family_messages", "sender_id"), ("family_goals", "senior_user_id")]:
+        try:
+            db.table(table).delete().eq(col, user_id).execute()
+        except Exception:
+            pass
+    try:
+        db.table("users").delete().eq("id", user_id).execute()
+    except Exception:
+        pass
+    return {"ok": True}
