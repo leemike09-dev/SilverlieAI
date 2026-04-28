@@ -237,8 +237,8 @@ const s = StyleSheet.create({
   topTime:   { fontSize: 21, fontWeight: '900', color: '#fff' },
 
   /* ── 히어로 ── */
-  hero:    { alignItems: 'center', paddingVertical: 4 },
-  lumiImg: { width: '100%', aspectRatio: 0.9 },
+  hero:    { alignItems: 'center', paddingVertical: 0 },
+  lumiImg: { width: 260, height: 290, transform: [{ scale: 1.7 }] },
 
   /* ── 게스트 배너 ── */
   guestBanner: {
