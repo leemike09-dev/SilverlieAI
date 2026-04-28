@@ -2,11 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   TextInput, KeyboardAvoidingView, Platform,
-  StatusBar, Animated, Modal, Linking, Alert,
+  Animated, Modal, Linking, Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 import { speak, stopSpeech } from '../utils/speech';
 import SeniorTabBar from '../components/SeniorTabBar';
 
@@ -37,14 +36,14 @@ const C = {
 };
 
 const QUICK_CARDS = [
-  { emoji: '💉', label: '약 부작용이\n걱정돼요',    color: '#3949AB', bg: '#E8EAF6' },
-  { emoji: '❤️',  label: '혈압이\n높아요',          color: '#C62828', bg: '#FFEBEE' },
-  { emoji: '😔', label: '기분이\n울적해요',          color: '#7B1FA2', bg: '#F3E5F5' },
-  { emoji: '🦵', label: '무릎이\n아파요',            color: '#E65100', bg: '#FFF3E0' },
-  { emoji: '👪', label: '가족이\n보고 싶어요',       color: '#2E7D32', bg: '#E8F5E9' },
-  { emoji: '😴', label: '잠을 못 자고\n있어요',      color: '#1565C0', bg: '#E3F2FD' },
-  { emoji: '😵', label: '어지럽고\n힘들어요',        color: '#6A1B9A', bg: '#EDE7F6' },
-  { emoji: '🏃', label: '가볍게 걸어도\n될까요?',    color: '#00695C', bg: '#E0F2F1' },
+  { emoji: '💊', label: '약을 깜박하고\n못 먹었어요',    color: '#3949AB', bg: '#E8EAF6' },
+  { emoji: '💗', label: '혈압이 높게\n나왔어요',          color: '#C62828', bg: '#FFEBEE' },
+  { emoji: '😔', label: '기분이 울적하고\n외로워요',      color: '#7B1FA2', bg: '#F3E5F5' },
+  { emoji: '🦴', label: '무릎·관절이\n아파요',            color: '#E65100', bg: '#FFF3E0' },
+  { emoji: '😴', label: '밤에 잠이\n안 와요',             color: '#1565C0', bg: '#E3F2FD' },
+  { emoji: '😵', label: '어지럽고\n쓰러질 것 같아요',     color: '#6A1B9A', bg: '#EDE7F6' },
+  { emoji: '🍽️', label: '밥맛이 없고\n식욕이 없어요',    color: '#00695C', bg: '#E0F2F1' },
+  { emoji: '🚶', label: '오늘 산책해도\n될까요?',          color: '#2E7D32', bg: '#E8F5E9' },
 ];
 
 // ── Intent 분류 ──
@@ -519,44 +518,24 @@ export default function AIChatScreen({ route, navigation }: Props) {
     else Linking.openURL('tel:119');
   };
 
-  const waveFill = Platform.OS === 'web' ? C.purpleWave : C.purple1;
-  const webBg: any = Platform.OS === 'web'
-    ? { background: 'linear-gradient(160deg, #6A1B9A 0%, #8E24AA 100%)' }
-    : { backgroundColor: C.purple1 };
-
   return (
     <View style={s.root}>
-      {/* ── 헤더 + 파도 웨이브 ── */}
-      <View style={[s.header, webBg, { paddingTop: Math.max(insets.top + 8, 24) }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
-          <Text style={s.backTxt}>‹</Text>
-        </TouchableOpacity>
-        <View style={s.headerCenter}>
-          <Text style={s.headerTitle}>AI 건강 상담</Text>
-          <Text style={s.headerSub}>루미와 함께하는 건강 관리</Text>
+      {/* ── 탑바 ── */}
+      <View style={[s.topBar, { paddingTop: Math.max(insets.top + 10, 20) }]}>
+        <View>
+          <Text style={s.topTitle}>💬 루미와 대화</Text>
+          <Text style={s.topSub}>건강·일상 무엇이든 물어보세요</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <View style={s.onlineDot} />
-          <TouchableOpacity style={s.settingsBtn}
-            onPress={() => navigation.navigate('Settings', { userId, name })}>
-            <Text style={{ fontSize: 26, textAlign: 'center' }}>⚙️</Text>
-            <Text style={{ fontSize: 18, color: 'rgba(255,255,255,0.9)', fontWeight: '700' }}>설정</Text>
+          <TouchableOpacity style={s.gearBtn}
+            onPress={() => navigation.navigate('Settings', { userId, name })}
+            activeOpacity={0.7}>
+            <Text style={s.gearEmoji}>⚙️</Text>
+            <Text style={s.gearLabel}>설정</Text>
           </TouchableOpacity>
         </View>
       </View>
-      {/* SVG 파도 웨이브 */}
-      <Svg
-        style={{ marginTop: -1 }}
-        width="100%"
-        height={36}
-        viewBox="0 0 360 36"
-        preserveAspectRatio="none"
-      >
-        <Path
-          d="M0,36 L0,22 C30,10 60,34 90,22 C120,10 150,34 180,22 C210,10 240,34 270,22 C300,10 330,34 360,22 L360,36 Z"
-          fill={waveFill}
-        />
-      </Svg>
 
       {/* CRITICAL 배너 */}
       {showEmergency && (
@@ -630,7 +609,11 @@ export default function AIChatScreen({ route, navigation }: Props) {
               {messages.map((msg, i) => {
                 const isStreaming = i === messages.length - 1 && msg.role === 'ai' && loading && msg.text === '';
                 return (
-                  <View key={i} style={msg.role === 'ai' ? s.aiBubble : s.userBubble}>
+                  <View key={i} style={msg.role === 'ai' ? s.aiRow : s.userRow}>
+                    {msg.role === 'ai' && (
+                      <View style={s.lumiAvatar}><Text style={{ fontSize: 20 }}>🤖</Text></View>
+                    )}
+                    <View style={msg.role === 'ai' ? s.aiBubble : s.userBubble}>
                     {msg.role === 'ai' && <Text style={s.bubbleName}>루미</Text>}
                     <Text style={msg.role === 'ai' ? s.aiTxt : s.userTxt}>
                       {isStreaming ? (
@@ -648,6 +631,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
                         <Text style={s.ttsBtnTxt}>🔊</Text>
                       </TouchableOpacity>
                     )}
+                    </View>
                   </View>
                 );
               })}
@@ -768,20 +752,23 @@ export default function AIChatScreen({ route, navigation }: Props) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#FBF8FF' },
 
-  // 헤더
-  header: {
-    flexDirection: 'row', alignItems: 'center',
-
-    paddingHorizontal: 18, paddingBottom: 16, gap: 12,
+  // 탑바
+  topBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#fff', paddingHorizontal: 16, paddingBottom: 12,
+    borderBottomWidth: 1, borderBottomColor: '#E1BEE7',
   },
-  backBtn:      { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backTxt:      { color: '#fff', fontSize: 28, fontWeight: '300', lineHeight: 32 },
-  headerCenter: { flex: 1 },
-  headerTitle:  { fontSize: 28, fontWeight: '800', color: '#fff' },
-  headerSub:    { fontSize: 18, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-  onlineDot:    { width: 10, height: 10, borderRadius: 5, backgroundColor: '#3DAB7B',
+  topTitle: { fontSize: 22, fontWeight: '900', color: '#16273E' },
+  topSub:   { fontSize: 13, color: '#7A90A8', marginTop: 2 },
+  onlineDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#3DAB7B',
     shadowColor: '#3DAB7B', shadowRadius: 4, shadowOpacity: 0.8 },
-  settingsBtn:  { alignItems: 'center' },
+  gearBtn: {
+    backgroundColor: '#F3E5F5', borderRadius: 14,
+    paddingHorizontal: 9, paddingVertical: 4,
+    borderWidth: 1, borderColor: '#CE93D8', alignItems: 'center',
+  },
+  gearEmoji: { fontSize: 20 },
+  gearLabel: { fontSize: 10, color: '#7B1FA2', fontWeight: '700', textAlign: 'center', marginTop: 1 },
 
   // 메인 바디
   body: { flex: 1, flexDirection: 'column', paddingHorizontal: 22, paddingTop: 10, paddingBottom: 6 },
@@ -801,13 +788,16 @@ const s = StyleSheet.create({
   msgScroll:   { flex: 1, flexGrow: 1, flexShrink: 1, flexBasis: 0 },
   msgPlaceholder: { flex: 1 },
   msgContent:  { paddingVertical: 12, gap: 10 },
+  aiRow:       { flexDirection: 'row', alignItems: 'flex-end', gap: 8, alignSelf: 'flex-start', maxWidth: '92%' },
+  userRow:     { alignSelf: 'flex-end', maxWidth: '88%' },
+  lumiAvatar:  { width: 36, height: 36, borderRadius: 18, backgroundColor: '#E1BEE7',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   aiBubble:    {
-    alignSelf: 'flex-start', maxWidth: '88%',
+    flex: 1,
     backgroundColor: '#F3E5F5', borderRadius: 18,
     borderTopLeftRadius: 4, padding: 14,
   },
   userBubble:  {
-    alignSelf: 'flex-end', maxWidth: '88%',
     backgroundColor: '#7B1FA2', borderRadius: 18,
     borderTopRightRadius: 4, padding: 14,
   },
@@ -841,14 +831,14 @@ const s = StyleSheet.create({
 
   // 2열 카드 그리드
   cardGrid:  { paddingBottom: 8, marginTop: 6 },
-  cardRow:   { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  cardRow:   { flexDirection: 'row', gap: 10, marginBottom: 10 },
   cardItem:  {
-    flex: 1, borderRadius: 14, padding: 10, minHeight: 66,
-    justifyContent: 'center', borderWidth: 1.5, gap: 4,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+    flex: 1, borderRadius: 16, padding: 14, minHeight: 88,
+    justifyContent: 'center', borderWidth: 1.5, gap: 6,
+    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 1,
   },
-  cardEmoji: { fontSize: 22 },
-  cardLabel: { fontSize: 15, fontWeight: '800', lineHeight: 22 },
+  cardEmoji: { fontSize: 28 },
+  cardLabel: { fontSize: 17, fontWeight: '800', lineHeight: 25 },
 
   // 입력
   inputWrap: { backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#E1BEE7',
