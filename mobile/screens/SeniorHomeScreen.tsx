@@ -119,6 +119,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Text style={s.gearEmoji}>⚙️</Text>
+                <Text style={s.gearLabel}>설정</Text>
               </TouchableOpacity>
             </View>
             <Text style={s.topTime}>{timeStr}</Text>
@@ -126,7 +127,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         </View>
 
         {/* ── 히어로: 루미 ── */}
-        <View style={s.hero}>
+        <View style={s.hero} pointerEvents="none">
           <Image
             source={require('../assets/lumi10.png')}
             style={s.lumiImg}
@@ -147,7 +148,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
           <TouchableOpacity style={s.cardWrap} onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0 })} activeOpacity={0.88}>
             <LinearGradient colors={['#F5FBFF', '#D6EEFA']} style={s.card}>
-              <Text style={s.iconEmoji}>📍</Text>
+              <Text style={s.iconEmoji}>🗺️</Text>
               <Text style={s.cardLabel}>내 위치</Text>
               <Text style={s.cardDesc}>내 위치를 확인해요</Text>
             </LinearGradient>
@@ -226,6 +227,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.6)',
   },
   gearEmoji: { fontSize: 20 },
+  gearLabel: { fontSize: 10, color: 'rgba(255,255,255,0.9)', fontWeight: '700', textAlign: 'center', marginTop: 1 },
   topTime:   { fontSize: 21, fontWeight: '900', color: '#fff' },
 
   /* ── 히어로 ── */
