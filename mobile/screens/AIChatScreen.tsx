@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { speak, stopSpeech } from '../utils/speech';
 import SeniorTabBar from '../components/SeniorTabBar';
 
@@ -519,7 +520,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   };
 
   return (
-    <View style={s.root}>
+    <LinearGradient colors={['#F7F4FF', '#EDE7F6', '#E1BEE7']} locations={[0, 0.55, 1]} style={s.root}>
       {/* ── 탑바 ── */}
       <View style={[s.topBar, { paddingTop: Math.max(insets.top + 10, 20) }]}>
         <View>
@@ -745,12 +746,12 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
       {toastMsg ? <View style={s.toast}><Text style={s.toastTxt}>{toastMsg}</Text></View> : null}
       <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={name} />
-    </View>
+    </LinearGradient>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#FBF8FF' },
+  root: { flex: 1 },
 
   // 탑바
   topBar: {
