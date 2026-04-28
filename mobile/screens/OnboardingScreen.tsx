@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const { width } = Dimensions.get('window');
 type Props = { navigation: any };
 
-const SLIDES = [
+const SLIDES: { icon: string | null; lumi?: boolean; title: string; desc: string; color: string }[] = [
   {
     icon: null,
     title: '자녀가 부모님 건강을\n걱정하고 있지 않나요?',
@@ -29,7 +29,8 @@ const SLIDES = [
     color: '#2E7D32',
   },
   {
-    icon: '✨',
+    icon: null,
+    lumi: true,
     title: '이제 걱정 마세요\nSilver Life AI가 함께합니다',
     desc: '루미가 매일 건강을\n지켜드릴게요',
     color: '#7B1FA2',
@@ -71,13 +72,17 @@ export default function OnboardingScreen({ navigation }: Props) {
         style={{ flex: 1 }}>
         {SLIDES.map((sl, i) => (
           <View key={i} style={[s.slide, { width }]}>
-            <View style={[s.iconWrap, { backgroundColor: sl.color + '18' }]}>
-              {sl.icon === null ? (
-                <Image source={require('../assets/family.png')} style={s.beeImg} resizeMode="contain" />
-              ) : (
-                <Text style={s.icon}>{sl.icon}</Text>
-              )}
-            </View>
+            {sl.lumi ? (
+              <Image source={require('../assets/lumi10.png')} style={s.lumiImg} resizeMode="contain" />
+            ) : (
+              <View style={[s.iconWrap, { backgroundColor: sl.color + '18' }]}>
+                {sl.icon === null ? (
+                  <Image source={require('../assets/family.png')} style={s.beeImg} resizeMode="contain" />
+                ) : (
+                  <Text style={s.icon}>{sl.icon}</Text>
+                )}
+              </View>
+            )}
             <Text style={[s.title, { color: sl.color }]}>{sl.title}</Text>
             <Text style={s.desc}>{sl.desc}</Text>
           </View>
@@ -119,7 +124,8 @@ const s = StyleSheet.create({
   iconWrap: { width: 200, height: 200, borderRadius: 100,
               alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
   icon:  { fontSize: 100 },
-  beeImg: { width: 200, height: 200 },
+  beeImg:  { width: 200, height: 200 },
+  lumiImg: { width: 260, height: 260, marginBottom: 24 },
   title: { fontSize: 32, fontWeight: '900', textAlign: 'center', marginBottom: 16 },
   desc:  { fontSize: 24, color: '#555', textAlign: 'center', lineHeight: 36 },
 

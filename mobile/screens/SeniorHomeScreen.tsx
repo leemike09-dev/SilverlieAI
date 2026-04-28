@@ -159,8 +159,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         {/* ══ 4개 카드 그리드 ══ */}
         <View style={s.cardGrid}>
 
-          <TouchableOpacity style={s.card} onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0 })} activeOpacity={0.85}>
-            <View style={[s.cardIconWrap, { backgroundColor: '#D0EEF5' }]}>
+          <TouchableOpacity style={[s.card, { backgroundColor: '#EBF5FF' }]} onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0 })} activeOpacity={0.85}>
+            <View style={[s.cardIconWrap, { backgroundColor: '#B3D9F7' }]}>
               <Text style={s.cardIconTxt}>📍</Text>
             </View>
             <Text style={s.cardLabel}>내 위치</Text>
@@ -168,8 +168,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             <Text style={s.cardArrow}>›</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.card} onPress={() => navigation.navigate('Health', { userId, name })} activeOpacity={0.85}>
-            <View style={[s.cardIconWrap, { backgroundColor: '#FFE0E0' }]}>
+          <TouchableOpacity style={[s.card, { backgroundColor: '#FFF0F0' }]} onPress={() => navigation.navigate('Health', { userId, name })} activeOpacity={0.85}>
+            <View style={[s.cardIconWrap, { backgroundColor: '#FFBBBB' }]}>
               <Text style={s.cardIconTxt}>❤️</Text>
             </View>
             <Text style={s.cardLabel}>건강 체크</Text>
@@ -177,8 +177,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             <Text style={s.cardArrow}>›</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.card} onPress={() => navigation.navigate('AIChat', { userId, name })} activeOpacity={0.85}>
-            <View style={[s.cardIconWrap, { backgroundColor: '#E8E0FF' }]}>
+          <TouchableOpacity style={[s.card, { backgroundColor: '#F3F0FF' }]} onPress={() => navigation.navigate('AIChat', { userId, name })} activeOpacity={0.85}>
+            <View style={[s.cardIconWrap, { backgroundColor: '#C9BBFF' }]}>
               <Text style={s.cardIconTxt}>💬</Text>
             </View>
             <Text style={s.cardLabel}>루미와 대화</Text>
@@ -186,8 +186,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             <Text style={s.cardArrow}>›</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.card} onPress={() => navigation.navigate('ImportantContacts', { userId })} activeOpacity={0.85}>
-            <View style={[s.cardIconWrap, { backgroundColor: '#D8EEFF' }]}>
+          <TouchableOpacity style={[s.card, { backgroundColor: '#F0FFF6' }]} onPress={() => navigation.navigate('ImportantContacts', { userId })} activeOpacity={0.85}>
+            <View style={[s.cardIconWrap, { backgroundColor: '#A8E6C3' }]}>
               <Text style={s.cardIconTxt}>👨‍👩‍👧</Text>
             </View>
             <Text style={s.cardLabel}>보호자</Text>
@@ -243,7 +243,7 @@ const s = StyleSheet.create({
   heroGreet: { fontSize: 30, fontWeight: '900', color: '#fff', lineHeight: 36,
     textShadowColor: 'rgba(0,0,50,0.12)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
   heroSub:   { fontSize: 16, fontWeight: '600', color: 'rgba(255,255,255,0.92)', lineHeight: 22 },
-  lumiImg:   { width: 150, height: 160 },
+  lumiImg:   { width: 185, height: 210 },
 
   /* 병원 배지 */
   hospitalBadge: {
