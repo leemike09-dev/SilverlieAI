@@ -480,7 +480,7 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 ### 🔴 출시 전 필수
 
 - [ ] **SOSScreen 가족 전화번호 실제 연동** — ImportantContacts에서 번호 읽어서 자동 연결
-- [ ] **NotificationsScreen 실제 알림 연동** — UI만 존재, 실제 알림 목록 API 연결 필요
+- [ ] **NotificationsScreen 완성** — 화면·API 모두 존재하나 진입 경로 없음. 홈 화면에 🔔 버튼 추가 + 백엔드에서 복약/건강/SOS 알림 자동 저장 연결 필요
 - [ ] **WeeklyReport 나이 하드코딩** — `userAge = 70` → 건강프로필 `age` 필드에서 로드
 - [x] **카카오 로그인 연동 완료** — 실사용자 카카오 로그인 정상 작동 확인 (2026-04-28)
 
