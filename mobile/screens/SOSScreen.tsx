@@ -76,7 +76,7 @@ export default function SOSScreen({ navigation, route }: Props) {
         Animated.timing(scaleAnim, { toValue: 1.0,  duration: 800, useNativeDriver: true }),
       ])
     ).start();
-    setTimeout(() => speak('괜찮으세요? 큰 빨간 버튼을 누르시면 일일구로 바로 연결돼요.', 0.85), 600);
+    setTimeout(() => speak('괜찮으세요? 가운데 SOS 버튼을 누르시면 일일구로 바로 연결돼요.', 0.85), 600);
 
     const sub = AppState.addEventListener('change', next => {
       if (appStateRef.current !== 'active' && next === 'active' && callingRef.current) {
@@ -315,7 +315,7 @@ export default function SOSScreen({ navigation, route }: Props) {
         {/* AI 상담 */}
         <TouchableOpacity style={s.aiBtn}
           onPress={() => navigation.navigate('AIChat', { userId, name })} activeOpacity={0.8}>
-          <Text style={s.aiBtnTxt}>✨ 증상이 확실하지 않으세요? AI에게 여쭤보기 →</Text>
+          <Text style={s.aiBtnTxt}>✨ 증상이 확실하지 않으세요? 루미에게 물어보세요 →</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -343,7 +343,7 @@ const s = StyleSheet.create({
                   paddingHorizontal: 20, alignItems: 'center', width: '100%', gap: 4 },
   nextBannerTxt:  { fontSize: 16, fontWeight: '800', color: '#3A1D00' },
   nextBannerName: { fontSize: 22, fontWeight: '900', color: '#3A1D00' },
-  cardRow:     { flexDirection: 'row', gap: 10, width: '100%' },
+  cardRow:     { flexDirection: 'row', gap: 10, width: '100%', marginTop: -16 },
   famCard:     { backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 18,
                  borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', padding: 22, justifyContent: 'center' },
   cardTitle:   { fontSize: 17, fontWeight: '800', color: 'rgba(255,255,255,0.8)', marginBottom: 14, textAlign: 'center' },
