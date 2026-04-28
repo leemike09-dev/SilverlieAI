@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, StatusBar, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, StatusBar, ActivityIndicator, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SeniorTabBar from '../components/SeniorTabBar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const API = 'https://silverlieai.onrender.com';
 const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
-const BG = '#F0F5FB'; const CARD = '#FFFFFF'; const BORDER = '#DDE8F4'; const ACCENT = '#2272B8';
+const CARD = '#FFFFFF'; const BORDER = '#DDE8F4'; const ACCENT = '#2272B8';
 const BAR_H = 80;
 
 // 건강 기록 1개로 간이 점수 계산 (0~100)
@@ -174,21 +175,28 @@ export default function WeeklyReportScreen({ route, navigation }: any) {
 
   if (loading) {
     return (
-      <View style={[styles.safe, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={ACCENT} />
+      <LinearGradient colors={['#FFF8FA', '#FFE6EE', '#FFD5E4']} style={[styles.safe, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#C2185B" />
         <Text style={{ marginTop: 16, fontSize: 18, color: '#90A4AE' }}>건강 기록 불러오는 중...</Text>
-      </View>
+      </LinearGradient>
     );
   }
 
   return (
-    <View style={[styles.safe, { flex: 1 }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
-      <View style={[styles.header, { paddingTop: Math.max(insets.top + 10, 24) }]}>
-        <Text style={styles.title}>7일 건강 리포트</Text>
-        <Text style={styles.sub}>
-          {dateRange || '기록 없음'}{avgScore > 0 ? ` · 평균 ${avgScore}점` : ''}
-        </Text>
+    <LinearGradient colors={['#FFF8FA', '#FFE6EE', '#FFD5E4']} locations={[0, 0.55, 1]} style={styles.safe}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFF8FA" />
+
+      {/* ── 상단 바 ── */}
+      <View style={[styles.topBar, { paddingTop: Math.max(insets.top + 10, 20) }]}>
+        <View>
+          <Text style={styles.topTitle}>📊 7일 건강 리포트</Text>
+          <Text style={styles.topSub}>
+            {dateRange || '기록 없음'}{avgScore > 0 ? ` · 평균 ${avgScore}점` : ''}
+          </Text>
+        </View>
+        <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7} style={styles.backBtn}>
+          <Text style={styles.backBtnTxt}>← 돌아가기</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
@@ -400,15 +408,21 @@ export default function WeeklyReportScreen({ route, navigation }: any) {
       </ScrollView>
 
       <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={name} />
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:       { flex: 1, backgroundColor: BG },
-  header:     { backgroundColor: '#1A4A8A', padding: 18, paddingBottom: 16 },
-  title:      { fontSize: 26, fontWeight: '800', color: '#fff' },
-  sub:        { fontSize: 16, color: 'rgba(255,255,255,0.75)', marginTop: 4 },
+  safe:       { flex: 1 },
+
+  topBar:     { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
+                paddingHorizontal: 20, paddingBottom: 12 },
+  topTitle:   { fontSize: 24, fontWeight: '900', color: '#1A2C4E', letterSpacing: 0.3 },
+  topSub:     { fontSize: 13, color: '#8A6070', fontWeight: '600', marginTop: 3 },
+  backBtn:    { backgroundColor: 'rgba(255,255,255,0.65)', borderRadius: 14,
+                paddingHorizontal: 12, paddingVertical: 8,
+                borderWidth: 1, borderColor: 'rgba(200,140,160,0.4)', justifyContent: 'center' },
+  backBtnTxt: { fontSize: 14, color: '#6A3050', fontWeight: '700' },
 
   chartBox:   { backgroundColor: CARD, padding: 18, margin: 14, borderRadius: 18,
                 borderWidth: 1, borderColor: BORDER },
