@@ -71,7 +71,7 @@ export default function OnboardingScreen({ navigation }: Props) {
         onMomentumScrollEnd={onScroll}
         style={{ flex: 1 }}>
         {SLIDES.map((sl, i) => (
-          <View key={i} style={[s.slide, { width }]}>
+          <View key={i} style={[s.slide, { width }, sl.lumi && s.lumiSlide]}>
             {sl.lumi ? (
               <Image source={require('../assets/lumi10.png')} style={s.lumiImg} resizeMode="contain" />
             ) : (
@@ -124,8 +124,9 @@ const s = StyleSheet.create({
   iconWrap: { width: 200, height: 200, borderRadius: 100,
               alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
   icon:  { fontSize: 100 },
-  beeImg:  { width: 200, height: 200 },
-  lumiImg: { width: 260, height: 260, marginBottom: 24 },
+  beeImg:    { width: 200, height: 200 },
+  lumiSlide: { justifyContent: 'flex-start', paddingTop: 28 },
+  lumiImg:   { width: 300, height: 300, marginBottom: 16 },
   title: { fontSize: 32, fontWeight: '900', textAlign: 'center', marginBottom: 16 },
   desc:  { fontSize: 24, color: '#555', textAlign: 'center', lineHeight: 36 },
 

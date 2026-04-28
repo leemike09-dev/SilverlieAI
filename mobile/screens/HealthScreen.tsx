@@ -476,8 +476,15 @@ export default function HealthScreen({ navigation }: any) {
             {Platform.OS === 'web' && <Text style={s.stepsNote}>* 웹에서는 수동 입력만 가능합니다</Text>}
           </View>
 
+          {/* 건강기록 저장 버튼 */}
+          <TouchableOpacity style={[s.saveBtn, saving && s.saveBtnOff]} onPress={save} disabled={saving}>
+            {saving
+              ? <ActivityIndicator color="#fff" size="small" />
+              : <Text style={s.saveBtnTxt}>저장하기</Text>}
+          </TouchableOpacity>
+
           {/* ── 병원 일정 ── */}
-          <View style={[s.card, { borderLeftWidth: 4, borderLeftColor: '#E53935' }]}>
+          <View style={[s.card, { borderLeftWidth: 4, borderLeftColor: '#E53935', marginTop: 6 }]}>
             <Text style={s.cardTitle}>🏥 병원 일정</Text>
             <Text style={s.cardHint}>저장하면 루미가 전날 저녁과 당일 4시간 전에 알려드려요</Text>
 
@@ -546,13 +553,6 @@ export default function HealthScreen({ navigation }: any) {
               )}
             </View>
           </View>
-
-          {/* 건강기록 저장 버튼 */}
-          <TouchableOpacity style={[s.saveBtn, saving && s.saveBtnOff]} onPress={save} disabled={saving}>
-            {saving
-              ? <ActivityIndicator color="#fff" size="small" />
-              : <Text style={s.saveBtnTxt}>저장하기</Text>}
-          </TouchableOpacity>
 
           <View style={{ height: 20 }} />
         </ScrollView>
