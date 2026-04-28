@@ -446,6 +446,14 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 
 > ⚠️ 이 섹션은 대화 중 언급된 모든 미완성·추후 작업·2차 개발 항목을 자동으로 누적합니다.
 
+### ✅ 2026-04-28 UI 리디자인 완료 (헤더 제거 + 그라디언트 통일)
+- [x] SeniorHomeScreen — 파란 그라디언트 배경, 구름 장식, 루미 scale 확대, 카드 그라디언트, ⚙️설정 pill
+- [x] HealthScreen — 파란 헤더 제거, 핑크 그라디언트 배경, topBar 패턴 적용
+- [x] WeeklyReportScreen — 헤더 제거, 핑크 그라디언트, topBar 패턴 적용
+- [x] LocationMapScreen — 시니어 기준 텍스트 크기 전면 확대
+- [x] AIChatScreen — 보라 헤더+SVG웨이브 제거, topBar 적용, QUICK_CARDS 내용 교체, 루미 아바타 추가
+- [x] MedicationScreen — 초록 헤더+SVG웨이브 제거, 민트 그라디언트, topBar + 약추가 버튼 좌측 배치
+
 ### ✅ 2025-04-27 완료 항목
 - [x] AIChatScreen 버블 채팅 히스토리 (messages[] 배열)
 - [x] AIChatScreen SSE 스트리밍 응답 + keep-alive ping
@@ -519,3 +527,13 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 - [ ] Google / Apple 로그인 (글로벌 출시 시)
 - [ ] 네이버 로그인 (한국 추가 커버)
 - [ ] 일본·동남아 현지화
+
+### 🇨🇳 중국 진출 계획 (별도 트랙)
+- [ ] **언어 현지화** — 한국어 → 중국어 간체(zh-CN) 전환, i18n 라이브러리 도입 (`i18next` 또는 `expo-localization`)
+- [ ] **로그인 현지화** — 카카오/네이버 → WeChat(微信) / Alipay(支付宝) 로그인
+- [ ] **지도 현지화** — OpenStreetMap/카카오맵 → 高德地图(Amap) / 百度地图 (중국 내 Google/Apple 지도 차단)
+- [ ] **AI 모델 현지화** — Anthropic Claude → 중국 내 접근 가능한 모델 검토 (Baidu ERNIE, Alibaba Qwen 등)
+- [ ] **앱스토어** — 중국은 Google Play 없음 → 화웨이 앱갤러리 / 샤오미 앱스토어 등 서드파티 마켓 제출
+- [ ] **서버 현지화** — 중국 내 데이터 규정(PIPL) 준수 위해 중국 내 서버 필요 (Alibaba Cloud / Tencent Cloud)
+- [ ] **결제** — 위챗페이 / 알리페이 연동
+- [ ] **규정 준수** — ICP 비안(备案) 등록 필요 (중국 내 앱/웹서비스 운영 허가)
