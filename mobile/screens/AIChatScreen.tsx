@@ -377,8 +377,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
               if (riskLevel === 'critical') { setShowEmergency(true); if (data.sos_sent) setFamilyNotified(true); }
               if (memoState === 'idle' && ((isFinal && dMemo) || (dMemoNeeded && dMemo && ['medium','high','critical'].includes(riskLevel)))) {
                 setPendingMemo(dMemo!);
-                const mainMs = Math.max(4000, cleanText.length * 180);
-                setTimeout(() => setMemoState('asking'), mainMs + 600);
+                const mainMs = ttsEnabled ? Math.min(Math.max(3000, cleanText.length * 80), 8000) : 1500;
+                setTimeout(() => setMemoState('asking'), mainMs);
               }
             }
           } catch {}
@@ -449,10 +449,10 @@ export default function AIChatScreen({ route, navigation }: Props) {
               setMessages(prev => { const next=[...prev]; next[next.length-1]={ role:'ai', text:cleanText, riskLevel, doctorMemoNeeded:true, doctorMemo:dMemo }; return next; });
               setHistory(prev => [...prev, { role:'user', content:'요약 요청' }, { role:'assistant', content:cleanText }]);
               setTurnCount(t => t + 1);
-              if (dMemo) {
-                setPendingMemo(dMemo);
-                const mainMs = Math.max(4000, cleanText.length * 150);
-                setTimeout(() => setMemoState('asking'), mainMs + 600);
+              if (cleanText) {
+                setPendingMemo(dMemo || cleanText);
+                const mainMs = ttsEnabled ? Math.min(Math.max(3000, cleanText.length * 80), 8000) : 1500;
+                setTimeout(() => setMemoState('asking'), mainMs);
               }
             }
           } catch {}
@@ -470,7 +470,10 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const handleMemoYes = async () => {
     setMemoState('saved');
     try {
-      await AsyncStorage.setItem('doctor_memo', pendingMemo);
+      const cleanMemo = pendingMemo
+        .replace(/지금까지\s*(증상을|내용을|이야기를)?\s*요약해\s*(주세요|줘)[.。]?\s*/g, '')
+        .trim();
+      await AsyncStorage.setItem('doctor_memo', cleanMemo);
       await AsyncStorage.setItem('doctor_memo_date', new Date().toISOString());
       showToast('메모가 저장되었습니다');
     } catch { showToast('저장에 실패했습니다'); }
