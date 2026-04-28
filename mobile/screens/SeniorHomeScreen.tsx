@@ -145,44 +145,36 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         {/* ── 4개 카드 ── */}
         <View style={s.cardGrid}>
 
-          <TouchableOpacity
-            style={[s.card, { backgroundColor: '#D6EEFA' }]}
-            onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0 })}
-            activeOpacity={0.88}
-          >
-            <Text style={s.iconEmoji}>📍</Text>
-            <Text style={s.cardLabel}>내 위치</Text>
-            <Text style={s.cardDesc}>내 위치를 확인해요</Text>
+          <TouchableOpacity style={s.cardWrap} onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0 })} activeOpacity={0.88}>
+            <LinearGradient colors={['#F5FBFF', '#D6EEFA']} style={s.card}>
+              <Text style={s.iconEmoji}>📍</Text>
+              <Text style={s.cardLabel}>내 위치</Text>
+              <Text style={s.cardDesc}>내 위치를 확인해요</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[s.card, { backgroundColor: '#FFE0EA' }]}
-            onPress={() => navigation.navigate('Health', { userId, name })}
-            activeOpacity={0.88}
-          >
-            <Text style={s.iconEmoji}>❤️</Text>
-            <Text style={s.cardLabel}>건강 체크</Text>
-            <Text style={s.cardDesc}>혈압·혈당·체온 확인</Text>
+          <TouchableOpacity style={s.cardWrap} onPress={() => navigation.navigate('Health', { userId, name })} activeOpacity={0.88}>
+            <LinearGradient colors={['#FFF8FA', '#FFE0EA']} style={s.card}>
+              <Text style={s.iconEmoji}>❤️</Text>
+              <Text style={s.cardLabel}>건강 체크</Text>
+              <Text style={s.cardDesc}>혈압·혈당·체온 확인</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[s.card, { backgroundColor: '#E8DEFF' }]}
-            onPress={() => navigation.navigate('AIChat', { userId, name })}
-            activeOpacity={0.88}
-          >
-            <Text style={s.iconEmoji}>💬</Text>
-            <Text style={s.cardLabel}>루미와 대화</Text>
-            <Text style={s.cardDesc}>궁금한 걸 물어보세요</Text>
+          <TouchableOpacity style={s.cardWrap} onPress={() => navigation.navigate('AIChat', { userId, name })} activeOpacity={0.88}>
+            <LinearGradient colors={['#F7F4FF', '#E8DEFF']} style={s.card}>
+              <Text style={s.iconEmoji}>💬</Text>
+              <Text style={s.cardLabel}>루미와 대화</Text>
+              <Text style={s.cardDesc}>궁금한 걸 물어보세요</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[s.card, { backgroundColor: '#D4F5EC' }]}
-            onPress={() => navigation.navigate('ImportantContacts', { userId })}
-            activeOpacity={0.88}
-          >
-            <Text style={s.iconEmoji}>👨‍👩‍👧</Text>
-            <Text style={s.cardLabel}>보호자</Text>
-            <Text style={s.cardDesc}>가족에게 알려드려요</Text>
+          <TouchableOpacity style={s.cardWrap} onPress={() => navigation.navigate('ImportantContacts', { userId })} activeOpacity={0.88}>
+            <LinearGradient colors={['#F2FCF8', '#D4F5EC']} style={s.card}>
+              <Text style={s.iconEmoji}>👨‍👩‍👧</Text>
+              <Text style={s.cardLabel}>보호자</Text>
+              <Text style={s.cardDesc}>가족에게 알려드려요</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
         </View>
@@ -249,9 +241,10 @@ const s = StyleSheet.create({
   guestTxt: { fontSize: 13, fontWeight: '600', color: '#1A4A8A', flex: 1 },
   guestBtn: { fontSize: 13, fontWeight: '800', color: '#1A4A8A' },
 
-  /* ── 4개 카드 (flat, 테두리·그림자 없음) ── */
+  /* ── 4개 카드 ── */
   cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: CARD_GAP, marginBottom: 12 },
-  card:     { width: CARD_W, borderRadius: 22, paddingVertical: 20, paddingHorizontal: 16, gap: 8 },
+  cardWrap: { width: CARD_W, borderRadius: 22, overflow: 'hidden' },
+  card:     { paddingVertical: 20, paddingHorizontal: 16, gap: 8 },
   iconEmoji:{ fontSize: 32 },
   cardLabel:{ fontSize: 20, fontWeight: '900', color: '#0D2B5E' },
   cardDesc: { fontSize: 13, color: '#3A5070', fontWeight: '500', lineHeight: 18 },
