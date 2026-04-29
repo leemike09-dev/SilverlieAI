@@ -47,8 +47,9 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         const uname = await AsyncStorage.getItem('userName') || '';
         const h     = new Date().getHours();
         const g     = h < 12 ? '좋은 아침이에요' : h < 18 ? '좋은 오후예요' : '좋은 저녁이에요';
+        const wish  = h < 12 ? '오늘도 건강한 하루 되세요' : h < 18 ? '편안한 오후 되세요' : '편안한 밤 되세요';
         const raw2  = await AsyncStorage.getItem('hospital_schedule');
-        let msg = `${g}, ${uname}님! 오늘도 건강한 하루 되세요.`;
+        let msg = `${g}, ${uname}님! ${wish}.`;
         if (raw2) {
           const p = JSON.parse(raw2);
           if (p.date === today) msg += ` 오늘 ${p.time} ${p.clinic} 가시는 날이에요.`;
