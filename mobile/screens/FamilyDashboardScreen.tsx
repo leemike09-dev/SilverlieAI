@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Platform, ActivityIndicator, Modal,
+  StatusBar, Platform, ActivityIndicator, Modal, TextInput, Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,12 +36,35 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
   const [members,  setMembers]  = useState<any[]>([]);
   const [convs,    setConvs]    = useState<any[]>([]);
   const [goals,    setGoals]    = useState<any[]>([]);
-  const [tab,      setTab]      = useState<'messages' | 'goals'>('messages');
+  const [tab,      setTab]      = useState<'messages' | 'goals' | 'hosp'>(route?.params?.initialTab || 'messages');
   const [loading,  setLoading]  = useState(true);
   const [relModal, setRelModal] = useState(false);
   const [relTarget,setRelTarget]= useState<any>(null);
+  const [hospSchedule,   setHospSchedule]   = useState<{date:string;time:string;clinic:string;memo:string}|null>(null);
+  const [doctorMemo,     setDoctorMemo]     = useState('');
+  const [doctorMemoDate, setDoctorMemoDate] = useState('');
+  const [editDoctorMemo, setEditDoctorMemo] = useState('');
+  const [editingMemo,    setEditingMemo]    = useState(false);
 
   const unreadTotal = convs.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+
+  const loadLocalData = async () => {
+    try {
+      const hs = await AsyncStorage.getItem('hospital_schedule');
+      setHospSchedule(hs ? JSON.parse(hs) : null);
+      const dm = await AsyncStorage.getItem('doctor_memo');
+      const dd = await AsyncStorage.getItem('doctor_memo_date');
+      const text = dm || '';
+      setDoctorMemo(text);
+      setEditDoctorMemo(text);
+      if (dd) {
+        const d = new Date(dd);
+        setDoctorMemoDate(`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`);
+      } else {
+        setDoctorMemoDate('');
+      }
+    } catch {}
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -53,10 +76,14 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
       const stored = await AsyncStorage.getItem('family_members');
       const mems: any[] = stored ? JSON.parse(stored) : [];
       setMembers(mems || []);
-      await fetchData(uid);
+      await Promise.all([fetchData(uid), loadLocalData()]);
     };
     init();
   }, []);
+
+  useEffect(() => {
+    if (tab === 'hosp') loadLocalData();
+  }, [tab]);
 
   const fetchData = async (uid: string) => {
     setLoading(true);
@@ -165,6 +192,10 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
           onPress={() => setTab('goals')}>
           <Text style={[s.tabTxt, tab === 'goals' && s.tabTxtOn]}>건강 목표</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={[s.tabBtn, tab === 'hosp' && s.tabBtnOn]}
+          onPress={() => setTab('hosp')}>
+          <Text style={[s.tabTxt, tab === 'hosp' && s.tabTxtOn]}>병원·메모</Text>
+        </TouchableOpacity>
       </View>
 
       {loading ? (
@@ -223,6 +254,106 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
                 );
               })
             )
+          ) : tab === 'hosp' ? (
+            <>
+              {/* Hospital appointment */}
+              <Text style={s.hospSection}>🏥 병원 예약</Text>
+              {hospSchedule ? (
+                <View style={s.hospCard}>
+                  <View style={s.hospRow}><Text style={s.hospLabel}>날짜</Text><Text style={s.hospValue}>{hospSchedule.date}</Text></View>
+                  <View style={s.hospRow}><Text style={s.hospLabel}>시간</Text><Text style={s.hospValue}>{hospSchedule.time}</Text></View>
+                  <View style={s.hospRow}><Text style={s.hospLabel}>병원</Text><Text style={s.hospValue}>{hospSchedule.clinic}</Text></View>
+                  {!!hospSchedule.memo && (
+                    <View style={s.hospRow}><Text style={s.hospLabel}>메모</Text><Text style={s.hospValue}>{hospSchedule.memo}</Text></View>
+                  )}
+                  <View style={s.hospBtns}>
+                    <TouchableOpacity style={s.hospEditBtn}
+                      onPress={() => navigation.navigate('Health', { userId, name })}>
+                      <Text style={s.hospEditTxt}>✏️ 수정</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={s.hospDelBtn}
+                      onPress={() => Alert.alert('삭제', '병원 예약 정보를 삭제할까요?', [
+                        { text: '취소', style: 'cancel' },
+                        { text: '삭제', style: 'destructive', onPress: async () => {
+                          await AsyncStorage.removeItem('hospital_schedule');
+                          setHospSchedule(null);
+                        }},
+                      ])}>
+                      <Text style={s.hospDelTxt}>삭제</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <View style={s.hospEmpty}>
+                  <Text style={s.hospEmptyTxt}>병원 예약 정보가 없어요</Text>
+                  <TouchableOpacity style={s.hospGoBtn}
+                    onPress={() => navigation.navigate('Health', { userId, name })}>
+                    <Text style={s.hospGoBtnTxt}>건강기록에서 입력하기</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Doctor memo */}
+              <Text style={[s.hospSection, { marginTop: 22 }]}>📋 의사 전달 메모</Text>
+              {doctorMemo ? (
+                <View style={s.hospCard}>
+                  {!!doctorMemoDate && <Text style={s.hospMemoDate}>{doctorMemoDate} 작성</Text>}
+                  {editingMemo ? (
+                    <>
+                      <TextInput
+                        style={s.hospMemoInput}
+                        value={editDoctorMemo}
+                        onChangeText={setEditDoctorMemo}
+                        multiline
+                        autoFocus
+                      />
+                      <View style={s.hospBtns}>
+                        <TouchableOpacity style={s.hospEditBtn}
+                          onPress={async () => {
+                            await AsyncStorage.setItem('doctor_memo', editDoctorMemo);
+                            setDoctorMemo(editDoctorMemo);
+                            setEditingMemo(false);
+                          }}>
+                          <Text style={s.hospEditTxt}>✅ 저장</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={s.hospDelBtn}
+                          onPress={() => { setEditingMemo(false); setEditDoctorMemo(doctorMemo); }}>
+                          <Text style={s.hospDelTxt}>취소</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={s.hospMemoText}>{doctorMemo}</Text>
+                      <View style={s.hospBtns}>
+                        <TouchableOpacity style={s.hospEditBtn}
+                          onPress={() => setEditingMemo(true)}>
+                          <Text style={s.hospEditTxt}>✏️ 수정</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={s.hospDelBtn}
+                          onPress={() => Alert.alert('삭제', '의사 메모를 삭제할까요?', [
+                            { text: '취소', style: 'cancel' },
+                            { text: '삭제', style: 'destructive', onPress: async () => {
+                              await AsyncStorage.multiRemove(['doctor_memo', 'doctor_memo_date']);
+                              setDoctorMemo(''); setEditDoctorMemo(''); setDoctorMemoDate('');
+                            }},
+                          ])}>
+                          <Text style={s.hospDelTxt}>삭제</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  )}
+                </View>
+              ) : (
+                <View style={s.hospEmpty}>
+                  <Text style={s.hospEmptyTxt}>저장된 의사 메모가 없어요</Text>
+                  <TouchableOpacity style={s.hospGoBtn}
+                    onPress={() => navigation.navigate('AIChat', { userId, name })}>
+                    <Text style={s.hospGoBtnTxt}>AI 상담에서 메모 저장</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
           ) : (
             goals.length === 0 ? (
               <View style={s.emptyBox}>
@@ -357,6 +488,28 @@ const s = StyleSheet.create({
   goalPct:    { fontSize: 24, fontWeight: '900' },
   goalTarget: { fontSize: 17, color: '#90A4AE' },
   goalCheer:  { fontSize: 17, color: '#2272B8', fontWeight: '600', marginTop: 10 },
+
+  hospSection:    { fontSize: 20, fontWeight: '800', color: '#1A4A8A', marginBottom: 10, marginTop: 4 },
+  hospCard:       { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 14,
+                    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  hospRow:        { flexDirection: 'row', gap: 12, marginBottom: 10, alignItems: 'flex-start' },
+  hospLabel:      { fontSize: 16, color: '#90A4AE', fontWeight: '600', width: 42 },
+  hospValue:      { fontSize: 18, color: '#1E2D3D', fontWeight: '700', flex: 1, lineHeight: 26 },
+  hospBtns:       { flexDirection: 'row', gap: 10, marginTop: 12 },
+  hospEditBtn:    { flex: 1, backgroundColor: '#1A4A8A', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  hospEditTxt:    { fontSize: 17, fontWeight: '800', color: '#fff' },
+  hospDelBtn:     { flex: 1, backgroundColor: '#FFEBEE', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  hospDelTxt:     { fontSize: 17, fontWeight: '800', color: '#C62828' },
+  hospEmpty:      { backgroundColor: '#fff', borderRadius: 20, padding: 28, alignItems: 'center', gap: 14,
+                    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
+  hospEmptyTxt:   { fontSize: 18, color: '#90A4AE', fontWeight: '600' },
+  hospGoBtn:      { backgroundColor: '#1A4A8A', borderRadius: 14, paddingHorizontal: 22, paddingVertical: 12 },
+  hospGoBtnTxt:   { fontSize: 16, fontWeight: '800', color: '#fff' },
+  hospMemoDate:   { fontSize: 15, color: '#90A4AE', marginBottom: 10, textAlign: 'center' },
+  hospMemoText:   { fontSize: 18, color: '#1E2D3D', lineHeight: 30, fontWeight: '500' },
+  hospMemoInput:  { fontSize: 18, color: '#1E2D3D', lineHeight: 30, backgroundColor: '#F5F5F5',
+                    borderRadius: 12, padding: 16, minHeight: 150, textAlignVertical: 'top',
+                    borderWidth: 2, borderColor: '#7B1FA2' },
 
   modalOverlay:   { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalBox:       { backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30,

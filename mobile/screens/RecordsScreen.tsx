@@ -389,7 +389,7 @@ export default function RecordsScreen({ navigation }: any) {
         </ScrollView>
       )}
 
-      <SeniorTabBar activeTab="records" userId={userId} name={uname} navigation={navigation} />
+      <SeniorTabBar activeTab="" userId={userId} name={uname} navigation={navigation} />
     </LinearGradient>
   );
 }

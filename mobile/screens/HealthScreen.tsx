@@ -84,6 +84,13 @@ export default function HealthScreen({ navigation }: any) {
   const [stepsAuto,    setStepsAuto]    = useState(false);
   const [stepsLoading, setStepsLoading] = useState(false);
 
+  // 병원 예약
+  const [hospDate,   setHospDate]   = useState('');
+  const [hospTime,   setHospTime]   = useState('');
+  const [hospClinic, setHospClinic] = useState('');
+  const [hospMemo,   setHospMemo]   = useState('');
+  const [hospSaving, setHospSaving] = useState(false);
+
   // 기록
   const [records, setRecords] = useState<any[]>([]);
   const [saving,  setSaving]  = useState(false);
@@ -96,6 +103,7 @@ export default function HealthScreen({ navigation }: any) {
       setUname(name);
       await loadRecords(uid);
       tryPedometer();
+      loadHospital();
     };
     init();
   }, []);
@@ -143,6 +151,42 @@ export default function HealthScreen({ navigation }: any) {
       setRecords(serverRecords);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(serverRecords));
     } catch {}
+  };
+
+  const loadHospital = async () => {
+    const raw = await AsyncStorage.getItem('hospital_schedule');
+    if (!raw) return;
+    const p = JSON.parse(raw);
+    setHospDate(p.date || '');
+    setHospTime(p.time || '');
+    setHospClinic(p.clinic || '');
+    setHospMemo(p.memo || '');
+  };
+
+  const saveHospital = async () => {
+    if (!hospDate || !hospTime || !hospClinic) {
+      Alert.alert('입력 확인', '날짜, 시간, 병원명을 모두 입력해 주세요.');
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(hospDate)) {
+      Alert.alert('날짜 형식', '2026-05-15 형식으로 입력해 주세요.');
+      return;
+    }
+    if (!/^\d{1,2}:\d{2}$/.test(hospTime)) {
+      Alert.alert('시간 형식', '14:30 형식으로 입력해 주세요.');
+      return;
+    }
+    setHospSaving(true);
+    try {
+      const schedule = { date: hospDate, time: hospTime, clinic: hospClinic, memo: hospMemo };
+      await AsyncStorage.setItem('hospital_schedule', JSON.stringify(schedule));
+      Alert.alert('저장 완료 🏥', '병원 예약이 저장되었습니다.\n가족 탭에서 확인할 수 있어요.', [
+        { text: '확인', onPress: () => navigation.navigate('FamilyDashboard', { userId, name: uname, initialTab: 'hosp' }) },
+      ]);
+    } catch {
+      Alert.alert('오류', '저장 중 문제가 발생했습니다.');
+    }
+    setHospSaving(false);
   };
 
   const sleepHours = sleepStart && sleepEnd ? calcSleepHours(sleepStart, sleepEnd) : null;
@@ -422,6 +466,39 @@ export default function HealthScreen({ navigation }: any) {
               : <Text style={s.saveBtnTxt}>저장하기</Text>}
           </TouchableOpacity>
 
+          {/* 병원 예약 */}
+          <View style={[s.card, { borderLeftWidth: 4, borderLeftColor: '#E53935', marginTop: 8 }]}>
+            <Text style={s.cardTitle}>🏥 병원 예약</Text>
+            <Text style={s.cardHint}>저장하면 가족 탭에서 확인할 수 있어요</Text>
+
+            <Text style={hs.label}>날짜 (예: 2026-05-15)</Text>
+            <TextInput style={hs.input} value={hospDate} onChangeText={setHospDate}
+              placeholder="2026-05-15" placeholderTextColor="#B0BEC5"
+              autoComplete="off" autoCorrect={false} maxLength={10} />
+
+            <Text style={hs.label}>시간 (예: 14:30)</Text>
+            <TextInput style={hs.input} value={hospTime} onChangeText={setHospTime}
+              placeholder="14:30" placeholderTextColor="#B0BEC5"
+              keyboardType="numbers-and-punctuation" maxLength={5} />
+
+            <Text style={hs.label}>병원명</Text>
+            <TextInput style={hs.input} value={hospClinic} onChangeText={setHospClinic}
+              placeholder="서울내과" placeholderTextColor="#B0BEC5" autoComplete="off" />
+
+            <Text style={hs.label}>메모 (증상, 전달사항 등)</Text>
+            <TextInput style={hs.memoInput} value={hospMemo} onChangeText={setHospMemo}
+              placeholder={'예) 최근 두통이 심해요\n혈압약 부작용 문의'} placeholderTextColor="#B0BEC5"
+              multiline numberOfLines={3} textAlignVertical="top" />
+
+            <TouchableOpacity
+              style={[hs.saveBtn, hospSaving && { backgroundColor: '#90A4AE' }]}
+              onPress={saveHospital} disabled={hospSaving}>
+              {hospSaving
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <Text style={hs.saveBtnTxt}>💾 예약 저장 → 가족 탭에서 확인</Text>}
+            </TouchableOpacity>
+          </View>
+
           <View style={{ height: 20 }} />
         </ScrollView>
       )}
@@ -550,4 +627,16 @@ const s = StyleSheet.create({
   weeklyBtnIcon: { fontSize: 24 },
   weeklyBtnTxt:  { flex: 1, fontSize: 20, fontWeight: '800', color: '#fff' },
   weeklyBtnArr:  { fontSize: 28, color: 'rgba(255,255,255,0.7)', fontWeight: '700' },
+});
+
+const hs = StyleSheet.create({
+  label:      { fontSize: 18, fontWeight: '700', color: '#546E7A', marginTop: 14, marginBottom: 6 },
+  input:      { fontSize: 22, fontWeight: '700', color: '#1A4A8A',
+                borderBottomWidth: 2, borderBottomColor: '#1A4A8A', paddingVertical: 8 },
+  memoInput:  { fontSize: 18, color: '#1A2C4E', lineHeight: 28,
+                borderWidth: 1.5, borderColor: '#C0C0C0', borderRadius: 12,
+                padding: 12, minHeight: 90, marginTop: 6, backgroundColor: '#FAFAFA' },
+  saveBtn:    { backgroundColor: '#E53935', borderRadius: 16, paddingVertical: 18,
+                alignItems: 'center', marginTop: 20 },
+  saveBtnTxt: { fontSize: 19, fontWeight: '900', color: '#fff' },
 });
