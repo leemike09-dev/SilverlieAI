@@ -11,16 +11,10 @@ const { width, height } = Dimensions.get('window');
 const isNative = Platform.OS !== 'web';
 
 export default function IntroScreen({ navigation }: any) {
-  const insets      = useSafeAreaInsets();
-  const fadeAnim    = useRef(new Animated.Value(0)).current;
-  const vid1Opacity = useRef(new Animated.Value(1)).current;
-  const vid2Opacity = useRef(new Animated.Value(0)).current;
+  const insets   = useSafeAreaInsets();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const player1 = useVideoPlayer(require('../assets/lumi3.mp4'), p => {
-    p.muted = true;
-    p.loop  = false;
-  });
-  const player2 = useVideoPlayer(require('../assets/lumi4.mp4'), p => {
     p.muted = true;
     p.loop  = true;
   });
@@ -38,38 +32,18 @@ export default function IntroScreen({ navigation }: any) {
     }).start();
 
     player1.play();
-
-    const sub = player1.addListener('playToEnd', () => {
-      player2.play();
-      Animated.parallel([
-        Animated.timing(vid1Opacity, { toValue: 0, duration: 1500, useNativeDriver: isNative }),
-        Animated.timing(vid2Opacity, { toValue: 1, duration: 1500, useNativeDriver: isNative }),
-      ]).start();
-    });
-
-    return () => sub.remove();
   }, []);
 
   return (
     <View style={s.root}>
 
       {/* ── 배경 영상 ── */}
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: vid1Opacity }]}>
-        <VideoView
-          player={player1}
-          style={s.video}
-          contentFit="cover"
-          nativeControls={false}
-        />
-      </Animated.View>
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: vid2Opacity }]}>
-        <VideoView
-          player={player2}
-          style={s.video}
-          contentFit="cover"
-          nativeControls={false}
-        />
-      </Animated.View>
+      <VideoView
+        player={player1}
+        style={[StyleSheet.absoluteFill, s.video]}
+        contentFit="cover"
+        nativeControls={false}
+      />
 
       {/* 어두운 오버레이 */}
       <View style={s.overlay} />

@@ -3,22 +3,22 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Platform, ScrollView, Alert,
+  ActivityIndicator, Platform, ImageBackground, Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const KAKAO_CLIENT_ID  = 'c102ef257f29dfc4ca9f2062a0c1442d';
-const REDIRECT_BASE    = 'https://leemike09-dev.github.io/SilverlieAI/';
-const BACKEND          = 'https://silverlieai.onrender.com';
+const KAKAO_CLIENT_ID = 'c102ef257f29dfc4ca9f2062a0c1442d';
+const REDIRECT_BASE   = 'https://leemike09-dev.github.io/SilverlieAI/';
+const BACKEND         = 'https://silverlieai.onrender.com';
 
-const PROVIDERS = [
-  { key: 'kakao', label: '카카오', icon: '💬', bg: '#FEE500', color: '#3C1E1E', border: '#E6D200' },
-];
+const bgImage = require('../assets/lumi15.png');
 
 function getOAuthUrl(mode: 'login' | 'register') {
   const state = 'kakao_' + mode;
-  return 'https://kauth.kakao.com/oauth/authorize?client_id=' + KAKAO_CLIENT_ID + '&redirect_uri=' + encodeURIComponent(REDIRECT_BASE) + '&response_type=code&state=' + state;
+  return 'https://kauth.kakao.com/oauth/authorize?client_id=' + KAKAO_CLIENT_ID +
+    '&redirect_uri=' + encodeURIComponent(REDIRECT_BASE) +
+    '&response_type=code&state=' + state;
 }
 
 export default function LoginScreen({ navigation }: any) {
@@ -31,7 +31,7 @@ export default function LoginScreen({ navigation }: any) {
     try {
       const url = getOAuthUrl(mode);
       if (Platform.OS === 'web') {
-        fetch(BACKEND + '/').catch(() => {}); // 서버 웨이크업
+        fetch(BACKEND + '/').catch(() => {});
         (window as any).location.href = url;
       } else {
         await WebBrowser.openBrowserAsync(url);
@@ -76,133 +76,126 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
-  const modeLabel = mode === 'login' ? '로 로그인' : '로 가입';
+  const modeLabel = mode === 'login' ? '로그인' : '가입';
 
   return (
-    <View style={s.root}>
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+    <ImageBackground source={bgImage} style={s.root} resizeMode="cover">
 
-        {/* 헤더 */}
-        <View style={[s.header, { paddingTop: Math.max(insets.top + 14, 28) }]}>
-          <Text style={s.appName}>🌿 Silver Life</Text>
-          <Text style={s.appSub}>시니어를 위한 AI 건강 파트너</Text>
+      {/* 하단 그라디언트 느낌의 오버레이 */}
+      <View style={s.overlay} />
+
+      {/* 하단 카드 영역 */}
+      <View style={[s.bottom, { paddingBottom: Math.max(insets.bottom + 24, 40) }]}>
+
+        {/* 로그인 / 회원가입 탭 */}
+        <View style={s.tabs}>
+          <TouchableOpacity
+            style={[s.tab, mode === 'login' && s.tabActive]}
+            onPress={() => { setMode('login'); setLoading(null); }}>
+            <Text style={[s.tabTxt, mode === 'login' && s.tabTxtActive]}>로그인</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.tab, mode === 'register' && s.tabActive]}
+            onPress={() => { setMode('register'); setLoading(null); }}>
+            <Text style={[s.tabTxt, mode === 'register' && s.tabTxtActive]}>회원가입</Text>
+          </TouchableOpacity>
         </View>
 
-        <View style={s.body}>
-
-          {/* 탭 */}
-          <View style={s.tabs}>
-            <TouchableOpacity
-              style={[s.tab, mode === 'login' && s.tabActive]}
-              onPress={() => { setMode('login'); setLoading(null); }}>
-              <Text style={[s.tabTxt, mode === 'login' && s.tabTxtActive]}>기존 회원 로그인</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[s.tab, mode === 'register' && s.tabActive]}
-              onPress={() => { setMode('register'); setLoading(null); }}>
-              <Text style={[s.tabTxt, mode === 'register' && s.tabTxtActive]}>신규 회원가입</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* 소셜 카드 */}
-          {PROVIDERS.map(p => (
-            <TouchableOpacity
-              key={p.key}
-              style={[s.card, { backgroundColor: p.bg, borderColor: p.border }]}
-              onPress={handleKakao}
-              activeOpacity={0.82}
-              disabled={loading !== null}
-            >
-              {loading === p.key ? (
-                <ActivityIndicator color={p.color} />
-              ) : (
-                <>
-                  <Text style={s.cardIcon}>{p.icon}</Text>
-                  <Text style={[s.cardLabel, { color: p.color }]}>{p.label + modeLabel}</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          ))}
-
-          <View style={s.divider}>
-            <View style={s.divLine} />
-            <Text style={s.divTxt}>또는</Text>
-            <View style={s.divLine} />
-          </View>
-
-          {/* 이메일 카드 */}
-          <TouchableOpacity
-            style={[s.card, s.emailCard]}
-            onPress={() => navigation.navigate('EmailAuth')}
-            activeOpacity={0.85}
-          >
-            <Text style={s.cardIcon}>📧</Text>
-            <Text style={[s.cardLabel, { color: '#1A4A8A' }]}>이메일로 {mode === 'login' ? '로그인' : '회원가입'}</Text>
-          </TouchableOpacity>
-
-          {/* Apple Sign In — iOS 네이티브 전용 */}
-          {Platform.OS === 'ios' && (
+        {/* 카카오 */}
+        <TouchableOpacity
+          style={[s.card, s.kakaoCard]}
+          onPress={handleKakao}
+          activeOpacity={0.85}
+          disabled={loading !== null}
+        >
+          {loading === 'kakao' ? (
+            <ActivityIndicator color="#3C1E1E" />
+          ) : (
             <>
-              <View style={s.divider}>
-                <View style={s.divLine} />
-                <Text style={s.divTxt}>또는</Text>
-                <View style={s.divLine} />
-              </View>
-              <TouchableOpacity
-                style={[s.card, s.appleCard]}
-                onPress={handleApple}
-                activeOpacity={0.85}
-                disabled={loading !== null}
-              >
-                {loading === 'apple' ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
-                    <Text style={s.cardIcon}></Text>
-                    <Text style={[s.cardLabel, { color: '#fff' }]}>Apple로 {mode === 'login' ? '로그인' : '가입'}</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+              <Text style={s.cardIcon}>💬</Text>
+              <Text style={[s.cardLabel, { color: '#3C1E1E' }]}>카카오로 {modeLabel}</Text>
             </>
           )}
+        </TouchableOpacity>
 
-        </View>
-      </ScrollView>
-    </View>
+        {/* 이메일 */}
+        <TouchableOpacity
+          style={[s.card, s.emailCard]}
+          onPress={() => navigation.navigate('EmailAuth')}
+          activeOpacity={0.85}
+        >
+          <Text style={s.cardIcon}>📧</Text>
+          <Text style={[s.cardLabel, { color: '#1A4A8A' }]}>이메일로 {modeLabel}</Text>
+        </TouchableOpacity>
+
+        {/* Apple — iOS 전용 */}
+        {Platform.OS === 'ios' && (
+          <TouchableOpacity
+            style={[s.card, s.appleCard]}
+            onPress={handleApple}
+            activeOpacity={0.85}
+            disabled={loading !== null}
+          >
+            {loading === 'apple' ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Text style={s.cardIcon}></Text>
+                <Text style={[s.cardLabel, { color: '#fff' }]}>Apple로 {modeLabel}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
+
+      </View>
+    </ImageBackground>
   );
 }
 
 const s = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: '#F8F6F2' },
-  scroll: { flexGrow: 1, paddingBottom: 40 },
+  root: { flex: 1, backgroundColor: '#000' },
 
-  header:  { backgroundColor: '#1A4A8A', paddingHorizontal: 24, paddingBottom: 28, alignItems: 'center' },
-  appName: { fontSize: 38, fontWeight: '900', color: '#fff', marginBottom: 8 },
-  appSub:  { fontSize: 22, color: 'rgba(255,255,255,0.85)', fontWeight: '600' },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
 
-  body: { padding: 20 },
+  bottom: {
+    position: 'absolute',
+    bottom: 0, left: 0, right: 0,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    gap: 12,
+  },
 
-  tabs:         { flexDirection: 'row', backgroundColor: '#E8EEF8', borderRadius: 18, padding: 4, marginBottom: 24 },
-  tab:          { flex: 1, paddingVertical: 16, borderRadius: 14, alignItems: 'center' },
-  tabActive:    { backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 },
-  tabTxt:       { fontSize: 22, fontWeight: '700', color: '#ABABAB' },
+  tabs: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 18,
+    padding: 4,
+    marginBottom: 8,
+  },
+  tab:          { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
+  tabActive:    { backgroundColor: 'rgba(255,255,255,0.9)' },
+  tabTxt:       { fontSize: 22, fontWeight: '700', color: 'rgba(255,255,255,0.55)' },
   tabTxtActive: { color: '#1A4A8A', fontWeight: '900' },
 
   card: {
-    flexDirection: 'row', alignItems: 'center',
-    borderRadius: 20, borderWidth: 2,
-    paddingVertical: 18, paddingHorizontal: 24,
-    marginBottom: 12,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07, shadowRadius: 5, elevation: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 20,
+    borderWidth: 2,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
     minHeight: 68,
   },
   cardIcon:  { fontSize: 30, marginRight: 16 },
   cardLabel: { fontSize: 24, fontWeight: '800', flex: 1 },
-  emailCard: { backgroundColor: '#EBF3FB', borderColor: '#1A4A8A' },
-  appleCard: { backgroundColor: '#000', borderColor: '#000' },
 
-  divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 20 },
-  divLine: { flex: 1, height: 2, backgroundColor: '#E0E0E0', borderRadius: 1 },
-  divTxt:  { fontSize: 18, color: '#ABABAB', fontWeight: '600' },
+  kakaoCard: { backgroundColor: '#FEE500', borderColor: '#E6D200' },
+  emailCard: { backgroundColor: 'rgba(235,243,251,0.92)', borderColor: '#1A4A8A' },
+  appleCard: { backgroundColor: '#000', borderColor: '#444' },
 });
