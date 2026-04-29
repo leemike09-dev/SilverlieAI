@@ -85,10 +85,7 @@ function classifyIntent(msg: string, history: HistoryItem[]): Intent {
     const key = msg.slice(0, 10);
     if (recent.filter(m => m.slice(0, 10) === key).length >= 1) return 'cognitive';
   }
-  const DAILY_KW = [
-    '날씨', '심심해', '뭐 해요', '뭐해요', '이야기 하고 싶', '그냥 얘기', '오늘 뭐',
-    '산책해도', '산책할', '나들이', '외출해도', '바람 쐬', '걷기 좋', '운동해도 될',
-  ];
+  const DAILY_KW = ['날씨', '심심해', '뭐 해요', '뭐해요', '이야기 하고 싶', '그냥 얘기', '오늘 뭐'];
   if (DAILY_KW.some(k => msg.includes(k))) return 'daily';
   return 'health';
 }
