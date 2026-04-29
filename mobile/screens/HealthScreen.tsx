@@ -17,6 +17,7 @@ const RED     = '#C62828';
 const LRED    = '#FFEBEE';
 const ORANGE  = '#E65100';
 const LORANGE = '#FFF3E0';
+const PURPLE  = '#6A1B9A';
 
 const STORAGE_KEY = 'health_records';
 const GLUCOSE_TYPES = ['공복', '식전', '식후'];
@@ -32,14 +33,14 @@ const glucoseStatus = (val: number, type: string) => {
   if (val > range[1] * 1.2) return 'danger';
   return 'caution';
 };
-const tempStatus = (val: number) => {
-  if (val >= 36.0 && val <= 37.2) return 'normal';
-  if (val > 38.0) return 'danger';
-  return 'caution';
-};
 const stepsStatus = (val: number) => {
   if (val >= 8000) return 'normal';
   if (val >= 5000) return 'caution';
+  return 'danger';
+};
+const sleepStatus = (hours: number) => {
+  if (hours >= 7 && hours <= 9) return 'normal';
+  if (hours >= 5) return 'caution';
   return 'danger';
 };
 const STATUS_LABEL: Record<string, string> = { normal: '정상', caution: '주의', danger: '위험' };
@@ -48,35 +49,40 @@ const STATUS_BG:    Record<string, string> = { normal: LGREEN, caution: LORANGE,
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
 
-function fmtTime(h: number, m: number) {
-  const ap = h < 12 ? '오전' : '오후';
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${ap} ${h12}시${m > 0 ? ` ${m}분` : ''}`;
+
+function calcSleepHours(start: string, end: string): number | null {
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  if (isNaN(sh) || isNaN(sm) || isNaN(eh) || isNaN(em)) return null;
+  let startMin = sh * 60 + sm;
+  let endMin   = eh * 60 + em;
+  if (endMin <= startMin) endMin += 24 * 60; // 자정 넘기는 경우
+  const diff = endMin - startMin;
+  return Math.round(diff / 6) / 10; // 소수점 1자리
+}
+
+function fmtSleepHours(h: number) {
+  const hrs = Math.floor(h);
+  const min = Math.round((h - hrs) * 60);
+  return min > 0 ? `${hrs}시간 ${min}분` : `${hrs}시간`;
 }
 
 export default function HealthScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
   const [userId, setUserId] = useState('');
   const [uname,  setUname]  = useState('');
-  const [tab,    setTab]    = useState<'input' | 'history'>('input');
+  const [tab,    setTab]    = useState<'input' | 'history'>('history');
 
   // 건강 수치 입력
   const [bpSys,        setBpSys]        = useState('');
   const [bpDia,        setBpDia]        = useState('');
   const [glucose,      setGlucose]      = useState('');
   const [glucoseType,  setGlucoseType]  = useState('공복');
-  const [temp,         setTemp]         = useState('');
-  const [weight,       setWeight]       = useState('');
+  const [sleepStart,   setSleepStart]   = useState('');
+  const [sleepEnd,     setSleepEnd]     = useState('');
   const [steps,        setSteps]        = useState('');
   const [stepsAuto,    setStepsAuto]    = useState(false);
   const [stepsLoading, setStepsLoading] = useState(false);
-
-  // 병원 일정
-  const [hospDate,   setHospDate]   = useState('');
-  const [hospTime,   setHospTime]   = useState('');
-  const [hospClinic, setHospClinic] = useState('');
-  const [savedHosp,  setSavedHosp]  = useState<{ date: string; time: string; clinic: string } | null>(null);
-  const [hospSaving, setHospSaving] = useState(false);
 
   // 기록
   const [records, setRecords] = useState<any[]>([]);
@@ -90,7 +96,6 @@ export default function HealthScreen({ navigation }: any) {
       setUname(name);
       await loadRecords(uid);
       tryPedometer();
-      loadHospital();
     };
     init();
   }, []);
@@ -115,132 +120,6 @@ export default function HealthScreen({ navigation }: any) {
     setStepsLoading(false);
   };
 
-  // ── 병원 일정 ──────────────────────────────────────────────
-  const loadHospital = async () => {
-    const raw = await AsyncStorage.getItem('hospital_schedule');
-    if (!raw) return;
-    const p = JSON.parse(raw);
-    setSavedHosp(p);
-    setHospDate(p.date || '');
-    setHospTime(p.time || '');
-    setHospClinic(p.clinic || '');
-  };
-
-  const saveHospital = async () => {
-    if (!hospDate || !hospTime || !hospClinic) {
-      Alert.alert('입력 확인', '날짜, 시간, 병원명을 모두 입력해 주세요.');
-      return;
-    }
-    // 날짜 형식 간단 검증 (YYYY-MM-DD)
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(hospDate)) {
-      Alert.alert('날짜 형식', '날짜를 2026-05-15 형식으로 입력해 주세요.');
-      return;
-    }
-    // 시간 형식 검증 (HH:MM)
-    if (!/^\d{1,2}:\d{2}$/.test(hospTime)) {
-      Alert.alert('시간 형식', '시간을 14:30 형식으로 입력해 주세요.');
-      return;
-    }
-    setHospSaving(true);
-    try {
-      const schedule = { date: hospDate, time: hospTime, clinic: hospClinic };
-      await AsyncStorage.setItem('hospital_schedule', JSON.stringify(schedule));
-      setSavedHosp(schedule);
-      if (Platform.OS !== 'web') {
-        await scheduleHospitalNotifs(hospDate, hospTime, hospClinic);
-      }
-      const [hh, mm] = hospTime.split(':').map(Number);
-      Alert.alert(
-        '저장 완료 🏥',
-        `${hospDate} ${fmtTime(hh, mm)} ${hospClinic}\n\n` +
-        `루미가 전날 저녁 7시와\n당일 4시간 전에 알려드릴게요 🔔`
-      );
-    } catch {
-      Alert.alert('오류', '저장 중 문제가 발생했습니다.');
-    }
-    setHospSaving(false);
-  };
-
-  const deleteHospital = async () => {
-    Alert.alert('일정 삭제', '병원 일정을 삭제할까요?', [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '삭제', style: 'destructive',
-        onPress: async () => {
-          await AsyncStorage.removeItem('hospital_schedule');
-          setSavedHosp(null);
-          setHospDate('');
-          setHospTime('');
-          setHospClinic('');
-          if (Platform.OS !== 'web') {
-            try {
-              const Notifs = await import('expo-notifications');
-              const all = await Notifs.getAllScheduledNotificationsAsync();
-              for (const n of all) {
-                if ((n.content.data as any)?.type === 'hospital') {
-                  await Notifs.cancelScheduledNotificationAsync(n.identifier);
-                }
-              }
-            } catch {}
-          }
-        },
-      },
-    ]);
-  };
-
-  const scheduleHospitalNotifs = async (date: string, time: string, clinic: string) => {
-    try {
-      const Notifs = await import('expo-notifications');
-      const { status } = await Notifs.requestPermissionsAsync();
-      if (status !== 'granted') return;
-
-      // 기존 병원 알림 전부 취소
-      const all = await Notifs.getAllScheduledNotificationsAsync();
-      for (const n of all) {
-        if ((n.content.data as any)?.type === 'hospital') {
-          await Notifs.cancelScheduledNotificationAsync(n.identifier);
-        }
-      }
-
-      const [y, m, d] = date.split('-').map(Number);
-      const [hh, mm]  = time.split(':').map(Number);
-      if (!y || !m || !d || isNaN(hh) || isNaN(mm)) return;
-
-      const now    = Date.now();
-      const dispTime = fmtTime(hh, mm);
-
-      // ① 전날 오후 7시
-      const dayBeforeMs = new Date(y, m - 1, d - 1, 19, 0, 0).getTime();
-      if (dayBeforeMs > now) {
-        await Notifs.scheduleNotificationAsync({
-          content: {
-            title: '루미 🏥',
-            body: `내일 ${dispTime} ${clinic} 진료 예약이 있어요`,
-            data: { type: 'hospital' },
-            sound: true,
-          },
-          trigger: { type: 'timeInterval' as any, seconds: Math.floor((dayBeforeMs - now) / 1000), repeats: false },
-        });
-      }
-
-      // ② 당일 4시간 전
-      const apptMs      = new Date(y, m - 1, d, hh, mm, 0).getTime();
-      const fourBeforeMs = apptMs - 4 * 60 * 60 * 1000;
-      if (fourBeforeMs > now) {
-        await Notifs.scheduleNotificationAsync({
-          content: {
-            title: '루미 🏥',
-            body: `오늘 ${dispTime} ${clinic} 가시는 날이에요`,
-            data: { type: 'hospital' },
-            sound: true,
-          },
-          trigger: { type: 'timeInterval' as any, seconds: Math.floor((fourBeforeMs - now) / 1000), repeats: false },
-        });
-      }
-    } catch {}
-  };
-  // ────────────────────────────────────────────────────────────
-
   const loadRecords = async (uid?: string) => {
     const id = uid || userId;
     try {
@@ -258,7 +137,6 @@ export default function HealthScreen({ navigation }: any) {
         time: '',
         ...(r.blood_pressure_systolic && { bp: { sys: r.blood_pressure_systolic, dia: r.blood_pressure_diastolic } }),
         ...(r.blood_sugar != null && { glucose: { val: r.blood_sugar, type: '공복' } }),
-        ...(r.weight != null && { weight: r.weight }),
         ...(r.steps != null && { steps: r.steps }),
         ...(r.heart_rate != null && { heartRate: r.heart_rate }),
       }));
@@ -267,9 +145,15 @@ export default function HealthScreen({ navigation }: any) {
     } catch {}
   };
 
+  const sleepHours = sleepStart && sleepEnd ? calcSleepHours(sleepStart, sleepEnd) : null;
+
   const save = async () => {
-    if (!bpSys && !bpDia && !glucose && !temp && !weight && !steps) {
+    if (!bpSys && !bpDia && !glucose && !sleepStart && !steps) {
       Alert.alert('입력 없음', '하나 이상의 수치를 입력해 주세요.');
+      return;
+    }
+    if ((sleepStart && !sleepEnd) || (!sleepStart && sleepEnd)) {
+      Alert.alert('수면 입력', '시작 시간과 종료 시간을 모두 입력해 주세요.');
       return;
     }
     setSaving(true);
@@ -278,18 +162,16 @@ export default function HealthScreen({ navigation }: any) {
       date: todayKey(),
       time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
     };
-    if (bpSys || bpDia) record.bp      = { sys: Number(bpSys) || 0, dia: Number(bpDia) || 0 };
-    if (glucose)        record.glucose = { val: Number(glucose), type: glucoseType };
-    if (temp)           record.temp    = Number(temp);
-    if (weight)         record.weight  = Number(weight);
-    if (steps)          record.steps   = Number(steps);
+    if (bpSys || bpDia)           record.bp      = { sys: Number(bpSys) || 0, dia: Number(bpDia) || 0 };
+    if (glucose)                   record.glucose = { val: Number(glucose), type: glucoseType };
+    if (sleepStart && sleepEnd)    record.sleep   = { start: sleepStart, end: sleepEnd, hours: sleepHours };
+    if (steps)                     record.steps   = Number(steps);
 
     try {
       if (userId) {
         const apiBody: any = { user_id: userId, date: record.date, source: 'manual' };
         if (record.bp)      { apiBody.blood_pressure_systolic = record.bp.sys; apiBody.blood_pressure_diastolic = record.bp.dia; }
         if (record.glucose) apiBody.blood_sugar = record.glucose.val;
-        if (record.weight)  apiBody.weight      = record.weight;
         if (record.steps)   apiBody.steps       = record.steps;
         await fetch('https://silverlieai.onrender.com/health/records', {
           method: 'POST',
@@ -302,8 +184,11 @@ export default function HealthScreen({ navigation }: any) {
       const updated = [record, ...existing].slice(0, 90);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       setRecords(updated);
-      Alert.alert('저장 완료', '건강 기록이 저장되었습니다.');
-      setBpSys(''); setBpDia(''); setGlucose(''); setTemp(''); setWeight('');
+      Alert.alert('저장 완료 ✅', '건강 기록이 저장되었습니다.', [
+        { text: '확인', onPress: () => setTab('history') }
+      ]);
+      setBpSys(''); setBpDia(''); setGlucose('');
+      setSleepStart(''); setSleepEnd('');
       if (!stepsAuto) setSteps('');
     } catch {
       Alert.alert('오류', '저장 중 문제가 발생했습니다.');
@@ -326,7 +211,7 @@ export default function HealthScreen({ navigation }: any) {
       <View style={[s.topBar, { paddingTop: Math.max(insets.top + 10, 20) }]}>
         <View>
           <Text style={s.topTitle}>❤️ 건강 기록</Text>
-          <Text style={s.topSub}>오늘 수치를 입력해주세요</Text>
+          <Text style={s.topSub}>{tab === 'input' ? '오늘 수치를 입력해주세요' : '내 건강 기록 조회'}</Text>
         </View>
         <TouchableOpacity
           style={s.gearBtn}
@@ -342,18 +227,57 @@ export default function HealthScreen({ navigation }: any) {
       {/* ── 탭 ── */}
       <View style={s.tabBar}>
         <TouchableOpacity
-          style={tab === 'input' ? [s.tabBtn, s.tabBtnOn] : s.tabBtn}
-          onPress={() => setTab('input')}
-        >
-          <Text style={tab === 'input' ? [s.tabTxt, s.tabTxtOn] : s.tabTxt}>오늘 입력</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
           style={tab === 'history' ? [s.tabBtn, s.tabBtnOn] : s.tabBtn}
           onPress={() => setTab('history')}
         >
           <Text style={tab === 'history' ? [s.tabTxt, s.tabTxtOn] : s.tabTxt}>기록 조회</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={tab === 'input' ? [s.tabBtn, s.tabBtnOn] : s.tabBtn}
+          onPress={() => setTab('input')}
+        >
+          <Text style={tab === 'input' ? [s.tabTxt, s.tabTxtOn] : s.tabTxt}>오늘 입력</Text>
+        </TouchableOpacity>
       </View>
+
+      {/* ── 기록 조회 탭 ── */}
+      {tab === 'history' && (
+        <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+          <TouchableOpacity
+            style={s.weeklyBtn}
+            onPress={() => navigation.navigate('WeeklyReport', { userId, name: uname })}
+            activeOpacity={0.8}>
+            <Text style={s.weeklyBtnIcon}>📊</Text>
+            <Text style={s.weeklyBtnTxt}>7일 주간 건강 리포트 보기</Text>
+            <Text style={s.weeklyBtnArr}>›</Text>
+          </TouchableOpacity>
+
+          {records.length === 0 ? (
+            <View style={s.emptyBox}>
+              <Text style={s.emptyIcon}>📊</Text>
+              <Text style={s.emptyTitle}>아직 기록이 없어요</Text>
+              <Text style={s.emptySub}>오늘 건강 수치를 입력하면{'\n'}여기에 기록이 쌓입니다</Text>
+              <TouchableOpacity style={s.goInputBtn} onPress={() => setTab('input')}>
+                <Text style={s.goInputBtnTxt}>+ 오늘 기록 입력하기</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            records.map((rec) => (
+              <View key={rec.id} style={s.recCard}>
+                <View style={s.recHeader}>
+                  <Text style={s.recDate}>{rec.date}</Text>
+                  <Text style={s.recTime}>{rec.time}</Text>
+                </View>
+                {rec.bp && <RecRow icon="💗" label="혈압" value={`${rec.bp.sys} / ${rec.bp.dia} mmHg`} status={bpStatus(rec.bp.sys, rec.bp.dia)} />}
+                {rec.glucose && <RecRow icon="🩸" label={`혈당 (${rec.glucose.type})`} value={`${rec.glucose.val} mg/dL`} status={glucoseStatus(rec.glucose.val, rec.glucose.type)} />}
+                {rec.sleep && <RecRow icon="😴" label="수면" value={fmtSleepHours(rec.sleep.hours)} status={sleepStatus(rec.sleep.hours)} />}
+                {rec.steps != null && <RecRow icon="🚶" label="걸음수" value={`${rec.steps.toLocaleString()} 보`} status={stepsStatus(rec.steps)} />}
+              </View>
+            ))
+          )}
+          <View style={{ height: 20 }} />
+        </ScrollView>
+      )}
 
       {/* ── 오늘 입력 탭 ── */}
       {tab === 'input' && (
@@ -414,32 +338,52 @@ export default function HealthScreen({ navigation }: any) {
             })() : null}
           </View>
 
-          {/* 체온 / 체중 */}
-          <View style={s.rowCards}>
-            <View style={[s.card, s.halfCard]}>
-              <Text style={s.cardTitle}>🌡️ 체온</Text>
-              <View style={s.midInputRow}>
-                <TextInput style={s.midInput} value={temp} onChangeText={setTemp}
-                  keyboardType="decimal-pad" placeholder="36.5" placeholderTextColor="#B0BEC5"
-                  maxLength={4} autoComplete="off" />
-                <Text style={s.midUnit}>°C</Text>
+          {/* 수면 */}
+          <View style={s.card}>
+            <Text style={s.cardTitle}>😴 수면</Text>
+            <Text style={s.cardHint}>권장: 7~9시간</Text>
+            <View style={s.sleepRow}>
+              <View style={s.sleepBox}>
+                <Text style={s.sleepLabel}>잠든 시간</Text>
+                <TextInput
+                  style={s.sleepInput}
+                  value={sleepStart}
+                  onChangeText={setSleepStart}
+                  placeholder="22:30"
+                  placeholderTextColor="#B0BEC5"
+                  keyboardType="numbers-and-punctuation"
+                  maxLength={5}
+                  autoComplete="off"
+                />
               </View>
-              {temp ? (() => {
-                const st = tempStatus(Number(temp));
-                return <View style={[s.statusBadgeSm, { backgroundColor: STATUS_BG[st] }]}>
-                  <Text style={[s.statusTxtSm, { color: STATUS_COLOR[st] }]}>{STATUS_LABEL[st]}</Text>
-                </View>;
-              })() : null}
-            </View>
-            <View style={[s.card, s.halfCard]}>
-              <Text style={s.cardTitle}>⚖️ 체중</Text>
-              <View style={s.midInputRow}>
-                <TextInput style={s.midInput} value={weight} onChangeText={setWeight}
-                  keyboardType="decimal-pad" placeholder="68.0" placeholderTextColor="#B0BEC5"
-                  maxLength={5} autoComplete="off" />
-                <Text style={s.midUnit}>kg</Text>
+              <Text style={s.sleepArrow}>→</Text>
+              <View style={s.sleepBox}>
+                <Text style={s.sleepLabel}>일어난 시간</Text>
+                <TextInput
+                  style={s.sleepInput}
+                  value={sleepEnd}
+                  onChangeText={setSleepEnd}
+                  placeholder="06:30"
+                  placeholderTextColor="#B0BEC5"
+                  keyboardType="numbers-and-punctuation"
+                  maxLength={5}
+                  autoComplete="off"
+                />
               </View>
             </View>
+            {sleepHours !== null && (
+              <View style={s.sleepResult}>
+                <Text style={s.sleepResultTxt}>총 수면: </Text>
+                <Text style={[s.sleepResultHours, { color: STATUS_COLOR[sleepStatus(sleepHours)] }]}>
+                  {fmtSleepHours(sleepHours)}
+                </Text>
+                <View style={[s.statusBadge, { backgroundColor: STATUS_BG[sleepStatus(sleepHours)], marginLeft: 8, marginTop: 0 }]}>
+                  <Text style={[s.statusTxt, { color: STATUS_COLOR[sleepStatus(sleepHours)] }]}>
+                    {STATUS_LABEL[sleepStatus(sleepHours)]}
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
 
           {/* 걸음수 */}
@@ -471,123 +415,13 @@ export default function HealthScreen({ navigation }: any) {
             {Platform.OS === 'web' && <Text style={s.stepsNote}>* 웹에서는 수동 입력만 가능합니다</Text>}
           </View>
 
-          {/* 건강기록 저장 버튼 */}
+          {/* 저장 버튼 */}
           <TouchableOpacity style={[s.saveBtn, saving && s.saveBtnOff]} onPress={save} disabled={saving}>
             {saving
               ? <ActivityIndicator color="#fff" size="small" />
               : <Text style={s.saveBtnTxt}>저장하기</Text>}
           </TouchableOpacity>
 
-          {/* ── 병원 일정 ── */}
-          <View style={[s.card, { borderLeftWidth: 4, borderLeftColor: '#E53935', marginTop: 6 }]}>
-            <Text style={s.cardTitle}>🏥 병원 일정</Text>
-            <Text style={s.cardHint}>저장하면 루미가 전날 저녁과 당일 4시간 전에 알려드려요</Text>
-
-            {savedHosp && (
-              <View style={hs.savedBox}>
-                <Text style={hs.savedTitle}>📅 저장된 일정</Text>
-                <Text style={hs.savedInfo}>
-                  {savedHosp.date}  {(() => {
-                    const [hh, mm] = savedHosp.time.split(':').map(Number);
-                    return fmtTime(hh, mm);
-                  })()}
-                </Text>
-                <Text style={hs.savedClinic}>🏥 {savedHosp.clinic}</Text>
-                <Text style={hs.savedNote}>🔔 전날 저녁 7시 · 당일 4시간 전 알림 예약됨</Text>
-              </View>
-            )}
-
-            <Text style={hs.label}>날짜 (예: 2026-05-15)</Text>
-            <TextInput
-              style={hs.input}
-              value={hospDate}
-              onChangeText={setHospDate}
-              placeholder="2026-05-15"
-              placeholderTextColor="#B0BEC5"
-              autoComplete="off"
-              autoCorrect={false}
-              maxLength={10}
-            />
-
-            <Text style={hs.label}>시간 (예: 14:30)</Text>
-            <TextInput
-              style={hs.input}
-              value={hospTime}
-              onChangeText={setHospTime}
-              placeholder="14:30"
-              placeholderTextColor="#B0BEC5"
-              keyboardType="numbers-and-punctuation"
-              autoComplete="off"
-              maxLength={5}
-            />
-
-            <Text style={hs.label}>병원명</Text>
-            <TextInput
-              style={hs.input}
-              value={hospClinic}
-              onChangeText={setHospClinic}
-              placeholder="서울름틴내과"
-              placeholderTextColor="#B0BEC5"
-              autoComplete="off"
-            />
-
-            <Text style={hs.hospHint}>💡 저장하면 루미가 하루 전 저녁과 당일 4시간 전에 음성으로 알려드려요</Text>
-
-            <View style={hs.btnRow}>
-              <TouchableOpacity
-                style={[hs.saveBtn, hospSaving && { backgroundColor: '#90A4AE' }]}
-                onPress={saveHospital}
-                disabled={hospSaving}
-              >
-                {hospSaving
-                  ? <ActivityIndicator color="#fff" size="small" />
-                  : <Text style={hs.saveBtnTxt}>💾 일정 저장</Text>}
-              </TouchableOpacity>
-              {savedHosp && (
-                <TouchableOpacity style={hs.delBtn} onPress={deleteHospital}>
-                  <Text style={hs.delBtnTxt}>삭제</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-
-          <View style={{ height: 20 }} />
-        </ScrollView>
-      )}
-
-      {/* ── 기록 조회 탭 ── */}
-      {tab === 'history' && (
-        <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-          <TouchableOpacity
-            style={s.weeklyBtn}
-            onPress={() => navigation.navigate('WeeklyReport', { userId, name: uname })}
-            activeOpacity={0.8}>
-            <Text style={s.weeklyBtnIcon}>📊</Text>
-            <Text style={s.weeklyBtnTxt}>7일 주간 건강 리포트 보기</Text>
-            <Text style={s.weeklyBtnArr}>›</Text>
-          </TouchableOpacity>
-
-          {records.length === 0 ? (
-            <View style={s.emptyBox}>
-              <Text style={s.emptyIcon}>📊</Text>
-              <Text style={s.emptyTitle}>아직 기록이 없어요</Text>
-              <Text style={s.emptySub}>오늘 건강 수치를 입력하면{'\n'}여기에 기록이 쌓입니다</Text>
-            </View>
-          ) : (
-            records.map((rec) => (
-              <View key={rec.id} style={s.recCard}>
-                <View style={s.recHeader}>
-                  <Text style={s.recDate}>{rec.date}</Text>
-                  <Text style={s.recTime}>{rec.time}</Text>
-                </View>
-                {rec.bp && <RecRow icon="💗" label="혈압" value={`${rec.bp.sys} / ${rec.bp.dia} mmHg`} status={bpStatus(rec.bp.sys, rec.bp.dia)} />}
-                {rec.glucose && <RecRow icon="🩸" label={`혈당 (${rec.glucose.type})`} value={`${rec.glucose.val} mg/dL`} status={glucoseStatus(rec.glucose.val, rec.glucose.type)} />}
-                {rec.temp != null && <RecRow icon="🌡️" label="체온" value={`${rec.temp} °C`} status={tempStatus(rec.temp)} />}
-                {rec.weight != null && <RecRow icon="⚖️" label="체중" value={`${rec.weight} kg`} status="normal" />}
-                {rec.steps != null && <RecRow icon="🚶" label="걸음수" value={`${rec.steps.toLocaleString()} 보`} status={stepsStatus(rec.steps)} />}
-              </View>
-            ))
-          )}
           <View style={{ height: 20 }} />
         </ScrollView>
       )}
@@ -620,34 +454,9 @@ const sr = StyleSheet.create({
   badgeTxt: { fontSize: 16, fontWeight: '800' },
 });
 
-// 병원 일정 전용 스타일
-const hs = StyleSheet.create({
-  savedBox:    { backgroundColor: '#FFF8F8', borderRadius: 14, padding: 14, marginBottom: 16,
-                 borderWidth: 1, borderColor: '#FFCDD2' },
-  savedTitle:  { fontSize: 16, fontWeight: '800', color: '#C62828', marginBottom: 6 },
-  savedInfo:   { fontSize: 22, fontWeight: '900', color: '#B71C1C', marginBottom: 4 },
-  savedClinic: { fontSize: 20, fontWeight: '700', color: '#1A2C4E', marginBottom: 6 },
-  savedNote:   { fontSize: 14, color: '#E53935', fontWeight: '600' },
-
-  label:  { fontSize: 18, fontWeight: '700', color: '#546E7A', marginTop: 14, marginBottom: 6 },
-  input:  { fontSize: 22, fontWeight: '700', color: BLUE,
-            borderBottomWidth: 2, borderBottomColor: BLUE,
-            paddingVertical: 8, marginBottom: 2 },
-
-  btnRow:     { flexDirection: 'row', gap: 10, marginTop: 20 },
-  saveBtn:    { flex: 1, backgroundColor: '#E53935', borderRadius: 16,
-                paddingVertical: 18, alignItems: 'center' },
-  saveBtnTxt: { fontSize: 20, fontWeight: '900', color: '#fff' },
-  delBtn:     { flex: 0, backgroundColor: '#FFEBEE', borderRadius: 16,
-                paddingVertical: 18, paddingHorizontal: 22, alignItems: 'center' },
-  delBtnTxt:  { fontSize: 20, fontWeight: '700', color: '#C62828' },
-  hospHint:   { fontSize: 13, color: '#5C7A9A', fontWeight: '500', lineHeight: 19, marginBottom: 10 },
-});
-
 const s = StyleSheet.create({
   root: { flex: 1 },
 
-  /* ── 상단 바 ── */
   topBar:  { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
              paddingHorizontal: 20, paddingBottom: 12 },
   topTitle:{ fontSize: 26, fontWeight: '900', color: '#1A2C4E', letterSpacing: 0.3 },
@@ -695,17 +504,19 @@ const s = StyleSheet.create({
                  borderBottomWidth: 2.5, borderBottomColor: BLUE, minWidth: 120, paddingVertical: 4 },
   bigUnit:     { fontSize: 22, color: '#90A4AE', marginBottom: 10 },
 
-  rowCards:    { flexDirection: 'row', gap: 12, marginBottom: 0 },
-  halfCard:    { flex: 1, marginBottom: 14 },
-  midInputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
-  midInput:    { fontSize: 34, fontWeight: '900', color: BLUE, borderBottomWidth: 2, borderBottomColor: BLUE,
-                 flex: 1, paddingVertical: 4 },
-  midUnit:     { fontSize: 18, color: '#90A4AE', marginBottom: 6 },
+  /* 수면 */
+  sleepRow:        { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  sleepBox:        { flex: 1, alignItems: 'center' },
+  sleepLabel:      { fontSize: 17, color: '#546E7A', marginBottom: 8 },
+  sleepInput:      { fontSize: 34, fontWeight: '900', color: PURPLE, textAlign: 'center',
+                     borderBottomWidth: 2.5, borderBottomColor: PURPLE, width: '100%', paddingVertical: 4 },
+  sleepArrow:      { fontSize: 28, color: '#B0BEC5', marginTop: 20 },
+  sleepResult:     { flexDirection: 'row', alignItems: 'center', marginTop: 16 },
+  sleepResultTxt:  { fontSize: 18, color: '#546E7A', fontWeight: '600' },
+  sleepResultHours:{ fontSize: 26, fontWeight: '900' },
 
   statusBadge:   { alignSelf: 'flex-start', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 6, marginTop: 10 },
   statusTxt:     { fontSize: 18, fontWeight: '800' },
-  statusBadgeSm: { alignSelf: 'flex-start', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4, marginTop: 8 },
-  statusTxtSm:   { fontSize: 16, fontWeight: '800' },
 
   stepsHeader:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 0 },
   autoBadge:    { backgroundColor: LBLUE, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 },
@@ -720,10 +531,12 @@ const s = StyleSheet.create({
   saveBtnOff: { backgroundColor: '#90A4AE' },
   saveBtnTxt: { fontSize: 22, fontWeight: '900', color: '#fff' },
 
-  emptyBox:   { alignItems: 'center', paddingVertical: 60, gap: 14 },
+  emptyBox:   { alignItems: 'center', paddingVertical: 40, gap: 14 },
   emptyIcon:  { fontSize: 64 },
   emptyTitle: { fontSize: 24, fontWeight: '800', color: '#2C2C2C' },
   emptySub:   { fontSize: 18, color: '#90A4AE', textAlign: 'center', lineHeight: 28 },
+  goInputBtn: { backgroundColor: BLUE, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 28, marginTop: 8 },
+  goInputBtnTxt: { fontSize: 20, fontWeight: '800', color: '#fff' },
 
   recCard:   { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 14,
                shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
