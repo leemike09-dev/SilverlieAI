@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  StatusBar, Dimensions, Image, ScrollView,
+  StatusBar, Dimensions, Image, ScrollView, ImageBackground,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { speak, stopSpeech } from '../utils/speech';
@@ -71,31 +71,12 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   const isGuest  = !userId || userId === 'guest';
 
   return (
-    <LinearGradient
-      colors={['#4FA8D6', '#74BEE4', '#A8D8F0', '#D4EDF8', '#EEF7FC', '#F8FCFF']}
-      locations={[0, 0.15, 0.35, 0.6, 0.82, 1]}
+    <ImageBackground
+      source={require('../assets/lumi16.png')}
       style={s.root}
+      resizeMode="cover"
     >
-      <StatusBar barStyle="dark-content" backgroundColor="#4FA8D6" />
-
-      {/* ── 구름 레이어 ── */}
-      <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-        {/* 구름 1 (왼쪽 상단) */}
-        <View style={[s.puff, { top: 65, left: 10,  width: 70,  height: 70,  borderRadius: 35 }]} />
-        <View style={[s.puff, { top: 82, left: -20, width: 90,  height: 60,  borderRadius: 30 }]} />
-        <View style={[s.puff, { top: 77, left: 65,  width: 80,  height: 60,  borderRadius: 30 }]} />
-        <View style={[s.puff, { top: 100,left: -10, width: 120, height: 44,  borderRadius: 22 }]} />
-        {/* 구름 2 (오른쪽 상단) */}
-        <View style={[s.puff2, { top: 95,  right: 22, width: 58, height: 58, borderRadius: 29 }]} />
-        <View style={[s.puff2, { top: 112, right: -8, width: 78, height: 52, borderRadius: 26 }]} />
-        <View style={[s.puff2, { top: 108, right: 55, width: 62, height: 48, borderRadius: 24 }]} />
-        <View style={[s.puff2, { top: 130, right: 2,  width: 108,height: 38, borderRadius: 19 }]} />
-        {/* 구름 3 (작은, 중앙) */}
-        <View style={[s.puff3, { top: 180, left: 98,  width: 44, height: 44, borderRadius: 22 }]} />
-        <View style={[s.puff3, { top: 195, left: 82,  width: 62, height: 36, borderRadius: 18 }]} />
-        <View style={[s.puff3, { top: 192, left: 128, width: 48, height: 36, borderRadius: 18 }]} />
-        <View style={[s.puff3, { top: 210, left: 90,  width: 82, height: 30, borderRadius: 15 }]} />
-      </View>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -197,18 +178,13 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       </ScrollView>
 
       <SeniorTabBar navigation={navigation} activeTab="home" userId={userId} name={name} />
-    </LinearGradient>
+    </ImageBackground>
   );
 }
 
 const s = StyleSheet.create({
   root:   { flex: 1 },
   scroll: { paddingHorizontal: 16 },
-
-  /* ── 구름 puff ── */
-  puff:  { position: 'absolute', backgroundColor: 'rgba(255,255,255,0.22)' },
-  puff2: { position: 'absolute', backgroundColor: 'rgba(255,255,255,0.17)' },
-  puff3: { position: 'absolute', backgroundColor: 'rgba(255,255,255,0.12)' },
 
   /* ── 상단 바 ── */
   topBar:      { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingBottom: 4 },
@@ -222,12 +198,12 @@ const s = StyleSheet.create({
   topDateRow:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
   topDate:     { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
   gearBtn: {
-    backgroundColor: 'rgba(255,255,255,0.28)',
-    borderRadius: 14, paddingHorizontal: 9, paddingVertical: 4,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: 'rgba(255,255,255,0.35)',
+    borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8,
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.7)',
   },
-  gearEmoji: { fontSize: 20 },
-  gearLabel: { fontSize: 10, color: 'rgba(255,255,255,0.9)', fontWeight: '700', textAlign: 'center', marginTop: 1 },
+  gearEmoji: { fontSize: 28 },
+  gearLabel: { fontSize: 13, color: 'rgba(255,255,255,0.95)', fontWeight: '800', textAlign: 'center', marginTop: 2 },
   topTime:   { fontSize: 21, fontWeight: '900', color: '#fff' },
 
   /* ── 히어로 ── */

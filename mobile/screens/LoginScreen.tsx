@@ -3,7 +3,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Platform, ImageBackground, Alert,
+  ActivityIndicator, Platform, Image, Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -79,9 +79,12 @@ export default function LoginScreen({ navigation }: any) {
   const modeLabel = mode === 'login' ? '로그인' : '가입';
 
   return (
-    <ImageBackground source={bgImage} style={s.root} resizeMode="cover">
+    <View style={s.root}>
 
-      {/* 하단 그라디언트 느낌의 오버레이 */}
+      {/* 배경 이미지 고정 */}
+      <Image source={bgImage} style={s.bg} resizeMode="cover" />
+
+      {/* 오버레이 */}
       <View style={s.overlay} />
 
       {/* 하단 카드 영역 */}
@@ -148,12 +151,13 @@ export default function LoginScreen({ navigation }: any) {
         )}
 
       </View>
-    </ImageBackground>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
+  bg:   { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
 
   overlay: {
     ...StyleSheet.absoluteFillObject,
