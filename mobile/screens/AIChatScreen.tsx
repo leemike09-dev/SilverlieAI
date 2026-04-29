@@ -85,7 +85,10 @@ function classifyIntent(msg: string, history: HistoryItem[]): Intent {
     const key = msg.slice(0, 10);
     if (recent.filter(m => m.slice(0, 10) === key).length >= 1) return 'cognitive';
   }
-  const DAILY_KW = ['날씨', '심심해', '뭐 해요', '뭐해요', '이야기 하고 싶', '그냥 얘기', '오늘 뭐'];
+  const DAILY_KW = [
+    '날씨', '심심해', '뭐 해요', '뭐해요', '이야기 하고 싶', '그냥 얘기', '오늘 뭐',
+    '산책해도', '산책할', '나들이', '외출해도', '바람 쐬', '걷기 좋', '운동해도 될',
+  ];
   if (DAILY_KW.some(k => msg.includes(k))) return 'daily';
   return 'health';
 }
@@ -375,7 +378,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
               setHistory([...newHistory, { role: 'assistant', content: cleanText }]);
               setTurnCount(t => t + 1);
               if (riskLevel === 'critical') { setShowEmergency(true); if (data.sos_sent) setFamilyNotified(true); }
-              if (memoState === 'idle' && ((isFinal && dMemo) || (dMemoNeeded && dMemo && ['medium','high','critical'].includes(riskLevel)))) {
+              if (memoState === 'idle' && riskLevel !== 'normal' && detectedIntent !== 'daily' && ((isFinal && dMemo) || (dMemoNeeded && dMemo && ['medium','high','critical'].includes(riskLevel)))) {
                 setPendingMemo(dMemo!);
                 const mainMs = ttsEnabled ? Math.min(Math.max(3000, cleanText.length * 80), 8000) : 1500;
                 setTimeout(() => setMemoState('asking'), mainMs);
@@ -666,7 +669,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
           )}
 
           {/* 빠른 질문 칩 (초기) */}
-          {turnCount >= 2 && !loading && memoState === 'idle' && !!lastAiMsg && (
+          {turnCount >= 2 && !loading && memoState === 'idle' && !!lastAiMsg && currentIntent !== 'daily' && (
             <TouchableOpacity style={s.summaryBtn} onPress={sendForceSummary} activeOpacity={0.8}>
               <Text style={s.summaryBtnTxt}>지금 요약해줘</Text>
             </TouchableOpacity>
@@ -760,7 +763,6 @@ const s = StyleSheet.create({
   topBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: '#fff', paddingHorizontal: 16, paddingBottom: 12,
-    borderBottomWidth: 1, borderBottomColor: '#E1BEE7',
   },
   topTitle: { fontSize: 22, fontWeight: '900', color: '#16273E' },
   topSub:   { fontSize: 13, color: '#7A90A8', marginTop: 2 },
@@ -806,7 +808,7 @@ const s = StyleSheet.create({
     borderTopRightRadius: 4, padding: 14,
   },
   bubbleName:  { fontSize: 14, color: '#7B1FA2', fontWeight: '700', marginBottom: 4 },
-  aiTxt:       { fontSize: 22, color: '#16273E', lineHeight: 34, fontWeight: '400' },
+  aiTxt:       { fontSize: 22, color: '#16273E', lineHeight: 38, fontWeight: '600' },
   userTxt:     { fontSize: 22, color: '#fff',     lineHeight: 34, fontWeight: '500' },
   loadingTxt:  { fontSize: 30, color: '#9C27B0', letterSpacing: 6 },
 
