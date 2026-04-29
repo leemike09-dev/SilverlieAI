@@ -169,7 +169,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [currentIntent, setCurrentIntent] = useState<Intent>('health');
   const [showCrisis,    setShowCrisis]    = useState(false);
   const [healthProfile, setHealthProfile] = useState<any>(null);
-  const [ttsEnabled,   setTtsEnabled]   = useState(true);
+  const [ttsEnabled,      setTtsEnabled]      = useState(true);
+  const [pendingConditions, setPendingConditions] = useState<string[]>([]);
 
   const scrollRef          = useRef<ScrollView>(null);
   const pulseAnim          = useRef(new Animated.Value(1)).current;
@@ -380,6 +381,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
                 const mainMs = ttsEnabled ? Math.min(Math.max(3000, cleanText.length * 80), 8000) : 1500;
                 setTimeout(() => setMemoState('asking'), mainMs);
               }
+              const updates: string[] = data.profile_updates || [];
+              if (updates.length > 0) setPendingConditions(updates);
             }
           } catch {}
         }
@@ -481,6 +484,18 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
   const handleMemoNo = () => {
     setMemoState('idle');
+  };
+
+  const handleConditionSave = async () => {
+    try {
+      const raw = await AsyncStorage.getItem('health_profile');
+      const profile = raw ? JSON.parse(raw) : {};
+      const existing: string[] = profile.diseases || profile.chronic_diseases || [];
+      profile.diseases = Array.from(new Set([...existing, ...pendingConditions]));
+      await AsyncStorage.setItem('health_profile', JSON.stringify(profile));
+      showToast(`${pendingConditions.join(', ')} 프로필에 저장됐어요 ✅`);
+    } catch { showToast('저장에 실패했습니다'); }
+    setPendingConditions([]);
   };
 
   const stopVoice = () => {
@@ -640,6 +655,23 @@ export default function AIChatScreen({ route, navigation }: Props) {
                 );
               })}
             </ScrollView>
+          )}
+
+          {/* 만성질환 감지 확인 카드 */}
+          {pendingConditions.length > 0 && memoState === 'idle' && (
+            <View style={s.condCard}>
+              <Text style={s.condTitle}>건강 정보가 감지됐어요 💊</Text>
+              <Text style={s.condBody}>{pendingConditions.join(', ')}</Text>
+              <Text style={s.condSub}>프로필에 저장하면 다음 대화부터 맞춤 답변을 드려요</Text>
+              <View style={s.condBtns}>
+                <TouchableOpacity style={s.condYes} onPress={handleConditionSave} activeOpacity={0.8}>
+                  <Text style={s.condYesTxt}>네, 저장해요</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.condNo} onPress={() => setPendingConditions([])} activeOpacity={0.8}>
+                  <Text style={s.condNoTxt}>괜찮아요</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           )}
 
           {/* 의사 메모 제안 */}
@@ -919,4 +951,16 @@ const s = StyleSheet.create({
   criticalCardDesc: { fontSize: 16, color: '#C62828', marginBottom: 8, textAlign: 'center' },
   ttsBtnInline: { alignSelf: 'flex-end', marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
   ttsBtnTxt:    { fontSize: 18 },
+
+  // 만성질환 감지 확인 카드
+  condCard:  { backgroundColor: '#E8F5E9', borderRadius: 20, padding: 20, marginBottom: 12,
+               borderWidth: 2, borderColor: '#66BB6A', flexShrink: 0 },
+  condTitle: { fontSize: 20, fontWeight: '800', color: '#1B5E20', marginBottom: 6 },
+  condBody:  { fontSize: 22, fontWeight: '700', color: '#2E7D32', marginBottom: 4 },
+  condSub:   { fontSize: 16, color: '#388E3C', marginBottom: 16, lineHeight: 24 },
+  condBtns:  { flexDirection: 'row', gap: 10 },
+  condYes:   { flex: 1, backgroundColor: '#2E7D32', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+  condYesTxt:{ fontSize: 20, color: '#fff', fontWeight: '800' },
+  condNo:    { flex: 1, backgroundColor: '#C8E6C9', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+  condNoTxt: { fontSize: 20, color: '#2E7D32', fontWeight: '700' },
 });

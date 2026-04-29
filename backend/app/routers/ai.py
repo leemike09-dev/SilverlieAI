@@ -1,6 +1,11 @@
 import os, re, json, httpx
 import anthropic
 from fastapi import APIRouter, BackgroundTasks, HTTPException
+try:
+    import openai as _openai
+    _OPENAI_OK = True
+except ImportError:
+    _OPENAI_OK = False
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List
@@ -72,6 +77,116 @@ def find_relevant_qa(message: str, top_k: int = 2) -> List[dict]:
             scored.append((score, item))
     scored.sort(key=lambda x: -x[0])
     return [item for _, item in scored[:top_k]]
+
+
+# ── pgvector 의미 검색 ────────────────────────────────────────────────────────
+
+def get_query_embedding(text: str) -> list | None:
+    """OpenAI text-embedding-3-small 임베딩. 키 없으면 None."""
+    if not _OPENAI_OK:
+        return None
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return None
+    try:
+        client = _openai.OpenAI(api_key=api_key)
+        resp = client.embeddings.create(model="text-embedding-3-small", input=text[:500])
+        return resp.data[0].embedding
+    except Exception as e:
+        print(f"[embedding] {e}")
+        return None
+
+
+def find_relevant_qa_vector(message: str, top_k: int = 2) -> list:
+    """벡터 검색 우선, 실패 시 키워드 검색으로 폴백."""
+    embedding = get_query_embedding(message)
+    if embedding is not None:
+        try:
+            db = get_supabase()
+            result = db.rpc("match_qa_embeddings", {
+                "query_embedding": embedding,
+                "match_threshold": 0.25,
+                "match_count": top_k,
+            }).execute()
+            if result.data:
+                return result.data
+        except Exception as e:
+            print(f"[vector_search] fallback: {e}")
+    return find_relevant_qa(message, top_k)
+
+
+# ── 만성질환 자동 추출 ────────────────────────────────────────────────────────
+
+_COND_WORDS = [
+    '고혈압', '당뇨', '관절염', '심장', '심부전', '협심증', '부정맥',
+    '골다공증', '고지혈', '파킨슨', '치매', '알츠하이머', '뇌졸중',
+    '백내장', '녹내장', '천식', '류마티스', '통풍', '빈혈', '갑상선',
+    '신장', '간경화', '위염', '역류성', '디스크', '척추관', '우울증',
+    '공황', '불안장애', '폐기종', '만성기관지',
+]
+_SELF_WORDS = [
+    '제가', '저는', '저한테', '나는', '내가', '저도', '본인이',
+    '있어요', '있어', '있습니다', '앓고', '오래됐', '진단', '판정',
+]
+
+
+def extract_user_conditions_sync(
+    client: anthropic.Anthropic,
+    user_msg: str,
+    existing: list,
+) -> list:
+    """
+    사용자 발화에서 본인의 만성질환만 추출 (Haiku, ~300 ms).
+    키워드 pre-filter → 통과 시에만 LLM 호출.
+    """
+    has_cond = any(w in user_msg for w in _COND_WORDS)
+    has_self = any(w in user_msg for w in _SELF_WORDS)
+    if not (has_cond and has_self):
+        return []
+
+    existing_set = set(existing)
+    try:
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=150,
+            messages=[{"role": "user", "content": (
+                f"다음 문장에서 이 사람 \"본인\"의 만성질환·지속 건강 상태만 추출하세요.\n"
+                f"규칙: 타인 언급 제외 / 일시 증상(두통·감기 등) 제외 / 만성·지속 질환만.\n"
+                f"이미 알고 있음(제외): {list(existing_set)}\n"
+                f"문장: \"{user_msg}\"\n"
+                f"JSON만 반환: {{\"conditions\": [\"질환명\"]}}"
+            )}],
+        )
+        text = resp.content[0].text.strip()
+        m = re.search(r'\{.*\}', text, re.DOTALL)
+        if m:
+            data = json.loads(m.group())
+            return [c for c in (data.get("conditions") or [])
+                    if c and c not in existing_set][:3]
+    except Exception as e:
+        print(f"[extract_conditions] {e}")
+    return []
+
+
+def _update_conditions_background(user_id: str, new_conditions: list):
+    """감지된 만성질환을 users.health_profile.diseases 에 병합 (백그라운드)."""
+    if not new_conditions:
+        return
+    try:
+        db = get_supabase()
+        res = db.table("users").select("health_profile").eq("id", user_id).execute()
+        profile: dict = {}
+        if res.data and res.data[0].get("health_profile"):
+            profile = res.data[0]["health_profile"] or {}
+
+        existing = set(profile.get("diseases") or profile.get("chronic_diseases") or [])
+        truly_new = [c for c in new_conditions if c not in existing]
+        if truly_new:
+            profile["diseases"] = list(existing | set(truly_new))
+            db.table("users").update({"health_profile": profile}).eq("id", user_id).execute()
+            print(f"[profile_update] {user_id}: +{truly_new}")
+    except Exception as e:
+        print(f"[profile_update] 오류: {e}")
 
 
 def get_suggested_questions(relevant_qa: List[dict]) -> List[str]:
@@ -622,7 +737,7 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
             yield f"data: {json.dumps({'error': 'API key missing', 'done': True, 'risk_level': 'normal', 'doctor_memo_needed': False, 'is_final': False})}\n\n"
         return StreamingResponse(_err(), media_type="text/event-stream")
 
-    relevant_qa = find_relevant_qa(request.message)
+    relevant_qa = find_relevant_qa_vector(request.message)
     user_row: dict = {}
     health_ctx: dict = {
         'profile':      request.client_profile or {},
@@ -694,7 +809,23 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
             all_syms = [m.content for m in (request.history or []) if m.role == 'user'] + [request.message]
             doctor_memo = build_doctor_memo(user_row, health_ctx, ' / '.join(all_syms))
 
-        yield f"data: {json.dumps({'done': True, 'risk_level': risk, 'doctor_memo_needed': doctor_memo_needed, 'doctor_memo': doctor_memo, 'is_final': is_final_flag, 'sos_sent': sos_sent}, ensure_ascii=False)}\n\n"
+        # ── 만성질환 자동 추출 ──────────────────────────────────────────────
+        profile_updates: list = []
+        if (request.user_id and request.user_id not in ("demo-user", "guest")
+                and request.intent != "daily"):
+            existing_diseases = list(
+                (health_ctx.get('profile') or {}).get('diseases') or
+                (health_ctx.get('profile') or {}).get('chronic_diseases') or []
+            )
+            profile_updates = extract_user_conditions_sync(
+                client_ai, request.message, existing_diseases
+            )
+            if profile_updates:
+                background_tasks.add_task(
+                    _update_conditions_background, request.user_id, profile_updates
+                )
+
+        yield f"data: {json.dumps({'done': True, 'risk_level': risk, 'doctor_memo_needed': doctor_memo_needed, 'doctor_memo': doctor_memo, 'is_final': is_final_flag, 'sos_sent': sos_sent, 'profile_updates': profile_updates}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(
         event_gen(),
@@ -709,7 +840,7 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
     if not api_key:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY가 설정되지 않았습니다.")
 
-    relevant_qa = find_relevant_qa(request.message)
+    relevant_qa = find_relevant_qa_vector(request.message)
     user_row: dict = {}
     health_ctx: dict = {
         'profile':      request.client_profile or {},
