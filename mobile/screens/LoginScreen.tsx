@@ -87,8 +87,8 @@ export default function LoginScreen({ navigation }: any) {
       {/* 오버레이 */}
       <View style={s.overlay} />
 
-      {/* 하단 카드 영역 */}
-      <View style={[s.bottom, { paddingBottom: Math.max(insets.bottom + 24, 40) }]}>
+      {/* 카드 영역 */}
+      <View style={[s.bottom, { paddingBottom: Math.max(insets.bottom + 16, 28) }]}>
 
         {/* 로그인 / 회원가입 탭 */}
         <View style={s.tabs}>
@@ -161,45 +161,42 @@ const s = StyleSheet.create({
 
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: 'rgba(0,0,0,0.10)',
   },
 
   bottom: {
     position: 'absolute',
     bottom: 0, left: 0, right: 0,
-    paddingHorizontal: 24,
-    paddingTop: 28,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    gap: 8,
   },
 
   tabs: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 18,
-    padding: 4,
-    marginBottom: 8,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderRadius: 14,
+    padding: 3,
+    marginBottom: 4,
   },
-  tab:          { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
-  tabActive:    { backgroundColor: 'rgba(255,255,255,0.9)' },
-  tabTxt:       { fontSize: 22, fontWeight: '700', color: 'rgba(255,255,255,0.55)' },
+  tab:          { flex: 1, paddingVertical: 10, borderRadius: 11, alignItems: 'center' },
+  tabActive:    { backgroundColor: '#fff' },
+  tabTxt:       { fontSize: 17, fontWeight: '700', color: 'rgba(30,30,30,0.45)' },
   tabTxtActive: { color: '#1A4A8A', fontWeight: '900' },
 
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 20,
-    borderWidth: 2,
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-    minHeight: 68,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    minHeight: 52,
   },
-  cardIcon:  { fontSize: 30, marginRight: 16 },
-  cardLabel: { fontSize: 24, fontWeight: '800', flex: 1 },
+  cardIcon:  { fontSize: 24, marginRight: 12 },
+  cardLabel: { fontSize: 19, fontWeight: '800', flex: 1 },
 
   kakaoCard: { backgroundColor: '#FEE500', borderColor: '#E6D200' },
-  emailCard: { backgroundColor: 'rgba(235,243,251,0.92)', borderColor: '#1A4A8A' },
-  appleCard: { backgroundColor: '#000', borderColor: '#444' },
+  emailCard: { backgroundColor: 'rgba(235,243,251,0.95)', borderColor: '#1A4A8A' },
+  appleCard: { backgroundColor: 'rgba(0,0,0,0.85)', borderColor: '#555' },
 });
