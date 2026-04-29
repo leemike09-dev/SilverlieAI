@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  StatusBar, Dimensions, Image, ScrollView, ImageBackground,
+  StatusBar, Dimensions, Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { speak, stopSpeech } from '../utils/speech';
@@ -71,52 +71,45 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   const isGuest  = !userId || userId === 'guest';
 
   return (
-    <ImageBackground
-      source={require('../assets/lumi16.png')}
-      style={s.root}
-      resizeMode="cover"
-    >
+    <View style={s.root}>
+      <Image source={require('../assets/lumi16.png')} style={s.bg} resizeMode="cover" />
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[s.scroll, { paddingBottom: 20 }]}
-      >
-        {/* ── 상단 바 ── */}
-        <View style={[s.topBar, { paddingTop: Math.max(insets.top + 8, 20) }]}>
-          {/* 좌측: 인사말 */}
-          <View style={s.topLeft}>
-            <Text style={s.topGreeting}>{greeting}</Text>
-            {name ? <Text style={s.topName}>{name}님, 반가워요 👋</Text> : null}
-          </View>
-          {/* 우측: 날짜·시간·설정 */}
-          <View style={s.topRight}>
-            <View style={s.topDateRow}>
-              <Text style={s.topDate}>{weather}  {dateStr}</Text>
-              <TouchableOpacity
-                style={s.gearBtn}
-                onPress={() => navigation.navigate('Settings', { userId, name })}
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Text style={s.gearEmoji}>⚙️</Text>
-                <Text style={s.gearLabel}>설정</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={s.topTime}>{timeStr}</Text>
-          </View>
+      {/* ── 상단 바 ── */}
+      <View style={[s.topBar, { paddingTop: Math.max(insets.top + 8, 20) }]}>
+        <View style={s.topLeft}>
+          <Text style={s.topGreeting}>{greeting}</Text>
+          {name ? <Text style={s.topName}>{name}님, 반가워요 👋</Text> : null}
         </View>
-
-        {/* ── 히어로: 루미 ── */}
-        <View style={s.hero} pointerEvents="none">
-          <Image
-            source={require('../assets/lumi10.png')}
-            style={s.lumiImg}
-            resizeMode="contain"
-          />
+        <View style={s.topRight}>
+          <View style={s.topDateRow}>
+            <Text style={s.topDate}>{weather}  {dateStr}</Text>
+            <TouchableOpacity
+              style={s.gearBtn}
+              onPress={() => navigation.navigate('Settings', { userId, name })}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={s.gearEmoji}>⚙️</Text>
+              <Text style={s.gearLabel}>설정</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={s.topTime}>{timeStr}</Text>
         </View>
+      </View>
 
-        {/* ── 게스트 배너 ── */}
+      {/* ── 히어로: 루미 ── */}
+      <View style={s.hero} pointerEvents="none">
+        <Image
+          source={require('../assets/lumi10.png')}
+          style={s.lumiImg}
+          resizeMode="contain"
+        />
+      </View>
+
+      {/* ── 하단: 게스트 배너 + 카드 + SOS ── */}
+      <View style={s.bottom}>
+
         {isGuest && (
           <TouchableOpacity style={s.guestBanner} onPress={() => navigation.navigate('Login')} activeOpacity={0.85}>
             <Text style={s.guestTxt}>👤 로그인하면 건강기록이 저장돼요</Text>
@@ -124,9 +117,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           </TouchableOpacity>
         )}
 
-        {/* ── 4개 카드 ── */}
         <View style={s.cardGrid}>
-
           <TouchableOpacity style={s.cardWrap} onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0 })} activeOpacity={0.88}>
             <LinearGradient colors={['#F5FBFF', '#D6EEFA']} style={s.card}>
               <Text style={s.iconEmoji}>🗺️</Text>
@@ -158,10 +149,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
               <Text style={s.cardDesc}>가족에게 알려드려요</Text>
             </LinearGradient>
           </TouchableOpacity>
-
         </View>
 
-        {/* ── SOS ── */}
         <TouchableOpacity
           style={s.sosBtn}
           onPress={() => navigation.navigate('SOS', { userId, name })}
@@ -175,19 +164,21 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           <Text style={s.sosPhone}>📞</Text>
         </TouchableOpacity>
 
-      </ScrollView>
+      </View>
 
       <SeniorTabBar navigation={navigation} activeTab="home" userId={userId} name={name} />
-    </ImageBackground>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  root:   { flex: 1 },
-  scroll: { paddingHorizontal: 16 },
+  root:   { flex: 1, backgroundColor: '#87CEEB' },
+  bg:     { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
+
+  bottom: { paddingHorizontal: 16, paddingBottom: 12 },
 
   /* ── 상단 바 ── */
-  topBar:      { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingBottom: 4 },
+  topBar:      { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingBottom: 4, paddingHorizontal: 16 },
   topLeft:     { flexShrink: 1, paddingRight: 8 },
   topGreeting: {
     fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: 0.3,
@@ -207,7 +198,7 @@ const s = StyleSheet.create({
   topTime:   { fontSize: 21, fontWeight: '900', color: '#fff' },
 
   /* ── 히어로 ── */
-  hero:    { alignItems: 'center', paddingVertical: 0 },
+  hero:    { flex: 1, alignItems: 'center', justifyContent: 'center' },
   lumiImg: { width: 260, height: 290, transform: [{ scale: 1.7 }] },
 
   /* ── 게스트 배너 ── */
