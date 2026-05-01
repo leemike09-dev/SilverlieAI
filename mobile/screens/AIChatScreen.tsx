@@ -545,15 +545,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
           <Text style={s.topTitle}>💬 루미와 대화</Text>
           <Text style={s.topSub}>건강·일상 무엇이든 물어보세요</Text>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <View style={s.onlineDot} />
-          <TouchableOpacity style={s.gearBtn}
-            onPress={() => navigation.navigate('Settings', { userId, name })}
-            activeOpacity={0.7}>
-            <Text style={s.gearEmoji}>⚙️</Text>
-            <Text style={s.gearLabel}>설정</Text>
-          </TouchableOpacity>
-        </View>
+        <View style={s.onlineDot} />
       </View>
 
       {/* CRITICAL 배너 */}

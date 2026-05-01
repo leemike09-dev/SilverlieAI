@@ -176,12 +176,6 @@ export default function MedicationScreen({ navigation }: any) {
             <Text style={s.addBtnTxt}>+ 약 추가</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={s.gearBtn}
-          onPress={() => navigation.navigate('Settings', { userId, name: uname })}
-          activeOpacity={0.7}>
-          <Text style={s.gearEmoji}>⚙️</Text>
-          <Text style={s.gearLabel}>설정</Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>

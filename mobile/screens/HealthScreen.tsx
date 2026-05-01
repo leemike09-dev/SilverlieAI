@@ -257,15 +257,6 @@ export default function HealthScreen({ navigation }: any) {
           <Text style={s.topTitle}>❤️ 건강 기록</Text>
           <Text style={s.topSub}>{tab === 'input' ? '오늘 수치를 입력해주세요' : '내 건강 기록 조회'}</Text>
         </View>
-        <TouchableOpacity
-          style={s.gearBtn}
-          onPress={() => navigation.navigate('Settings', { userId, name: uname })}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={s.gearEmoji}>⚙️</Text>
-          <Text style={s.gearLabel}>설정</Text>
-        </TouchableOpacity>
       </View>
 
       {/* ── 탭 ── */}

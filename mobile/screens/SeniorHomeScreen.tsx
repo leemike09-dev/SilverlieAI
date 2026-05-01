@@ -83,18 +83,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           {name ? <Text style={s.topName}>{name}님, 반가워요 👋</Text> : null}
         </View>
         <View style={s.topRight}>
-          <View style={s.topDateRow}>
-            <Text style={s.topDate}>{weather}  {dateStr}</Text>
-            <TouchableOpacity
-              style={s.gearBtn}
-              onPress={() => navigation.navigate('Settings', { userId, name })}
-              activeOpacity={0.7}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={s.gearEmoji}>⚙️</Text>
-              <Text style={s.gearLabel}>설정</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={s.topDate}>{weather}  {dateStr}</Text>
           <Text style={s.topTime}>{timeStr}</Text>
         </View>
       </View>
@@ -143,7 +132,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.cardWrap} onPress={() => navigation.navigate('ImportantContacts', { userId })} activeOpacity={0.88}>
+          <TouchableOpacity style={s.cardWrap} onPress={() => navigation.navigate('Guardian', { userId, name })} activeOpacity={0.88}>
             <LinearGradient colors={['#F2FCF8', '#D4F5EC']} style={s.card}>
               <Text style={s.iconEmoji}>👨‍👩‍👧</Text>
               <Text style={s.cardLabel}>보호자</Text>

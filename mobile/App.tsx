@@ -24,6 +24,7 @@ import MedicationScreen from './screens/MedicationScreen';
 import EmailAuthScreen    from './screens/EmailAuthScreen';
 import FamilyConnectScreen from './screens/FamilyConnectScreen';
 import FamilyDashboardScreen from './screens/FamilyDashboardScreen';
+import GuardianScreen        from './screens/GuardianScreen';
 import FamilyChatScreen     from './screens/FamilyChatScreen';
 import LocationMapScreen     from './screens/LocationMapScreen';
 import ProfileScreen from './screens/ProfileScreen';
@@ -267,6 +268,7 @@ export default function App() {
               <Stack.Screen name="EmailAuth"     component={EmailAuthScreen}       />
               <Stack.Screen name="FamilyConnect" component={FamilyConnectScreen} />
               <Stack.Screen name="FamilyDashboard" component={FamilyDashboardScreen} />
+              <Stack.Screen name="Guardian"        component={GuardianScreen} />
               <Stack.Screen name="FamilyChat"      component={FamilyChatScreen} />
               <Stack.Screen name="LocationMap"   component={LocationMapScreen} />
               <Stack.Screen name="Profile"            component={ProfileScreen}           />
