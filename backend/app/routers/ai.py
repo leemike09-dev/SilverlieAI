@@ -1,11 +1,6 @@
 import os, re, json, httpx
 import anthropic
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-try:
-    import openai as _openai
-    _OPENAI_OK = True
-except ImportError:
-    _OPENAI_OK = False
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List
@@ -81,17 +76,30 @@ def find_relevant_qa(message: str, top_k: int = 2) -> List[dict]:
 
 # ── pgvector 의미 검색 ────────────────────────────────────────────────────────
 
+_embed_model = None
+
+def _get_embed_model():
+    global _embed_model
+    if _embed_model is None:
+        try:
+            from fastembed import TextEmbedding
+            _embed_model = TextEmbedding(
+                "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+            )
+            print("[embedding] fastembed 모델 로드 완료")
+        except Exception as e:
+            print(f"[embedding] 모델 로드 실패: {e}")
+    return _embed_model
+
+
 def get_query_embedding(text: str) -> list | None:
-    """OpenAI text-embedding-3-small 임베딩. 키 없으면 None."""
-    if not _OPENAI_OK:
-        return None
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
+    """fastembed ONNX 임베딩 (384차원). 실패 시 None."""
+    model = _get_embed_model()
+    if model is None:
         return None
     try:
-        client = _openai.OpenAI(api_key=api_key)
-        resp = client.embeddings.create(model="text-embedding-3-small", input=text[:500])
-        return resp.data[0].embedding
+        vecs = list(model.embed([text[:500]]))
+        return vecs[0].tolist()
     except Exception as e:
         print(f"[embedding] {e}")
         return None
