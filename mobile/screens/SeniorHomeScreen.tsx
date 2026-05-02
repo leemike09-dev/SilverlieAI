@@ -71,7 +71,12 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
   return (
     <View style={s.root}>
-      <Image source={require('../assets/lumi16.png')} style={s.bg} resizeMode="cover" />
+      <LinearGradient
+        colors={['#C8EEFF', '#6AB8E8', '#2A7FCC', '#1A5FAA']}
+        style={StyleSheet.absoluteFillObject}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.8, y: 1 }}
+      />
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       {/* ── 상단 바 ── */}
@@ -107,7 +112,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
         <View style={s.cardGrid}>
           <TouchableOpacity style={s.cardWrap} onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0 })} activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(245,251,255,0.72)', 'rgba(214,238,250,0.72)']} style={s.card}>
+            <LinearGradient colors={['rgba(245,251,255,0.45)', 'rgba(214,238,250,0.45)']} style={s.card}>
               <Text style={s.iconEmoji}>🗺️</Text>
               <Text style={s.cardLabel}>내 위치</Text>
               <Text style={s.cardDesc}>내 위치를 확인해요</Text>
@@ -115,7 +120,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           </TouchableOpacity>
 
           <TouchableOpacity style={s.cardWrap} onPress={() => navigation.navigate('Health', { userId, name })} activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(255,248,250,0.72)', 'rgba(255,224,234,0.72)']} style={s.card}>
+            <LinearGradient colors={['rgba(255,248,250,0.45)', 'rgba(255,224,234,0.45)']} style={s.card}>
               <Text style={s.iconEmoji}>❤️</Text>
               <Text style={s.cardLabel}>건강 체크</Text>
               <Text style={s.cardDesc}>혈압·혈당·체온 확인</Text>
@@ -123,7 +128,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           </TouchableOpacity>
 
           <TouchableOpacity style={s.cardWrap} onPress={() => navigation.navigate('AIChat', { userId, name })} activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(247,244,255,0.72)', 'rgba(232,222,255,0.72)']} style={s.card}>
+            <LinearGradient colors={['rgba(247,244,255,0.45)', 'rgba(232,222,255,0.45)']} style={s.card}>
               <Text style={s.iconEmoji}>💬</Text>
               <Text style={s.cardLabel}>루미와 대화</Text>
               <Text style={s.cardDesc}>궁금한 걸 물어보세요</Text>
@@ -131,7 +136,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           </TouchableOpacity>
 
           <TouchableOpacity style={s.cardWrap} onPress={() => navigation.navigate('Guardian', { userId, name })} activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(242,252,248,0.72)', 'rgba(212,245,236,0.72)']} style={s.card}>
+            <LinearGradient colors={['rgba(242,252,248,0.45)', 'rgba(212,245,236,0.45)']} style={s.card}>
               <Text style={s.iconEmoji}>👨‍👩‍👧</Text>
               <Text style={s.cardLabel}>보호자</Text>
               <Text style={s.cardDesc}>가족에게 알려드려요</Text>
@@ -184,7 +189,7 @@ const s = StyleSheet.create({
 
   /* ── 루미 캐릭터 ── */
   hero:    { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  lumiImg: { width: width * 0.65, height: height * 0.32 },
+  lumiImg: { width: width * 0.82, height: height * 0.40 },
 
   /* ── 하단 고정 ── */
   bottom: { paddingHorizontal: 14, paddingBottom: 10 },
