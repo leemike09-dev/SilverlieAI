@@ -10,8 +10,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const API      = 'https://silverlieai.onrender.com';
-const { width } = Dimensions.get('window');
-const CARD_GAP = 12;
+const { width, height } = Dimensions.get('window');
+const CARD_GAP = 10;
 const CARD_W   = (width - 32 - CARD_GAP) / 2;
 
 export default function SeniorHomeScreen({ route, navigation }: any) {
@@ -37,8 +37,6 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
     try {
       const r = await fetch(`${API}/health/records/${uid}`);
       if (!r.ok) return;
-
-
       const today         = new Date().toISOString().slice(0, 10);
       const lastGreetDate = await AsyncStorage.getItem('tts_greeting_date');
       if (!ttsDoneRef.current && lastGreetDate !== today) {
@@ -64,7 +62,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   const now     = new Date();
   const hour    = now.getHours();
   const days    = ['일', '월', '화', '수', '목', '금', '토'];
-  const dateStr = `${now.getMonth() + 1}월 ${now.getDate()}일(${days[now.getDay()]})`;
+  const dateStr = `${now.getMonth() + 1}월 ${now.getDate()}일 ${days[now.getDay()]}요일`;
   const h12     = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
   const timeStr = `${hour < 12 ? '오전' : '오후'} ${h12}:${String(now.getMinutes()).padStart(2, '0')}`;
   const weather  = hour >= 6 && hour < 19 ? '☀️' : '🌙';
@@ -77,18 +75,18 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       {/* ── 상단 바 ── */}
-      <View style={[s.topBar, { paddingTop: Math.max(insets.top + 8, 20) }]}>
+      <View style={[s.topBar, { paddingTop: Math.max(insets.top + 8, 24) }]}>
         <View style={s.topLeft}>
           <Text style={s.topGreeting}>{greeting}</Text>
           {name ? <Text style={s.topName}>{name}님, 반가워요 👋</Text> : null}
         </View>
         <View style={s.topRight}>
-          <Text style={s.topDate}>{weather}  {dateStr}</Text>
+          <Text style={s.topDate}>{weather} {dateStr}</Text>
           <Text style={s.topTime}>{timeStr}</Text>
         </View>
       </View>
 
-      {/* ── 히어로: 루미 ── */}
+      {/* ── 루미 캐릭터 ── */}
       <View style={s.hero} pointerEvents="none">
         <Image
           source={require('../assets/lumi10.png')}
@@ -97,7 +95,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         />
       </View>
 
-      {/* ── 하단: 게스트 배너 + 카드 + SOS ── */}
+      {/* ── 하단 고정 영역 ── */}
       <View style={s.bottom}>
 
         {isGuest && (
@@ -109,7 +107,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
         <View style={s.cardGrid}>
           <TouchableOpacity style={s.cardWrap} onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0 })} activeOpacity={0.88}>
-            <LinearGradient colors={['#F5FBFF', '#D6EEFA']} style={s.card}>
+            <LinearGradient colors={['rgba(245,251,255,0.72)', 'rgba(214,238,250,0.72)']} style={s.card}>
               <Text style={s.iconEmoji}>🗺️</Text>
               <Text style={s.cardLabel}>내 위치</Text>
               <Text style={s.cardDesc}>내 위치를 확인해요</Text>
@@ -117,7 +115,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           </TouchableOpacity>
 
           <TouchableOpacity style={s.cardWrap} onPress={() => navigation.navigate('Health', { userId, name })} activeOpacity={0.88}>
-            <LinearGradient colors={['#FFF8FA', '#FFE0EA']} style={s.card}>
+            <LinearGradient colors={['rgba(255,248,250,0.72)', 'rgba(255,224,234,0.72)']} style={s.card}>
               <Text style={s.iconEmoji}>❤️</Text>
               <Text style={s.cardLabel}>건강 체크</Text>
               <Text style={s.cardDesc}>혈압·혈당·체온 확인</Text>
@@ -125,7 +123,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           </TouchableOpacity>
 
           <TouchableOpacity style={s.cardWrap} onPress={() => navigation.navigate('AIChat', { userId, name })} activeOpacity={0.88}>
-            <LinearGradient colors={['#F7F4FF', '#E8DEFF']} style={s.card}>
+            <LinearGradient colors={['rgba(247,244,255,0.72)', 'rgba(232,222,255,0.72)']} style={s.card}>
               <Text style={s.iconEmoji}>💬</Text>
               <Text style={s.cardLabel}>루미와 대화</Text>
               <Text style={s.cardDesc}>궁금한 걸 물어보세요</Text>
@@ -133,7 +131,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           </TouchableOpacity>
 
           <TouchableOpacity style={s.cardWrap} onPress={() => navigation.navigate('Guardian', { userId, name })} activeOpacity={0.88}>
-            <LinearGradient colors={['#F2FCF8', '#D4F5EC']} style={s.card}>
+            <LinearGradient colors={['rgba(242,252,248,0.72)', 'rgba(212,245,236,0.72)']} style={s.card}>
               <Text style={s.iconEmoji}>👨‍👩‍👧</Text>
               <Text style={s.cardLabel}>보호자</Text>
               <Text style={s.cardDesc}>가족에게 알려드려요</Text>
@@ -162,64 +160,64 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 }
 
 const s = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: '#87CEEB' },
-  bg:     { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
-
-  bottom: { paddingHorizontal: 16, paddingBottom: 12 },
+  root: { flex: 1, backgroundColor: '#87CEEB' },
+  bg:   { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
 
   /* ── 상단 바 ── */
-  topBar:      { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingBottom: 4, paddingHorizontal: 16 },
-  topLeft:     { flexShrink: 1, paddingRight: 8 },
+  topBar:      {
+    flexDirection: 'row', alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18, paddingBottom: 6,
+  },
+  topLeft:     { flexShrink: 1, paddingRight: 10 },
   topGreeting: {
-    fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: 0.3,
-    textShadowColor: 'rgba(0,30,80,0.18)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
+    fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: 0.3,
+    textShadowColor: 'rgba(0,30,80,0.25)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
   },
-  topName:     { fontSize: 12, color: 'rgba(255,255,255,0.88)', fontWeight: '600', marginTop: 2 },
-  topRight:    { alignItems: 'flex-end', gap: 2 },
-  topDateRow:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  topDate:     { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.9)' },
-  gearBtn: {
-    backgroundColor: 'rgba(255,255,255,0.35)',
-    borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8,
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.7)',
+  topName: {
+    fontSize: 18, color: '#fff', fontWeight: '700', marginTop: 4,
+    textShadowColor: 'rgba(0,30,80,0.2)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3,
   },
-  gearEmoji: { fontSize: 28 },
-  gearLabel: { fontSize: 13, color: 'rgba(255,255,255,0.95)', fontWeight: '800', textAlign: 'center', marginTop: 2 },
-  topTime:   { fontSize: 21, fontWeight: '900', color: '#fff' },
+  topRight:  { alignItems: 'flex-end', gap: 4 },
+  topDate:   { fontSize: 15, fontWeight: '600', color: 'rgba(255,255,255,0.95)' },
+  topTime:   { fontSize: 16, fontWeight: '800', color: '#fff' },
 
-  /* ── 히어로 ── */
-  hero:    { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  lumiImg: { width: 260, height: 290, transform: [{ scale: 1.7 }] },
+  /* ── 루미 캐릭터 ── */
+  hero:    { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  lumiImg: { width: width * 0.65, height: height * 0.32 },
+
+  /* ── 하단 고정 ── */
+  bottom: { paddingHorizontal: 14, paddingBottom: 10 },
 
   /* ── 게스트 배너 ── */
   guestBanner: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: 'rgba(255,255,255,0.78)',
-    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginBottom: 12,
+    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginBottom: 10,
   },
   guestTxt: { fontSize: 13, fontWeight: '600', color: '#1A4A8A', flex: 1 },
   guestBtn: { fontSize: 13, fontWeight: '800', color: '#1A4A8A' },
 
-  /* ── 4개 카드 ── */
-  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: CARD_GAP, marginBottom: 12 },
-  cardWrap: { width: CARD_W, borderRadius: 22, overflow: 'hidden' },
-  card:     { paddingVertical: 20, paddingHorizontal: 16, gap: 8 },
-  iconEmoji:{ fontSize: 32 },
-  cardLabel:{ fontSize: 20, fontWeight: '900', color: '#0D2B5E' },
-  cardDesc: { fontSize: 13, color: '#3A5070', fontWeight: '500', lineHeight: 18 },
+  /* ── 4개 카드 (반투명) ── */
+  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: CARD_GAP, marginBottom: 10 },
+  cardWrap: { width: CARD_W, borderRadius: 20, overflow: 'hidden' },
+  card:     { paddingVertical: 16, paddingHorizontal: 14, gap: 6 },
+  iconEmoji:{ fontSize: 28 },
+  cardLabel:{ fontSize: 18, fontWeight: '900', color: '#0D2B5E' },
+  cardDesc: { fontSize: 12, color: '#3A5070', fontWeight: '500', lineHeight: 17 },
 
   /* ── SOS ── */
   sosBtn: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#D32F2F',
-    borderRadius: 22, paddingVertical: 18, paddingHorizontal: 20, gap: 14,
+    borderRadius: 20, paddingVertical: 14, paddingHorizontal: 18, gap: 12,
     shadowColor: '#B71C1C', shadowOpacity: 0.3,
-    shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    shadowRadius: 8, shadowOffset: { width: 0, height: 3 },
+    elevation: 5,
   },
-  sosEmoji:   { fontSize: 32 },
+  sosEmoji:   { fontSize: 28 },
   sosTxtWrap: { flex: 1 },
-  sosLabel:   { fontSize: 22, fontWeight: '900', color: '#fff' },
-  sosSub:     { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
-  sosPhone:   { fontSize: 28 },
+  sosLabel:   { fontSize: 20, fontWeight: '900', color: '#fff' },
+  sosSub:     { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+  sosPhone:   { fontSize: 26 },
 });

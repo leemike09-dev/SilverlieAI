@@ -15,9 +15,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.silverlifeai.app",
       "entitlements": {
-        "com.apple.developer.applesignin": [
-          "Default"
-        ]
+        "com.apple.developer.applesignin": ["Default"]
       }
     },
     "android": {
@@ -48,15 +46,8 @@
         {
           "action": "VIEW",
           "autoVerify": true,
-          "data": [
-            {
-              "scheme": "silverliveai"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "data": [{"scheme": "silverliveai"}],
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },
