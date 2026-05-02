@@ -415,7 +415,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
         </View>
       </Modal>
 
-      <SeniorTabBar activeTab="family" userId={userId} name={name} navigation={navigation} />
+      <SeniorTabBar activeTab="" userId={userId} name={name} navigation={navigation} />
     </View>
   );
 }
