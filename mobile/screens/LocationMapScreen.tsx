@@ -3,8 +3,6 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const KAKAO_JS_KEY = 'ad583612ca60b68929dc66eeb5615287';
-
 const C = {
   bg:    '#FDFAF6', card:  '#FFFFFF', sage:  '#6BAE8F',
   peach: '#F4956A', red:   '#E05C5C', text:  '#2C2C2C',
@@ -12,51 +10,51 @@ const C = {
 };
 
 function buildMapHtml(logs: any[]) {
-  const coords = logs.map((l: any) => ({ lat: l.lat, lng: l.lng, activity: l.activity, created_at: l.created_at, address: l.address || '' }));
-  const center = coords.length > 0
-    ? `new kakao.maps.LatLng(${coords[Math.floor(coords.length / 2)].lat}, ${coords[Math.floor(coords.length / 2)].lng})`
-    : 'new kakao.maps.LatLng(37.5665, 126.9780)';
+  const coords = logs.map((l: any) => ({
+    lat: l.lat, lng: l.lng,
+    activity: l.activity,
+    created_at: l.created_at,
+    address: (l.address || '').replace(/'/g, "\\'"),
+  }));
+
+  const centerLat = coords.length > 0 ? coords[Math.floor(coords.length / 2)].lat : 37.5665;
+  const centerLng = coords.length > 0 ? coords[Math.floor(coords.length / 2)].lng : 126.9780;
 
   const markersJs = coords.map((c, i) => {
     const isFirst = i === 0;
     const isLast  = i === coords.length - 1;
+    const color   = isFirst ? '#6BAE8F' : isLast ? '#E05C5C' : (c.activity === 'home' ? '#6BAE8F' : '#F4956A');
     const label   = isFirst ? '🏡' : isLast ? '📍' : '🚶';
-    const t       = `new Date('${c.created_at}')`;
     return `
-      (function(){
-        var pos = new kakao.maps.LatLng(${c.lat}, ${c.lng});
-        var marker = new kakao.maps.Marker({ position: pos, map: map });
-        var t = ${t};
-        var ts = String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
-        var iw = new kakao.maps.InfoWindow({ content: '<div style="padding:4px 8px;font-size:13px;">${label} ' + ts + (${JSON.stringify(c.address)} ? '<br>${JSON.stringify(c.address)}' : '') + '</div>' });
-        kakao.maps.event.addListener(marker, 'click', function() { iw.open(map, marker); });
-      })();`;
+      L.circleMarker([${c.lat}, ${c.lng}], {
+        radius: ${isFirst || isLast ? 12 : 8},
+        color: '#fff', fillColor: '${color}', weight: 2.5, fillOpacity: 1
+      }).bindPopup('<b>${label}</b>${c.address ? '<br>' + c.address : ''}').addTo(map);`;
   }).join('\n');
 
   const pathJs = coords.length > 1
-    ? `var path = [${coords.map(c => `new kakao.maps.LatLng(${c.lat},${c.lng})`).join(',')}];
-       var poly = new kakao.maps.Polyline({ path: path, strokeWeight: 5, strokeColor: '#6BAE8F', strokeOpacity: 0.85, strokeStyle: 'dashed' });
-       poly.setMap(map);
-       var bounds = new kakao.maps.LatLngBounds();
-       path.forEach(function(p){ bounds.extend(p); });
-       map.setBounds(bounds);`
+    ? `L.polyline([${coords.map(c => `[${c.lat},${c.lng}]`).join(',')}], {
+        color:'#6BAE8F', weight:5, opacity:0.85, dashArray:'8,4'
+       }).addTo(map);
+       map.fitBounds([[${Math.min(...coords.map(c=>c.lat))},${Math.min(...coords.map(c=>c.lng))}],[${Math.max(...coords.map(c=>c.lat))},${Math.max(...coords.map(c=>c.lng))}]], {padding:[40,40]});`
     : '';
 
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="initial-scale=1.0,user-scalable=yes">
-  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}"></script>
-  <style>* { margin:0; padding:0; } html,body { width:100%; height:100%; } #map { width:100%; height:100%; }</style>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>* {margin:0;padding:0;} html,body,#map {width:100%;height:100%;}</style>
 </head>
 <body>
   <div id="map"></div>
   <script>
-    var map = new kakao.maps.Map(document.getElementById('map'), {
-      center: ${center},
-      level: 4
-    });
+    var map = L.map('map').setView([${centerLat},${centerLng}], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap', maxZoom: 19
+    }).addTo(map);
     ${markersJs}
     ${pathJs}
   </script>
@@ -78,13 +76,12 @@ export default function LocationMapScreen({ route, navigation }: any) {
 
   const MapView = (
     <WebView
-      source={{ html: mapHtml, baseUrl: 'https://leemike09-dev.github.io' }}
+      source={{ html: mapHtml }}
       style={{ flex: 1 }}
       javaScriptEnabled
       domStorageEnabled
       originWhitelist={['*']}
       mixedContentMode="always"
-      allowsInlineMediaPlayback
     />
   );
 
