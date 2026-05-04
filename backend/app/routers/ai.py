@@ -35,6 +35,19 @@ CAT_KEYWORDS = {
 }
 EMERGENCY_WORDS  = ['흉통','가슴통증','호흡곤란','숨막','마비','의식','쓰러','졸도','심정지']
 DOCTOR_KEYWORDS  = ['병원', '진료', '의사', '내원', '검사받']
+
+_OTHER_KW = [
+    '친구', '이웃', '지인', '남편', '아내', '아들', '딸', '부모님',
+    '형제', '어머니', '아버지', '누나', '오빠', '언니', '동생',
+    '손녀', '손자', '그분', '그 분', '그 사람', '그사람',
+]
+_SELF_KW = ['저는', '저도', '제가', '나는', '내가', '저한테', '저한', '본인', '제 증상']
+
+def _is_about_self(msg: str) -> bool:
+    """타인 언급 있고 본인 언급 없으면 False (타인 이야기)."""
+    if any(k in msg for k in _OTHER_KW) and not any(k in msg for k in _SELF_KW):
+        return False
+    return True
 DEFAULT_FOLLOWUP = [
     "이 증상이 생긴 정확한 시점을 의사에게 말씀드리세요.",
     "병원 방문 전 증상 기록을 적어두면 도움이 돼요.",
@@ -400,7 +413,8 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         "6. 일상·잡담: 벗처럼 가볍고 품위 있게, 억지로 건강과 연결하지 말 것\n"
         "7. 알레르기 약물 절대 추천 금지\n"
         "8. 응급 증상 시 [RISK:CRITICAL] 태그 필수\n"
-        "9. 의료 답변 끝에: '이 내용은 참고용이며, 정확한 진단은 의사 선생님께 꼭 여쭤보세요'\n\n"
+        "9. 의료 답변 끝에: '이 내용은 참고용이며, 정확한 진단은 의사 선생님께 꼭 여쭤보세요'\n"
+        "10. 타인(친구·가족·지인) 건강 이야기 시: [RISK:] 태그 금지, 이용자 본인에게 병원 방문 권유 금지\n\n"
         "[위험도 판단]\n"
         "[RISK:LOW]      - 경미하거나 만성적, 일상 지장 없음\n"
         "[RISK:MEDIUM]   - 지속 시 병원 필요, 당장 응급 아님\n"
@@ -507,7 +521,9 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
 
 
 
-def check_doctor_visit(reply: str) -> bool:
+def check_doctor_visit(reply: str, user_msg: str = '') -> bool:
+    if user_msg and not _is_about_self(user_msg):
+        return False
     return any(kw in reply for kw in DOCTOR_KEYWORDS)
 
 
@@ -816,7 +832,8 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
         if request.user_id and request.user_id not in ("demo-user", "guest"):
             background_tasks.add_task(_save_chat_turn, request.user_id, request.message, reply_text, risk, model)
 
-        doctor_memo_needed = is_final_flag or check_doctor_visit(reply_text)
+        about_self = _is_about_self(request.message)
+        doctor_memo_needed = about_self and (is_final_flag or check_doctor_visit(reply_text, request.message))
         doctor_memo = None
         if doctor_memo_needed:
             all_syms = [m.content for m in (request.history or []) if m.role == 'user'] + [request.message]
@@ -917,7 +934,7 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
             _save_chat_turn, request.user_id, request.message, reply_text, risk, model
         )
 
-    doctor_memo_needed = is_final_flag or check_doctor_visit(reply_text)
+    doctor_memo_needed = _is_about_self(request.message) and (is_final_flag or check_doctor_visit(reply_text, request.message))
     if doctor_memo_needed:
         # 대화 전체 증상 수집해서 메모 생성
         all_symptoms = []
