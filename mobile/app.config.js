@@ -1,0 +1,90 @@
+module.exports = {
+  expo: {
+    name: "Silver Life AI",
+    slug: "silver-life-ai",
+    version: "1.0.0",
+    orientation: "portrait",
+    icon: "./assets/icon.png",
+    userInterfaceStyle: "light",
+    splash: {
+      image: "./assets/splash-icon.png",
+      resizeMode: "contain",
+      backgroundColor: "#1A4A8A",
+    },
+    ios: {
+      supportsTablet: false,
+      bundleIdentifier: "com.silverlifeai.app",
+      entitlements: {
+        "com.apple.developer.applesignin": ["Default"],
+      },
+    },
+    android: {
+      package: "com.silverlifeai.app",
+      adaptiveIcon: {
+        backgroundColor: "#1A4A8A",
+        foregroundImage: "./assets/android-icon-foreground.png",
+        backgroundImage: "./assets/android-icon-background.png",
+        monochromeImage: "./assets/android-icon-monochrome.png",
+      },
+      permissions: [
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.READ_BLOOD_PRESSURE",
+        "android.permission.health.READ_WEIGHT",
+        "android.permission.health.READ_BLOOD_GLUCOSE",
+        "android.permission.health.READ_SLEEP",
+        "android.permission.health.WRITE_STEPS",
+        "android.permission.health.WRITE_HEART_RATE",
+        "android.permission.health.WRITE_BLOOD_PRESSURE",
+        "android.permission.health.WRITE_WEIGHT",
+        "android.permission.health.WRITE_BLOOD_GLUCOSE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.USE_EXACT_ALARM",
+      ],
+      intentFilters: [
+        {
+          action: "VIEW",
+          autoVerify: true,
+          data: [{ scheme: "silverliveai" }],
+          category: ["BROWSABLE", "DEFAULT"],
+        },
+      ],
+    },
+    web: {
+      favicon: "./assets/favicon.png",
+      bundler: "metro",
+    },
+    extra: {
+      eas: {
+        projectId: "2220b18b-fc03-4ccd-9e62-49dda3b0793f",
+      },
+    },
+    owner: "gigas4",
+    runtimeVersion: {
+      policy: "sdkVersion",
+    },
+    updates: {
+      url: "https://u.expo.dev/2220b18b-fc03-4ccd-9e62-49dda3b0793f",
+    },
+    plugins: [
+      "expo-font",
+      "expo-web-browser",
+      "expo-apple-authentication",
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/android-icon-monochrome.png",
+          color: "#5C6BC0",
+          sounds: [],
+          iosDisplayInForeground: true,
+        },
+      ],
+      "expo-video",
+    ],
+    scheme: "silverliveai",
+    experiments: {
+      baseUrl: "/SilverlieAI",
+    },
+  },
+};

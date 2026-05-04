@@ -1,11 +1,14 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
-// Web에서는 expo-notifications가 동작하지 않으므로 동적 import
+// Expo Go SDK 53+에서 push notifications 미지원 → Expo Go에서는 전체 건너뜀
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
 let Notifications: any = null;
 
 async function getNotifications() {
   if (Notifications) return Notifications;
-  if (Platform.OS === 'web') return null;
+  if (Platform.OS === 'web' || isExpoGo) return null;
   try {
     Notifications = await import('expo-notifications');
     return Notifications;

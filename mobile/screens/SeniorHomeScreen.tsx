@@ -71,12 +71,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
   return (
     <View style={s.root}>
-      <LinearGradient
-        colors={['#C8EEFF', '#6AB8E8', '#2A7FCC', '#1A5FAA']}
-        style={StyleSheet.absoluteFillObject}
-        start={{ x: 0.2, y: 0 }}
-        end={{ x: 0.8, y: 1 }}
-      />
+      <Image source={require('../assets/lumi16.png')} style={s.bg} resizeMode="cover" />
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       {/* ── 상단 바 ── */}
