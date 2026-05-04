@@ -1,9 +1,8 @@
-import * as WebBrowser from 'expo-web-browser';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Platform, Image, Alert,
+  ActivityIndicator, Platform, Image, Alert, Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,30 +35,12 @@ export default function LoginScreen({ navigation }: any) {
         (window as any).location.href = getOAuthUrl(mode, false);
         return;
       }
-      // 네이티브: 카카오에는 웹 redirect_uri 사용 (카카오가 커스텀 스킴 미허용)
-      // GitHub Pages에서 silverlifeai://oauth 로 재리다이렉트 → openAuthSessionAsync 가로챔
+      // 네이티브: 외부 브라우저로 열어 카카오 앱 인터셉트 방지
+      // GitHub Pages → silverlifeai://oauth?code=XXX → App.tsx 딥링크 핸들러가 처리
       const url = getOAuthUrl(mode, false);
-      const result = await WebBrowser.openAuthSessionAsync(url, REDIRECT_NATIVE);
-      if (result.type === 'success' && result.url) {
-        const parsed = new URL(result.url);
-        const code = parsed.searchParams.get('code');
-        if (code) {
-          const res = await fetch(`${BACKEND}/users/kakao-login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code, redirect_uri: REDIRECT_WEB }),
-          });
-          const data = await res.json();
-          if (data?.id) {
-            await AsyncStorage.setItem('userId',   String(data.id));
-            await AsyncStorage.setItem('userName', data.name || '회원');
-            await AsyncStorage.setItem('onboarding_seen', '1');
-            navigation.replace('SeniorHome', { userId: String(data.id), name: data.name || '회원' });
-          } else {
-            Alert.alert('로그인 실패', data?.detail || '다시 시도해 주세요.');
-          }
-        }
-      }
+      await Linking.openURL(url);
+      // 로그인 완료는 App.tsx의 Linking 이벤트 리스너가 처리
+      return;
     } catch {
       Alert.alert('오류', '카카오 로그인 중 문제가 발생했습니다.');
     } finally {
