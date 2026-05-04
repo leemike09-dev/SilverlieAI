@@ -47,7 +47,7 @@ function buildMapHtml(logs: any[]) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="initial-scale=1.0,user-scalable=yes">
-  <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}"></script>
+  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}"></script>
   <style>* { margin:0; padding:0; } html,body { width:100%; height:100%; } #map { width:100%; height:100%; }</style>
 </head>
 <body>
@@ -83,6 +83,8 @@ export default function LocationMapScreen({ route, navigation }: any) {
       javaScriptEnabled
       domStorageEnabled
       originWhitelist={['*']}
+      mixedContentMode="always"
+      allowsInlineMediaPlayback
     />
   );
 
