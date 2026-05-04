@@ -49,13 +49,20 @@ if (typeof window !== 'undefined' && window.location?.search) {
   if (_c) {
     KAKAO_PENDING_CODE = _c;
     window.history.replaceState({}, '', window.location.pathname);
+    // 웹에서 코드를 받았을 때 네이티브 앱(silverlifeai://)으로 리다이렉트 시도
+    // 네이티브 앱이 설치된 경우 앱이 열리고 딥링크로 처리됨
+    try {
+      window.location.href = `silverlifeai://oauth?code=${_c}`;
+    } catch {}
   }
 }
 const navigationRef = createNavigationContainerRef<any>();
 
 
 const BACKEND = 'https://silverlieai.onrender.com';
-const KAKAO_REDIRECT = 'https://leemike09-dev.github.io/SilverlieAI/';
+const KAKAO_REDIRECT_WEB    = 'https://leemike09-dev.github.io/SilverlieAI/';
+const KAKAO_REDIRECT_NATIVE = 'silverlifeai://oauth';
+const KAKAO_REDIRECT = Platform.OS === 'web' ? KAKAO_REDIRECT_WEB : KAKAO_REDIRECT_NATIVE;
 const KAKAO_MAX_RETRIES = 3;
 const FETCH_TIMEOUT_MS = 25000; // 25초 타임아웃 — 카카오 코드는 5분 유효
 

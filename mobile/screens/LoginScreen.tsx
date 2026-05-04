@@ -8,16 +8,18 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const KAKAO_CLIENT_ID = 'c102ef257f29dfc4ca9f2062a0c1442d';
-const REDIRECT_BASE   = 'https://leemike09-dev.github.io/SilverlieAI/';
-const BACKEND         = 'https://silverlieai.onrender.com';
+const KAKAO_CLIENT_ID    = 'c102ef257f29dfc4ca9f2062a0c1442d';
+const REDIRECT_WEB       = 'https://leemike09-dev.github.io/SilverlieAI/';
+const REDIRECT_NATIVE    = 'silverlifeai://oauth';
+const BACKEND            = 'https://silverlieai.onrender.com';
 
 const bgImage = require('../assets/lumi15.png');
 
-function getOAuthUrl(mode: 'login' | 'register') {
+function getOAuthUrl(mode: 'login' | 'register', isNative: boolean) {
+  const redirect = isNative ? REDIRECT_NATIVE : REDIRECT_WEB;
   const state = 'kakao_' + mode;
   return 'https://kauth.kakao.com/oauth/authorize?client_id=' + KAKAO_CLIENT_ID +
-    '&redirect_uri=' + encodeURIComponent(REDIRECT_BASE) +
+    '&redirect_uri=' + encodeURIComponent(redirect) +
     '&response_type=code&state=' + state;
 }
 
@@ -29,15 +31,37 @@ export default function LoginScreen({ navigation }: any) {
   const handleKakao = async () => {
     setLoading('kakao');
     try {
-      const url = getOAuthUrl(mode);
       if (Platform.OS === 'web') {
         fetch(BACKEND + '/').catch(() => {});
-        (window as any).location.href = url;
-      } else {
-        await WebBrowser.openBrowserAsync(url);
-        setLoading(null);
+        (window as any).location.href = getOAuthUrl(mode, false);
+        return;
+      }
+      // 네이티브: openAuthSessionAsync — OAuth 완료 후 앱으로 자동 복귀
+      const url = getOAuthUrl(mode, true);
+      const result = await WebBrowser.openAuthSessionAsync(url, REDIRECT_NATIVE);
+      if (result.type === 'success' && result.url) {
+        const parsed = new URL(result.url);
+        const code = parsed.searchParams.get('code');
+        if (code) {
+          const res = await fetch(`${BACKEND}/users/kakao-login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, redirect_uri: REDIRECT_NATIVE }),
+          });
+          const data = await res.json();
+          if (data?.id) {
+            await AsyncStorage.setItem('userId',   String(data.id));
+            await AsyncStorage.setItem('userName', data.name || '회원');
+            await AsyncStorage.setItem('onboarding_seen', '1');
+            navigation.replace('SeniorHome', { userId: String(data.id), name: data.name || '회원' });
+          } else {
+            Alert.alert('로그인 실패', data?.detail || '다시 시도해 주세요.');
+          }
+        }
       }
     } catch {
+      Alert.alert('오류', '카카오 로그인 중 문제가 발생했습니다.');
+    } finally {
       setLoading(null);
     }
   };
