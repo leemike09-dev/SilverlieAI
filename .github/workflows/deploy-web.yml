@@ -40,6 +40,9 @@ jobs:
       - name: Build web
         run: cd mobile && npx expo export --platform web
 
+      - name: Copy kakao-map.html to dist
+        run: cp mobile/kakao-map.html mobile/dist/kakao-map.html
+
       - name: Verify bundle path
         run: |
           grep 'src=.*\.js' mobile/dist/index.html
