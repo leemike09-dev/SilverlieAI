@@ -2,49 +2,72 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Platform, Image, Alert, Linking,
+  ActivityIndicator, Platform, Image, Alert, Modal, SafeAreaView,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const KAKAO_CLIENT_ID    = 'c102ef257f29dfc4ca9f2062a0c1442d';
-const REDIRECT_WEB       = 'https://leemike09-dev.github.io/SilverlieAI/';
-const REDIRECT_NATIVE    = 'silverlifeai://oauth';
-const BACKEND            = 'https://silverlieai.onrender.com';
+const KAKAO_CLIENT_ID = 'c102ef257f29dfc4ca9f2062a0c1442d';
+const REDIRECT_WEB    = 'https://leemike09-dev.github.io/SilverlieAI/';
+const BACKEND         = 'https://silverlieai.onrender.com';
 
 const bgImage = require('../assets/lumi15.png');
 
-function getOAuthUrl(mode: 'login' | 'register', isNative: boolean) {
-  const redirect = isNative ? REDIRECT_NATIVE : REDIRECT_WEB;
-  const state = 'kakao_' + mode;
+function getOAuthUrl(mode: 'login' | 'register') {
   return 'https://kauth.kakao.com/oauth/authorize?client_id=' + KAKAO_CLIENT_ID +
-    '&redirect_uri=' + encodeURIComponent(redirect) +
-    '&response_type=code&state=' + state;
+    '&redirect_uri=' + encodeURIComponent(REDIRECT_WEB) +
+    '&response_type=code&state=kakao_' + mode;
 }
 
 export default function LoginScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
-  const [mode,    setMode]    = useState<'login' | 'register'>('login');
-  const [loading, setLoading] = useState<string | null>(null);
+  const [mode,       setMode]       = useState<'login' | 'register'>('login');
+  const [loading,    setLoading]    = useState<string | null>(null);
+  const [showWebView, setShowWebView] = useState(false);
 
-  const handleKakao = async () => {
+  const processKakaoCode = async (code: string) => {
+    setShowWebView(false);
     setLoading('kakao');
     try {
-      if (Platform.OS === 'web') {
-        fetch(BACKEND + '/').catch(() => {});
-        (window as any).location.href = getOAuthUrl(mode, false);
-        return;
+      const res = await fetch(`${BACKEND}/users/kakao-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, redirect_uri: REDIRECT_WEB }),
+      });
+      const data = await res.json();
+      if (data?.id) {
+        await AsyncStorage.setItem('userId',   String(data.id));
+        await AsyncStorage.setItem('userName', data.name || '회원');
+        await AsyncStorage.setItem('onboarding_seen', '1');
+        navigation.replace('SeniorHome', { userId: String(data.id), name: data.name || '회원' });
+      } else {
+        Alert.alert('로그인 실패', data?.detail || '다시 시도해 주세요.');
       }
-      // 네이티브: 외부 브라우저로 열어 카카오 앱 인터셉트 방지
-      // GitHub Pages → silverlifeai://oauth?code=XXX → App.tsx 딥링크 핸들러가 처리
-      const url = getOAuthUrl(mode, false);
-      await Linking.openURL(url);
-      // 로그인 완료는 App.tsx의 Linking 이벤트 리스너가 처리
-      return;
     } catch {
       Alert.alert('오류', '카카오 로그인 중 문제가 발생했습니다.');
     } finally {
       setLoading(null);
+    }
+  };
+
+  const handleKakao = async () => {
+    if (Platform.OS === 'web') {
+      fetch(BACKEND + '/').catch(() => {});
+      (window as any).location.href = getOAuthUrl(mode);
+      return;
+    }
+    setShowWebView(true);
+  };
+
+  const handleWebViewNav = (navState: any) => {
+    const url: string = navState.url || '';
+    if (url.startsWith(REDIRECT_WEB) || url.startsWith('silverlifeai://')) {
+      try {
+        const parsed = new URL(url);
+        const code = parsed.searchParams.get('code');
+        if (code) processKakaoCode(code);
+      } catch {}
     }
   };
 
@@ -86,31 +109,23 @@ export default function LoginScreen({ navigation }: any) {
 
   return (
     <View style={s.root}>
-
-      {/* 배경 이미지 고정 */}
       <Image source={bgImage} style={s.bg} resizeMode="cover" />
-
-      {/* 오버레이 */}
       <View style={s.overlay} />
 
-      {/* 카드 영역 */}
       <View style={[s.bottom, { paddingBottom: Math.max(insets.bottom + 16, 28) }]}>
-
-        {/* 로그인 / 회원가입 탭 */}
         <View style={s.tabs}>
           <TouchableOpacity
             style={[s.tab, mode === 'login' && s.tabActive]}
-            onPress={() => { setMode('login'); setLoading(null); }}>
+            onPress={() => setMode('login')}>
             <Text style={[s.tabTxt, mode === 'login' && s.tabTxtActive]}>로그인</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[s.tab, mode === 'register' && s.tabActive]}
-            onPress={() => { setMode('register'); setLoading(null); }}>
+            onPress={() => setMode('register')}>
             <Text style={[s.tabTxt, mode === 'register' && s.tabTxtActive]}>회원가입</Text>
           </TouchableOpacity>
         </View>
 
-        {/* 카카오 */}
         <TouchableOpacity
           style={[s.card, s.kakaoCard]}
           onPress={handleKakao}
@@ -127,7 +142,6 @@ export default function LoginScreen({ navigation }: any) {
           )}
         </TouchableOpacity>
 
-        {/* 이메일 */}
         <TouchableOpacity
           style={[s.card, s.emailCard]}
           onPress={() => navigation.navigate('EmailAuth')}
@@ -137,7 +151,6 @@ export default function LoginScreen({ navigation }: any) {
           <Text style={[s.cardLabel, { color: '#1A4A8A' }]}>이메일로 {modeLabel}</Text>
         </TouchableOpacity>
 
-        {/* Apple — iOS 전용 */}
         {Platform.OS === 'ios' && (
           <TouchableOpacity
             style={[s.card, s.appleCard]}
@@ -155,8 +168,27 @@ export default function LoginScreen({ navigation }: any) {
             )}
           </TouchableOpacity>
         )}
-
       </View>
+
+      {/* 카카오 WebView 로그인 모달 */}
+      <Modal visible={showWebView} animationType="slide" onRequestClose={() => setShowWebView(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#FEE500' }}>
+          <View style={s.webViewHeader}>
+            <Text style={s.webViewTitle}>카카오 로그인</Text>
+            <TouchableOpacity onPress={() => setShowWebView(false)}>
+              <Text style={s.webViewClose}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          <WebView
+            source={{ uri: getOAuthUrl(mode) }}
+            onNavigationStateChange={handleWebViewNav}
+            style={{ flex: 1 }}
+            javaScriptEnabled
+            domStorageEnabled
+            userAgent="Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/91.0.4472.120 Mobile Safari/537.36"
+          />
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 }
@@ -164,45 +196,32 @@ export default function LoginScreen({ navigation }: any) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
   bg:   { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
-
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.10)',
-  },
-
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.10)' },
   bottom: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    gap: 8,
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    paddingHorizontal: 20, paddingTop: 12, gap: 8,
   },
-
   tabs: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.55)',
-    borderRadius: 14,
-    padding: 3,
-    marginBottom: 4,
+    flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.55)',
+    borderRadius: 14, padding: 3, marginBottom: 4,
   },
   tab:          { flex: 1, paddingVertical: 10, borderRadius: 11, alignItems: 'center' },
   tabActive:    { backgroundColor: '#fff' },
   tabTxt:       { fontSize: 17, fontWeight: '700', color: 'rgba(30,30,30,0.45)' },
   tabTxtActive: { color: '#1A4A8A', fontWeight: '900' },
-
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    minHeight: 52,
+    flexDirection: 'row', alignItems: 'center', borderRadius: 16,
+    borderWidth: 1.5, paddingVertical: 12, paddingHorizontal: 18, minHeight: 52,
   },
   cardIcon:  { fontSize: 24, marginRight: 12 },
   cardLabel: { fontSize: 19, fontWeight: '800', flex: 1 },
-
   kakaoCard: { backgroundColor: '#FEE500', borderColor: '#E6D200' },
   emailCard: { backgroundColor: 'rgba(235,243,251,0.95)', borderColor: '#1A4A8A' },
   appleCard: { backgroundColor: 'rgba(0,0,0,0.85)', borderColor: '#555' },
+  webViewHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#FEE500', paddingHorizontal: 16, paddingVertical: 12,
+  },
+  webViewTitle: { fontSize: 18, fontWeight: '800', color: '#3C1E1E' },
+  webViewClose: { fontSize: 20, fontWeight: '700', color: '#3C1E1E', paddingHorizontal: 8 },
 });
