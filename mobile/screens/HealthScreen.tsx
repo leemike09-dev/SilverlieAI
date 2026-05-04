@@ -134,26 +134,39 @@ export default function HealthScreen({ navigation }: any) {
 
   const loadRecords = async (uid?: string) => {
     const id = uid || userId;
+    let localRecords: any[] = [];
     try {
       const cached = await AsyncStorage.getItem(STORAGE_KEY);
-      if (cached) setRecords(JSON.parse(cached));
+      if (cached) {
+        localRecords = JSON.parse(cached);
+        setRecords(localRecords);
+      }
     } catch {}
     if (!id) return;
     try {
       const res = await fetch('https://silverlieai.onrender.com/health/records/' + id);
       if (!res.ok) return;
       const data = await res.json();
-      const serverRecords = (data.records || []).map((r: any) => ({
-        id: r.id,
-        date: r.date,
-        time: '',
-        ...(r.blood_pressure_systolic && { bp: { sys: r.blood_pressure_systolic, dia: r.blood_pressure_diastolic } }),
-        ...(r.blood_sugar != null && { glucose: { val: r.blood_sugar, type: '공복' } }),
-        ...(r.steps != null && { steps: r.steps }),
-        ...(r.heart_rate != null && { heartRate: r.heart_rate }),
-      }));
-      setRecords(serverRecords);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(serverRecords));
+      const serverRecords = (data.records || []).map((r: any) => {
+        const local = localRecords.find(lr => lr.date === r.date);
+        return {
+          id: r.id,
+          date: r.date,
+          time: local?.time || '',
+          ...(r.blood_pressure_systolic && { bp: { sys: r.blood_pressure_systolic, dia: r.blood_pressure_diastolic } }),
+          ...(r.blood_sugar != null && { glucose: { val: r.blood_sugar, type: local?.glucose?.type || '공복' } }),
+          ...(r.steps != null ? { steps: r.steps } : local?.steps != null ? { steps: local.steps } : {}),
+          ...(r.sleep_hours != null ? { sleep: { hours: r.sleep_hours, start: local?.sleep?.start || '', end: local?.sleep?.end || '' } }
+              : local?.sleep ? { sleep: local.sleep } : {}),
+          ...(r.heart_rate != null && { heartRate: r.heart_rate }),
+        };
+      });
+      // 서버에 없는 로컬 기록도 보존 (오프라인 저장분)
+      const serverDates = new Set(serverRecords.map((r: any) => r.date));
+      const localOnly = localRecords.filter(lr => !serverDates.has(lr.date));
+      const merged = [...serverRecords, ...localOnly].sort((a, b) => b.date.localeCompare(a.date));
+      setRecords(merged);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
     } catch {}
   };
 
@@ -185,8 +198,9 @@ export default function HealthScreen({ navigation }: any) {
       if (userId) {
         const apiBody: any = { user_id: userId, date: record.date, source: 'manual' };
         if (record.bp)      { apiBody.blood_pressure_systolic = record.bp.sys; apiBody.blood_pressure_diastolic = record.bp.dia; }
-        if (record.glucose) apiBody.blood_sugar = record.glucose.val;
-        if (record.steps)   apiBody.steps       = record.steps;
+        if (record.glucose) apiBody.blood_sugar  = record.glucose.val;
+        if (record.steps)   apiBody.steps        = record.steps;
+        if (record.sleep)   apiBody.sleep_hours  = record.sleep.hours;
         await fetch('https://silverlieai.onrender.com/health/records', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

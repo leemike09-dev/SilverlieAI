@@ -20,6 +20,7 @@ class HealthRecord(BaseModel):
     blood_sugar: Optional[float] = None
     weight: Optional[float] = None
     steps: Optional[int] = None
+    sleep_hours: Optional[float] = None
     notes: Optional[str] = None
     source: Optional[str] = 'manual'  # 'manual' | 'wearable'
 
@@ -66,7 +67,7 @@ def create_health_record(record: HealthRecord):
     from app.database import get_supabase
     # 실제 health_records 테이블에 존재하는 컬럼만 포함
     ALLOWED = {"user_id", "date", "blood_pressure_systolic", "blood_pressure_diastolic",
-               "heart_rate", "blood_sugar", "weight", "notes"}  # steps: schema cache 갱신 후 추가
+               "heart_rate", "blood_sugar", "weight", "notes", "steps", "sleep_hours"}
     try:
         db = get_supabase()
         raw = record.model_dump()
