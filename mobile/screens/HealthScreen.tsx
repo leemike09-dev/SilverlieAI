@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Platform, TextInput, Alert, ActivityIndicator,
+  StatusBar, Platform, TextInput, Alert, ActivityIndicator, Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -116,10 +116,30 @@ export default function HealthScreen({ navigation }: any) {
     if (Platform.OS === 'web') return;
     try {
       const { Pedometer } = await import('expo-sensors');
-      const { granted } = await Pedometer.requestPermissionsAsync();
-      if (!granted) return;
+
+      // 현재 권한 상태 확인
+      const { status } = await Pedometer.getPermissionsAsync();
+
+      if (status === 'denied') {
+        Alert.alert(
+          '걸음수 권한 필요',
+          '걸음수 자동 측정을 위해 신체 활동 권한이 필요합니다.\n설정에서 권한을 허용해 주세요.',
+          [
+            { text: '나중에', style: 'cancel' },
+            { text: '설정 열기', onPress: () => Linking.openSettings() },
+          ]
+        );
+        return;
+      }
+
+      if (status === 'undetermined') {
+        const { granted } = await Pedometer.requestPermissionsAsync();
+        if (!granted) return;
+      }
+
       const available = await Pedometer.isAvailableAsync();
       if (!available) return;
+
       setStepsLoading(true);
       const midnight = new Date();
       midnight.setHours(0, 0, 0, 0);
