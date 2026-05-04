@@ -1,10 +1,10 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
+import * as WebBrowser from 'expo-web-browser';
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Platform, Image, Alert, Modal, SafeAreaView,
+  ActivityIndicator, Platform, Image, Alert,
 } from 'react-native';
-import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -22,34 +22,8 @@ function getOAuthUrl(mode: 'login' | 'register') {
 
 export default function LoginScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
-  const [mode,       setMode]       = useState<'login' | 'register'>('login');
-  const [loading,    setLoading]    = useState<string | null>(null);
-  const [showWebView, setShowWebView] = useState(false);
-
-  const processKakaoCode = async (code: string) => {
-    setShowWebView(false);
-    setLoading('kakao');
-    try {
-      const res = await fetch(`${BACKEND}/users/kakao-login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, redirect_uri: REDIRECT_WEB }),
-      });
-      const data = await res.json();
-      if (data?.id) {
-        await AsyncStorage.setItem('userId',   String(data.id));
-        await AsyncStorage.setItem('userName', data.name || '회원');
-        await AsyncStorage.setItem('onboarding_seen', '1');
-        navigation.replace('SeniorHome', { userId: String(data.id), name: data.name || '회원' });
-      } else {
-        Alert.alert('로그인 실패', data?.detail || '다시 시도해 주세요.');
-      }
-    } catch {
-      Alert.alert('오류', '카카오 로그인 중 문제가 발생했습니다.');
-    } finally {
-      setLoading(null);
-    }
-  };
+  const [mode,    setMode]    = useState<'login' | 'register'>('login');
+  const [loading, setLoading] = useState<string | null>(null);
 
   const handleKakao = async () => {
     if (Platform.OS === 'web') {
@@ -57,17 +31,10 @@ export default function LoginScreen({ navigation }: any) {
       (window as any).location.href = getOAuthUrl(mode);
       return;
     }
-    setShowWebView(true);
-  };
-
-  const handleWebViewNav = (navState: any) => {
-    const url: string = navState.url || '';
-    if (url.startsWith(REDIRECT_WEB) || url.startsWith('silverlifeai://')) {
-      try {
-        const parsed = new URL(url);
-        const code = parsed.searchParams.get('code');
-        if (code) processKakaoCode(code);
-      } catch {}
+    try {
+      await WebBrowser.openBrowserAsync(getOAuthUrl(mode));
+    } catch {
+      // 사용자가 브라우저를 닫은 경우 무시
     }
   };
 
@@ -169,26 +136,6 @@ export default function LoginScreen({ navigation }: any) {
           </TouchableOpacity>
         )}
       </View>
-
-      {/* 카카오 WebView 로그인 모달 */}
-      <Modal visible={showWebView} animationType="slide" onRequestClose={() => setShowWebView(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#FEE500' }}>
-          <View style={s.webViewHeader}>
-            <Text style={s.webViewTitle}>카카오 로그인</Text>
-            <TouchableOpacity onPress={() => setShowWebView(false)}>
-              <Text style={s.webViewClose}>✕</Text>
-            </TouchableOpacity>
-          </View>
-          <WebView
-            source={{ uri: getOAuthUrl(mode) }}
-            onNavigationStateChange={handleWebViewNav}
-            style={{ flex: 1 }}
-            javaScriptEnabled
-            domStorageEnabled
-            userAgent="Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/91.0.4472.120 Mobile Safari/537.36"
-          />
-        </SafeAreaView>
-      </Modal>
     </View>
   );
 }
@@ -218,10 +165,4 @@ const s = StyleSheet.create({
   kakaoCard: { backgroundColor: '#FEE500', borderColor: '#E6D200' },
   emailCard: { backgroundColor: 'rgba(235,243,251,0.95)', borderColor: '#1A4A8A' },
   appleCard: { backgroundColor: 'rgba(0,0,0,0.85)', borderColor: '#555' },
-  webViewHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#FEE500', paddingHorizontal: 16, paddingVertical: 12,
-  },
-  webViewTitle: { fontSize: 18, fontWeight: '800', color: '#3C1E1E' },
-  webViewClose: { fontSize: 20, fontWeight: '700', color: '#3C1E1E', paddingHorizontal: 8 },
 });
