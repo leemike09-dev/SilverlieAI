@@ -1,5 +1,5 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
-import * as WebBrowser from 'expo-web-browser';
+import { login as kakaoLogin } from '@react-native-seoul/kakao-login';
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
@@ -8,17 +8,9 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const KAKAO_CLIENT_ID = 'c102ef257f29dfc4ca9f2062a0c1442d';
-const REDIRECT_WEB    = 'https://silverlieai.onrender.com/kakao/callback';
-const BACKEND         = 'https://silverlieai.onrender.com';
+const BACKEND = 'https://silverlieai.onrender.com';
 
 const bgImage = require('../assets/lumi15.png');
-
-function getOAuthUrl(mode: 'login' | 'register') {
-  return 'https://kauth.kakao.com/oauth/authorize?client_id=' + KAKAO_CLIENT_ID +
-    '&redirect_uri=' + encodeURIComponent(REDIRECT_WEB) +
-    '&response_type=code&state=kakao_' + mode;
-}
 
 export default function LoginScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -30,26 +22,13 @@ export default function LoginScreen({ navigation }: any) {
 
   const handleKakao = async () => {
     fetch(BACKEND + '/').catch(() => {}); // Render 서버 웨이크업
-    if (Platform.OS === 'web') {
-      (window as any).location.href = getOAuthUrl(mode);
-      return;
-    }
     setLoading('kakao');
     try {
-      const result = await WebBrowser.openAuthSessionAsync(
-        getOAuthUrl(mode),
-        'silverlifeai://oauth'
-      );
-      if (result.type !== 'success' || !result.url) return;
-
-      const params = new URLSearchParams(result.url.split('?')[1] || '');
-      const code = params.get('code');
-      if (!code) return;
-
-      const res = await fetch(`${BACKEND}/users/kakao-login`, {
+      const token = await kakaoLogin();
+      const res = await fetch(`${BACKEND}/users/kakao-token-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, redirect_uri: REDIRECT_WEB }),
+        body: JSON.stringify({ access_token: token.accessToken }),
       });
       if (!res.ok) throw new Error('서버 오류');
       const data = await res.json();
@@ -60,7 +39,10 @@ export default function LoginScreen({ navigation }: any) {
       await AsyncStorage.setItem('onboarding_seen', '1');
       navigation.replace('SeniorHome', { userId: String(data.id), name: data.name || '회원' });
     } catch (e: any) {
-      Alert.alert('오류', '카카오 로그인에 실패했습니다. 다시 시도해주세요.');
+      const msg = e?.message || '';
+      if (!msg.includes('cancel') && !msg.includes('Cancel')) {
+        Alert.alert('오류', '카카오 로그인에 실패했습니다. 다시 시도해주세요.');
+      }
     } finally {
       setLoading(null);
     }

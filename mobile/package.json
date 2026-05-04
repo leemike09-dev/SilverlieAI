@@ -12,6 +12,7 @@
     "@expo/ngrok": "^4.1.0",
     "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-seoul/kakao-login": "^5.4.2",
     "@react-navigation/native": "^7.2.0",
     "@react-navigation/native-stack": "^7.14.7",
     "@types/react": "~19.1.10",

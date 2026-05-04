@@ -57,7 +57,13 @@
           "motionPermission": "걸음수 자동 측정을 위해 신체 활동 접근 권한이 필요합니다."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "@react-native-seoul/kakao-login",
+        {
+          "kakaoAppKey": "8f40217a9768056a44ce78516d2f5858"
+        }
+      ]
     ],
     "extra": {
       "eas": {

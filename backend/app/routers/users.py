@@ -134,6 +134,10 @@ class KakaoLoginRequest(BaseModel):
     redirect_uri: str
 
 
+class KakaoTokenLoginRequest(BaseModel):
+    access_token: str
+
+
 
 class HealthProfileRequest(BaseModel):
     profile: dict
@@ -190,6 +194,40 @@ def kakao_login(req: KakaoLoginRequest):
     kakao_email = account.get("email") or f"kakao_{kakao_id}@kakao.local"
 
     # 3) DB에서 사용자 찾기 또는 생성
+    db = get_supabase()
+    existing = db.table("users").select("*").eq("email", kakao_email).execute()
+    if existing.data:
+        user = existing.data[0]
+    else:
+        result = db.table("users").insert({
+            "email": kakao_email,
+            "name": kakao_name,
+            "language": "ko",
+        }).execute()
+        if not result.data:
+            raise HTTPException(status_code=400, detail="사용자 생성 실패")
+        user = result.data[0]
+
+    return {"id": user["id"], "name": user["name"], "email": user["email"]}
+
+
+@router.post("/kakao-token-login")
+def kakao_token_login(req: KakaoTokenLoginRequest):
+    """Native SDK에서 받은 액세스 토큰으로 직접 로그인 (코드 교환 불필요)"""
+    user_res = http_requests.get(
+        "https://kapi.kakao.com/v2/user/me",
+        headers={"Authorization": f"Bearer {req.access_token}"},
+    )
+    if user_res.status_code != 200:
+        raise HTTPException(status_code=401, detail="카카오 사용자 정보 조회 실패")
+    kakao_data = user_res.json()
+
+    kakao_id    = str(kakao_data.get("id", ""))
+    account     = kakao_data.get("kakao_account", {})
+    profile     = account.get("profile", {})
+    kakao_name  = profile.get("nickname") or "카카오사용자"
+    kakao_email = account.get("email") or f"kakao_{kakao_id}@kakao.local"
+
     db = get_supabase()
     existing = db.table("users").select("*").eq("email", kakao_email).execute()
     if existing.data:
