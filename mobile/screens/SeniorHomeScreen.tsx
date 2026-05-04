@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  StatusBar, Dimensions, Image,
+  StatusBar, Dimensions, Image, Alert, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { speak, stopSpeech } from '../utils/speech';
@@ -28,6 +28,30 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       if (storedId)   setUserId(storedId);
       if (storedName) setName(storedName);
       if (storedId) fetchLatest(storedId);
+      // 만보계 안내 팝업 — 최초 1회만
+      if (Platform.OS !== 'web') {
+        const asked = await AsyncStorage.getItem('pedometer_asked');
+        if (!asked) {
+          await AsyncStorage.setItem('pedometer_asked', '1');
+          setTimeout(() => {
+            Alert.alert(
+              '🚶 걸음수 자동 측정',
+              '스마트폰으로 오늘 걸음수를 자동으로 측정할 수 있어요.\n건강 기록 화면에서 걸음수를 바로 확인하세요.',
+              [
+                { text: '나중에', style: 'cancel' },
+                {
+                  text: '허용하기', onPress: async () => {
+                    try {
+                      const { Pedometer } = await import('expo-sensors');
+                      await Pedometer.requestPermissionsAsync();
+                    } catch {}
+                  }
+                },
+              ]
+            );
+          }, 1500);
+        }
+      }
     };
     init();
     return () => stopSpeech();
