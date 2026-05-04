@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from app.routers import health, ai, users, community, notifications, news, medications, family, anomaly, location
 
 app = FastAPI(
@@ -30,6 +31,15 @@ app.include_router(medications.router, prefix="/medications", tags=["medications
 app.include_router(family.router, prefix="/family", tags=["family"])
 app.include_router(anomaly.router, prefix="/anomaly", tags=["anomaly"])
 app.include_router(location.router, prefix="/location", tags=["location"])
+
+@app.get("/kakao/callback")
+def kakao_callback(code: str = None, state: str = None, error: str = None):
+    if error or not code:
+        return RedirectResponse(url=f"silverlifeai://oauth?error={error or 'unknown'}", status_code=302)
+    url = f"silverlifeai://oauth?code={code}"
+    if state:
+        url += f"&state={state}"
+    return RedirectResponse(url=url, status_code=302)
 
 @app.get("/")
 def root():
