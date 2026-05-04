@@ -36,8 +36,9 @@ export default function LoginScreen({ navigation }: any) {
         (window as any).location.href = getOAuthUrl(mode, false);
         return;
       }
-      // 네이티브: openAuthSessionAsync — OAuth 완료 후 앱으로 자동 복귀
-      const url = getOAuthUrl(mode, true);
+      // 네이티브: 카카오에는 웹 redirect_uri 사용 (카카오가 커스텀 스킴 미허용)
+      // GitHub Pages에서 silverlifeai://oauth 로 재리다이렉트 → openAuthSessionAsync 가로챔
+      const url = getOAuthUrl(mode, false);
       const result = await WebBrowser.openAuthSessionAsync(url, REDIRECT_NATIVE);
       if (result.type === 'success' && result.url) {
         const parsed = new URL(result.url);
@@ -46,7 +47,7 @@ export default function LoginScreen({ navigation }: any) {
           const res = await fetch(`${BACKEND}/users/kakao-login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code, redirect_uri: REDIRECT_NATIVE }),
+            body: JSON.stringify({ code, redirect_uri: REDIRECT_WEB }),
           });
           const data = await res.json();
           if (data?.id) {
