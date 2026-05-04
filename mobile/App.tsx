@@ -94,6 +94,26 @@ export default function App() {
       }
     };
     initNotifications();
+    // Android 걸음수: 앱 시작 시 오늘 기준값 자동 저장
+    const initStepBaseline = async () => {
+      if (Platform.OS !== 'android') return;
+      try {
+        const today = new Date().toDateString();
+        const raw = await AsyncStorage.getItem('step_baseline_android');
+        const baseline = raw ? JSON.parse(raw) : null;
+        if (baseline?.date === today) return;
+        const { Pedometer } = await import('expo-sensors');
+        const { status } = await Pedometer.getPermissionsAsync();
+        if (status !== 'granted') return;
+        const available = await Pedometer.isAvailableAsync();
+        if (!available) return;
+        const sub = Pedometer.watchStepCount(async (result) => {
+          sub.remove();
+          await AsyncStorage.setItem('step_baseline_android', JSON.stringify({ date: today, total: result.steps }));
+        });
+      } catch {}
+    };
+    initStepBaseline();
   }, []);
 
   // 네이티브 딥링크 (iOS/Android 앱용)
