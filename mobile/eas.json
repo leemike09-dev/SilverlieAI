@@ -9,6 +9,7 @@
     },
     "preview": {
       "distribution": "internal",
+      "channel": "main",
       "android": {
         "buildType": "apk"
       },
