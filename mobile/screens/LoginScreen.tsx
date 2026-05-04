@@ -21,6 +21,7 @@ export default function LoginScreen({ navigation }: any) {
   useEffect(() => { fetch(BACKEND + '/').catch(() => {}); }, []);
 
   const handleKakao = async () => {
+    if (Platform.OS === 'web') return; // 웹에서는 네이티브 SDK 미지원
     fetch(BACKEND + '/').catch(() => {}); // Render 서버 웨이크업
     setLoading('kakao');
     try {
