@@ -490,7 +490,6 @@ export default function HealthScreen({ navigation }: any) {
                 backgroundColor: steps ? STATUS_COLOR[stepsStatus(Number(steps))] : '#B0BEC5',
               }]} />
             </View>
-            {Platform.OS === 'web' && <Text style={s.stepsNote}>* 웹에서는 수동 입력만 가능합니다</Text>}
           </View>
 
           {/* 저장 버튼 */}
