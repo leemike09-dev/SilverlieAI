@@ -179,6 +179,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const silenceTimerRef    = useRef<any>(null);
   const toastTimerRef      = useRef<any>(null);
   const finalTranscriptRef = useRef<string>('');
+  const lastFinalIdxRef    = useRef<number>(-1);
 
   const isWelcome = messages.length === 0 && !loading;
   const lastAiMsg = [...messages].reverse().find(m => m.role === 'ai');
@@ -518,11 +519,18 @@ export default function AIChatScreen({ route, navigation }: Props) {
     recognition.onend   = () => setIsRecording(false);
     recognition.onerror = () => setIsRecording(false);
     finalTranscriptRef.current = '';
+    lastFinalIdxRef.current = -1;
     recognition.onresult = (e: any) => {
       let interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) finalTranscriptRef.current += e.results[i][0].transcript;
-        else interim += e.results[i][0].transcript;
+        if (e.results[i].isFinal) {
+          if (i > lastFinalIdxRef.current) {
+            finalTranscriptRef.current += e.results[i][0].transcript;
+            lastFinalIdxRef.current = i;
+          }
+        } else {
+          interim += e.results[i][0].transcript;
+        }
       }
       const combined = (finalTranscriptRef.current + interim).trim();
       if (combined) setInput(combined);
@@ -622,7 +630,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
                 return (
                   <View key={i} style={msg.role === 'ai' ? s.aiRow : s.userRow}>
                     {msg.role === 'ai' && (
-                      <View style={s.lumiAvatar}><Text style={{ fontSize: 20 }}>🤖</Text></View>
+                      <View style={s.lumiAvatar}><Text style={{ fontSize: 22 }}>🌸</Text></View>
                     )}
                     <View style={msg.role === 'ai' ? s.aiBubble : s.userBubble}>
                     {msg.role === 'ai' && <Text style={s.bubbleName}>루미</Text>}
