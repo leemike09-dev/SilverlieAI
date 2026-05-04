@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   StatusBar, Platform, TextInput, Alert, ActivityIndicator, Linking,
@@ -95,7 +95,7 @@ export default function HealthScreen({ navigation }: any) {
   const [steps,        setSteps]        = useState('');
   const [stepsAuto,    setStepsAuto]    = useState(false);
   const [stepsLoading, setStepsLoading] = useState(false);
-  const [pedometerInfo, setPedometerInfo] = useState('');
+  const pedometerSubRef = useRef<any>(null);
 
   // 기록
   const [records, setRecords] = useState<any[]>([]);
@@ -111,19 +111,14 @@ export default function HealthScreen({ navigation }: any) {
       tryPedometer();
     };
     init();
+    return () => { pedometerSubRef.current?.remove(); };
   }, []);
 
   const tryPedometer = async () => {
-    if (Platform.OS === 'web') {
-      setPedometerInfo(`플랫폼: web`);
-      return;
-    }
-    setPedometerInfo(`플랫폼: ${Platform.OS}`);
+    if (Platform.OS === 'web') return;
     try {
       const { Pedometer } = await import('expo-sensors');
-
       const { status } = await Pedometer.getPermissionsAsync();
-      setPedometerInfo(`플랫폼: ${Platform.OS} | 권한: ${status}`);
 
       if (status === 'denied') {
         Alert.alert(
@@ -139,31 +134,32 @@ export default function HealthScreen({ navigation }: any) {
 
       if (status === 'undetermined') {
         const { granted } = await Pedometer.requestPermissionsAsync();
-        if (!granted) {
-          setPedometerInfo(`플랫폼: ${Platform.OS} | 권한: 거부됨`);
-          return;
-        }
+        if (!granted) return;
       }
 
       const available = await Pedometer.isAvailableAsync();
-      setPedometerInfo(`플랫폼: ${Platform.OS} | 권한: ${status} | 센서: ${available ? '사용가능' : '불가'}`);
       if (!available) return;
 
-      setStepsLoading(true);
-      const midnight = new Date();
-      midnight.setHours(0, 0, 0, 0);
-      const result = await Pedometer.getStepCountAsync(midnight, new Date());
-      if (result?.steps != null) {
-        setSteps(String(result.steps));
-        setStepsAuto(true);
-        setPedometerInfo(`플랫폼: ${Platform.OS} | 권한: ${status} | 걸음수: ${result.steps}보 ✅`);
+      if (Platform.OS === 'ios') {
+        setStepsLoading(true);
+        const midnight = new Date();
+        midnight.setHours(0, 0, 0, 0);
+        const result = await Pedometer.getStepCountAsync(midnight, new Date());
+        if (result?.steps != null) {
+          setSteps(String(result.steps));
+          setStepsAuto(true);
+        }
+        setStepsLoading(false);
       } else {
-        setPedometerInfo(`플랫폼: ${Platform.OS} | 권한: ${status} | 걸음수: null`);
+        // Android: getStepCountAsync 미지원 → watchStepCount 구독
+        pedometerSubRef.current = Pedometer.watchStepCount(result => {
+          setSteps(String(result.steps));
+          setStepsAuto(true);
+        });
       }
-    } catch (e: any) {
-      setPedometerInfo(`오류: ${e?.message || e}`);
+    } catch {
+      // 에러 시 수동 입력 사용
     }
-    setStepsLoading(false);
   };
 
   const loadRecords = async (uid?: string) => {
@@ -483,7 +479,6 @@ export default function HealthScreen({ navigation }: any) {
             <View style={s.stepsHeader}>
               <Text style={s.cardTitle}>🚶 걸음수</Text>
               {stepsAuto && <View style={s.autoBadge}><Text style={s.autoBadgeTxt}>자동 측정 중</Text></View>}
-              {!!pedometerInfo && <Text style={{fontSize:11, color:'#90A4AE', marginLeft:6}}>{pedometerInfo}</Text>}
               {stepsLoading && <ActivityIndicator color={BLUE} size="small" />}
             </View>
             <View style={s.bigInputRow}>
