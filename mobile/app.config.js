@@ -61,6 +61,13 @@ module.exports = {
       url: "https://u.expo.dev/2220b18b-fc03-4ccd-9e62-49dda3b0793f",
     },
     plugins: [
+      [
+        "expo-build-properties",
+        {
+          android: { newArchEnabled: false },
+          ios: { newArchEnabled: false },
+        },
+      ],
       "expo-font",
       "expo-web-browser",
       "expo-apple-authentication",
