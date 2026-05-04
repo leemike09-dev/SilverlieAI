@@ -184,11 +184,19 @@ export default function HealthScreen({ navigation }: any) {
       return;
     }
     setSaving(true);
-    const record: any = {
+    const today = todayKey();
+
+    // 오늘 기존 기록이 있으면 병합, 없으면 새 레코드 생성
+    const stored  = await AsyncStorage.getItem(STORAGE_KEY).catch(() => null);
+    const existing: any[] = stored ? JSON.parse(stored) : [];
+    const todayIdx = existing.findIndex(r => r.date === today);
+    const base = todayIdx >= 0 ? { ...existing[todayIdx] } : {
       id:   Date.now().toString(),
-      date: todayKey(),
+      date: today,
       time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
     };
+
+    const record: any = { ...base };
     if (bpSys || bpDia)           record.bp      = { sys: Number(bpSys) || 0, dia: Number(bpDia) || 0 };
     if (glucose)                   record.glucose = { val: Number(glucose), type: glucoseType };
     if (sleepStart && sleepEnd)    record.sleep   = { start: sleepStart24, end: sleepEnd24, hours: sleepHours };
@@ -201,15 +209,19 @@ export default function HealthScreen({ navigation }: any) {
         if (record.glucose) apiBody.blood_sugar  = record.glucose.val;
         if (record.steps)   apiBody.steps        = record.steps;
         if (record.sleep)   apiBody.sleep_hours  = record.sleep.hours;
-        await fetch('https://silverlieai.onrender.com/health/records', {
+        fetch('https://silverlieai.onrender.com/health/records', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(apiBody),
         }).catch(() => {});
       }
-      const stored  = await AsyncStorage.getItem(STORAGE_KEY);
-      const existing: any[] = stored ? JSON.parse(stored) : [];
-      const updated = [record, ...existing].slice(0, 90);
+      let updated: any[];
+      if (todayIdx >= 0) {
+        updated = [...existing];
+        updated[todayIdx] = record;
+      } else {
+        updated = [record, ...existing].slice(0, 90);
+      }
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       setRecords(updated);
       Alert.alert('저장 완료 ✅', '건강 기록이 저장되었습니다.', [

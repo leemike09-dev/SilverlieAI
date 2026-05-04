@@ -83,6 +83,15 @@ export default function App() {
       }
     };
     initNotifications();
+    // 만보계 권한 요청 (앱 시작 시 한 번)
+    if (Platform.OS !== 'web') {
+      (async () => {
+        try {
+          const { Pedometer } = await import('expo-sensors');
+          await Pedometer.requestPermissionsAsync();
+        } catch {}
+      })();
+    }
   }, []);
 
   // 네이티브 딥링크 (iOS/Android 앱용)
