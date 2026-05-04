@@ -1,8 +1,9 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
+import * as WebBrowser from 'expo-web-browser';
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Platform, Image, Alert, Linking,
+  ActivityIndicator, Platform, Image, Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,10 +34,35 @@ export default function LoginScreen({ navigation }: any) {
       (window as any).location.href = getOAuthUrl(mode);
       return;
     }
+    setLoading('kakao');
     try {
-      await Linking.openURL(getOAuthUrl(mode));
-    } catch {
-      Alert.alert('오류', '브라우저를 열 수 없습니다.');
+      const result = await WebBrowser.openAuthSessionAsync(
+        getOAuthUrl(mode),
+        'silverlifeai://oauth'
+      );
+      if (result.type !== 'success' || !result.url) return;
+
+      const params = new URLSearchParams(result.url.split('?')[1] || '');
+      const code = params.get('code');
+      if (!code) return;
+
+      const res = await fetch(`${BACKEND}/users/kakao-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, redirect_uri: REDIRECT_WEB }),
+      });
+      if (!res.ok) throw new Error('서버 오류');
+      const data = await res.json();
+      if (!data?.id) throw new Error('사용자 정보 오류');
+
+      await AsyncStorage.setItem('userId',   String(data.id));
+      await AsyncStorage.setItem('userName', data.name || '');
+      await AsyncStorage.setItem('onboarding_seen', '1');
+      navigation.replace('SeniorHome', { userId: String(data.id), name: data.name || '회원' });
+    } catch (e: any) {
+      Alert.alert('오류', '카카오 로그인에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setLoading(null);
     }
   };
 
