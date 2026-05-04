@@ -151,11 +151,32 @@ export default function HealthScreen({ navigation }: any) {
         }
         setStepsLoading(false);
       } else {
-        // Android: getStepCountAsync 미지원 → watchStepCount 구독
-        pedometerSubRef.current = Pedometer.watchStepCount(result => {
-          setSteps(String(result.steps));
-          setStepsAuto(true);
+        // Android: TYPE_STEP_COUNTER — 부팅 이후 누적값. 앱이 꺼져도 하드웨어가 계속 카운트.
+        // 오늘 첫 실행 시 누적값을 기준으로 저장하고, 이후 차이로 오늘 걸음수 계산.
+        setStepsLoading(true);
+        const sub = Pedometer.watchStepCount(async (result) => {
+          sub.remove();
+          setStepsLoading(false);
+          const currentTotal = result.steps;
+          const today = new Date().toDateString();
+          try {
+            const raw = await AsyncStorage.getItem('step_baseline_android');
+            const baseline = raw ? JSON.parse(raw) : null;
+            if (baseline && baseline.date === today && currentTotal >= baseline.total) {
+              // 오늘 기준값 있음 → 차이가 오늘 걸음수
+              setSteps(String(currentTotal - baseline.total));
+              setStepsAuto(true);
+            } else {
+              // 오늘 첫 실행 또는 재부팅 → 기준값 저장
+              await AsyncStorage.setItem('step_baseline_android', JSON.stringify({ date: today, total: currentTotal }));
+              setSteps('0');
+              setStepsAuto(true);
+            }
+          } catch {
+            setStepsLoading(false);
+          }
         });
+        pedometerSubRef.current = sub;
       }
     } catch {
       // 에러 시 수동 입력 사용
