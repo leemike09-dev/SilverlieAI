@@ -634,7 +634,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
                 return (
                   <View key={i} style={msg.role === 'ai' ? s.aiRow : s.userRow}>
                     {msg.role === 'ai' && (
-                      <Image source={require('../assets/lumi15.png')} style={s.lumiAvatar} />
+                      <Image source={require('../assets/lumi8.png')} style={s.lumiAvatar} />
                     )}
                     <View style={msg.role === 'ai' ? s.aiBubble : s.userBubble}>
                     {msg.role === 'ai' && <Text style={s.bubbleName}>루미</Text>}
