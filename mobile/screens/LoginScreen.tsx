@@ -1,9 +1,8 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
-import * as WebBrowser from 'expo-web-browser';
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Platform, Image, Alert,
+  ActivityIndicator, Platform, Image, Alert, Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,9 +34,9 @@ export default function LoginScreen({ navigation }: any) {
       return;
     }
     try {
-      await WebBrowser.openBrowserAsync(getOAuthUrl(mode));
+      await Linking.openURL(getOAuthUrl(mode));
     } catch {
-      // 사용자가 브라우저를 닫은 경우 무시
+      Alert.alert('오류', '브라우저를 열 수 없습니다.');
     }
   };
 
