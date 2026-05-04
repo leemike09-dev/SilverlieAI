@@ -298,6 +298,10 @@ export default function AIChatScreen({ route, navigation }: Props) {
     const detectedIntent = classifyIntent(msg, history);
     setCurrentIntent(detectedIntent);
 
+    const OTHER_KW = ['친구', '이웃', '지인', '남편', '아내', '아들', '딸', '부모님', '형제', '어머니', '아버지', '누나', '오빠', '언니', '동생', '손녀', '손자'];
+    const SELF_KW  = ['저는', '저도', '제가', '나는', '내가', '저한테', '저한', '본인'];
+    const isAboutOthers = OTHER_KW.some(k => msg.includes(k)) && !SELF_KW.some(k => msg.includes(k));
+
     if (detectedIntent === 'emergency') {
       const emMsg = `${name}님, 지금 많이 불편하신가요? 걱정이 돼요. 아래 버튼으로 즉시 도움을 받으세요.`;
       addMsg({ role: 'user', text: msg });
@@ -377,7 +381,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
               setHistory([...newHistory, { role: 'assistant', content: cleanText }]);
               setTurnCount(t => t + 1);
               if (riskLevel === 'critical') { setShowEmergency(true); if (data.sos_sent) setFamilyNotified(true); }
-              if (memoState === 'idle' && riskLevel !== 'normal' && detectedIntent !== 'daily' && ((isFinal && dMemo) || (dMemoNeeded && dMemo && ['medium','high','critical'].includes(riskLevel)))) {
+              if (!isAboutOthers && memoState === 'idle' && riskLevel !== 'normal' && detectedIntent !== 'daily' && ((isFinal && dMemo) || (dMemoNeeded && dMemo && ['medium','high','critical'].includes(riskLevel)))) {
                 setPendingMemo(dMemo!);
                 const mainMs = ttsEnabled ? Math.min(Math.max(3000, cleanText.length * 80), 8000) : 1500;
                 setTimeout(() => setMemoState('asking'), mainMs);
