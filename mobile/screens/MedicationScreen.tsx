@@ -41,27 +41,39 @@ export default function MedicationScreen({ navigation }: any) {
       setUserId(uid);
       setUname(name);
 
+      // 로컬 캐시 먼저 표시 (빠른 로딩)
+      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try {
+          const loaded = JSON.parse(stored);
+          // 이전 userId의 예시 데이터 제거: id가 숫자형(Date.now)이 아닌 demo 데이터 필터
+          const isRealData = loaded.every((m: any) => /^\d{10,}$/.test(String(m.id)));
+          if (isRealData || isDemo(uid)) {
+            setMeds(loaded);
+            announceMeds(loaded);
+          } else {
+            await AsyncStorage.removeItem(STORAGE_KEY);
+          }
+        } catch {}
+      }
+
       if (!isDemo(uid)) {
-        // 실제 사용자: 서버 데이터만 사용, 이전 예시/캐시 데이터 무시
-        await AsyncStorage.removeItem(STORAGE_KEY);
+        // 서버 데이터로 동기화 — 로컬에만 있는 새 약도 보존
         try {
           const res = await fetch(`${API_URL}/medications/today/${uid}`);
           if (res.ok) {
-            const data = await res.json();
-            setMeds(data);
-            announceMeds(data);
+            const serverData: any[] = await res.json();
+            const localRaw = await AsyncStorage.getItem(STORAGE_KEY).catch(() => null);
+            const localData: any[] = localRaw ? JSON.parse(localRaw) : [];
+            // 서버에 없는 로컬 약(방금 추가됐거나 서버 저장 실패)은 유지
+            const serverIds = new Set(serverData.map((m: any) => m.id));
+            const localOnly = localData.filter((m: any) => !serverIds.has(m.id));
+            const merged = [...serverData, ...localOnly];
+            setMeds(merged);
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+            announceMeds(merged);
           }
         } catch {}
-      } else {
-        // 게스트/데모: 로컬 캐시 사용
-        const stored = await AsyncStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          try {
-            const loaded = JSON.parse(stored);
-            setMeds(loaded);
-            announceMeds(loaded);
-          } catch {}
-        }
       }
     };
     init();
