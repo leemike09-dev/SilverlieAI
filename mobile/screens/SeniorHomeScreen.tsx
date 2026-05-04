@@ -10,7 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import SeniorTabBar from '../components/SeniorTabBar';
 
 const API      = 'https://silverlieai.onrender.com';
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 const CARD_GAP = 10;
 const CARD_W   = (width - 32 - CARD_GAP) / 2;
 
@@ -86,14 +86,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         </View>
       </View>
 
-      {/* ── 루미 캐릭터 ── */}
-      <View style={s.hero} pointerEvents="none">
-        <Image
-          source={require('../assets/lumi10.png')}
-          style={s.lumiImg}
-          resizeMode="contain"
-        />
-      </View>
+      <View style={s.hero} />
 
       {/* ── 하단 고정 영역 ── */}
       <View style={s.bottom}>
@@ -183,8 +176,7 @@ const s = StyleSheet.create({
   topTime:   { fontSize: 16, fontWeight: '800', color: '#fff' },
 
   /* ── 루미 캐릭터 ── */
-  hero:    { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  lumiImg: { width: width * 0.82, height: height * 0.40 },
+  hero:    { flex: 1 },
 
   /* ── 하단 고정 ── */
   bottom: { paddingHorizontal: 14, paddingBottom: 10 },
