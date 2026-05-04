@@ -287,29 +287,33 @@ export default function HealthScreen({ navigation }: any) {
             <Text style={s.weeklyBtnArr}>›</Text>
           </TouchableOpacity>
 
-          {records.length === 0 ? (
-            <View style={s.emptyBox}>
-              <Text style={s.emptyIcon}>📊</Text>
-              <Text style={s.emptyTitle}>아직 기록이 없어요</Text>
-              <Text style={s.emptySub}>오늘 건강 수치를 입력하면{'\n'}여기에 기록이 쌓입니다</Text>
-              <TouchableOpacity style={s.goInputBtn} onPress={() => setTab('input')}>
-                <Text style={s.goInputBtnTxt}>+ 오늘 기록 입력하기</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            records.map((rec) => (
-              <View key={rec.id} style={s.recCard}>
-                <View style={s.recHeader}>
-                  <Text style={s.recDate}>{rec.date}</Text>
-                  <Text style={s.recTime}>{rec.time}</Text>
+          {(() => {
+            const todayRec = records.find(r => r.date === todayKey());
+            if (!todayRec) {
+              return (
+                <View style={s.emptyBox}>
+                  <Text style={s.emptyIcon}>📊</Text>
+                  <Text style={s.emptyTitle}>오늘 기록이 없어요</Text>
+                  <Text style={s.emptySub}>오늘 건강 수치를 입력하면{'\n'}여기에 나타납니다</Text>
+                  <TouchableOpacity style={s.goInputBtn} onPress={() => setTab('input')}>
+                    <Text style={s.goInputBtnTxt}>+ 오늘 기록 입력하기</Text>
+                  </TouchableOpacity>
                 </View>
-                {rec.bp && <RecRow icon="💗" label="혈압" value={`${rec.bp.sys} / ${rec.bp.dia} mmHg`} status={bpStatus(rec.bp.sys, rec.bp.dia)} />}
-                {rec.glucose && <RecRow icon="🩸" label={`혈당 (${rec.glucose.type})`} value={`${rec.glucose.val} mg/dL`} status={glucoseStatus(rec.glucose.val, rec.glucose.type)} />}
-                {rec.sleep && <RecRow icon="😴" label="수면" value={fmtSleepHours(rec.sleep.hours)} status={sleepStatus(rec.sleep.hours)} />}
-                {rec.steps != null && <RecRow icon="🚶" label="걸음수" value={`${rec.steps.toLocaleString()} 보`} status={stepsStatus(rec.steps)} />}
+              );
+            }
+            return (
+              <View style={s.recCard}>
+                <View style={s.recHeader}>
+                  <Text style={s.recDate}>{todayRec.date}</Text>
+                  <Text style={s.recTime}>{todayRec.time}</Text>
+                </View>
+                {todayRec.steps != null && <RecRow icon="🚶" label="걸음수" value={`${todayRec.steps.toLocaleString()} 보`} status={stepsStatus(todayRec.steps)} />}
+                {todayRec.bp && <RecRow icon="💗" label="혈압" value={`${todayRec.bp.sys} / ${todayRec.bp.dia} mmHg`} status={bpStatus(todayRec.bp.sys, todayRec.bp.dia)} />}
+                {todayRec.glucose && <RecRow icon="🩸" label={`혈당 (${todayRec.glucose.type})`} value={`${todayRec.glucose.val} mg/dL`} status={glucoseStatus(todayRec.glucose.val, todayRec.glucose.type)} />}
+                {todayRec.sleep && <RecRow icon="😴" label="수면" value={fmtSleepHours(todayRec.sleep.hours)} status={sleepStatus(todayRec.sleep.hours)} />}
               </View>
-            ))
-          )}
+            );
+          })()}
           <View style={{ height: 20 }} />
         </ScrollView>
       )}
