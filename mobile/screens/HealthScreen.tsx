@@ -95,6 +95,7 @@ export default function HealthScreen({ navigation }: any) {
   const [steps,        setSteps]        = useState('');
   const [stepsAuto,    setStepsAuto]    = useState(false);
   const [stepsLoading, setStepsLoading] = useState(false);
+  const [pedometerInfo, setPedometerInfo] = useState('');
 
   // 기록
   const [records, setRecords] = useState<any[]>([]);
@@ -113,12 +114,16 @@ export default function HealthScreen({ navigation }: any) {
   }, []);
 
   const tryPedometer = async () => {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web') {
+      setPedometerInfo(`플랫폼: web`);
+      return;
+    }
+    setPedometerInfo(`플랫폼: ${Platform.OS}`);
     try {
       const { Pedometer } = await import('expo-sensors');
 
-      // 현재 권한 상태 확인
       const { status } = await Pedometer.getPermissionsAsync();
+      setPedometerInfo(`플랫폼: ${Platform.OS} | 권한: ${status}`);
 
       if (status === 'denied') {
         Alert.alert(
@@ -134,10 +139,14 @@ export default function HealthScreen({ navigation }: any) {
 
       if (status === 'undetermined') {
         const { granted } = await Pedometer.requestPermissionsAsync();
-        if (!granted) return;
+        if (!granted) {
+          setPedometerInfo(`플랫폼: ${Platform.OS} | 권한: 거부됨`);
+          return;
+        }
       }
 
       const available = await Pedometer.isAvailableAsync();
+      setPedometerInfo(`플랫폼: ${Platform.OS} | 권한: ${status} | 센서: ${available ? '사용가능' : '불가'}`);
       if (!available) return;
 
       setStepsLoading(true);
@@ -147,8 +156,13 @@ export default function HealthScreen({ navigation }: any) {
       if (result?.steps != null) {
         setSteps(String(result.steps));
         setStepsAuto(true);
+        setPedometerInfo(`플랫폼: ${Platform.OS} | 권한: ${status} | 걸음수: ${result.steps}보 ✅`);
+      } else {
+        setPedometerInfo(`플랫폼: ${Platform.OS} | 권한: ${status} | 걸음수: null`);
       }
-    } catch {}
+    } catch (e: any) {
+      setPedometerInfo(`오류: ${e?.message || e}`);
+    }
     setStepsLoading(false);
   };
 
@@ -469,6 +483,7 @@ export default function HealthScreen({ navigation }: any) {
             <View style={s.stepsHeader}>
               <Text style={s.cardTitle}>🚶 걸음수</Text>
               {stepsAuto && <View style={s.autoBadge}><Text style={s.autoBadgeTxt}>자동 측정 중</Text></View>}
+              {!!pedometerInfo && <Text style={{fontSize:11, color:'#90A4AE', marginLeft:6}}>{pedometerInfo}</Text>}
               {stepsLoading && <ActivityIndicator color={BLUE} size="small" />}
             </View>
             <View style={s.bigInputRow}>
