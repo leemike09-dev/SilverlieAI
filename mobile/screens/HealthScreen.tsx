@@ -50,6 +50,16 @@ const STATUS_BG:    Record<string, string> = { normal: LGREEN, caution: LORANGE,
 const todayKey = () => new Date().toISOString().slice(0, 10);
 
 
+function ampmTo24(time: string, ampm: '오전' | '오후'): string {
+  const parts = time.split(':');
+  let h = parseInt(parts[0]);
+  const m = parts[1] ?? '00';
+  if (isNaN(h)) return time;
+  if (ampm === '오전' && h === 12) h = 0;
+  else if (ampm === '오후' && h !== 12) h += 12;
+  return `${String(h).padStart(2, '0')}:${m}`;
+}
+
 function calcSleepHours(start: string, end: string): number | null {
   const [sh, sm] = start.split(':').map(Number);
   const [eh, em] = end.split(':').map(Number);
@@ -78,8 +88,10 @@ export default function HealthScreen({ navigation }: any) {
   const [bpDia,        setBpDia]        = useState('');
   const [glucose,      setGlucose]      = useState('');
   const [glucoseType,  setGlucoseType]  = useState('공복');
-  const [sleepStart,   setSleepStart]   = useState('');
-  const [sleepEnd,     setSleepEnd]     = useState('');
+  const [sleepStart,      setSleepStart]      = useState('');
+  const [sleepEnd,        setSleepEnd]        = useState('');
+  const [sleepStartAmPm,  setSleepStartAmPm]  = useState<'오전' | '오후'>('오후');
+  const [sleepEndAmPm,    setSleepEndAmPm]    = useState<'오전' | '오후'>('오전');
   const [steps,        setSteps]        = useState('');
   const [stepsAuto,    setStepsAuto]    = useState(false);
   const [stepsLoading, setStepsLoading] = useState(false);
@@ -145,7 +157,9 @@ export default function HealthScreen({ navigation }: any) {
     } catch {}
   };
 
-  const sleepHours = sleepStart && sleepEnd ? calcSleepHours(sleepStart, sleepEnd) : null;
+  const sleepStart24 = sleepStart ? ampmTo24(sleepStart, sleepStartAmPm) : '';
+  const sleepEnd24   = sleepEnd   ? ampmTo24(sleepEnd,   sleepEndAmPm)   : '';
+  const sleepHours   = sleepStart24 && sleepEnd24 ? calcSleepHours(sleepStart24, sleepEnd24) : null;
 
   const save = async () => {
     if (!bpSys && !bpDia && !glucose && !sleepStart && !steps) {
@@ -164,7 +178,7 @@ export default function HealthScreen({ navigation }: any) {
     };
     if (bpSys || bpDia)           record.bp      = { sys: Number(bpSys) || 0, dia: Number(bpDia) || 0 };
     if (glucose)                   record.glucose = { val: Number(glucose), type: glucoseType };
-    if (sleepStart && sleepEnd)    record.sleep   = { start: sleepStart, end: sleepEnd, hours: sleepHours };
+    if (sleepStart && sleepEnd)    record.sleep   = { start: sleepStart24, end: sleepEnd24, hours: sleepHours };
     if (steps)                     record.steps   = Number(steps);
 
     try {
@@ -189,6 +203,7 @@ export default function HealthScreen({ navigation }: any) {
       ]);
       setBpSys(''); setBpDia(''); setGlucose('');
       setSleepStart(''); setSleepEnd('');
+      setSleepStartAmPm('오후'); setSleepEndAmPm('오전');
       if (!stepsAuto) setSteps('');
     } catch {
       Alert.alert('오류', '저장 중 문제가 발생했습니다.');
@@ -340,11 +355,22 @@ export default function HealthScreen({ navigation }: any) {
             <View style={s.sleepRow}>
               <View style={s.sleepBox}>
                 <Text style={s.sleepLabel}>잠든 시간</Text>
+                <View style={s.ampmRow}>
+                  {(['오전', '오후'] as const).map(v => (
+                    <TouchableOpacity
+                      key={v}
+                      style={[s.ampmBtn, sleepStartAmPm === v && s.ampmBtnOn]}
+                      onPress={() => setSleepStartAmPm(v)}
+                    >
+                      <Text style={[s.ampmTxt, sleepStartAmPm === v && s.ampmTxtOn]}>{v}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
                 <TextInput
                   style={s.sleepInput}
                   value={sleepStart}
                   onChangeText={setSleepStart}
-                  placeholder="22:30"
+                  placeholder="11:30"
                   placeholderTextColor="#B0BEC5"
                   keyboardType="numbers-and-punctuation"
                   maxLength={5}
@@ -354,11 +380,22 @@ export default function HealthScreen({ navigation }: any) {
               <Text style={s.sleepArrow}>→</Text>
               <View style={s.sleepBox}>
                 <Text style={s.sleepLabel}>일어난 시간</Text>
+                <View style={s.ampmRow}>
+                  {(['오전', '오후'] as const).map(v => (
+                    <TouchableOpacity
+                      key={v}
+                      style={[s.ampmBtn, sleepEndAmPm === v && s.ampmBtnOn]}
+                      onPress={() => setSleepEndAmPm(v)}
+                    >
+                      <Text style={[s.ampmTxt, sleepEndAmPm === v && s.ampmTxtOn]}>{v}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
                 <TextInput
                   style={s.sleepInput}
                   value={sleepEnd}
                   onChangeText={setSleepEnd}
-                  placeholder="06:30"
+                  placeholder="4:50"
                   placeholderTextColor="#B0BEC5"
                   keyboardType="numbers-and-punctuation"
                   maxLength={5}
@@ -505,7 +542,13 @@ const s = StyleSheet.create({
   sleepLabel:      { fontSize: 17, color: '#546E7A', marginBottom: 8 },
   sleepInput:      { fontSize: 34, fontWeight: '900', color: PURPLE, textAlign: 'center',
                      borderBottomWidth: 2.5, borderBottomColor: PURPLE, width: '100%', paddingVertical: 4 },
-  sleepArrow:      { fontSize: 28, color: '#B0BEC5', marginTop: 20 },
+  sleepArrow:      { fontSize: 28, color: '#B0BEC5', marginTop: 36 },
+  ampmRow:         { flexDirection: 'row', gap: 6, marginBottom: 8 },
+  ampmBtn:         { flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: '#F0F4F8',
+                     borderRadius: 10, borderWidth: 1.5, borderColor: '#E0E0E0' },
+  ampmBtnOn:       { backgroundColor: '#EDE7F6', borderColor: PURPLE },
+  ampmTxt:         { fontSize: 17, fontWeight: '700', color: '#90A4AE' },
+  ampmTxtOn:       { color: PURPLE },
   sleepResult:     { flexDirection: 'row', alignItems: 'center', marginTop: 16 },
   sleepResultTxt:  { fontSize: 18, color: '#546E7A', fontWeight: '600' },
   sleepResultHours:{ fontSize: 26, fontWeight: '900' },

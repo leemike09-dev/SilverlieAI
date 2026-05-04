@@ -41,24 +41,27 @@ export default function MedicationScreen({ navigation }: any) {
       setUserId(uid);
       setUname(name);
 
-      // 서버 우선 로드, 실패 시 로컬 폴백
       if (!isDemo(uid)) {
+        // 실제 사용자: 서버 데이터만 사용, 이전 예시/캐시 데이터 무시
+        await AsyncStorage.removeItem(STORAGE_KEY);
         try {
-          const res  = await fetch(`${API_URL}/medications/today/${uid}`);
+          const res = await fetch(`${API_URL}/medications/today/${uid}`);
           if (res.ok) {
             const data = await res.json();
             setMeds(data);
-            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
             announceMeds(data);
-            return;
           }
         } catch {}
-      }
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const loaded = JSON.parse(stored);
-        setMeds(loaded);
-        announceMeds(loaded);
+      } else {
+        // 게스트/데모: 로컬 캐시 사용
+        const stored = await AsyncStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          try {
+            const loaded = JSON.parse(stored);
+            setMeds(loaded);
+            announceMeds(loaded);
+          } catch {}
+        }
       }
     };
     init();
@@ -115,7 +118,7 @@ export default function MedicationScreen({ navigation }: any) {
     if (!nowSkipping) apiToggle(userId, id, 'taken', false);
   };
 
-  const addMed = async () => {
+  const addMed = () => {
     if (!form.name.trim()) {
       Alert.alert('입력 오류', '약 이름을 입력해 주세요.');
       return;
@@ -131,9 +134,13 @@ export default function MedicationScreen({ navigation }: any) {
       skipped:  false,
     };
     const updatedMeds = [...meds, newMed];
-    await saveMeds(updatedMeds);
+    // 모달 즉시 닫기 (알림 권한 다이얼로그보다 먼저)
+    setMeds(updatedMeds);
+    setForm(EMPTY_FORM);
+    setAddModal(false);
+    // 비동기 저장은 백그라운드에서
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedMeds)).catch(() => {});
     scheduleMedNotification(newMed.id, newMed.name, newMed.timeSlot);
-    // 서버 저장 (오프라인 안전)
     if (!isDemo(userId)) {
       fetch(`${API_URL}/medications/add-simple/${userId}`, {
         method: 'POST',
@@ -144,8 +151,6 @@ export default function MedicationScreen({ navigation }: any) {
         }),
       }).catch(() => {});
     }
-    setForm(EMPTY_FORM);
-    setAddModal(false);
   };
 
   const deleteMed = (id: string) => {
