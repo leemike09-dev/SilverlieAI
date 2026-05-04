@@ -180,6 +180,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const toastTimerRef      = useRef<any>(null);
   const finalTranscriptRef = useRef<string>('');
   const lastFinalIdxRef    = useRef<number>(-1);
+  const prevInputRef        = useRef<string>('');
 
   const isWelcome = messages.length === 0 && !loading;
   const lastAiMsg = [...messages].reverse().find(m => m.role === 'ai');
@@ -274,6 +275,23 @@ export default function AIChatScreen({ route, navigation }: Props) {
     }
   };
 
+  const handleTextChange = (text: string) => {
+    if (Platform.OS === 'android') {
+      const prev = prevInputRef.current;
+      // Samsung IME가 같은 음절을 누적 반복할 때 제거
+      if (prev.length >= 2 && text.length > prev.length) {
+        const added = text.slice(prev.length);
+        if (prev.endsWith(added) || added === prev || text === prev + prev) {
+          prevInputRef.current = prev;
+          setInput(prev);
+          return;
+        }
+      }
+    }
+    prevInputRef.current = text;
+    setInput(text);
+  };
+
   const send = async (text?: string) => {
     const msg = (text ?? input).trim();
     if (!msg || loading) return;
@@ -292,6 +310,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
     }
 
     setInput('');
+    prevInputRef.current = '';
     stopSpeech();
     if (memoState !== 'saved') setMemoState('idle');
 
@@ -736,7 +755,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
             <TextInput
               style={s.inputBox}
               value={input}
-              onChangeText={setInput}
+              onChangeText={handleTextChange}
               placeholder={isRecording ? '듣고 있어요...' : '건강 궁금증을 물어보세요'}
               placeholderTextColor={isRecording ? C.purple2 : C.sub}
               multiline
