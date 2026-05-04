@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Platform, View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { Platform, View, Text, TextInput, ActivityIndicator, StyleSheet } from 'react-native';
+
+// Android 시스템 폰트 크기 설정이 앱에 중복 적용되지 않도록 전역 차단
+(Text as any).defaultProps = { ...((Text as any).defaultProps || {}), allowFontScaling: false };
+(TextInput as any).defaultProps = { ...((TextInput as any).defaultProps || {}), allowFontScaling: false };
 import * as Linking from 'expo-linking';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
