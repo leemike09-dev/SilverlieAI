@@ -65,7 +65,7 @@ const navigationRef = createNavigationContainerRef<any>();
 
 const BACKEND = 'https://silverlieai.onrender.com';
 const KAKAO_REDIRECT_WEB    = 'https://leemike09-dev.github.io/SilverlieAI/';
-const KAKAO_REDIRECT_NATIVE = 'silverlifeai://oauth';
+const KAKAO_REDIRECT_NATIVE = 'https://silverlieai.onrender.com/kakao/callback';
 const KAKAO_REDIRECT = Platform.OS === 'web' ? KAKAO_REDIRECT_WEB : KAKAO_REDIRECT_NATIVE;
 const KAKAO_MAX_RETRIES = 3;
 const FETCH_TIMEOUT_MS = 25000; // 25초 타임아웃 — 카카오 코드는 5분 유효

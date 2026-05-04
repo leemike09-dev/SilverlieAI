@@ -9,7 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const KAKAO_CLIENT_ID = 'c102ef257f29dfc4ca9f2062a0c1442d';
-const REDIRECT_WEB    = 'https://leemike09-dev.github.io/SilverlieAI/';
+const REDIRECT_WEB    = 'https://silverlieai.onrender.com/kakao/callback';
 const BACKEND         = 'https://silverlieai.onrender.com';
 
 const bgImage = require('../assets/lumi15.png');
