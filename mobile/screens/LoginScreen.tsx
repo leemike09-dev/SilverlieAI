@@ -1,6 +1,6 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as WebBrowser from 'expo-web-browser';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ActivityIndicator, Platform, Image, Alert,
@@ -25,9 +25,12 @@ export default function LoginScreen({ navigation }: any) {
   const [mode,    setMode]    = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState<string | null>(null);
 
+  // 로그인 화면 진입 시 미리 서버 웨이크업 — Render 슬립 방지
+  useEffect(() => { fetch(BACKEND + '/').catch(() => {}); }, []);
+
   const handleKakao = async () => {
+    fetch(BACKEND + '/').catch(() => {}); // Render 서버 웨이크업
     if (Platform.OS === 'web') {
-      fetch(BACKEND + '/').catch(() => {});
       (window as any).location.href = getOAuthUrl(mode);
       return;
     }
