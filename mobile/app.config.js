@@ -27,26 +27,19 @@ module.exports = {
         monochromeImage: "./assets/android-icon-monochrome.png",
       },
       permissions: [
-        "android.permission.health.READ_STEPS",
-        "android.permission.health.READ_HEART_RATE",
-        "android.permission.health.READ_BLOOD_PRESSURE",
-        "android.permission.health.READ_WEIGHT",
-        "android.permission.health.READ_BLOOD_GLUCOSE",
-        "android.permission.health.READ_SLEEP",
-        "android.permission.health.WRITE_STEPS",
-        "android.permission.health.WRITE_HEART_RATE",
-        "android.permission.health.WRITE_BLOOD_PRESSURE",
-        "android.permission.health.WRITE_WEIGHT",
-        "android.permission.health.WRITE_BLOOD_GLUCOSE",
+        "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.INTERNET",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
         "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.SCHEDULE_EXACT_ALARM",
-        "android.permission.USE_EXACT_ALARM",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS",
       ],
       intentFilters: [
         {
           action: "VIEW",
           autoVerify: true,
-          data: [{ scheme: "silverliveai" }],
+          data: [{ scheme: "silverlifeai", host: "oauth" }],
           category: ["BROWSABLE", "DEFAULT"],
         },
       ],
@@ -72,6 +65,12 @@ module.exports = {
       "expo-web-browser",
       "expo-apple-authentication",
       [
+        "expo-sensors",
+        {
+          motionPermission: "걸음수 자동 측정을 위해 신체 활동 접근 권한이 필요합니다.",
+        },
+      ],
+      [
         "expo-notifications",
         {
           icon: "./assets/android-icon-monochrome.png",
@@ -82,7 +81,7 @@ module.exports = {
       ],
       "expo-video",
     ],
-    scheme: "silverliveai",
+    scheme: "silverlifeai",
     experiments: {
       baseUrl: "/SilverlieAI",
     },
