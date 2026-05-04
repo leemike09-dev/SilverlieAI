@@ -28,7 +28,7 @@ export default function LocationMapScreen({ route, navigation }: any) {
       lng: l.lng,
       activity: l.activity,
       created_at: l.created_at,
-      address: (l.address || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"),
+      address: l.address || '',
     }));
     return JSON.stringify(safe);
   }, [logs]);
