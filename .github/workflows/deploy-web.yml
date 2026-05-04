@@ -1,4 +1,4 @@
-name: Deploy Web to GitHub Pages
+name: Deploy kakao-map to GitHub Pages
 
 on:
   push:
@@ -9,51 +9,19 @@ permissions:
   contents: write
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: mobile/package-lock.json
-
-      - name: Install dependencies
-        run: cd mobile && npm install
-
-      - name: TypeScript syntax check
+      - name: Prepare dist
         run: |
-          cd mobile
-          TSC_OUT=$(npx tsc --noEmit 2>&1 || true)
-          SYNTAX_ERRORS=$(echo "$TSC_OUT" | grep "error TS" | grep -vE "TS2307|TS2304|TS2305" || true)
-          if [ -n "$SYNTAX_ERRORS" ]; then
-            echo "TypeScript syntax error:"
-            echo "$SYNTAX_ERRORS"
-            exit 1
-          fi
-          echo "TypeScript check passed"
-
-      - name: Build web
-        run: cd mobile && npx expo export --platform web
-
-      - name: Copy kakao-map.html to dist
-        run: cp mobile/kakao-map.html mobile/dist/kakao-map.html
-
-      - name: Verify bundle path
-        run: |
-          grep 'src=.*\.js' mobile/dist/index.html
-          if ! grep -q 'src="/SilverlieAI/' mobile/dist/index.html; then
-            echo "ERROR: JS bundle path missing /SilverlieAI/ prefix"
-            exit 1
-          fi
-          echo "Path check passed"
+          mkdir -p dist
+          cp mobile/kakao-map.html dist/kakao-map.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: mobile/dist
+          publish_dir: dist
