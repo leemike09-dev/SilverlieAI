@@ -103,7 +103,7 @@ export default function App() {
       try {
         const parsed = Linking.parse(url);
         const code = parsed.queryParams?.code as string | undefined;
-        if (parsed.path === 'oauth' && code) {
+        if (url.startsWith('silverlifeai://oauth') && code) {
           const res = await fetchWithTimeout(`${BACKEND}/users/kakao-login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
