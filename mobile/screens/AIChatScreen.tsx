@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   TextInput, KeyboardAvoidingView, Platform,
-  Animated, Modal, Linking, Alert,
+  Animated, Modal, Linking, Alert, Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -630,7 +630,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
                 return (
                   <View key={i} style={msg.role === 'ai' ? s.aiRow : s.userRow}>
                     {msg.role === 'ai' && (
-                      <View style={s.lumiAvatar}><Text style={{ fontSize: 22 }}>🌸</Text></View>
+                      <Image source={require('../assets/lumi15.png')} style={s.lumiAvatar} />
                     )}
                     <View style={msg.role === 'ai' ? s.aiBubble : s.userBubble}>
                     {msg.role === 'ai' && <Text style={s.bubbleName}>루미</Text>}
@@ -825,8 +825,7 @@ const s = StyleSheet.create({
   msgContent:  { paddingVertical: 12, gap: 10 },
   aiRow:       { flexDirection: 'row', alignItems: 'flex-end', gap: 8, alignSelf: 'flex-start', maxWidth: '92%' },
   userRow:     { alignSelf: 'flex-end', maxWidth: '88%' },
-  lumiAvatar:  { width: 36, height: 36, borderRadius: 18, backgroundColor: '#E1BEE7',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  lumiAvatar:  { width: 52, height: 52, borderRadius: 26, marginBottom: 4, resizeMode: 'contain' },
   aiBubble:    {
     flex: 1,
     backgroundColor: '#F3E5F5', borderRadius: 18,
