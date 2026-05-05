@@ -87,10 +87,7 @@ module.exports = {
         },
       ],
       "expo-video",
-      [
-        "@react-native-seoul/kakao-login",
-        { "kakaoAppKey": "8f40217a9768056a44ce78516d2f5858" },
-      ],
+      "./plugins/withKakaoAndroid",
     ],
     scheme: "silverlifeai",
     experiments: {
