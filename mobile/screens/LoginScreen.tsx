@@ -9,7 +9,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const BACKEND = 'https://silverlieai.onrender.com';
-
 const bgImage = require('../assets/lumi15.png');
 
 export default function LoginScreen({ navigation }: any) {
@@ -17,16 +16,12 @@ export default function LoginScreen({ navigation }: any) {
   const [mode,    setMode]    = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState<string | null>(null);
 
-  // 로그인 화면 진입 시 미리 서버 웨이크업 — Render 슬립 방지
   useEffect(() => { fetch(BACKEND + '/').catch(() => {}); }, []);
 
   const handleKakao = async () => {
-    if (Platform.OS === 'web') return;
     setLoading('kakao');
-    const wakeup = fetch(BACKEND + '/').catch(() => {}); // 서버 웨이크업 병렬 시작
     try {
-      const token = await kakaoLogin(); // 카카오톡 앱 실행 — 사용자 동의 (10~30초)
-      await wakeup; // 동의 완료 후 서버가 깨어날 때까지 대기
+      const token = await kakaoLogin();
       const res = await fetch(`${BACKEND}/users/kakao-token-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -35,13 +30,14 @@ export default function LoginScreen({ navigation }: any) {
       if (!res.ok) throw new Error('서버 오류');
       const data = await res.json();
       if (!data?.id) throw new Error('사용자 정보 오류');
-
       await AsyncStorage.setItem('userId',   String(data.id));
       await AsyncStorage.setItem('userName', data.name || '');
       await AsyncStorage.setItem('onboarding_seen', '1');
       navigation.replace('SeniorHome', { userId: String(data.id), name: data.name || '회원' });
     } catch (e: any) {
-      Alert.alert('디버그', `code: ${e?.code}\nmsg: ${e?.message}`);
+      if (e?.code !== 'E_CANCELLED_OPERATION') {
+        Alert.alert('카카오 로그인 오류', e?.message || '다시 시도해주세요.');
+      }
     } finally {
       setLoading(null);
     }
