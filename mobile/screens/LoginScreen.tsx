@@ -21,11 +21,12 @@ export default function LoginScreen({ navigation }: any) {
   useEffect(() => { fetch(BACKEND + '/').catch(() => {}); }, []);
 
   const handleKakao = async () => {
-    if (Platform.OS === 'web') return; // 웹에서는 네이티브 SDK 미지원
-    fetch(BACKEND + '/').catch(() => {}); // Render 서버 웨이크업
+    if (Platform.OS === 'web') return;
     setLoading('kakao');
+    const wakeup = fetch(BACKEND + '/').catch(() => {}); // 서버 웨이크업 병렬 시작
     try {
-      const token = await kakaoLogin();
+      const token = await kakaoLogin(); // 카카오톡 앱 실행 — 사용자 동의 (10~30초)
+      await wakeup; // 동의 완료 후 서버가 깨어날 때까지 대기
       const res = await fetch(`${BACKEND}/users/kakao-token-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -40,8 +41,11 @@ export default function LoginScreen({ navigation }: any) {
       await AsyncStorage.setItem('onboarding_seen', '1');
       navigation.replace('SeniorHome', { userId: String(data.id), name: data.name || '회원' });
     } catch (e: any) {
-      const msg = e?.message || '';
-      if (!msg.includes('cancel') && !msg.includes('Cancel')) {
+      const msg = (e?.message || '').toLowerCase();
+      const code = e?.code || '';
+      const isCancelled = msg.includes('cancel') || msg.includes('취소') ||
+        code === 'E_CANCELLED_OPERATION' || code === 'RNKakaoLogins';
+      if (!isCancelled) {
         Alert.alert('오류', '카카오 로그인에 실패했습니다. 다시 시도해주세요.');
       }
     } finally {
