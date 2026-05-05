@@ -41,13 +41,7 @@ export default function LoginScreen({ navigation }: any) {
       await AsyncStorage.setItem('onboarding_seen', '1');
       navigation.replace('SeniorHome', { userId: String(data.id), name: data.name || '회원' });
     } catch (e: any) {
-      const msg = (e?.message || '').toLowerCase();
-      const code = e?.code || '';
-      const isCancelled = msg.includes('cancel') || msg.includes('취소') ||
-        code === 'E_CANCELLED_OPERATION' || code === 'RNKakaoLogins';
-      if (!isCancelled) {
-        Alert.alert('오류', '카카오 로그인에 실패했습니다. 다시 시도해주세요.');
-      }
+      Alert.alert('디버그', `code: ${e?.code}\nmsg: ${e?.message}`);
     } finally {
       setLoading(null);
     }
