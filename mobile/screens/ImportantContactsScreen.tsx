@@ -36,8 +36,11 @@ export default function ImportantContactsScreen({ navigation, route }: any) {
   const [newName,  setNewName]  = useState('');
   const [newPhone, setNewPhone] = useState('');
 
+  const fromSOS = route?.params?.fromSOS ?? false;
+
   useEffect(() => {
     AsyncStorage.getItem('userId').then(id => { if (id) setUserId(id); });
+    if (fromSOS) { setSelType('가족'); setShowForm(true); }
   }, []);
 
   useEffect(() => {
@@ -102,9 +105,15 @@ export default function ImportantContactsScreen({ navigation, route }: any) {
 
         {loading ? <ActivityIndicator size="large" color="#5C6BC0" style={{ marginTop: 60 }} /> : (
           <>
-            {/* 안내 */}
+            {/* SOS 안내 */}
+            <View style={styles.sosBox}>
+              <Text style={styles.sosBoxText}>🆘 SOS 긴급 호출 시 가족 연락 번호</Text>
+              <Text style={styles.sosBoxSub}>종류를 <Text style={{ fontWeight: '900' }}>가족</Text> 또는 <Text style={{ fontWeight: '900' }}>응급</Text>으로 등록한 번호로{'\n'}SOS 버튼을 누르면 자동으로 연락합니다</Text>
+            </View>
+
+            {/* 일반 안내 */}
             <View style={styles.infoBox}>
-              <Text style={styles.infoText}>💡 병원·약국·주치의 번호를 저장해두면{'\n'}필요할 때 바로 전화할 수 있어요</Text>
+              <Text style={styles.infoText}>💡 병원·약국·주치의 번호도 저장해두면{'\n'}필요할 때 바로 전화할 수 있어요</Text>
             </View>
 
             {/* 연락처 목록 */}
@@ -193,6 +202,13 @@ const styles = StyleSheet.create({
   headerTitle: { color: '#fff', fontSize: 28, fontWeight: '800' },
 
   body: { padding: 16, paddingBottom: 60 },
+
+  sosBox: {
+    backgroundColor: '#FFEBEE', borderRadius: 12, padding: 16,
+    marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#C62828',
+  },
+  sosBoxText: { fontSize: 20, fontWeight: '800', color: '#C62828', marginBottom: 6 },
+  sosBoxSub:  { fontSize: 17, color: '#B71C1C', lineHeight: 24 },
 
   infoBox: {
     backgroundColor: '#E8EAF6', borderRadius: 12, padding: 16,

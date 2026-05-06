@@ -286,7 +286,7 @@ export default function SOSScreen({ navigation, route }: Props) {
           {/* 가족 카드 — 탭 시 1순위 가족 전화 (문자 없음) */}
           <TouchableOpacity
             style={[s.famCard, { flex: firstFamily ? 2 : 1 }]}
-            onPress={firstFamily ? callFirstFamily : () => navigation.navigate('FamilyConnect', { userId, name })}
+            onPress={firstFamily ? callFirstFamily : () => navigation.navigate('ImportantContacts', { userId, fromSOS: true })}
             activeOpacity={0.8}>
             <Text style={s.cardTitle}>👪 가족에게 연락</Text>
             {firstFamily ? (
