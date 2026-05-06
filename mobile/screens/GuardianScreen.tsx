@@ -195,7 +195,7 @@ export default function GuardianScreen({ route, navigation }: any) {
         {/* 동선 */}
         <TouchableOpacity
           style={s.card}
-          onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0 })}
+          onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0, userId })}
           activeOpacity={0.85}
         >
           <Text style={s.cardTitle}>📍 오늘 동선</Text>

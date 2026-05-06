@@ -123,7 +123,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         )}
 
         <View style={s.cardGrid}>
-          <TouchableOpacity style={s.cardWrap} onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0 })} activeOpacity={0.88}>
+          <TouchableOpacity style={s.cardWrap} onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0, userId })} activeOpacity={0.88}>
             <LinearGradient colors={['rgba(245,251,255,0.45)', 'rgba(214,238,250,0.45)']} style={s.card}>
               <Text style={s.iconEmoji}>🗺️</Text>
               <Text style={s.cardLabel}>내 위치</Text>
