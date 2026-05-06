@@ -14,7 +14,6 @@ const C = {
 
 export default function LocationMapScreen({ route, navigation }: any) {
   const insets      = useSafeAreaInsets();
-  const seniorName  = route?.params?.seniorName || '';
   const userId      = route?.params?.userId     || '';
   const [fullscreen, setFullscreen] = useState(false);
   const [liveData,  setLiveData]    = useState<{logs: any[], total_distance_m: number}>({ logs: [], total_distance_m: 0 });
@@ -69,7 +68,7 @@ export default function LocationMapScreen({ route, navigation }: any) {
             <Text style={s.backTxt}>← 뒤로</Text>
           </TouchableOpacity>
           <View style={s.headerCenter}>
-            <Text style={s.headerTitle} numberOfLines={1}>📍 {seniorName}님 오늘 동선</Text>
+            <Text style={s.headerTitle} numberOfLines={1}>📍 오늘 동선</Text>
             <Text style={s.headerSub}>
               {distStr} 이동 · {logs.length}개 지점
             </Text>
