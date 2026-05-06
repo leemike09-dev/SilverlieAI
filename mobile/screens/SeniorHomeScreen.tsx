@@ -101,7 +101,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
   return (
     <View style={s.root}>
-      <LinearGradient colors={['#B8D9F0', '#CCE8F8', '#E0F3FF']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#8EC5E8', '#BBDAF2', '#D8EEF9']} style={StyleSheet.absoluteFill} />
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       {/* ━━ 상단: Lumi로고 | 날짜 | 시간 ━━ */}
@@ -158,11 +158,11 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       {/* ━━ 2x2 카드 ━━ */}
       <View style={s.cardGrid}>
 
-        {/* 내 위치 — 다크 네이비 */}
+        {/* 내 위치 — 다크 네이비 + 초록 아이콘 */}
         <TouchableOpacity style={[s.card, s.cardDark]}
           onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0, userId })}
           activeOpacity={0.88}>
-          <View style={[s.cardIcon, { backgroundColor: '#2A4060' }]}>
+          <View style={[s.cardIcon, { backgroundColor: '#388E3C' }]}>
             <Text style={s.cardIconTxt}>📍</Text>
           </View>
           <View style={s.cardBody}>
@@ -174,50 +174,50 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           </View>
         </TouchableOpacity>
 
-        {/* 건강 체크 — 핑크 */}
-        <TouchableOpacity style={[s.card, s.cardPink]}
+        {/* 건강 체크 — 살구 */}
+        <TouchableOpacity style={[s.card, s.cardSalmon]}
           onPress={() => navigation.navigate('Health', { userId, name })}
           activeOpacity={0.88}>
-          <View style={[s.cardIcon, { backgroundColor: '#E91E63' }]}>
+          <View style={[s.cardIcon, { backgroundColor: '#EF5350' }]}>
             <Text style={s.cardIconTxt}>❤️</Text>
           </View>
           <View style={s.cardBody}>
             <Text style={s.cardLabel}>건강 체크</Text>
             <Text style={s.cardDesc}>혈압·혈당·체온{'\n'}측정하세요</Text>
           </View>
-          <View style={[s.cardArrow, { backgroundColor: '#E91E63' }]}>
+          <View style={[s.cardArrow, { backgroundColor: '#EF5350' }]}>
             <Text style={s.arrowTxt}>›</Text>
           </View>
         </TouchableOpacity>
 
-        {/* 루미와 대화 — 퍼플 */}
+        {/* 루미와 대화 — 연보라 */}
         <TouchableOpacity style={[s.card, s.cardPurple]}
           onPress={() => navigation.navigate('AIChat', { userId, name })}
           activeOpacity={0.88}>
-          <View style={[s.cardIcon, { backgroundColor: '#7B1FA2' }]}>
+          <View style={[s.cardIcon, { backgroundColor: '#8E24AA' }]}>
             <Text style={s.cardIconTxt}>💬</Text>
           </View>
           <View style={s.cardBody}>
             <Text style={s.cardLabel}>루미와 대화</Text>
             <Text style={s.cardDesc}>무엇이든{'\n'}물어보세요</Text>
           </View>
-          <View style={[s.cardArrow, { backgroundColor: '#7B1FA2' }]}>
+          <View style={[s.cardArrow, { backgroundColor: '#8E24AA' }]}>
             <Text style={s.arrowTxt}>›</Text>
           </View>
         </TouchableOpacity>
 
-        {/* 보호자 — 블루 */}
+        {/* 보호자 — 연파랑 */}
         <TouchableOpacity style={[s.card, s.cardBlue]}
           onPress={() => navigation.navigate('Guardian', { userId, name })}
           activeOpacity={0.88}>
-          <View style={[s.cardIcon, { backgroundColor: '#1976D2' }]}>
-            <Text style={s.cardIconTxt}>👨‍👩‍👧</Text>
+          <View style={[s.cardIcon, { backgroundColor: '#1E88E5' }]}>
+            <Text style={s.cardIconTxt}>👥</Text>
           </View>
           <View style={s.cardBody}>
             <Text style={s.cardLabel}>보호자</Text>
             <Text style={s.cardDesc}>가족에게{'\n'}알리기</Text>
           </View>
-          <View style={[s.cardArrow, { backgroundColor: '#1976D2' }]}>
+          <View style={[s.cardArrow, { backgroundColor: '#1E88E5' }]}>
             <Text style={s.arrowTxt}>›</Text>
           </View>
         </TouchableOpacity>
@@ -264,7 +264,7 @@ const s = StyleSheet.create({
               paddingHorizontal: 16, paddingBottom: 6 },
   heroLeft: { flex: 1, paddingRight: 4 },
 
-  greetMain: { fontSize: 22, fontWeight: '900', color: '#0D2340', lineHeight: 26, marginBottom: 4 },
+  greetMain: { fontSize: 19, fontWeight: '900', color: '#0D2340', lineHeight: 24, marginBottom: 4 },
   greetSub:  { fontSize: 12, color: '#2A5070', fontWeight: '500', lineHeight: 17, marginBottom: 8 },
 
   /* ── 병원 카드 ── */
@@ -282,7 +282,7 @@ const s = StyleSheet.create({
   hospLink:      { fontSize: 11, color: '#5580A0', fontWeight: '600', marginTop: 5 },
 
   /* ── 루미 ── */
-  lumiImg: { width: 138, height: 165, backgroundColor: 'transparent' },
+  lumiImg: { width: 152, height: 192, backgroundColor: 'transparent' },
 
   /* ── 2x2 카드 ── */
   cardGrid: {
@@ -297,9 +297,9 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
   cardDark:   { backgroundColor: '#1E2E40' },
-  cardPink:   { backgroundColor: '#FDE8EE' },
-  cardPurple: { backgroundColor: '#F3E5F5' },
-  cardBlue:   { backgroundColor: '#E3F2FD' },
+  cardSalmon: { backgroundColor: '#FFECE9' },
+  cardPurple: { backgroundColor: '#EEE4F9' },
+  cardBlue:   { backgroundColor: '#E5F0FA' },
 
   cardIcon:    { width: 40, height: 40, borderRadius: 20,
                  alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
