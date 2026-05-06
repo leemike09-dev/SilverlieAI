@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Share, Alert, Platform,
+  Share, Alert, TextInput,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,6 +27,7 @@ export default function GuardianScreen({ route, navigation }: any) {
   const [familyMembers,  setFamilyMembers]  = useState<any[]>([]);
   const [lastSentDate,   setLastSentDate]   = useState<string | null>(null);
   const [autoSentToday,  setAutoSentToday]  = useState(false);
+  const [hospitalMemo,   setHospitalMemo]   = useState('');
 
   const loadData = useCallback(async () => {
     const hs = await AsyncStorage.getItem('hospital_schedule');
@@ -40,6 +41,9 @@ export default function GuardianScreen({ route, navigation }: any) {
 
     const lastSent = await AsyncStorage.getItem('guardian_last_sent');
     setLastSentDate(lastSent);
+
+    const hm = await AsyncStorage.getItem('hospital_memo');
+    setHospitalMemo(hm || '');
 
     if (userId) {
       fetch(`${API_URL}/health/history/${userId}?days=1`)
@@ -119,12 +123,11 @@ export default function GuardianScreen({ route, navigation }: any) {
 
   return (
     <View style={s.root}>
-      <View style={[s.header, { paddingTop: Math.max(insets.top + 10, 24) }]}>
-        <Text style={s.headerTitle}>👨‍👩‍👧 보호자</Text>
-        <Text style={s.headerSub}>{name}님의 건강 현황</Text>
-      </View>
-
-      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={[s.scrollContent, { paddingTop: Math.max(insets.top + 16, 24) }]}
+        showsVerticalScrollIndicator={false}
+      >
 
         {/* 건강 수치 */}
         <View style={s.card}>
@@ -192,6 +195,20 @@ export default function GuardianScreen({ route, navigation }: any) {
           </View>
         ) : null}
 
+        {/* 병원 메모 */}
+        <View style={s.card}>
+          <Text style={s.cardTitle}>🏥 병원 메모</Text>
+          <TextInput
+            style={s.memoInput}
+            value={hospitalMemo}
+            onChangeText={setHospitalMemo}
+            onBlur={() => AsyncStorage.setItem('hospital_memo', hospitalMemo)}
+            placeholder="병원 방문 시 참고할 메모를 적어두세요"
+            placeholderTextColor="#bdbdbd"
+            multiline
+          />
+        </View>
+
         {/* 동선 */}
         <TouchableOpacity
           style={s.card}
@@ -215,17 +232,19 @@ export default function GuardianScreen({ route, navigation }: any) {
           </View>
         )}
 
-        {/* 마지막 발송 */}
-        {lastSentDate && (
-          <Text style={s.lastSentTxt}>
-            마지막 발송: {fmtDate(lastSentDate)}
-          </Text>
-        )}
 
-        {/* 발송 버튼 */}
-        <TouchableOpacity style={s.shareBtn} onPress={() => handleShare(false)} activeOpacity={0.85}>
-          <Text style={s.shareBtnTxt}>📤 가족에게 전달하기</Text>
-          <Text style={s.shareBtnSub}>카카오톡 · 문자 · 앱 알림</Text>
+        {/* 가족 전달 카드 */}
+        <TouchableOpacity style={s.shareCard} onPress={() => handleShare(false)} activeOpacity={0.85}>
+          <View style={s.shareCardTop}>
+            <Text style={s.shareCardIcon}>📤</Text>
+            <View>
+              <Text style={s.shareCardTitle}>가족에게 전달하기</Text>
+              <Text style={s.shareCardSub}>카카오톡 · 문자 · 앱 알림</Text>
+            </View>
+          </View>
+          {lastSentDate && (
+            <Text style={s.shareCardLast}>마지막 발송: {fmtDate(lastSentDate)}</Text>
+          )}
         </TouchableOpacity>
 
         <View style={{ height: 20 }} />
@@ -237,19 +256,15 @@ export default function GuardianScreen({ route, navigation }: any) {
 }
 
 const s = StyleSheet.create({
-  root:    { flex: 1, backgroundColor: '#F0F2F7' },
-  header:  { backgroundColor: '#fff', paddingHorizontal: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#1a2a3a' },
-  headerSub:   { fontSize: 15, color: '#90a4ae', marginTop: 2 },
-
+  root:          { flex: 1, backgroundColor: '#fff' },
   scroll:        { flex: 1 },
-  scrollContent: { padding: 16, gap: 12 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 16, gap: 0 },
 
-  card:      { backgroundColor: '#fff', borderRadius: 16, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#1a2a3a', marginBottom: 12 },
+  card:      { backgroundColor: '#fff', paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: '#1a2a3a', marginBottom: 10 },
 
   gridRow:  { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  statBox:  { backgroundColor: '#f0f4ff', borderRadius: 12, padding: 12, minWidth: 90, alignItems: 'center' },
+  statBox:  { backgroundColor: '#F3F6FF', borderRadius: 12, padding: 12, minWidth: 90, alignItems: 'center' },
   statVal:  { fontSize: 18, fontWeight: '800', color: '#1a5fbc' },
   statLbl:  { fontSize: 12, color: '#90a4ae', marginTop: 2 },
 
@@ -260,17 +275,21 @@ const s = StyleSheet.create({
   hospDept: { fontSize: 14, color: '#5c6bc0', marginTop: 2 },
   hospNote: { fontSize: 13, color: '#90a4ae', marginTop: 4 },
 
-  memoTxt:  { fontSize: 15, color: '#374151', lineHeight: 22 },
-  linkTxt:  { fontSize: 15, color: '#1a5fbc', fontWeight: '600' },
-  emptyTxt: { fontSize: 14, color: '#bdbdbd' },
+  memoTxt:   { fontSize: 15, color: '#374151', lineHeight: 22 },
+  memoInput: { fontSize: 15, color: '#374151', lineHeight: 22, minHeight: 70,
+               backgroundColor: '#F8F9FA', borderRadius: 10, padding: 12,
+               textAlignVertical: 'top' },
+  linkTxt:   { fontSize: 15, color: '#1a5fbc', fontWeight: '600' },
+  emptyTxt:  { fontSize: 14, color: '#bdbdbd' },
 
   memberRow:      { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   memberName:     { fontSize: 15, fontWeight: '600', color: '#1a2a3a' },
   memberRelation: { fontSize: 14, color: '#90a4ae' },
 
-  lastSentTxt: { textAlign: 'center', fontSize: 13, color: '#bdbdbd' },
-
-  shareBtn:    { backgroundColor: '#1a5fbc', borderRadius: 16, padding: 18, alignItems: 'center', marginTop: 4 },
-  shareBtnTxt: { fontSize: 18, fontWeight: '800', color: '#fff' },
-  shareBtnSub: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 4 },
+  shareCard:     { backgroundColor: '#1a5fbc', borderRadius: 18, padding: 20, marginTop: 16 },
+  shareCardTop:  { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  shareCardIcon: { fontSize: 32 },
+  shareCardTitle:{ fontSize: 18, fontWeight: '800', color: '#fff' },
+  shareCardSub:  { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  shareCardLast: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 12, textAlign: 'right' },
 });
