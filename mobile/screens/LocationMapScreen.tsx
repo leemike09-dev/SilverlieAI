@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,41 +6,49 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const BACKEND = 'https://silverlieai.onrender.com';
 
 const C = {
-  bg:    '#FDFAF6', card:  '#FFFFFF', sage:  '#6BAE8F',
-  peach: '#F4956A', red:   '#E05C5C', text:  '#2C2C2C',
-  sub:   '#8A8A8A', line:  '#F0EDE8', sky:   '#6BA8C8',
+  bg: '#FDFAF6', card: '#FFFFFF', sage: '#6BAE8F',
+  peach: '#F4956A', red: '#E05C5C', text: '#2C2C2C',
+  sub: '#6A6A6A', line: '#E8E4DF', sky: '#4A90C8', navy: '#1A4A8A',
 };
 
 export default function LocationMapScreen({ route, navigation }: any) {
-  const insets         = useSafeAreaInsets();
-  const logs           = route?.params?.logs       || [];
-  const seniorName     = route?.params?.seniorName || '';
-  const totalDist      = route?.params?.totalDist  || 0;
-  const userId         = route?.params?.userId     || '';
+  const insets          = useSafeAreaInsets();
+  const logs            = route?.params?.logs       || [];
+  const seniorName      = route?.params?.seniorName || '';
+  const totalDist       = route?.params?.totalDist  || 0;
+  const userId          = route?.params?.userId     || '';
+  const [fullscreen, setFullscreen] = useState(false);
 
-  const distStr        = totalDist >= 1000 ? `${(totalDist / 1000).toFixed(1)}km` : `${totalDist}m`;
-  const outdoorCount   = logs.filter((l: any) => l.activity === 'outdoor').length;
+  const distStr         = totalDist >= 1000 ? `${(totalDist / 1000).toFixed(1)}km` : `${totalDist}m`;
+  const outdoorCount    = logs.filter((l: any) => l.activity === 'outdoor').length;
   const currentActivity = logs.length > 0 ? logs[logs.length - 1].activity : 'unknown';
+  const isOutdoor       = currentActivity === 'outdoor';
 
   const mapUrl = `${BACKEND}/location/map/${userId}`;
 
   return (
     <View style={s.root}>
-      <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 24) }]}>
-        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={s.backTxt}>← 돌아가기</Text>
-        </TouchableOpacity>
-        <View style={s.headerCenter}>
-          <Text style={s.headerTitle}>📍 {seniorName}님 오늘 동선</Text>
-          <Text style={s.headerSub}>총 {distStr} 이동 · {logs.length}개 지점</Text>
+      {/* 헤더 */}
+      {!fullscreen && (
+        <View style={[s.header, { paddingTop: Math.max(insets.top + 6, 20) }]}>
+          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
+            <Text style={s.backTxt}>← 뒤로</Text>
+          </TouchableOpacity>
+          <View style={s.headerCenter}>
+            <Text style={s.headerTitle} numberOfLines={1}>📍 {seniorName}님 오늘 동선</Text>
+            <Text style={s.headerSub}>
+              {distStr} 이동 · {logs.length}개 지점
+            </Text>
+          </View>
+          <View style={[s.statusChip, { backgroundColor: isOutdoor ? '#FFF0E8' : '#EBF7F1' }]}>
+            <Text style={[s.statusTxt, { color: isOutdoor ? C.peach : C.sage }]}>
+              {isOutdoor ? '🚶 외출 중' : '🏡 귀가'}
+            </Text>
+          </View>
         </View>
-        <View style={s.statusBadge}>
-          <Text style={[s.statusTxt, { color: currentActivity === 'outdoor' ? C.peach : C.sage }]}>
-            {currentActivity === 'outdoor' ? '🚶 외출' : '🏡 귀가'}
-          </Text>
-        </View>
-      </View>
+      )}
 
+      {/* 지도 */}
       <View style={{ flex: 1 }}>
         <WebView
           source={{ uri: mapUrl }}
@@ -49,64 +57,83 @@ export default function LocationMapScreen({ route, navigation }: any) {
           domStorageEnabled
           originWhitelist={['*']}
         />
+        {/* 전체화면 토글 버튼 */}
+        <TouchableOpacity
+          style={[s.fullBtn, fullscreen && { top: Math.max(insets.top + 12, 24) }]}
+          onPress={() => setFullscreen(v => !v)}
+        >
+          <Text style={s.fullBtnTxt}>{fullscreen ? '⊠ 축소' : '⊞ 전체화면'}</Text>
+        </TouchableOpacity>
       </View>
 
-      <View style={s.statsBar}>
-        <View style={s.statItem}>
-          <Text style={s.statVal}>{distStr}</Text>
-          <Text style={s.statLbl}>총 이동거리</Text>
-        </View>
-        <View style={s.statDiv} />
-        <View style={s.statItem}>
-          <Text style={s.statVal}>{logs.length}곳</Text>
-          <Text style={s.statLbl}>방문 지점</Text>
-        </View>
-        <View style={s.statDiv} />
-        <View style={s.statItem}>
-          <Text style={s.statVal}>{outdoorCount}회</Text>
-          <Text style={s.statLbl}>외출 횟수</Text>
-        </View>
-      </View>
-
-      <View style={s.legend}>
-        {[
-          { color: C.sage,  label: '🏡 집 근처' },
-          { color: C.peach, label: '🚶 외출 중' },
-          { color: C.red,   label: '📍 현재 위치' },
-        ].map(item => (
-          <View key={item.label} style={s.legendItem}>
-            <View style={[s.legendDot, { backgroundColor: item.color }]} />
-            <Text style={s.legendTxt}>{item.label}</Text>
+      {/* 통계바 */}
+      {!fullscreen && (
+        <>
+          <View style={s.statsBar}>
+            {[
+              { val: distStr,           lbl: '총 이동거리', color: C.navy },
+              { val: `${logs.length}곳`, lbl: '방문 지점',  color: C.sage },
+              { val: `${outdoorCount}회`, lbl: '외출 횟수', color: C.peach },
+            ].map((item, i, arr) => (
+              <React.Fragment key={item.lbl}>
+                <View style={s.statItem}>
+                  <Text style={[s.statVal, { color: item.color }]}>{item.val}</Text>
+                  <Text style={s.statLbl}>{item.lbl}</Text>
+                </View>
+                {i < arr.length - 1 && <View style={s.statDiv} />}
+              </React.Fragment>
+            ))}
           </View>
-        ))}
-      </View>
+
+          <View style={[s.legend, { paddingBottom: Math.max(insets.bottom + 8, 14) }]}>
+            {[
+              { color: C.sage,  label: '🏡 집 근처' },
+              { color: C.peach, label: '🚶 외출 중' },
+              { color: C.red,   label: '📍 현재 위치' },
+            ].map(item => (
+              <View key={item.label} style={s.legendItem}>
+                <View style={[s.legendDot, { backgroundColor: item.color }]} />
+                <Text style={s.legendTxt}>{item.label}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  root:         { flex: 1, backgroundColor: C.bg },
-  header:       { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14,
-                  paddingBottom: 8, backgroundColor: C.card,
-                  borderBottomWidth: 1, borderBottomColor: C.line, gap: 8 },
-  backBtn:      { paddingVertical: 6, paddingHorizontal: 10 },
-  backTxt:      { fontSize: 20, color: C.sky, fontWeight: '700' },
-  headerCenter: { flex: 1 },
-  headerTitle:  { fontSize: 22, fontWeight: '900', color: C.text },
-  headerSub:    { fontSize: 16, color: C.sub, marginTop: 3 },
-  statusBadge:  { backgroundColor: C.bg, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6 },
-  statusTxt:    { fontSize: 20, fontWeight: '800' },
-  statsBar:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around',
-                  backgroundColor: C.card, paddingVertical: 14,
-                  borderTopWidth: 1, borderTopColor: C.line },
-  statItem:     { alignItems: 'center', gap: 4 },
-  statVal:      { fontSize: 28, fontWeight: '900', color: C.text },
-  statLbl:      { fontSize: 16, color: C.sub },
-  statDiv:      { width: 1, height: 40, backgroundColor: C.line },
-  legend:       { flexDirection: 'row', justifyContent: 'center', gap: 20,
-                  backgroundColor: C.card, paddingVertical: 12,
-                  borderTopWidth: 1, borderTopColor: C.line },
-  legendItem:   { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  legendDot:    { width: 14, height: 14, borderRadius: 7 },
-  legendTxt:    { fontSize: 20, color: C.sub, fontWeight: '600' },
+  root:        { flex: 1, backgroundColor: '#000' },
+
+  header:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12,
+                 paddingBottom: 10, backgroundColor: C.card, gap: 8,
+                 borderBottomWidth: 1.5, borderBottomColor: C.line },
+  backBtn:     { paddingVertical: 6, paddingHorizontal: 8 },
+  backTxt:     { fontSize: 17, color: C.sky, fontWeight: '700' },
+  headerCenter:{ flex: 1 },
+  headerTitle: { fontSize: 17, fontWeight: '900', color: C.text },
+  headerSub:   { fontSize: 13, color: C.sub, marginTop: 2 },
+  statusChip:  { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
+  statusTxt:   { fontSize: 14, fontWeight: '800' },
+
+  fullBtn:     { position: 'absolute', bottom: 16, right: 14,
+                 backgroundColor: 'rgba(0,0,0,0.62)', borderRadius: 20,
+                 paddingHorizontal: 14, paddingVertical: 8 },
+  fullBtnTxt:  { color: '#fff', fontSize: 14, fontWeight: '700' },
+
+  statsBar:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around',
+                 backgroundColor: C.card, paddingVertical: 16,
+                 borderTopWidth: 1.5, borderTopColor: C.line },
+  statItem:    { alignItems: 'center', gap: 4, flex: 1 },
+  statVal:     { fontSize: 26, fontWeight: '900' },
+  statLbl:     { fontSize: 13, color: C.sub, fontWeight: '600' },
+  statDiv:     { width: 1.5, height: 44, backgroundColor: C.line },
+
+  legend:      { flexDirection: 'row', justifyContent: 'center', gap: 18,
+                 backgroundColor: C.card, paddingVertical: 10,
+                 borderTopWidth: 1, borderTopColor: C.line },
+  legendItem:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot:   { width: 12, height: 12, borderRadius: 6 },
+  legendTxt:   { fontSize: 13, color: C.sub, fontWeight: '600' },
 });
