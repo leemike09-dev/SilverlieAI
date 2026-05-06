@@ -48,6 +48,6 @@ def root():
         from app.database import get_supabase
         get_supabase().table("users").select("id").limit(1).execute()
         db_status = "ok"
-    except Exception as e:
-        db_status = f"unavailable: {str(e)}"
+    except Exception:
+        db_status = "unavailable"
     return {"status": "ok", "message": "Silver Life AI API", "db": db_status}
