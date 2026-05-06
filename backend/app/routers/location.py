@@ -144,8 +144,14 @@ def get_map_page(user_id: str):
         polyline = new kakao.maps.Polyline({{map:map,path:path,strokeWeight:5,strokeColor:'#6BAE8F',strokeOpacity:0.85,strokeStyle:'dashed'}});
         var bounds = new kakao.maps.LatLngBounds();
         path.forEach(function(p) {{ bounds.extend(p); }});
-        map.setBounds(bounds, {{paddingTop:60,paddingBottom:60,paddingLeft:40,paddingRight:40}});
-        if (map.getLevel() < 3) map.setLevel(3);
+        var sw = bounds.getSouthWest(), ne = bounds.getNorthEast();
+        var span = Math.abs(ne.getLat()-sw.getLat()) + Math.abs(ne.getLng()-sw.getLng());
+        if (span < 0.001) {{
+          map.setCenter(latest); map.setLevel(4);
+        }} else {{
+          map.setBounds(bounds, 60, 40, 60, 40);
+          if (isNaN(map.getLevel()) || map.getLevel() < 3) map.setLevel(3);
+        }}
       }} else {{
         map.setCenter(latest);
         map.setLevel(3);
