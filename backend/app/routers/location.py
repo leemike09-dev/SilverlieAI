@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import Optional
 from app.database import get_supabase
-from datetime import datetime, date, timezone
+from datetime import date
 import math, json
 
 router = APIRouter()
@@ -16,7 +16,6 @@ class LocationUpdate(BaseModel):
     activity: Optional[str] = "unknown"
 
 def haversine(lat1, lng1, lat2, lng2):
-    """두 좌표 간 거리 계산 (미터)"""
     R = 6371000
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
@@ -26,63 +25,49 @@ def haversine(lat1, lng1, lat2, lng2):
 
 @router.post("/update")
 def update_location(req: LocationUpdate):
-    db = get_supabase()
-    today = date.today().isoformat()
+    try:
+        db = get_supabase()
+        today = date.today().isoformat()
 
-    # 오늘 첫 위치 (기준점 = 집)
-    first = db.table("location_logs")\
-        .select("*")\
-        .eq("user_id", req.user_id)\
-        .gte("created_at", f"{today}T00:00:00")\
-        .order("created_at")\
-        .limit(1)\
-        .execute()
+        first_res = db.rpc("get_first_location_log_today", {"p_user_id": req.user_id, "p_today": today}).execute()
+        last_res  = db.rpc("get_last_location_log",        {"p_user_id": req.user_id}).execute()
 
-    # 직전 위치와 비교해 중복 저장 방지 (50m 이내면 스킵)
-    last = db.table("location_logs")\
-        .select("*")\
-        .eq("user_id", req.user_id)\
-        .order("created_at", desc=True)\
-        .limit(1)\
-        .execute()
+        first = first_res.data
+        last  = last_res.data
 
-    if last.data:
-        prev = last.data[0]
-        dist = haversine(prev["lat"], prev["lng"], req.lat, req.lng)
-        if dist < 50:
-            return {"ok": True, "skipped": True, "reason": "50m 이내 중복"}
+        if last:
+            dist = haversine(last["lat"], last["lng"], req.lat, req.lng)
+            if dist < 50:
+                return {"ok": True, "skipped": True, "reason": "50m 이내 중복"}
 
-    # activity 자동 판별: 첫 위치(집)에서 200m 초과 = outdoor
-    activity = req.activity
-    if first.data and activity == "unknown":
-        home = first.data[0]
-        dist_from_home = haversine(home["lat"], home["lng"], req.lat, req.lng)
-        activity = "outdoor" if dist_from_home > 200 else "home"
-    elif not first.data:
-        activity = "home"
+        activity = req.activity
+        if first and activity == "unknown":
+            dist_from_home = haversine(first["lat"], first["lng"], req.lat, req.lng)
+            activity = "outdoor" if dist_from_home > 200 else "home"
+        elif not first:
+            activity = "home"
 
-    db.table("location_logs").insert({
-        "user_id":   req.user_id,
-        "lat":       req.lat,
-        "lng":       req.lng,
-        "address":   req.address or "",
-        "activity":  activity,
-    }).execute()
+        db.rpc("insert_location_log", {
+            "p_user_id":  req.user_id,
+            "p_lat":      req.lat,
+            "p_lng":      req.lng,
+            "p_address":  req.address or "",
+            "p_activity": activity,
+        }).execute()
 
-    return {"ok": True, "activity": activity}
+        return {"ok": True, "activity": activity}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 @router.get("/map/{user_id}", response_class=HTMLResponse)
 def get_map_page(user_id: str):
     try:
         db = get_supabase()
         today = date.today().isoformat()
-        rows = db.table("location_logs")\
-            .select("lat,lng,activity,created_at,address")\
-            .eq("user_id", user_id)\
-            .gte("created_at", f"{today}T00:00:00")\
-            .order("created_at")\
-            .execute()
-        logs = rows.data or []
+        res = db.rpc("get_location_logs_today", {"p_user_id": user_id, "p_today": today}).execute()
+        logs = res.data or []
+        if isinstance(logs, str):
+            logs = json.loads(logs)
     except Exception:
         logs = []
     logs_json = json.dumps(logs, ensure_ascii=False)
@@ -101,7 +86,7 @@ def get_map_page(user_id: str):
 </head>
 <body>
   <div id="map"></div>
-  <button id="refreshBtn" onclick="refresh()">↻ 새로고침</button>
+  <button id="refreshBtn" onclick="doRefresh()">↻ 새로고침</button>
   <script>var LOGS = {logs_json};</script>
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=ad583612ca60b68929dc66eeb5615287"></script>
   <script>
@@ -144,7 +129,7 @@ def get_map_page(user_id: str):
       map.panTo(new kakao.maps.LatLng(latest.lat, latest.lng));
     }}
 
-    function refresh() {{
+    function doRefresh() {{
       fetch('/location/today/{user_id}')
         .then(function(r) {{ return r.json(); }})
         .then(function(d) {{ renderLogs(d.logs); }})
@@ -152,7 +137,7 @@ def get_map_page(user_id: str):
     }}
 
     renderLogs(LOGS);
-    setInterval(refresh, 30000);
+    setInterval(doRefresh, 30000);
   </script>
 </body>
 </html>"""
@@ -164,19 +149,13 @@ def get_today_location(user_id: str):
     try:
         db = get_supabase()
         today = date.today().isoformat()
-
-        rows = db.table("location_logs")\
-            .select("*")\
-            .eq("user_id", user_id)\
-            .gte("created_at", f"{today}T00:00:00")\
-            .order("created_at")\
-            .execute()
+        res = db.rpc("get_location_logs_today", {"p_user_id": user_id, "p_today": today}).execute()
+        logs = res.data or []
+        if isinstance(logs, str):
+            logs = json.loads(logs)
     except Exception as e:
         return {"logs": [], "total_distance_m": 0, "current_activity": "unknown", "point_count": 0, "error": str(e)}
 
-    logs = rows.data or []
-
-    # 총 이동 거리 계산
     total_dist = 0
     for i in range(1, len(logs)):
         total_dist += haversine(
@@ -184,7 +163,6 @@ def get_today_location(user_id: str):
             logs[i]["lat"],   logs[i]["lng"]
         )
 
-    # 현재 상태
     current_activity = logs[-1]["activity"] if logs else "unknown"
 
     return {
