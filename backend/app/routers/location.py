@@ -95,20 +95,19 @@ def get_map_page(user_id: str):
 </head>
 <body>
   <div id="map"></div>
+  <script>var LOGS = {logs_json};</script>
+  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=ad583612ca60b68929dc66eeb5615287"></script>
   <script>
-    var LOGS = {logs_json};
-    function initMap() {{
-      var center = LOGS.length > 0
-        ? new kakao.maps.LatLng(LOGS[0].lat, LOGS[0].lng)
-        : new kakao.maps.LatLng(37.5665, 126.9780);
-      var map = new kakao.maps.Map(document.getElementById('map'), {{center: center, level: 4}});
-      if (LOGS.length === 0) return;
+    var center = LOGS.length > 0
+      ? new kakao.maps.LatLng(LOGS[0].lat, LOGS[0].lng)
+      : new kakao.maps.LatLng(37.5665, 126.9780);
+    var map = new kakao.maps.Map(document.getElementById('map'), {{center: center, level: 4}});
+    if (LOGS.length > 0) {{
       var bounds = new kakao.maps.LatLngBounds();
       var path = [];
       LOGS.forEach(function(log, i) {{
         var pos = new kakao.maps.LatLng(log.lat, log.lng);
-        path.push(pos);
-        bounds.extend(pos);
+        path.push(pos); bounds.extend(pos);
         var emoji = i === 0 ? '🏡' : i === LOGS.length - 1 ? '📍' : '🚶';
         var marker = new kakao.maps.Marker({{position: pos, map: map}});
         var t = new Date(log.created_at);
@@ -121,13 +120,9 @@ def get_map_page(user_id: str):
       if (path.length > 1) {{
         new kakao.maps.Polyline({{map:map, path:path, strokeWeight:5, strokeColor:'#6BAE8F', strokeOpacity:0.85, strokeStyle:'dashed'}});
         map.setBounds(bounds, {{paddingTop:40,paddingBottom:40,paddingLeft:40,paddingRight:40}});
-      }} else {{
-        map.setCenter(path[0]);
-        map.setLevel(3);
-      }}
+      }} else {{ map.setCenter(path[0]); map.setLevel(3); }}
     }}
   </script>
-  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=ad583612ca60b68929dc66eeb5615287&onload=initMap"></script>
 </body>
 </html>"""
     return HTMLResponse(content=html)
