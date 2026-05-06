@@ -88,7 +88,7 @@ export default function LocationMapScreen({ route, navigation }: any) {
 
       <View style={{ flex: 1 }}>
         <WebView
-          source={{ html: mapHtml, baseUrl: 'https://leemike09-dev.github.io' }}
+          source={{ html: mapHtml, baseUrl: 'http://localhost' }}
           style={{ flex: 1 }}
           javaScriptEnabled
           domStorageEnabled
