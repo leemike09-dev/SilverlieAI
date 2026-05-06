@@ -83,8 +83,8 @@ def get_map_page(user_id: str):
             .order("created_at")\
             .execute()
         logs = rows.data or []
-    except Exception as e:
-        return HTMLResponse(content=f"<pre>DB Error: {e}</pre>", status_code=200)
+    except Exception:
+        logs = []
     logs_json = json.dumps(logs, ensure_ascii=False)
     html = f"""<!DOCTYPE html>
 <html>
