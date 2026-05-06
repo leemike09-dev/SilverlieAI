@@ -391,6 +391,11 @@ export default function SettingsScreen({ route, navigation }: Props) {
           )}
         </View>
 
+        <Text style={s.agreeText}>
+          로그인 시{' '}
+          <Text style={s.agreeLink} onPress={() => setTermsModal(true)}>서비스 이용약관</Text>
+          {' '}및 개인정보 처리방침에{'\n'}동의한 것으로 간주됩니다.
+        </Text>
         <Text style={s.versionText}>Silver Life AI v0.1.0</Text>
       </ScrollView>
 
@@ -471,7 +476,9 @@ const s = StyleSheet.create({
   connectBtnTxt:    { fontSize: 15, fontWeight: '700', color: '#fff' },
   connectResult:    { fontSize: 14, color: C.green, marginTop: 10, fontWeight: '600' },
 
-  versionText: { textAlign: 'center', color: '#C5C9E8', fontSize: 14, marginTop: 24, marginBottom: 8 },
+  agreeText:   { textAlign: 'center', color: C.sub, fontSize: 12, lineHeight: 18, marginTop: 24, marginHorizontal: 20 },
+  agreeLink:   { color: C.indigo, textDecorationLine: 'underline' },
+  versionText: { textAlign: 'center', color: '#C5C9E8', fontSize: 13, marginTop: 8, marginBottom: 8 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalBox:     { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
