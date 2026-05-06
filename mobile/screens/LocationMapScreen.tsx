@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,35 +9,65 @@ const C = {
   sub:   '#8A8A8A', line:  '#F0EDE8', sky:   '#6BA8C8',
 };
 
-const KAKAO_MAP_URL = 'https://leemike09-dev.github.io/SilverlieAI/kakao-map.html';
+const KAKAO_APP_KEY = 'ad583612ca60b68929dc66eeb5615287';
+
+const buildMapHtml = (logsJson: string) => `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1.0,user-scalable=yes">
+  <style>* { margin:0; padding:0; box-sizing:border-box; } html,body,#map { width:100%; height:100%; }</style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    function loadMap() {
+      var map = new kakao.maps.Map(document.getElementById('map'), {
+        center: new kakao.maps.LatLng(37.5665, 126.9780), level: 4
+      });
+      var logs = ${logsJson};
+      if (!logs || logs.length === 0) return;
+      var bounds = new kakao.maps.LatLngBounds();
+      var path = [];
+      logs.forEach(function(log, i) {
+        var pos = new kakao.maps.LatLng(log.lat, log.lng);
+        path.push(pos); bounds.extend(pos);
+        var emoji = i === 0 ? '🏡' : i === logs.length - 1 ? '📍' : '🚶';
+        var marker = new kakao.maps.Marker({ position: pos, map: map });
+        var t = new Date(log.created_at);
+        var ts = String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
+        var content = '<div style="padding:6px 10px;font-size:14px;white-space:nowrap;">' + emoji + ' ' + ts
+          + (log.address ? '<br><span style="color:#666;font-size:12px;">' + log.address + '</span>' : '') + '</div>';
+        var iw = new kakao.maps.InfoWindow({ content: content });
+        kakao.maps.event.addListener(marker, 'click', function() { iw.open(map, marker); });
+      });
+      if (path.length > 1) {
+        new kakao.maps.Polyline({ map: map, path: path, strokeWeight: 5, strokeColor: '#6BAE8F', strokeOpacity: 0.85, strokeStyle: 'dashed' });
+        map.setBounds(bounds, { paddingTop:40, paddingBottom:40, paddingLeft:40, paddingRight:40 });
+      } else { map.setCenter(path[0]); map.setLevel(3); }
+    }
+  </script>
+  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_APP_KEY}&onload=loadMap"></script>
+</body>
+</html>`;
 
 export default function LocationMapScreen({ route, navigation }: any) {
   const insets     = useSafeAreaInsets();
   const logs       = route?.params?.logs       || [];
   const seniorName = route?.params?.seniorName || '';
   const totalDist  = route?.params?.totalDist  || 0;
-  const webViewRef = useRef<WebView>(null);
 
   const distStr      = totalDist >= 1000 ? `${(totalDist / 1000).toFixed(1)}km` : `${totalDist}m`;
   const outdoorCount = logs.filter((l: any) => l.activity === 'outdoor').length;
   const currentActivity = logs.length > 0 ? logs[logs.length - 1].activity : 'unknown';
 
-  const safeLogsJson = useMemo(() => {
+  const mapHtml = useMemo(() => {
     const safe = logs.map((l: any) => ({
-      lat: l.lat,
-      lng: l.lng,
-      activity: l.activity,
-      created_at: l.created_at,
-      address: l.address || '',
+      lat: l.lat, lng: l.lng, activity: l.activity,
+      created_at: l.created_at, address: l.address || '',
     }));
-    return JSON.stringify(safe);
+    return buildMapHtml(JSON.stringify(safe));
   }, [logs]);
-
-  const handleLoadEnd = () => {
-    webViewRef.current?.injectJavaScript(
-      `window.initMap(${safeLogsJson}); true;`
-    );
-  };
 
   return (
     <View style={s.root}>
@@ -58,13 +88,12 @@ export default function LocationMapScreen({ route, navigation }: any) {
 
       <View style={{ flex: 1 }}>
         <WebView
-          ref={webViewRef}
-          source={{ uri: KAKAO_MAP_URL }}
+          source={{ html: mapHtml, baseUrl: 'https://leemike09-dev.github.io' }}
           style={{ flex: 1 }}
           javaScriptEnabled
           domStorageEnabled
           originWhitelist={['*']}
-          onLoadEnd={handleLoadEnd}
+          mixedContentMode="always"
         />
       </View>
 
