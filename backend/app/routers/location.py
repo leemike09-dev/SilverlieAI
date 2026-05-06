@@ -91,7 +91,7 @@ def get_map_page(user_id: str):
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="initial-scale=1.0,user-scalable=yes">
-  <style>*{{margin:0;padding:0;box-sizing:border-box}}html,body,#map{{width:100%;height:100%}}</style>
+  <style>*{{margin:0;padding:0}}html,body{{width:100%;height:100%}}#map{{width:100%;height:100vh}}</style>
 </head>
 <body>
   <div id="map"></div>
