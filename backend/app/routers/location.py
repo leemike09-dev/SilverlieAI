@@ -119,6 +119,11 @@ def get_map_page(user_id: str):
       if (polyline) {{ polyline.setMap(null); polyline = null; }}
     }}
 
+    function makeIcon(color) {{
+      var svg = encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="13" cy="13" r="11" fill="' + color + '" stroke="white" stroke-width="2.5"/></svg>');
+      return new kakao.maps.MarkerImage('data:image/svg+xml;charset=utf-8,' + svg, new kakao.maps.Size(26, 26), {{offset: new kakao.maps.Point(13, 13)}});
+    }}
+
     function renderLogs(logs) {{
       clearMap();
       if (!logs || logs.length === 0) return;
@@ -129,7 +134,8 @@ def get_map_page(user_id: str):
         var pos = new kakao.maps.LatLng(lat, lng);
         path.push(pos);
         var emoji = i === 0 ? '🏡' : i === logs.length - 1 ? '📍' : '🚶';
-        var marker = new kakao.maps.Marker({{position: pos, map: map}});
+        var color = i === 0 ? '#6BAE8F' : i === logs.length - 1 ? '#E05C5C' : '#F4956A';
+        var marker = new kakao.maps.Marker({{position: pos, map: map, image: makeIcon(color)}});
         markers.push(marker);
         var t = new Date(log.created_at);
         var ts = String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
