@@ -34,6 +34,9 @@ module.exports = {
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
         "android.permission.POST_NOTIFICATIONS",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
       ],
       intentFilters: [
         {
@@ -75,6 +78,14 @@ module.exports = {
         "expo-sensors",
         {
           motionPermission: "걸음수 자동 측정을 위해 신체 활동 접근 권한이 필요합니다.",
+        },
+      ],
+      [
+        "expo-location",
+        {
+          locationAlwaysAndWhenInUsePermission: "어르신의 실시간 위치를 확인하고 안전을 지키기 위해 위치 접근 권한이 필요합니다.",
+          locationAlwaysPermission: "어르신의 위치를 지속적으로 기록하기 위해 백그라운드 위치 접근 권한이 필요합니다.",
+          locationWhenInUsePermission: "어르신의 현재 위치를 확인하기 위해 위치 접근 권한이 필요합니다.",
         },
       ],
       [

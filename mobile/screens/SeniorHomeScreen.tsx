@@ -8,6 +8,7 @@ import { speak, stopSpeech } from '../utils/speech';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import SeniorTabBar from '../components/SeniorTabBar';
+import * as Location from 'expo-location';
 
 const API      = 'https://silverlieai.onrender.com';
 const { width } = Dimensions.get('window');
@@ -19,7 +20,32 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
   const [userId, setUserId] = useState<string>(route?.params?.userId || '');
   const [name,   setName]   = useState<string>(route?.params?.name   || '');
-  const ttsDoneRef = useRef(false);
+  const ttsDoneRef  = useRef(false);
+  const locationRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const sendLocation = async (uid: string) => {
+    try {
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      await fetch(`${API}/location/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id:  uid,
+          lat:      pos.coords.latitude,
+          lng:      pos.coords.longitude,
+          activity: 'unknown',
+        }),
+      });
+    } catch {}
+  };
+
+  const startLocationTracking = async (uid: string) => {
+    if (!uid || uid === 'guest') return;
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') return;
+    sendLocation(uid);
+    locationRef.current = setInterval(() => sendLocation(uid), 5 * 60 * 1000);
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -28,6 +54,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       if (storedId)   setUserId(storedId);
       if (storedName) setName(storedName);
       if (storedId) fetchLatest(storedId);
+      startLocationTracking(storedId);
       // 만보계 안내 팝업 — 최초 1회만
       if (Platform.OS !== 'web') {
         const asked = await AsyncStorage.getItem('pedometer_asked');
@@ -54,7 +81,10 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       }
     };
     init();
-    return () => stopSpeech();
+    return () => {
+      stopSpeech();
+      if (locationRef.current) clearInterval(locationRef.current);
+    };
   }, []);
 
   const fetchLatest = async (uid: string) => {

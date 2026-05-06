@@ -59,10 +59,10 @@ export default function LocationMapScreen({ route, navigation }: any) {
         />
         {/* 전체화면 토글 버튼 */}
         <TouchableOpacity
-          style={[s.fullBtn, fullscreen && { top: Math.max(insets.top + 12, 24) }]}
+          style={[s.fullBtn, fullscreen && { top: Math.max(insets.top + 10, 20), bottom: undefined }]}
           onPress={() => setFullscreen(v => !v)}
         >
-          <Text style={s.fullBtnTxt}>{fullscreen ? '⊠ 축소' : '⊞ 전체화면'}</Text>
+          <Text style={s.fullBtnTxt}>{fullscreen ? '✕' : '⛶'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -118,9 +118,10 @@ const s = StyleSheet.create({
   statusTxt:   { fontSize: 14, fontWeight: '800' },
 
   fullBtn:     { position: 'absolute', bottom: 16, right: 14,
-                 backgroundColor: 'rgba(0,0,0,0.62)', borderRadius: 20,
-                 paddingHorizontal: 14, paddingVertical: 8 },
-  fullBtnTxt:  { color: '#fff', fontSize: 14, fontWeight: '700' },
+                 width: 40, height: 40,
+                 backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20,
+                 alignItems: 'center', justifyContent: 'center' },
+  fullBtnTxt:  { color: '#fff', fontSize: 18, lineHeight: 22 },
 
   statsBar:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around',
                  backgroundColor: C.card, paddingVertical: 16,
