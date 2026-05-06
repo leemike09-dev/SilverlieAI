@@ -44,7 +44,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') return;
     sendLocation(uid);
-    locationRef.current = setInterval(() => sendLocation(uid), 5 * 60 * 1000);
+    locationRef.current = setInterval(() => sendLocation(uid), 2 * 60 * 1000);
   };
 
   useEffect(() => {

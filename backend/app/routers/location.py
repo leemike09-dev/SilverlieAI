@@ -91,37 +91,65 @@ def get_map_page(user_id: str):
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="initial-scale=1.0,user-scalable=yes">
-  <style>*{{margin:0;padding:0}}html,body{{width:100%;height:100%}}#map{{width:100%;height:100vh}}</style>
+  <style>
+    *{{margin:0;padding:0}}html,body{{width:100%;height:100%}}
+    #map{{width:100%;height:100vh}}
+    #refreshBtn{{position:fixed;top:12px;right:12px;z-index:999;
+      background:rgba(0,0,0,0.55);color:#fff;border:none;border-radius:20px;
+      padding:7px 14px;font-size:13px;cursor:pointer}}
+  </style>
 </head>
 <body>
   <div id="map"></div>
+  <button id="refreshBtn" onclick="refresh()">↻ 새로고침</button>
   <script>var LOGS = {logs_json};</script>
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=ad583612ca60b68929dc66eeb5615287"></script>
   <script>
-    var center = LOGS.length > 0
+    var markers = [], polyline = null;
+    var initCenter = LOGS.length > 0
       ? new kakao.maps.LatLng(LOGS[0].lat, LOGS[0].lng)
       : new kakao.maps.LatLng(37.5665, 126.9780);
-    var map = new kakao.maps.Map(document.getElementById('map'), {{center: center, level: 4}});
-    if (LOGS.length > 0) {{
+    var map = new kakao.maps.Map(document.getElementById('map'), {{center: initCenter, level: 4}});
+
+    function clearMap() {{
+      markers.forEach(function(m) {{ m.setMap(null); }});
+      markers = [];
+      if (polyline) {{ polyline.setMap(null); polyline = null; }}
+    }}
+
+    function renderLogs(logs) {{
+      clearMap();
+      if (!logs || logs.length === 0) return;
       var bounds = new kakao.maps.LatLngBounds();
       var path = [];
-      LOGS.forEach(function(log, i) {{
+      logs.forEach(function(log, i) {{
         var pos = new kakao.maps.LatLng(log.lat, log.lng);
         path.push(pos); bounds.extend(pos);
-        var emoji = i === 0 ? '🏡' : i === LOGS.length - 1 ? '📍' : '🚶';
+        var emoji = i === 0 ? '🏡' : i === logs.length - 1 ? '📍' : '🚶';
         var marker = new kakao.maps.Marker({{position: pos, map: map}});
+        markers.push(marker);
         var t = new Date(log.created_at);
         var ts = String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0');
         var content = '<div style="padding:6px 10px;font-size:14px;white-space:nowrap">' + emoji + ' ' + ts
           + (log.address ? '<br><span style="color:#666;font-size:12px">' + log.address + '</span>' : '') + '</div>';
         var iw = new kakao.maps.InfoWindow({{content: content}});
-        kakao.maps.event.addListener(marker, 'click', function() {{ iw.open(map, marker); }});
+        (function(m, w) {{ kakao.maps.event.addListener(m, 'click', function() {{ w.open(map, m); }}); }})(marker, iw);
       }});
       if (path.length > 1) {{
-        new kakao.maps.Polyline({{map:map, path:path, strokeWeight:5, strokeColor:'#6BAE8F', strokeOpacity:0.85, strokeStyle:'dashed'}});
+        polyline = new kakao.maps.Polyline({{map:map,path:path,strokeWeight:5,strokeColor:'#6BAE8F',strokeOpacity:0.85,strokeStyle:'dashed'}});
         map.setBounds(bounds, {{paddingTop:40,paddingBottom:40,paddingLeft:40,paddingRight:40}});
       }} else {{ map.setCenter(path[0]); map.setLevel(3); }}
     }}
+
+    function refresh() {{
+      fetch('/location/today/{user_id}')
+        .then(function(r) {{ return r.json(); }})
+        .then(function(d) {{ renderLogs(d.logs); }})
+        .catch(function() {{}});
+    }}
+
+    renderLogs(LOGS);
+    setInterval(refresh, 30000);
   </script>
 </body>
 </html>"""
