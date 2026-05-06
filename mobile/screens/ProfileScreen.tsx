@@ -17,7 +17,6 @@ export default function ProfileScreen({ navigation, route }: any) {
   const [editMode, setEditMode] = useState(false);
   const [name,     setName]     = useState(paramName || '');
   const [phone,    setPhone]    = useState('');
-  const [email,    setEmail]    = useState('');
 
   useEffect(() => {
     AsyncStorage.getItem('userId').then(id => { if (id) setUserId(id); });
@@ -31,7 +30,6 @@ export default function ProfileScreen({ navigation, route }: any) {
       .then(d => {
         if (d.name)  setName(d.name);
         if (d.phone) setPhone(d.phone);
-        if (d.email) setEmail(d.email);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -93,11 +91,6 @@ export default function ProfileScreen({ navigation, route }: any) {
               <TextInput style={s.input} value={phone} onChangeText={setPhone}
                 placeholder="010-0000-0000" placeholderTextColor="#B0BEC5"
                 keyboardType="phone-pad" maxLength={15} />
-              <Text style={s.label}>이메일</Text>
-              <View style={s.inputReadOnly}>
-                <Text style={s.inputReadOnlyTxt}>{email || '—'}</Text>
-              </View>
-              <Text style={s.emailNote}>이메일은 로그인 계정으로 변경할 수 없습니다</Text>
             </View>
             <TouchableOpacity style={[s.saveBtn, saving && { opacity: 0.6 }]}
               onPress={handleSave} disabled={saving} activeOpacity={0.85}>
@@ -118,11 +111,6 @@ export default function ProfileScreen({ navigation, route }: any) {
               <View style={s.infoRow}>
                 <Text style={s.infoLabel}>전화번호</Text>
                 <Text style={s.infoValue}>{phone || '—'}</Text>
-              </View>
-              <View style={s.divider} />
-              <View style={s.infoRow}>
-                <Text style={s.infoLabel}>이메일</Text>
-                <Text style={s.infoValue}>{email || '—'}</Text>
               </View>
             </View>
 
@@ -195,8 +183,4 @@ const s = StyleSheet.create({
   },
   saveTxt: { color: '#fff', fontSize: 18, fontWeight: '800' },
 
-  inputReadOnly:    { backgroundColor: '#F0F0F0', borderRadius: 10, paddingHorizontal: 14,
-                      paddingVertical: 12, marginBottom: 8, borderWidth: 1, borderColor: '#E8E8E8' },
-  inputReadOnlyTxt: { fontSize: 17, color: '#90A4AE' },
-  emailNote:        { fontSize: 12, color: '#B0BEC5', marginBottom: 14 },
 });
