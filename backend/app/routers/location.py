@@ -2,9 +2,10 @@ from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import Optional
-from app.database import get_supabase
 from datetime import date
-import math, json
+import math, json, os
+import psycopg2
+import psycopg2.extras
 
 router = APIRouter()
 
@@ -14,6 +15,9 @@ class LocationUpdate(BaseModel):
     lng: float
     address: Optional[str] = None
     activity: Optional[str] = "unknown"
+
+def get_conn():
+    return psycopg2.connect(os.environ["DATABASE_URL"], sslmode="require")
 
 def haversine(lat1, lng1, lat2, lng2):
     R = 6371000
@@ -26,34 +30,38 @@ def haversine(lat1, lng1, lat2, lng2):
 @router.post("/update")
 def update_location(req: LocationUpdate):
     try:
-        db = get_supabase()
         today = date.today().isoformat()
+        with get_conn() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute(
+                    "SELECT lat, lng FROM location_logs WHERE user_id=%s AND created_at >= %s ORDER BY created_at LIMIT 1",
+                    (req.user_id, f"{today}T00:00:00")
+                )
+                first = cur.fetchone()
 
-        first_res = db.rpc("get_first_location_log_today", {"p_user_id": req.user_id, "p_today": today}).execute()
-        last_res  = db.rpc("get_last_location_log",        {"p_user_id": req.user_id}).execute()
+                cur.execute(
+                    "SELECT lat, lng FROM location_logs WHERE user_id=%s ORDER BY created_at DESC LIMIT 1",
+                    (req.user_id,)
+                )
+                last = cur.fetchone()
 
-        first = first_res.data
-        last  = last_res.data
+                if last:
+                    dist = haversine(last["lat"], last["lng"], req.lat, req.lng)
+                    if dist < 50:
+                        return {"ok": True, "skipped": True, "reason": "50m 이내 중복"}
 
-        if last:
-            dist = haversine(last["lat"], last["lng"], req.lat, req.lng)
-            if dist < 50:
-                return {"ok": True, "skipped": True, "reason": "50m 이내 중복"}
+                activity = req.activity
+                if first and activity == "unknown":
+                    dist_from_home = haversine(first["lat"], first["lng"], req.lat, req.lng)
+                    activity = "outdoor" if dist_from_home > 200 else "home"
+                elif not first:
+                    activity = "home"
 
-        activity = req.activity
-        if first and activity == "unknown":
-            dist_from_home = haversine(first["lat"], first["lng"], req.lat, req.lng)
-            activity = "outdoor" if dist_from_home > 200 else "home"
-        elif not first:
-            activity = "home"
-
-        db.rpc("insert_location_log", {
-            "p_user_id":  req.user_id,
-            "p_lat":      req.lat,
-            "p_lng":      req.lng,
-            "p_address":  req.address or "",
-            "p_activity": activity,
-        }).execute()
+                cur.execute(
+                    "INSERT INTO location_logs (user_id, lat, lng, address, activity) VALUES (%s, %s, %s, %s, %s)",
+                    (req.user_id, req.lat, req.lng, req.address or "", activity)
+                )
+                conn.commit()
 
         return {"ok": True, "activity": activity}
     except Exception as e:
@@ -62,14 +70,21 @@ def update_location(req: LocationUpdate):
 @router.get("/map/{user_id}", response_class=HTMLResponse)
 def get_map_page(user_id: str):
     try:
-        db = get_supabase()
         today = date.today().isoformat()
-        res = db.rpc("get_location_logs_today", {"p_user_id": user_id, "p_today": today}).execute()
-        logs = res.data or []
-        if isinstance(logs, str):
-            logs = json.loads(logs)
+        with get_conn() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute(
+                    "SELECT lat, lng, activity, created_at, address FROM location_logs WHERE user_id=%s AND created_at >= %s ORDER BY created_at",
+                    (user_id, f"{today}T00:00:00")
+                )
+                rows = cur.fetchall()
+        logs = [dict(r) for r in rows]
+        for l in logs:
+            if l.get("created_at"):
+                l["created_at"] = l["created_at"].isoformat()
     except Exception:
         logs = []
+
     logs_json = json.dumps(logs, ensure_ascii=False)
     html = f"""<!DOCTYPE html>
 <html>
@@ -147,27 +162,28 @@ def get_map_page(user_id: str):
 @router.get("/today/{user_id}")
 def get_today_location(user_id: str):
     try:
-        db = get_supabase()
         today = date.today().isoformat()
-        res = db.rpc("get_location_logs_today", {"p_user_id": user_id, "p_today": today}).execute()
-        logs = res.data or []
-        if isinstance(logs, str):
-            logs = json.loads(logs)
+        with get_conn() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                cur.execute(
+                    "SELECT lat, lng, activity, created_at, address FROM location_logs WHERE user_id=%s AND created_at >= %s ORDER BY created_at",
+                    (user_id, f"{today}T00:00:00")
+                )
+                rows = cur.fetchall()
+        logs = [dict(r) for r in rows]
+        for l in logs:
+            if l.get("created_at"):
+                l["created_at"] = l["created_at"].isoformat()
     except Exception as e:
         return {"logs": [], "total_distance_m": 0, "current_activity": "unknown", "point_count": 0, "error": str(e)}
 
     total_dist = 0
     for i in range(1, len(logs)):
-        total_dist += haversine(
-            logs[i-1]["lat"], logs[i-1]["lng"],
-            logs[i]["lat"],   logs[i]["lng"]
-        )
-
-    current_activity = logs[-1]["activity"] if logs else "unknown"
+        total_dist += haversine(logs[i-1]["lat"], logs[i-1]["lng"], logs[i]["lat"], logs[i]["lng"])
 
     return {
         "logs": logs,
         "total_distance_m": round(total_dist),
-        "current_activity": current_activity,
+        "current_activity": logs[-1]["activity"] if logs else "unknown",
         "point_count": len(logs),
     }
