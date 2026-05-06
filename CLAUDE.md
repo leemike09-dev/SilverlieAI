@@ -496,8 +496,9 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 - [ ] 모델 동적 선택 고도화 (CRITICAL→Opus / 일반→Sonnet / 요약→Haiku)
 - [ ] 실사용자 대화 데이터 파이프라인
 
-### 🏥 헬스케어 API 연동
+### 🏥 헬스케어 API / 웨어러블 연동 (2차 개발)
 - [ ] 삼성헬스 SDK / Apple HealthKit 연동 → 걸음수/심박수 자동 수집
+- [ ] 갤럭시 워치 / 애플 워치 / 핏빗 웨어러블 연동 → 위치: 설정 화면 "기기 연동" 항목 + 건강 화면 데이터 표시
 - [ ] 마이헬스웨이 API 연동
 
 ### 👨‍👩‍👧 가족 기능
