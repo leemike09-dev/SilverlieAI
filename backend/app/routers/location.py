@@ -106,10 +106,11 @@ def get_map_page(user_id: str):
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=ad583612ca60b68929dc66eeb5615287"></script>
   <script>
     var markers = [], polyline = null;
-    var initCenter = LOGS.length > 0
-      ? new kakao.maps.LatLng(LOGS[0].lat, LOGS[0].lng)
+    var last = LOGS.length > 0 ? LOGS[LOGS.length - 1] : null;
+    var initCenter = last
+      ? new kakao.maps.LatLng(last.lat, last.lng)
       : new kakao.maps.LatLng(37.5665, 126.9780);
-    var map = new kakao.maps.Map(document.getElementById('map'), {{center: initCenter, level: 4}});
+    var map = new kakao.maps.Map(document.getElementById('map'), {{center: initCenter, level: 3}});
 
     function clearMap() {{
       markers.forEach(function(m) {{ m.setMap(null); }});
@@ -135,10 +136,12 @@ def get_map_page(user_id: str):
         var iw = new kakao.maps.InfoWindow({{content: content}});
         (function(m, w) {{ kakao.maps.event.addListener(m, 'click', function() {{ w.open(map, m); }}); }})(marker, iw);
       }});
+      var latest = logs[logs.length - 1];
       if (path.length > 1) {{
         polyline = new kakao.maps.Polyline({{map:map,path:path,strokeWeight:5,strokeColor:'#6BAE8F',strokeOpacity:0.85,strokeStyle:'dashed'}});
-        map.setBounds(bounds, {{paddingTop:40,paddingBottom:40,paddingLeft:40,paddingRight:40}});
-      }} else {{ map.setCenter(path[0]); map.setLevel(3); }}
+        map.setBounds(bounds, {{paddingTop:60,paddingBottom:60,paddingLeft:40,paddingRight:40}});
+      }}
+      map.panTo(new kakao.maps.LatLng(latest.lat, latest.lng));
     }}
 
     function refresh() {{

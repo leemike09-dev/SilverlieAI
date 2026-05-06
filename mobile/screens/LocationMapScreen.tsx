@@ -38,7 +38,7 @@ export default function LocationMapScreen({ route, navigation }: any) {
             activity: 'unknown',
           }),
         });
-        setTimeout(() => webViewRef.current?.reload(), 1000);
+        setTimeout(() => webViewRef.current?.reload(), 2500);
       } catch {}
     })();
   }, [userId]);
