@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView,
+  ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -63,7 +63,7 @@ export default function ProfileSetupScreen({ navigation, route }: any) {
   };
 
   return (
-    <View style={s.root}>
+    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
 
       {/* 헤더 */}
       <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 24) }]}>
@@ -75,7 +75,7 @@ export default function ProfileSetupScreen({ navigation, route }: any) {
         <Text style={s.headerSub}>더 정확한 건강 추천을 위해</Text>
       </View>
 
-      <ScrollView style={s.body} contentContainerStyle={s.bodyContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={s.body} contentContainerStyle={s.bodyContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
         {/* AI 안내 배너 */}
         <View style={s.aiBanner}>
@@ -150,7 +150,7 @@ export default function ProfileSetupScreen({ navigation, route }: any) {
         </View>
 
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

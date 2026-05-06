@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   StatusBar, Platform, TextInput, Alert, Modal, Share,
-  ActivityIndicator,
+  ActivityIndicator, KeyboardAvoidingView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -159,7 +159,7 @@ export default function FamilyConnectScreen({ route, navigation }: any) {
   }
 
   return (
-    <View style={s.root}>
+    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
 
       {/* 헤더 */}
@@ -171,7 +171,7 @@ export default function FamilyConnectScreen({ route, navigation }: any) {
         <Text style={s.headerSub}>가족과 건강을 함께 확인해 보세요</Text>
       </View>
 
-      <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
         {/* ── 내 연결 코드 섹션 ── */}
         <View style={s.section}>
@@ -229,7 +229,7 @@ export default function FamilyConnectScreen({ route, navigation }: any) {
           <View style={s.modalBox}>
             <Text style={s.modalTitle}>{pendingMember?.name}님과의 관계</Text>
             <Text style={s.modalSub}>연결된 분과의 관계를 선택해 주세요</Text>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {RELATION_OPTIONS.map(opt => (
                 <TouchableOpacity key={opt.key} style={s.relOpt} onPress={() => saveRelation(opt)}>
                   <Text style={s.relEmoji}>{opt.emoji}</Text>
@@ -243,7 +243,7 @@ export default function FamilyConnectScreen({ route, navigation }: any) {
           </View>
         </View>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

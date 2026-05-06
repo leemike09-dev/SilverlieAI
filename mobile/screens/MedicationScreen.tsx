@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  TextInput, Modal, Alert,
+  TextInput, Modal, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -184,6 +184,7 @@ export default function MedicationScreen({ navigation }: any) {
 
   return (
     <LinearGradient colors={['#F4FBF6', '#DFF2E8', '#C5E8D3']} locations={[0, 0.55, 1]} style={s.root}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
 
       {/* ── 탑바 ── */}
       <View style={[s.topBar, { paddingTop: Math.max(insets.top + 10, 20) }]}>
@@ -195,7 +196,7 @@ export default function MedicationScreen({ navigation }: any) {
         </View>
       </View>
 
-      <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
         {/* ── 진행률 카드 ── */}
         <View style={s.progressCard}>
@@ -371,6 +372,7 @@ export default function MedicationScreen({ navigation }: any) {
       </Modal>
 
       <SeniorTabBar activeTab="med" userId={userId} name={uname} navigation={navigation} />
+      </KeyboardAvoidingView>
     </LinearGradient>
   );
 }

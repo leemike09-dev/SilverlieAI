@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  TextInput, StatusBar, Platform, Linking,
+  TextInput, StatusBar, Platform, Linking, KeyboardAvoidingView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -150,7 +150,7 @@ export default function FAQScreen({ navigation }: any) {
   });
 
   return (
-    <View style={s.root}>
+    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <StatusBar barStyle="light-content" backgroundColor={INDIGO} />
 
       {/* 헤더 */}
@@ -257,7 +257,7 @@ export default function FAQScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

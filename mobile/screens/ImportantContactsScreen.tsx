@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, Alert, Linking, ActivityIndicator,
+  ScrollView, Alert, Linking, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -91,7 +91,7 @@ export default function ImportantContactsScreen({ navigation, route }: any) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F0F0F8' }}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#F0F0F8' }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* 헤더 */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top + 12, 28) }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -101,7 +101,7 @@ export default function ImportantContactsScreen({ navigation, route }: any) {
         <View style={{ width: 50 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
         {loading ? <ActivityIndicator size="large" color="#5C6BC0" style={{ marginTop: 60 }} /> : (
           <>
@@ -188,7 +188,7 @@ export default function ImportantContactsScreen({ navigation, route }: any) {
           </>
         )}
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

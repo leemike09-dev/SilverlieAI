@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Platform, ActivityIndicator, Modal, TextInput, Alert,
+  StatusBar, Platform, ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -142,7 +142,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
 
 
   return (
-    <View style={s.root}>
+    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
 
       {/* Header */}
@@ -161,7 +161,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
       {members.length > 0 && (
         <View style={s.chipBar}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}
-            contentContainerStyle={s.chipScroll}>
+            contentContainerStyle={s.chipScroll} keyboardShouldPersistTaps="handled">
             {members.map(m => {
               const noRel = !m.relation;
               return (
@@ -204,7 +204,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
           <Text style={s.loadTxt}>불러오는 중...</Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
           {tab === 'messages' ? (
             members.length === 0 ? (
@@ -400,7 +400,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
           <View style={s.modalBox}>
             <Text style={s.modalTitle}>{relTarget?.name}님과의 관계</Text>
             <Text style={s.modalSub}>관계를 선택해 주세요</Text>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {RELATION_OPTIONS.map(opt => (
                 <TouchableOpacity key={opt.key} style={s.relOpt} onPress={() => saveRelation(opt)}>
                   <Text style={s.relEmoji}>{opt.emoji}</Text>
@@ -416,7 +416,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
       </Modal>
 
       <SeniorTabBar activeTab="" userId={userId} name={name} navigation={navigation} />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

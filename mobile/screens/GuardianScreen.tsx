@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Share, Alert, TextInput,
+  Share, Alert, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -122,11 +122,11 @@ export default function GuardianScreen({ route, navigation }: any) {
   const hasHealth = r && (r.blood_pressure_systolic || r.blood_sugar || r.steps);
 
   return (
-    <View style={s.root}>
+    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
         style={s.scroll}
         contentContainerStyle={[s.scrollContent, { paddingTop: Math.max(insets.top + 16, 24) }]}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
       >
 
         {/* 건강 수치 */}
@@ -251,7 +251,7 @@ export default function GuardianScreen({ route, navigation }: any) {
       </ScrollView>
 
       <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={name} />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

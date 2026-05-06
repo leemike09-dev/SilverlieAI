@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  TextInput, Alert, ActivityIndicator, Platform,
+  TextInput, Alert, ActivityIndicator, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -182,6 +182,7 @@ export default function RecordsScreen({ navigation }: any) {
 
   return (
     <LinearGradient colors={['#F0F4FF', '#E8EEF8', '#DDE6F5']} style={s.root}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* ── 상단 바 ── */}
       <View style={[s.topBar, { paddingTop: Math.max(insets.top + 10, 20) }]}>
         <Text style={s.topTitle}>📋 내 기록</Text>
@@ -203,7 +204,7 @@ export default function RecordsScreen({ navigation }: any) {
 
       {/* ── 약 목록 탭 ── */}
       {tab === 'med' && (
-        <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+        <ScrollView style={s.scroll} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
           {meds.length === 0 ? (
             <EmptyBox icon="💊" title="저장된 약이 없어요" sub={'약관리 탭에서 약을 추가하면\n여기에 표시됩니다'} />
           ) : (
@@ -279,7 +280,7 @@ export default function RecordsScreen({ navigation }: any) {
 
       {/* ── 병원 예약 탭 ── */}
       {tab === 'hospital' && (
-        <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+        <ScrollView style={s.scroll} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
           {savedHosp && !hospEditing ? (
             /* 저장된 일정 표시 */
             <View style={[s.card, { borderLeftWidth: 4, borderLeftColor: RED }]}>
@@ -337,7 +338,7 @@ export default function RecordsScreen({ navigation }: any) {
 
       {/* ── 의사 메모 탭 ── */}
       {tab === 'memo' && (
-        <ScrollView style={s.scroll} contentContainerStyle={s.content}>
+        <ScrollView style={s.scroll} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
           {memo && !memoEditing ? (
             /* 저장된 메모 표시 */
             <View style={[s.card, { borderLeftWidth: 4, borderLeftColor: PURPLE }]}>
@@ -390,6 +391,7 @@ export default function RecordsScreen({ navigation }: any) {
       )}
 
       <SeniorTabBar activeTab="" userId={userId} name={uname} navigation={navigation} />
+      </KeyboardAvoidingView>
     </LinearGradient>
   );
 }

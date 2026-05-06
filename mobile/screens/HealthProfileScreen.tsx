@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  TextInput, ActivityIndicator,
+  TextInput, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -89,7 +89,7 @@ export default function HealthProfileScreen({ navigation, route }: any) {
   );
 
   return (
-    <View style={s.root}>
+    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 24) }]}>
         {!fromRegister && (
           <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -100,7 +100,7 @@ export default function HealthProfileScreen({ navigation, route }: any) {
         <View style={{ width: fromRegister ? 0 : 72 }} />
       </View>
 
-      <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
         {/* 나이 */}
         <Text style={s.label}>나이</Text>
@@ -178,7 +178,7 @@ export default function HealthProfileScreen({ navigation, route }: any) {
         </TouchableOpacity>
 
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

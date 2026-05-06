@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Platform, TextInput, Alert, ActivityIndicator, Linking,
+  StatusBar, Platform, TextInput, Alert, ActivityIndicator, Linking, KeyboardAvoidingView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -297,6 +297,7 @@ export default function HealthScreen({ navigation }: any) {
       locations={[0, 0.55, 1]}
       style={s.root}
     >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFF8FA" />
 
       {/* ── 상단 바 ── */}
@@ -325,7 +326,7 @@ export default function HealthScreen({ navigation }: any) {
 
       {/* ── 기록 조회 탭 ── */}
       {tab === 'history' && (
-        <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+        <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <TouchableOpacity
             style={s.weeklyBanner}
             onPress={() => navigation.navigate('WeeklyReport', { userId, name: uname })}
@@ -368,7 +369,7 @@ export default function HealthScreen({ navigation }: any) {
 
       {/* ── 오늘 입력 탭 ── */}
       {tab === 'input' && (
-        <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+        <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
           {/* 혈압 */}
           <View style={s.card}>
@@ -535,6 +536,7 @@ export default function HealthScreen({ navigation }: any) {
       )}
 
       <SeniorTabBar activeTab="health" userId={userId} name={uname} navigation={navigation} />
+      </KeyboardAvoidingView>
     </LinearGradient>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Platform, Alert, Share,
+  TextInput, Platform, Alert, Share, KeyboardAvoidingView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -105,7 +105,7 @@ export default function DoctorMemoScreen({ route, navigation }: Props) {
   };
 
   return (
-    <View style={s.root}>
+    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* 헤더 */}
       <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 24) }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -123,7 +123,7 @@ export default function DoctorMemoScreen({ route, navigation }: Props) {
       </View>
 
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
         {memoDate ? (
           <Text style={s.dateLabel}>📅 {memoDate} 작성</Text>
@@ -187,7 +187,7 @@ export default function DoctorMemoScreen({ route, navigation }: Props) {
       )}
 
       {toastMsg ? <View style={s.toast}><Text style={s.toastTxt}>{toastMsg}</Text></View> : null}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import SeniorTabBar from '../components/SeniorTabBar';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Switch, Alert, ActivityIndicator, Modal, TextInput, Share,
+  Switch, Alert, ActivityIndicator, Modal, TextInput, Share, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -316,9 +316,9 @@ export default function SettingsScreen({ route, navigation }: Props) {
   };
 
   return (
-    <View style={s.root}>
+    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView showsVerticalScrollIndicator={false}
-        contentContainerStyle={[s.scrollContent, { paddingTop: Math.max(insets.top + 20, 30) }]}>
+        contentContainerStyle={[s.scrollContent, { paddingTop: Math.max(insets.top + 20, 30) }]} keyboardShouldPersistTaps="handled">
 
         {/* 사용자 이름 */}
         {!isGuest ? (
@@ -537,7 +537,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
         <View style={s.modalOverlay}>
           <View style={s.modalBox}>
             <Text style={s.modalTitle}>서비스 이용약관</Text>
-            <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={s.modalBody}>{TERMS_TEXT}</Text>
             </ScrollView>
             <TouchableOpacity style={s.modalClose} onPress={() => setTermsModal(false)}>
@@ -551,7 +551,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
         <View style={s.modalOverlay}>
           <View style={s.modalBox}>
             <Text style={s.modalTitle}>개인정보 처리방침</Text>
-            <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={s.modalBody}>{PRIVACY_TEXT}</Text>
             </ScrollView>
             <TouchableOpacity style={s.modalClose} onPress={() => setPrivacyModal(false)}>
@@ -560,7 +560,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
           </View>
         </View>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

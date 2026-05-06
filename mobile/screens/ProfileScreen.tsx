@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, Alert, ActivityIndicator,
+  ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -59,7 +59,7 @@ export default function ProfileScreen({ navigation, route }: any) {
   };
 
   return (
-    <View style={s.root}>
+    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* 헤더 */}
       <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 20) }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -77,7 +77,7 @@ export default function ProfileScreen({ navigation, route }: any) {
         )}
       </View>
 
-      <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {loading ? (
           <ActivityIndicator size="large" color="#5C6BC0" style={{ marginTop: 60 }} />
         ) : editMode ? (
@@ -127,7 +127,7 @@ export default function ProfileScreen({ navigation, route }: any) {
           </>
         )}
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
