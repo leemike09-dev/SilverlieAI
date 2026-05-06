@@ -73,15 +73,18 @@ def update_location(req: LocationUpdate):
 
 @router.get("/map/{user_id}", response_class=HTMLResponse)
 def get_map_page(user_id: str):
-    db = get_supabase()
-    today = date.today().isoformat()
-    rows = db.table("location_logs")\
-        .select("lat,lng,activity,created_at,address")\
-        .eq("user_id", user_id)\
-        .gte("created_at", f"{today}T00:00:00")\
-        .order("created_at")\
-        .execute()
-    logs = rows.data or []
+    try:
+        db = get_supabase()
+        today = date.today().isoformat()
+        rows = db.table("location_logs")\
+            .select("lat,lng,activity,created_at,address")\
+            .eq("user_id", user_id)\
+            .gte("created_at", f"{today}T00:00:00")\
+            .order("created_at")\
+            .execute()
+        logs = rows.data or []
+    except Exception as e:
+        return HTMLResponse(content=f"<pre>DB Error: {e}</pre>", status_code=200)
     logs_json = json.dumps(logs, ensure_ascii=False)
     html = f"""<!DOCTYPE html>
 <html>
