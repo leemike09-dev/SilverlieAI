@@ -143,7 +143,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           <TouchableOpacity style={s.cardWrap}
             onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0, userId })}
             activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(235,248,255,0.55)', 'rgba(200,235,255,0.55)']} style={s.card}>
+            <LinearGradient colors={['rgba(235,248,255,0.30)', 'rgba(200,235,255,0.30)']} style={s.card}>
               <Text style={s.iconEmoji}>🗺️</Text>
               <Text style={s.cardLabel}>내 위치</Text>
               <Text style={s.cardDesc}>현재 위치 확인</Text>
@@ -153,7 +153,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           <TouchableOpacity style={s.cardWrap}
             onPress={() => navigation.navigate('Health', { userId, name })}
             activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(255,245,248,0.55)', 'rgba(255,220,230,0.55)']} style={s.card}>
+            <LinearGradient colors={['rgba(255,245,248,0.30)', 'rgba(255,220,230,0.30)']} style={s.card}>
               <Text style={s.iconEmoji}>❤️</Text>
               <Text style={s.cardLabel}>건강 체크</Text>
               <Text style={s.cardDesc}>혈압·혈당·체온</Text>
@@ -163,7 +163,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           <TouchableOpacity style={s.cardWrap}
             onPress={() => navigation.navigate('AIChat', { userId, name })}
             activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(247,242,255,0.55)', 'rgba(228,216,255,0.55)']} style={s.card}>
+            <LinearGradient colors={['rgba(247,242,255,0.30)', 'rgba(228,216,255,0.30)']} style={s.card}>
               <Text style={s.iconEmoji}>💬</Text>
               <Text style={s.cardLabel}>루미와 대화</Text>
               <Text style={s.cardDesc}>무엇이든 질문</Text>
@@ -173,7 +173,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           <TouchableOpacity style={s.cardWrap}
             onPress={() => navigation.navigate('Guardian', { userId, name })}
             activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(240,255,248,0.55)', 'rgba(210,245,230,0.55)']} style={s.card}>
+            <LinearGradient colors={['rgba(240,255,248,0.30)', 'rgba(210,245,230,0.30)']} style={s.card}>
               <Text style={s.iconEmoji}>👨‍👩‍👧</Text>
               <Text style={s.cardLabel}>보호자</Text>
               <Text style={s.cardDesc}>가족에게 알리기</Text>
