@@ -122,11 +122,12 @@ def get_map_page(user_id: str):
     function renderLogs(logs) {{
       clearMap();
       if (!logs || logs.length === 0) return;
-      var bounds = new kakao.maps.LatLngBounds();
       var path = [];
       logs.forEach(function(log, i) {{
-        var pos = new kakao.maps.LatLng(log.lat, log.lng);
-        path.push(pos); bounds.extend(pos);
+        var lat = parseFloat(log.lat), lng = parseFloat(log.lng);
+        if (isNaN(lat) || isNaN(lng)) return;
+        var pos = new kakao.maps.LatLng(lat, lng);
+        path.push(pos);
         var emoji = i === 0 ? '🏡' : i === logs.length - 1 ? '📍' : '🚶';
         var marker = new kakao.maps.Marker({{position: pos, map: map}});
         markers.push(marker);
@@ -137,12 +138,18 @@ def get_map_page(user_id: str):
         var iw = new kakao.maps.InfoWindow({{content: content}});
         (function(m, w) {{ kakao.maps.event.addListener(m, 'click', function() {{ w.open(map, m); }}); }})(marker, iw);
       }});
-      var latest = logs[logs.length - 1];
+      if (path.length === 0) return;
+      var latest = path[path.length - 1];
       if (path.length > 1) {{
         polyline = new kakao.maps.Polyline({{map:map,path:path,strokeWeight:5,strokeColor:'#6BAE8F',strokeOpacity:0.85,strokeStyle:'dashed'}});
+        var bounds = new kakao.maps.LatLngBounds();
+        path.forEach(function(p) {{ bounds.extend(p); }});
         map.setBounds(bounds, {{paddingTop:60,paddingBottom:60,paddingLeft:40,paddingRight:40}});
+        if (map.getLevel() < 3) map.setLevel(3);
+      }} else {{
+        map.setCenter(latest);
+        map.setLevel(3);
       }}
-      map.panTo(new kakao.maps.LatLng(latest.lat, latest.lng));
     }}
 
     function doRefresh() {{
