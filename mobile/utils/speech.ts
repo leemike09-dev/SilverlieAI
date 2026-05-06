@@ -18,7 +18,7 @@ function pickKoreanVoice(): SpeechSynthesisVoice | null {
 }
 
 // 짧은 단일 문장용 (인사, 안내 멘트)
-export function speak(text: string, rate = 0.82, pitch = 1.05) {
+export function speak(text: string, rate = 0.82, pitch = 0.88) {
   if (Platform.OS === 'web') {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
@@ -43,7 +43,7 @@ export function speak(text: string, rate = 0.82, pitch = 1.05) {
 }
 
 // AI 답변용 — 문장 단위 끊어읽기 (자연스러운 쉬어읽기)
-export function speakSentences(text: string, rate = 0.78, pitch = 1.05) {
+export function speakSentences(text: string, rate = 0.78, pitch = 0.88) {
   if (Platform.OS === 'web') {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();

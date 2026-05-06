@@ -262,7 +262,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
       await save(fallback);
       return;
     }
-    setLoading(true);
     try {
       const res  = await fetch(`${API_URL}/ai/proactive-greeting/${userId}`);
       const data = await res.json();
@@ -270,23 +269,13 @@ export default function AIChatScreen({ route, navigation }: Props) {
       await save(msg);
     } catch {
       await save(fallback);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleTextChange = (text: string) => {
-    if (Platform.OS === 'android') {
-      const prev = prevInputRef.current;
-      // Samsung IME가 같은 음절을 누적 반복할 때 제거
-      if (prev.length >= 2 && text.length > prev.length) {
-        const added = text.slice(prev.length);
-        if (prev.endsWith(added) || added === prev || text === prev + prev) {
-          prevInputRef.current = prev;
-          setInput(prev);
-          return;
-        }
-      }
+    // 완전 중복만 차단 (IME가 동일 텍스트를 두 번 보낼 때)
+    if (text === prevInputRef.current + prevInputRef.current && prevInputRef.current.length > 0) {
+      return;
     }
     prevInputRef.current = text;
     setInput(text);
@@ -619,7 +608,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
         </View>
       )}
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={Platform.OS === 'android' ? 30 : 0}>
         {/* ── 메인 바디 ── */}
         <View style={s.body}>
 
@@ -666,7 +655,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
                     </Text>
                     {msg.role === 'ai' && !isStreaming && msg.text.length > 0 && ttsEnabled && (
                       <TouchableOpacity
-                        onPress={() => speak(cleanForTTS(msg.text), 0.85)}
+                        onPress={() => speak(cleanForTTS(msg.text), 0.82, 0.88)}
                         style={s.ttsBtnInline}
                         activeOpacity={0.7}
                       >
