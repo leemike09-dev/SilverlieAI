@@ -2,11 +2,28 @@ from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import Optional
-from app.database import get_supabase
 from datetime import date
-import math, json
+import math, json, os, requests as req
 
 router = APIRouter()
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY", "")
+HEADERS = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": f"Bearer {SUPABASE_KEY}",
+    "Content-Type": "application/json",
+    "Prefer": "return=representation",
+}
+
+def sb_get(table: str, params: dict) -> list:
+    r = req.get(f"{SUPABASE_URL}/rest/v1/{table}", headers=HEADERS, params=params, timeout=10)
+    r.raise_for_status()
+    return r.json() or []
+
+def sb_post(table: str, body: dict):
+    r = req.post(f"{SUPABASE_URL}/rest/v1/{table}", headers=HEADERS, json=body, timeout=10)
+    r.raise_for_status()
 
 class LocationUpdate(BaseModel):
     user_id: str
@@ -24,44 +41,34 @@ def haversine(lat1, lng1, lat2, lng2):
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
 
 @router.post("/update")
-def update_location(req: LocationUpdate):
+def update_location(body: LocationUpdate):
     try:
-        db = get_supabase()
         today = date.today().isoformat()
+        first_rows = sb_get("location_logs", {
+            "select": "lat,lng", "user_id": f"eq.{body.user_id}",
+            "created_at": f"gte.{today}T00:00:00", "order": "created_at", "limit": 1
+        })
+        last_rows = sb_get("location_logs", {
+            "select": "lat,lng", "user_id": f"eq.{body.user_id}",
+            "order": "created_at.desc", "limit": 1
+        })
 
-        first = db.table("location_logs")\
-            .select("lat,lng")\
-            .eq("user_id", req.user_id)\
-            .gte("created_at", f"{today}T00:00:00")\
-            .order("created_at").limit(1).execute()
-
-        last = db.table("location_logs")\
-            .select("lat,lng")\
-            .eq("user_id", req.user_id)\
-            .order("created_at", desc=True).limit(1).execute()
-
-        if last.data:
-            prev = last.data[0]
-            dist = haversine(prev["lat"], prev["lng"], req.lat, req.lng)
-            if dist < 50:
+        if last_rows:
+            p = last_rows[0]
+            if haversine(p["lat"], p["lng"], body.lat, body.lng) < 50:
                 return {"ok": True, "skipped": True, "reason": "50m 이내 중복"}
 
-        activity = req.activity
-        if first.data and activity == "unknown":
-            home = first.data[0]
-            dist_from_home = haversine(home["lat"], home["lng"], req.lat, req.lng)
-            activity = "outdoor" if dist_from_home > 200 else "home"
-        elif not first.data:
+        activity = body.activity
+        if first_rows and activity == "unknown":
+            h = first_rows[0]
+            activity = "outdoor" if haversine(h["lat"], h["lng"], body.lat, body.lng) > 200 else "home"
+        elif not first_rows:
             activity = "home"
 
-        db.table("location_logs").insert({
-            "user_id":  req.user_id,
-            "lat":      req.lat,
-            "lng":      req.lng,
-            "address":  req.address or "",
-            "activity": activity,
-        }).execute()
-
+        sb_post("location_logs", {
+            "user_id": body.user_id, "lat": body.lat, "lng": body.lng,
+            "address": body.address or "", "activity": activity,
+        })
         return {"ok": True, "activity": activity}
     except Exception as e:
         return {"ok": False, "error": str(e)}
@@ -69,14 +76,13 @@ def update_location(req: LocationUpdate):
 @router.get("/map/{user_id}", response_class=HTMLResponse)
 def get_map_page(user_id: str):
     try:
-        db = get_supabase()
         today = date.today().isoformat()
-        rows = db.table("location_logs")\
-            .select("lat,lng,activity,created_at,address")\
-            .eq("user_id", user_id)\
-            .gte("created_at", f"{today}T00:00:00")\
-            .order("created_at").execute()
-        logs = rows.data or []
+        logs = sb_get("location_logs", {
+            "select": "lat,lng,activity,created_at,address",
+            "user_id": f"eq.{user_id}",
+            "created_at": f"gte.{today}T00:00:00",
+            "order": "created_at",
+        })
     except Exception:
         logs = []
 
@@ -157,14 +163,13 @@ def get_map_page(user_id: str):
 @router.get("/today/{user_id}")
 def get_today_location(user_id: str):
     try:
-        db = get_supabase()
         today = date.today().isoformat()
-        rows = db.table("location_logs")\
-            .select("lat,lng,activity,created_at,address")\
-            .eq("user_id", user_id)\
-            .gte("created_at", f"{today}T00:00:00")\
-            .order("created_at").execute()
-        logs = rows.data or []
+        logs = sb_get("location_logs", {
+            "select": "lat,lng,activity,created_at,address",
+            "user_id": f"eq.{user_id}",
+            "created_at": f"gte.{today}T00:00:00",
+            "order": "created_at",
+        })
     except Exception as e:
         return {"logs": [], "total_distance_m": 0, "current_activity": "unknown", "point_count": 0, "error": str(e)}
 
