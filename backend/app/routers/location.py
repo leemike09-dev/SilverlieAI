@@ -161,15 +161,18 @@ def get_map_page(user_id: str):
 
 @router.get("/today/{user_id}")
 def get_today_location(user_id: str):
-    db = get_supabase()
-    today = date.today().isoformat()
+    try:
+        db = get_supabase()
+        today = date.today().isoformat()
 
-    rows = db.table("location_logs")\
-        .select("*")\
-        .eq("user_id", user_id)\
-        .gte("created_at", f"{today}T00:00:00")\
-        .order("created_at")\
-        .execute()
+        rows = db.table("location_logs")\
+            .select("*")\
+            .eq("user_id", user_id)\
+            .gte("created_at", f"{today}T00:00:00")\
+            .order("created_at")\
+            .execute()
+    except Exception as e:
+        return {"logs": [], "total_distance_m": 0, "current_activity": "unknown", "point_count": 0, "error": str(e)}
 
     logs = rows.data or []
 
