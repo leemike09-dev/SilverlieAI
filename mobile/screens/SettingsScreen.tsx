@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import SeniorTabBar from '../components/SeniorTabBar';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Switch, Alert, ActivityIndicator, Modal, TextInput,
+  Switch, Alert, ActivityIndicator, Modal, TextInput, Share,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +18,7 @@ const C = {
   sub:      '#7A90A8',
   line:     '#F0F0F0',
   red:      '#E53935',
+  green:    '#2E7D32',
 };
 
 const TERMS_TEXT = `Silver Life AI 서비스 이용약관
@@ -40,17 +41,21 @@ export default function SettingsScreen({ route, navigation }: Props) {
   const { name: paramName = '회원', userId: paramUserId = '' } = route?.params ?? {};
   const insets = useSafeAreaInsets();
 
-  const [userId,        setUserId]        = useState<string>(paramUserId);
-  const [userProfile,   setUserProfile]   = useState<any>(null);
-  const [loading,       setLoading]       = useState(false);
-  const [notifHealth,   setNotifHealth]   = useState(true);
-  const [notifMed,      setNotifMed]      = useState(true);
-  const [ttsEnabled,    setTtsEnabled]    = useState(true);
-  const [termsModal,    setTermsModal]    = useState(false);
-  const [familyMembers, setFamilyMembers] = useState<any[]>([]);
-  const [showAddFamily, setShowAddFamily] = useState(false);
-  const [newName,       setNewName]       = useState('');
-  const [newRelation,   setNewRelation]   = useState('');
+  const [userId,          setUserId]          = useState<string>(paramUserId);
+  const [userProfile,     setUserProfile]     = useState<any>(null);
+  const [loading,         setLoading]         = useState(false);
+  const [notifHealth,     setNotifHealth]     = useState(true);
+  const [notifMed,        setNotifMed]        = useState(true);
+  const [ttsEnabled,      setTtsEnabled]      = useState(true);
+  const [termsModal,      setTermsModal]      = useState(false);
+  // 가족 초대 코드 (내가 시니어일 때)
+  const [inviteCode,      setInviteCode]      = useState('');
+  const [linkedFamilies,  setLinkedFamilies]  = useState<any[]>([]);
+  // 코드 입력 (내가 가족으로 등록할 때)
+  const [codeInput,       setCodeInput]       = useState('');
+  const [connectLoading,  setConnectLoading]  = useState(false);
+  const [connectResult,   setConnectResult]   = useState('');
+  const [connectedSeniors,setConnectedSeniors]= useState<any[]>([]);
 
   const isGuest     = !userId || userId === 'guest';
   const displayName = userProfile?.name ?? paramName;
@@ -62,11 +67,9 @@ export default function SettingsScreen({ route, navigation }: Props) {
       const nh  = await AsyncStorage.getItem('notif_health');
       const nm  = await AsyncStorage.getItem('notif_med');
       const tts = await AsyncStorage.getItem('tts_enabled');
-      const fm  = await AsyncStorage.getItem('family_members');
       if (nh  !== null) setNotifHealth(nh === 'true');
       if (nm  !== null) setNotifMed(nm === 'true');
       if (tts !== null) setTtsEnabled(tts === 'true');
-      if (fm)           setFamilyMembers(JSON.parse(fm));
     };
     init();
   }, []);
@@ -79,33 +82,73 @@ export default function SettingsScreen({ route, navigation }: Props) {
       .then(data => { if (data?.id) setUserProfile(data); })
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    // 내 초대 코드 및 연결된 가족 로드
+    fetch(`${API_URL}/family/mycode/${userId}`)
+      .then(r => r.json())
+      .then(data => { if (data.code) setInviteCode(data.code); })
+      .catch(() => {});
+
+    fetch(`${API_URL}/family/links/${userId}`)
+      .then(r => r.json())
+      .then(data => {
+        const asSenior = data.as_senior || [];
+        const asFamily = data.as_family || [];
+        setLinkedFamilies(asSenior);
+        setConnectedSeniors(asFamily);
+        // GuardianScreen에서 읽을 수 있도록 AsyncStorage 동기화
+        const members = asSenior.map((l: any) => ({
+          name: l.family_name || '가족',
+          relation: l.relation || '가족',
+          verified: true,
+        }));
+        AsyncStorage.setItem('family_members', JSON.stringify(members)).catch(() => {});
+      })
+      .catch(() => {});
   }, [userId]);
 
-  const saveFamilyMembers = async (members: any[]) => {
-    setFamilyMembers(members);
-    await AsyncStorage.setItem('family_members', JSON.stringify(members));
+  const handleShareCode = async () => {
+    if (!inviteCode) return;
+    await Share.share({
+      message: `Silver Life AI 가족 초대 코드: ${inviteCode}\n앱 설정 → 가족으로 등록하기에서 코드를 입력하세요.`,
+      title: '가족 초대 코드',
+    });
   };
 
-  const handleAddFamily = async () => {
-    if (!newName.trim() || !newRelation.trim()) {
-      Alert.alert('알림', '이름과 관계를 모두 입력해 주세요.');
+  const handleConnect = async () => {
+    if (!codeInput.trim()) {
+      Alert.alert('알림', '초대 코드를 입력해 주세요.');
       return;
     }
-    const updated = [...familyMembers, { name: newName.trim(), relation: newRelation.trim() }];
-    await saveFamilyMembers(updated);
-    setNewName('');
-    setNewRelation('');
-    setShowAddFamily(false);
-  };
-
-  const handleRemoveFamily = (index: number) => {
-    Alert.alert('가족 삭제', `${familyMembers[index].name}님을 삭제하시겠어요?`, [
-      { text: '취소', style: 'cancel' },
-      { text: '삭제', style: 'destructive', onPress: async () => {
-        const updated = familyMembers.filter((_, i) => i !== index);
-        await saveFamilyMembers(updated);
-      }},
-    ]);
+    if (isGuest) {
+      Alert.alert('알림', '로그인 후 이용할 수 있습니다.');
+      return;
+    }
+    setConnectLoading(true);
+    setConnectResult('');
+    try {
+      const res = await fetch(`${API_URL}/family/connect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ myUserId: userId, code: codeInput.trim().toUpperCase() }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setConnectResult(`✓ ${data.name || '가족'}님과 연결되었습니다`);
+        setCodeInput('');
+        // 연결된 시니어 목록 새로고침
+        fetch(`${API_URL}/family/links/${userId}`)
+          .then(r => r.json())
+          .then(d => { setConnectedSeniors(d.as_family || []); })
+          .catch(() => {});
+      } else {
+        Alert.alert('오류', data.detail || '코드가 유효하지 않습니다.');
+      }
+    } catch {
+      Alert.alert('오류', '서버 연결에 실패했습니다.');
+    } finally {
+      setConnectLoading(false);
+    }
   };
 
   const toggleNotifHealth = async (val: boolean) => {
@@ -202,51 +245,96 @@ export default function SettingsScreen({ route, navigation }: Props) {
           </>
         )}
 
-        {/* 가족 등록 */}
-        <Text style={s.sectionTitle}>가족 등록</Text>
-        <View style={s.familyCard}>
-          <View style={s.familyNotice}>
-            <Text style={s.familyNoticeIcon}>ℹ️</Text>
-            <Text style={s.familyNoticeText}>
-              등록된 가족은 보호자 화면에서 건강 수치·병원 일정·동선 등 모든 기록을 열람할 수 있습니다. (상담 내용 제외)
-            </Text>
-          </View>
+        {/* 가족 연결 */}
+        {!isGuest && (
+          <>
+            <Text style={s.sectionTitle}>가족 연결</Text>
 
-          {familyMembers.length > 0 && (
-            <View style={s.memberList}>
-              {familyMembers.map((m: any, i: number) => (
-                <View key={i} style={s.memberRow}>
-                  <Text style={s.memberName}>{m.name}</Text>
-                  <Text style={s.memberRelation}>{m.relation}</Text>
-                  <TouchableOpacity onPress={() => handleRemoveFamily(i)} style={s.memberDel}>
-                    <Text style={s.memberDelTxt}>삭제</Text>
+            {/* 내 초대 코드 카드 */}
+            <View style={s.familyCard}>
+              <View style={s.familyNotice}>
+                <Text style={s.familyNoticeIcon}>ℹ️</Text>
+                <Text style={s.familyNoticeText}>
+                  연결된 가족은 건강 수치·병원 일정·동선 등을 열람할 수 있습니다. (상담 내용 제외)
+                </Text>
+              </View>
+
+              <Text style={s.familySubTitle}>내 초대 코드</Text>
+              <Text style={s.familyHint}>이 코드를 가족에게 전달하세요. 가족이 코드를 입력하면 자동으로 연결됩니다.</Text>
+
+              {inviteCode ? (
+                <View style={s.codeBox}>
+                  <Text style={s.codeText}>{inviteCode}</Text>
+                  <TouchableOpacity style={s.shareCodeBtn} onPress={handleShareCode} activeOpacity={0.8}>
+                    <Text style={s.shareCodeBtnTxt}>공유하기 📤</Text>
                   </TouchableOpacity>
                 </View>
-              ))}
-            </View>
-          )}
+              ) : (
+                <ActivityIndicator color={C.indigo} size="small" style={{ marginVertical: 8 }} />
+              )}
 
-          {showAddFamily ? (
-            <View style={s.addForm}>
-              <TextInput style={s.addInput} placeholder="이름" placeholderTextColor="#bdbdbd"
-                value={newName} onChangeText={setNewName} />
-              <TextInput style={s.addInput} placeholder="관계 (예: 아들, 딸)" placeholderTextColor="#bdbdbd"
-                value={newRelation} onChangeText={setNewRelation} />
-              <View style={s.addFormBtns}>
-                <TouchableOpacity style={s.addConfirmBtn} onPress={handleAddFamily}>
-                  <Text style={s.addConfirmTxt}>등록</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={s.addCancelBtn} onPress={() => { setShowAddFamily(false); setNewName(''); setNewRelation(''); }}>
-                  <Text style={s.addCancelTxt}>취소</Text>
+              {linkedFamilies.length > 0 && (
+                <>
+                  <View style={s.familyDivider} />
+                  <Text style={s.familySubTitle}>인증된 가족 {linkedFamilies.length}명</Text>
+                  {linkedFamilies.map((m: any, i: number) => (
+                    <View key={i} style={[s.verifiedRow, i === linkedFamilies.length - 1 && { borderBottomWidth: 0 }]}>
+                      <Text style={s.verifiedName}>{m.family_name || '가족'}</Text>
+                      {m.relation ? <Text style={s.verifiedRelation}>{m.relation}</Text> : null}
+                      <View style={s.verifiedBadge}>
+                        <Text style={s.verifiedBadgeTxt}>✓ 인증</Text>
+                      </View>
+                    </View>
+                  ))}
+                </>
+              )}
+            </View>
+
+            {/* 가족으로 등록하기 카드 */}
+            <View style={s.familyCard}>
+              <Text style={s.familySubTitle}>가족으로 등록하기</Text>
+              <Text style={s.familyHint}>다른 분의 초대 코드를 받았다면 입력하세요.</Text>
+              <View style={s.codeInputRow}>
+                <TextInput
+                  style={s.codeInputField}
+                  placeholder="예: ABC-1234"
+                  placeholderTextColor="#bdbdbd"
+                  value={codeInput}
+                  onChangeText={t => setCodeInput(t.toUpperCase())}
+                  autoCapitalize="characters"
+                  maxLength={8}
+                />
+                <TouchableOpacity
+                  style={[s.connectBtn, (!codeInput.trim() || connectLoading) && { opacity: 0.5 }]}
+                  onPress={handleConnect}
+                  disabled={!codeInput.trim() || connectLoading}
+                  activeOpacity={0.8}
+                >
+                  {connectLoading
+                    ? <ActivityIndicator color="#fff" size="small" />
+                    : <Text style={s.connectBtnTxt}>연결</Text>
+                  }
                 </TouchableOpacity>
               </View>
+              {connectResult ? <Text style={s.connectResult}>{connectResult}</Text> : null}
+
+              {connectedSeniors.length > 0 && (
+                <>
+                  <View style={s.familyDivider} />
+                  <Text style={s.familySubTitle}>연결된 분</Text>
+                  {connectedSeniors.map((m: any, i: number) => (
+                    <View key={i} style={[s.verifiedRow, i === connectedSeniors.length - 1 && { borderBottomWidth: 0 }]}>
+                      <Text style={s.verifiedName}>{m.senior_name || '어르신'}</Text>
+                      <View style={s.verifiedBadge}>
+                        <Text style={s.verifiedBadgeTxt}>✓ 연결됨</Text>
+                      </View>
+                    </View>
+                  ))}
+                </>
+              )}
             </View>
-          ) : (
-            <TouchableOpacity style={s.addFamilyBtn} onPress={() => setShowAddFamily(true)}>
-              <Text style={s.addFamilyBtnTxt}>+ 가족 추가</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+          </>
+        )}
 
         {/* 알림 설정 */}
         <Text style={s.sectionTitle}>알림 설정</Text>
@@ -351,35 +439,37 @@ const s = StyleSheet.create({
   listSub:      { fontSize: 13, color: C.sub, marginTop: 2 },
   listArrow:    { fontSize: 20, color: '#C5C9E8' },
 
-  familyCard:    { marginHorizontal: 0, borderTopWidth: 1, borderBottomWidth: 1,
-                   borderColor: C.line, backgroundColor: '#fff', paddingHorizontal: 20, paddingVertical: 16 },
-  familyNotice:  { flexDirection: 'row', gap: 10, backgroundColor: '#F3F6FF',
-                   borderRadius: 10, padding: 12, marginBottom: 14 },
+  // 가족 연결
+  familyCard:       { borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.line,
+                      backgroundColor: '#fff', paddingHorizontal: 20, paddingVertical: 16, marginTop: -1 },
+  familyNotice:     { flexDirection: 'row', gap: 10, backgroundColor: '#F3F6FF',
+                      borderRadius: 10, padding: 12, marginBottom: 16 },
   familyNoticeIcon: { fontSize: 16 },
   familyNoticeText: { flex: 1, fontSize: 13, color: C.indigo, lineHeight: 20 },
+  familySubTitle:   { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 4 },
+  familyHint:       { fontSize: 13, color: C.sub, marginBottom: 14, lineHeight: 18 },
+  familyDivider:    { height: 1, backgroundColor: C.line, marginVertical: 16 },
 
-  memberList:    { gap: 8, marginBottom: 12 },
-  memberRow:     { flexDirection: 'row', alignItems: 'center', gap: 10,
-                   paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.line },
-  memberName:    { fontSize: 16, fontWeight: '700', color: C.text, flex: 1 },
-  memberRelation:{ fontSize: 14, color: C.sub },
-  memberDel:     { paddingHorizontal: 10, paddingVertical: 4 },
-  memberDelTxt:  { fontSize: 13, color: C.red },
+  codeBox:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                      backgroundColor: '#F3F6FF', borderRadius: 12, padding: 16 },
+  codeText:         { fontSize: 24, fontWeight: '900', color: C.indigo, letterSpacing: 2 },
+  shareCodeBtn:     { backgroundColor: C.indigo, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
+  shareCodeBtnTxt:  { fontSize: 14, fontWeight: '700', color: '#fff' },
 
-  addFamilyBtn:  { borderWidth: 1.5, borderColor: C.indigo, borderRadius: 10,
-                   paddingVertical: 12, alignItems: 'center' },
-  addFamilyBtnTxt: { fontSize: 16, fontWeight: '700', color: C.indigo },
+  verifiedRow:      { flexDirection: 'row', alignItems: 'center', gap: 8,
+                      paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.line },
+  verifiedName:     { fontSize: 16, fontWeight: '700', color: C.text, flex: 1 },
+  verifiedRelation: { fontSize: 14, color: C.sub },
+  verifiedBadge:    { backgroundColor: '#E8F5E9', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  verifiedBadgeTxt: { fontSize: 12, color: C.green, fontWeight: '700' },
 
-  addForm:       { gap: 10 },
-  addInput:      { borderWidth: 1, borderColor: C.line, borderRadius: 10,
-                   paddingHorizontal: 14, paddingVertical: 10, fontSize: 16, color: C.text },
-  addFormBtns:   { flexDirection: 'row', gap: 10 },
-  addConfirmBtn: { flex: 1, backgroundColor: C.indigo, borderRadius: 10,
-                   paddingVertical: 12, alignItems: 'center' },
-  addConfirmTxt: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  addCancelBtn:  { flex: 1, borderWidth: 1, borderColor: C.line, borderRadius: 10,
-                   paddingVertical: 12, alignItems: 'center' },
-  addCancelTxt:  { fontSize: 16, color: C.sub },
+  codeInputRow:     { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  codeInputField:   { flex: 1, borderWidth: 1, borderColor: C.line, borderRadius: 10,
+                      paddingHorizontal: 14, paddingVertical: 12, fontSize: 17,
+                      color: C.text, fontWeight: '700', letterSpacing: 1 },
+  connectBtn:       { backgroundColor: C.indigo, borderRadius: 10, paddingHorizontal: 18, paddingVertical: 12 },
+  connectBtnTxt:    { fontSize: 15, fontWeight: '700', color: '#fff' },
+  connectResult:    { fontSize: 14, color: C.green, marginTop: 10, fontWeight: '600' },
 
   versionText: { textAlign: 'center', color: '#C5C9E8', fontSize: 14, marginTop: 24, marginBottom: 8 },
 
