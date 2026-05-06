@@ -13,16 +13,24 @@ const C = {
 };
 
 export default function LocationMapScreen({ route, navigation }: any) {
-  const insets          = useSafeAreaInsets();
-  const logs            = route?.params?.logs       || [];
-  const seniorName      = route?.params?.seniorName || '';
-  const totalDist       = route?.params?.totalDist  || 0;
-  const userId          = route?.params?.userId     || '';
+  const insets      = useSafeAreaInsets();
+  const seniorName  = route?.params?.seniorName || '';
+  const userId      = route?.params?.userId     || '';
   const [fullscreen, setFullscreen] = useState(false);
-  const webViewRef = useRef<WebView>(null);
+  const [liveData,  setLiveData]    = useState<{logs: any[], total_distance_m: number}>({ logs: [], total_distance_m: 0 });
+  const webViewRef  = useRef<WebView>(null);
+
+  const fetchStats = async () => {
+    try {
+      const r = await fetch(`${BACKEND}/location/today/${userId}`);
+      const d = await r.json();
+      if (d.logs) setLiveData(d);
+    } catch {}
+  };
 
   useEffect(() => {
     if (!userId || userId === 'guest') return;
+    fetchStats();
     (async () => {
       try {
         const { status } = await Location.getForegroundPermissionsAsync();
@@ -38,11 +46,13 @@ export default function LocationMapScreen({ route, navigation }: any) {
             activity: 'unknown',
           }),
         });
-        setTimeout(() => webViewRef.current?.reload(), 2500);
+        setTimeout(() => { webViewRef.current?.reload(); fetchStats(); }, 2500);
       } catch {}
     })();
   }, [userId]);
 
+  const logs            = liveData.logs;
+  const totalDist       = liveData.total_distance_m;
   const distStr         = totalDist >= 1000 ? `${(totalDist / 1000).toFixed(1)}km` : `${totalDist}m`;
   const outdoorCount    = logs.filter((l: any) => l.activity === 'outdoor').length;
   const currentActivity = logs.length > 0 ? logs[logs.length - 1].activity : 'unknown';
