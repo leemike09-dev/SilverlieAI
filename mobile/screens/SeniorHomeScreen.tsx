@@ -125,14 +125,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         </View>
       </View>
 
-      {/* ── 루미 캐릭터 (남은 공간 채움) ── */}
-      <View style={s.hero} pointerEvents="none">
-        <Image
-          source={require('../assets/lumi10.png')}
-          style={s.lumiImg}
-          resizeMode="contain"
-        />
-      </View>
+      {/* 루미 캐릭터 없음 — 배경 이미지만 표시 */}
+      <View style={s.hero} />
 
       {/* ── 하단: 카드 + SOS ── */}
       <View style={s.bottom}>
