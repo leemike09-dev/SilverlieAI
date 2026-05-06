@@ -119,17 +119,21 @@ export default function LocationMapScreen({ route, navigation }: any) {
             ))}
           </View>
 
-          <View style={[s.legend, { paddingBottom: Math.max(insets.bottom + 8, 14) }]}>
-            {[
-              { color: C.sage,  label: '🏡 집 근처' },
-              { color: C.peach, label: '🚶 외출 중' },
-              { color: C.red,   label: '📍 현재 위치' },
-            ].map(item => (
-              <View key={item.label} style={s.legendItem}>
-                <View style={[s.legendDot, { backgroundColor: item.color }]} />
-                <Text style={s.legendTxt}>{item.label}</Text>
-              </View>
-            ))}
+          <View style={[s.legend, { paddingBottom: Math.max(insets.bottom + 4, 10) }]}>
+            <View style={s.legendRow}>
+              <Text style={s.legendTitle}>범례</Text>
+              {[
+                { color: C.sage,  label: '🏡 출발지(집)' },
+                { color: C.peach, label: '🚶 이동 경유지' },
+                { color: C.red,   label: '📍 현재 위치' },
+              ].map(item => (
+                <View key={item.label} style={s.legendItem}>
+                  <View style={[s.legendDot, { backgroundColor: item.color }]} />
+                  <Text style={s.legendTxt}>{item.label}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={s.legendHint}>마커를 탭하면 방문 시간·장소를 볼 수 있습니다</Text>
           </View>
         </>
       )}
@@ -165,10 +169,14 @@ const s = StyleSheet.create({
   statLbl:     { fontSize: 13, color: C.sub, fontWeight: '600' },
   statDiv:     { width: 1.5, height: 44, backgroundColor: C.line },
 
-  legend:      { flexDirection: 'row', justifyContent: 'center', gap: 18,
-                 backgroundColor: C.card, paddingVertical: 10,
+  legend:      { backgroundColor: C.card, paddingVertical: 8,
                  borderTopWidth: 1, borderTopColor: C.line },
-  legendItem:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendDot:   { width: 12, height: 12, borderRadius: 6 },
-  legendTxt:   { fontSize: 13, color: C.sub, fontWeight: '600' },
+  legendRow:   { flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+                 gap: 14, flexWrap: 'wrap' },
+  legendTitle: { fontSize: 12, color: C.sub, fontWeight: '700' },
+  legendItem:  { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legendDot:   { width: 11, height: 11, borderRadius: 6 },
+  legendTxt:   { fontSize: 12, color: C.sub, fontWeight: '600' },
+  legendHint:  { textAlign: 'center', fontSize: 11, color: C.sub,
+                 marginTop: 5, opacity: 0.75 },
 });
