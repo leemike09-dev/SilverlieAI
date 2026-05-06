@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Location from 'expo-location';
 
 const BACKEND = 'https://silverlieai.onrender.com';
 
@@ -18,6 +19,29 @@ export default function LocationMapScreen({ route, navigation }: any) {
   const totalDist       = route?.params?.totalDist  || 0;
   const userId          = route?.params?.userId     || '';
   const [fullscreen, setFullscreen] = useState(false);
+  const webViewRef = useRef<WebView>(null);
+
+  useEffect(() => {
+    if (!userId || userId === 'guest') return;
+    (async () => {
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        await fetch(`${BACKEND}/location/update`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userId,
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            activity: 'unknown',
+          }),
+        });
+        setTimeout(() => webViewRef.current?.reload(), 1000);
+      } catch {}
+    })();
+  }, [userId]);
 
   const distStr         = totalDist >= 1000 ? `${(totalDist / 1000).toFixed(1)}km` : `${totalDist}m`;
   const outdoorCount    = logs.filter((l: any) => l.activity === 'outdoor').length;
@@ -51,6 +75,7 @@ export default function LocationMapScreen({ route, navigation }: any) {
       {/* 지도 */}
       <View style={{ flex: 1 }}>
         <WebView
+          ref={webViewRef}
           source={{ uri: mapUrl }}
           style={{ flex: 1 }}
           javaScriptEnabled
