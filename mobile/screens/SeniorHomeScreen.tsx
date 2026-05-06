@@ -163,7 +163,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0, userId })}
           activeOpacity={0.88}>
           <View style={[s.cardIcon, { backgroundColor: '#388E3C' }]}>
-            <Text style={s.cardIconTxt}>📍</Text>
+            <Text style={s.cardIconTxt}>🗺️</Text>
           </View>
           <View style={s.cardBody}>
             <Text style={[s.cardLabel, { color: '#FFFFFF' }]}>내 위치</Text>
@@ -179,7 +179,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           onPress={() => navigation.navigate('Health', { userId, name })}
           activeOpacity={0.88}>
           <View style={[s.cardIcon, { backgroundColor: '#EF5350' }]}>
-            <Text style={s.cardIconTxt}>❤️</Text>
+            <Text style={s.cardIconTxt}>💗</Text>
           </View>
           <View style={s.cardBody}>
             <Text style={s.cardLabel}>건강 체크</Text>
@@ -260,7 +260,7 @@ const s = StyleSheet.create({
   topTimeTxt:  { fontSize: 24, fontWeight: '900', color: '#1A4A70' },
 
   /* ── 히어로 행 ── */
-  heroRow:  { flexDirection: 'row', alignItems: 'center',
+  heroRow:  { flexDirection: 'row', alignItems: 'flex-start',
               paddingHorizontal: 16, paddingBottom: 6 },
   heroLeft: { flex: 1, paddingRight: 4 },
 
@@ -269,17 +269,17 @@ const s = StyleSheet.create({
 
   /* ── 병원 카드 ── */
   hospCard: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 10,
-    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 }, elevation: 3,
+    backgroundColor: '#fff', borderRadius: 14, padding: 11,
+    shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 }, elevation: 4,
   },
-  hospHeader:    { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
+  hospHeader:    { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 5 },
   hospHeaderIcon:{ fontSize: 13 },
-  hospHeaderTxt: { fontSize: 11, fontWeight: '700', color: '#5580A0' },
-  hospTime:      { fontSize: 16, fontWeight: '900', color: '#1565C0', lineHeight: 20 },
-  hospName:      { fontSize: 12, fontWeight: '700', color: '#0D2340', marginTop: 1 },
-  hospNone:      { fontSize: 12, color: '#90A4AE', fontWeight: '600', paddingVertical: 2 },
-  hospLink:      { fontSize: 11, color: '#5580A0', fontWeight: '600', marginTop: 5 },
+  hospHeaderTxt: { fontSize: 11, fontWeight: '700', color: '#7A90A8', letterSpacing: 0.2 },
+  hospTime:      { fontSize: 18, fontWeight: '900', color: '#1565C0', lineHeight: 22 },
+  hospName:      { fontSize: 13, fontWeight: '700', color: '#1A2840', marginTop: 2 },
+  hospNone:      { fontSize: 13, color: '#A0B4C8', fontWeight: '600', paddingVertical: 3 },
+  hospLink:      { fontSize: 11, color: '#1565C0', fontWeight: '600', marginTop: 7 },
 
   /* ── 루미 ── */
   lumiImg: { width: 152, height: 192, backgroundColor: 'transparent' },
