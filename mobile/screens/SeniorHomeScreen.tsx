@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  StatusBar, Dimensions, Alert, Platform, ScrollView,
+  StatusBar, Dimensions, Alert, Platform, ScrollView, Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { speak, stopSpeech } from '../utils/speech';
@@ -12,20 +12,13 @@ import * as Location from 'expo-location';
 
 const API = 'https://silverlieai.onrender.com';
 const { width } = Dimensions.get('window');
-
-const LUMI_PROMPTS = [
-  '오늘 몸 상태는 어떠세요?',
-  '혈압이 걱정되시나요?',
-  '약 복용 시간이 궁금하신가요?',
-  '오늘 식사는 하셨나요?',
-  '무엇이든 편하게 물어보세요',
-];
+const CARD_W = (width - 32 - 12) / 2;
 
 export default function SeniorHomeScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
-  const [userId,  setUserId]  = useState<string>(route?.params?.userId || '');
-  const [name,    setName]    = useState<string>(route?.params?.name   || '');
-  const [prompt,  setPrompt]  = useState(LUMI_PROMPTS[0]);
+  const [userId,       setUserId]       = useState<string>(route?.params?.userId || '');
+  const [name,         setName]         = useState<string>(route?.params?.name   || '');
+  const [hospSchedule, setHospSchedule] = useState<any>(null);
   const ttsDoneRef  = useRef(false);
   const locationRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -33,8 +26,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
     try {
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       await fetch(`${API}/location/update`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: uid, lat: pos.coords.latitude, lng: pos.coords.longitude, activity: 'unknown' }),
       });
     } catch {}
@@ -57,24 +49,21 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       if (storedId) fetchLatest(storedId);
       startLocationTracking(storedId);
 
-      // 오늘 날짜 기준으로 프롬프트 고정
-      const dayIdx = new Date().getDay();
-      setPrompt(LUMI_PROMPTS[dayIdx % LUMI_PROMPTS.length]);
+      const hs = await AsyncStorage.getItem('hospital_schedule');
+      if (hs) setHospSchedule(JSON.parse(hs));
 
       if (Platform.OS !== 'web') {
         const asked = await AsyncStorage.getItem('pedometer_asked');
         if (!asked) {
           await AsyncStorage.setItem('pedometer_asked', '1');
           setTimeout(() => {
-            Alert.alert(
-              '🚶 걸음수 자동 측정',
-              '스마트폰으로 오늘 걸음수를 자동으로 측정할 수 있어요.\n건강 기록 화면에서 걸음수를 바로 확인하세요.',
+            Alert.alert('🚶 걸음수 자동 측정',
+              '스마트폰으로 오늘 걸음수를 자동으로 측정할 수 있어요.',
               [
                 { text: '나중에', style: 'cancel' },
                 { text: '허용하기', onPress: async () => {
-                    try { const { Pedometer } = await import('expo-sensors'); await Pedometer.requestPermissionsAsync(); } catch {}
-                  }
-                },
+                  try { const { Pedometer } = await import('expo-sensors'); await Pedometer.requestPermissionsAsync(); } catch {}
+                }},
               ]
             );
           }, 1500);
@@ -98,45 +87,53 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         const h = new Date().getHours();
         const g = h < 12 ? '좋은 아침이에요' : h < 18 ? '좋은 오후예요' : '좋은 저녁이에요';
         const wish = h < 12 ? '오늘도 건강한 하루 되세요' : h < 18 ? '편안한 오후 되세요' : '편안한 밤 되세요';
-        const raw2 = await AsyncStorage.getItem('hospital_schedule');
         let msg = `${g}, ${uname}님! ${wish}.`;
-        if (raw2) { const p = JSON.parse(raw2); if (p.date === today) msg += ` 오늘 ${p.time} ${p.clinic} 가시는 날이에요.`; }
         setTimeout(() => speak(msg, 0.85), 800);
-      } else {
-        ttsDoneRef.current = true;
-      }
+      } else { ttsDoneRef.current = true; }
     } catch {}
   };
 
-  const now     = new Date();
-  const hour    = now.getHours();
-  const days    = ['일', '월', '화', '수', '목', '금', '토'];
-  const dateStr = `${now.getMonth() + 1}월 ${now.getDate()}일 ${days[now.getDay()]}요일`;
-  const h12     = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-  const timeStr = `${hour < 12 ? '오전' : '오후'} ${h12}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const now      = new Date();
+  const hour     = now.getHours();
+  const days     = ['일', '월', '화', '수', '목', '금', '토'];
+  const dateStr  = `${now.getMonth() + 1}월 ${now.getDate()}일 (${days[now.getDay()]})`;
+  const h12      = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  const timeStr  = `${hour < 12 ? '오전' : '오후'} ${h12}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const weatherEmoji = hour >= 6 && hour < 19 ? '☀️' : '🌙';
   const greeting = hour < 12 ? '좋은 아침이에요!' : hour < 18 ? '좋은 오후예요!' : '좋은 저녁이에요!';
   const isGuest  = !userId || userId === 'guest';
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      <LinearGradient colors={['#5C6BC0', '#7986CB', '#9FA8DA']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#C8E6FF', '#DCF0FF', '#EFF8FF']} style={StyleSheet.absoluteFill} />
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={[s.scroll, { paddingTop: Math.max(insets.top + 16, 28) }]}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={[s.scroll, { paddingTop: Math.max(insets.top + 10, 24) }]}
       >
-        {/* ── 상단: 인사 + 날짜 ── */}
+        {/* ── 상단: 로고 + 날짜/시간 ── */}
         <View style={s.topBar}>
           <View>
-            <Text style={s.topGreeting}>{greeting}</Text>
-            {name ? <Text style={s.topName}>{name}님, 반가워요 👋</Text> : null}
+            <Text style={s.logoTxt}>Lumi 💛</Text>
+            <Text style={s.logoSub}>65+ 건강 · 안심 · 친구</Text>
           </View>
           <View style={s.topRight}>
-            <Text style={s.topDate}>{dateStr}</Text>
-            <Text style={s.topTime}>{timeStr}</Text>
+            <Text style={s.topDate}>📅 {dateStr}</Text>
+            <Text style={s.topTime}>{weatherEmoji} {timeStr}</Text>
           </View>
+        </View>
+
+        {/* ── 인사 + 루미 캐릭터 ── */}
+        <View style={s.greetRow}>
+          <View style={s.greetLeft}>
+            <Text style={s.greetMain}>{greeting}</Text>
+            {name
+              ? <Text style={s.greetSub}>{name}님, 루미가 함께할게요 💛</Text>
+              : <Text style={s.greetSub}>루미가 오늘도 함께할게요 💛</Text>
+            }
+          </View>
+          <Image source={require('../assets/lumi8.png')} style={s.lumiImg} resizeMode="contain" />
         </View>
 
         {/* ── 게스트 배너 ── */}
@@ -147,70 +144,90 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           </TouchableOpacity>
         )}
 
-        {/* ── 루미 메인 카드 ── */}
+        {/* ── 병원 일정 카드 ── */}
         <TouchableOpacity
-          style={s.lumiCardWrap}
-          onPress={() => navigation.navigate('AIChat', { userId, name })}
+          style={s.hospCard}
+          onPress={() => navigation.navigate('Guardian', { userId, name })}
           activeOpacity={0.88}
         >
-          <LinearGradient colors={['#fff', '#F3F4FF']} style={s.lumiCard}>
-            <View style={s.lumiTop}>
-              <View style={s.lumiAvatar}>
-                <Text style={s.lumiAvatarTxt}>✨</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.lumiName}>루미에게 물어보세요</Text>
-                <Text style={s.lumiSub}>AI 건강 상담사</Text>
-              </View>
-              <Text style={s.lumiArrow}>›</Text>
+          <View style={s.hospLeft}>
+            <Text style={s.hospIcon}>🏥</Text>
+            <Text style={s.hospTitle}>병원 일정</Text>
+          </View>
+          {hospSchedule ? (
+            <View style={s.hospInfo}>
+              <Text style={s.hospTime}>{hospSchedule.time || ''}</Text>
+              <Text style={s.hospName}>{hospSchedule.hospital || hospSchedule.clinic || ''}</Text>
             </View>
-            <View style={s.lumiPromptBox}>
-              <Text style={s.lumiPromptQuote}>"</Text>
-              <Text style={s.lumiPromptTxt}>{prompt}</Text>
-            </View>
-            <View style={s.lumiFooter}>
-              <Text style={s.lumiFooterTxt}>탭하여 대화 시작하기</Text>
-            </View>
-          </LinearGradient>
+          ) : (
+            <Text style={s.hospEmpty}>오늘 일정 없음</Text>
+          )}
+          <Text style={s.hospArrow}>›</Text>
         </TouchableOpacity>
 
-        {/* ── 기능 카드 4개 ── */}
+        {/* ── 기능 카드 2x2 ── */}
         <View style={s.cardGrid}>
-          <TouchableOpacity style={s.cardWrap}
-            onPress={() => navigation.navigate('Health', { userId, name })} activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.10)']} style={s.card}>
-              <Text style={s.cardEmoji}>❤️</Text>
-              <Text style={s.cardLabel}>건강 체크</Text>
-              <Text style={s.cardDesc}>혈압·혈당·체온</Text>
-            </LinearGradient>
-          </TouchableOpacity>
 
-          <TouchableOpacity style={s.cardWrap}
-            onPress={() => navigation.navigate('Medications', { userId, name })} activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.10)']} style={s.card}>
-              <Text style={s.cardEmoji}>💊</Text>
-              <Text style={s.cardLabel}>약 확인</Text>
-              <Text style={s.cardDesc}>복약 일정 관리</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={s.cardWrap}
-            onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0, userId })} activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.10)']} style={s.card}>
-              <Text style={s.cardEmoji}>🗺️</Text>
+          <TouchableOpacity style={[s.card, { backgroundColor: '#E8F5E9' }]}
+            onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0, userId })}
+            activeOpacity={0.88}>
+            <View style={[s.cardIconCircle, { backgroundColor: '#4CAF50' }]}>
+              <Text style={s.cardIconTxt}>🗺️</Text>
+            </View>
+            <View style={s.cardTextWrap}>
               <Text style={s.cardLabel}>내 위치</Text>
-              <Text style={s.cardDesc}>오늘 동선 확인</Text>
-            </LinearGradient>
+              <Text style={s.cardDesc}>현재 위치 확인</Text>
+            </View>
+            <View style={[s.cardArrow, { backgroundColor: '#4CAF50' }]}>
+              <Text style={s.cardArrowTxt}>›</Text>
+            </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.cardWrap}
-            onPress={() => navigation.navigate('Guardian', { userId, name })} activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.10)']} style={s.card}>
-              <Text style={s.cardEmoji}>👨‍👩‍👧</Text>
-              <Text style={s.cardLabel}>보호자</Text>
-              <Text style={s.cardDesc}>가족 알림</Text>
-            </LinearGradient>
+          <TouchableOpacity style={[s.card, { backgroundColor: '#FFF3E0' }]}
+            onPress={() => navigation.navigate('Health', { userId, name })}
+            activeOpacity={0.88}>
+            <View style={[s.cardIconCircle, { backgroundColor: '#FF9800' }]}>
+              <Text style={s.cardIconTxt}>❤️</Text>
+            </View>
+            <View style={s.cardTextWrap}>
+              <Text style={s.cardLabel}>건강 체크</Text>
+              <Text style={s.cardDesc}>혈압·혈당·체온 측정</Text>
+            </View>
+            <View style={[s.cardArrow, { backgroundColor: '#FF9800' }]}>
+              <Text style={s.cardArrowTxt}>›</Text>
+            </View>
           </TouchableOpacity>
+
+          <TouchableOpacity style={[s.card, { backgroundColor: '#F3E5F5' }]}
+            onPress={() => navigation.navigate('AIChat', { userId, name })}
+            activeOpacity={0.88}>
+            <View style={[s.cardIconCircle, { backgroundColor: '#9C27B0' }]}>
+              <Text style={s.cardIconTxt}>💬</Text>
+            </View>
+            <View style={s.cardTextWrap}>
+              <Text style={s.cardLabel}>루미와 대화</Text>
+              <Text style={s.cardDesc}>궁금한 것 물어보기</Text>
+            </View>
+            <View style={[s.cardArrow, { backgroundColor: '#9C27B0' }]}>
+              <Text style={s.cardArrowTxt}>›</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[s.card, { backgroundColor: '#E3F2FD' }]}
+            onPress={() => navigation.navigate('Guardian', { userId, name })}
+            activeOpacity={0.88}>
+            <View style={[s.cardIconCircle, { backgroundColor: '#2196F3' }]}>
+              <Text style={s.cardIconTxt}>👨‍👩‍👧</Text>
+            </View>
+            <View style={s.cardTextWrap}>
+              <Text style={s.cardLabel}>보호자</Text>
+              <Text style={s.cardDesc}>가족에게 알리기</Text>
+            </View>
+            <View style={[s.cardArrow, { backgroundColor: '#2196F3' }]}>
+              <Text style={s.cardArrowTxt}>›</Text>
+            </View>
+          </TouchableOpacity>
+
         </View>
 
         {/* ── SOS ── */}
@@ -224,10 +241,12 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             <Text style={s.sosLabel}>SOS 긴급 도움</Text>
             <Text style={s.sosSub}>위급할 때 눌러주세요</Text>
           </View>
-          <Text style={s.sosArrow}>📞</Text>
+          <View style={s.sosCircle}>
+            <Text style={s.sosCircleTxt}>›</Text>
+          </View>
         </TouchableOpacity>
 
-        <View style={{ height: 16 }} />
+        <View style={{ height: 20 }} />
       </ScrollView>
 
       <SeniorTabBar navigation={navigation} activeTab="home" userId={userId} name={name} />
@@ -235,63 +254,75 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   );
 }
 
-const CARD_W = (width - 32 - 10) / 2;
-
 const s = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: '#5C6BC0' },
-  scroll: { paddingHorizontal: 16, paddingBottom: 20 },
+  root:   { flex: 1 },
+  scroll: { paddingHorizontal: 16, paddingBottom: 16 },
 
   /* 상단 바 */
-  topBar:      { flexDirection: 'row', justifyContent: 'space-between',
-                 alignItems: 'flex-start', marginBottom: 20 },
-  topGreeting: { fontSize: 22, fontWeight: '900', color: '#fff' },
-  topName:     { fontSize: 16, color: 'rgba(255,255,255,0.88)', fontWeight: '600', marginTop: 4 },
-  topRight:    { alignItems: 'flex-end', gap: 4 },
-  topDate:     { fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
-  topTime:     { fontSize: 16, fontWeight: '800', color: '#fff' },
+  topBar:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 },
+  logoTxt:   { fontSize: 26, fontWeight: '900', color: '#1565C0' },
+  logoSub:   { fontSize: 12, color: '#5C85C0', fontWeight: '600', marginTop: 2 },
+  topRight:  { alignItems: 'flex-end', gap: 4 },
+  topDate:   { fontSize: 14, fontWeight: '700', color: '#2C5F8A' },
+  topTime:   { fontSize: 22, fontWeight: '900', color: '#1565C0' },
+
+  /* 인사 + 루미 */
+  greetRow:    { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
+  greetLeft:   { flex: 1 },
+  greetMain:   { fontSize: 32, fontWeight: '900', color: '#0D2B5E', lineHeight: 38 },
+  greetSub:    { fontSize: 16, color: '#3A6B9A', fontWeight: '600', marginTop: 6 },
+  lumiImg:     { width: 120, height: 120, marginLeft: 10 },
 
   /* 게스트 배너 */
   guestBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-                 backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 12,
+                 backgroundColor: 'rgba(21,101,192,0.12)', borderRadius: 14,
                  paddingHorizontal: 16, paddingVertical: 12, marginBottom: 14 },
-  guestTxt:    { fontSize: 14, fontWeight: '600', color: '#fff', flex: 1 },
-  guestBtn:    { fontSize: 14, fontWeight: '800', color: '#FFD600' },
+  guestTxt:    { fontSize: 14, fontWeight: '600', color: '#1565C0', flex: 1 },
+  guestBtn:    { fontSize: 14, fontWeight: '800', color: '#1565C0' },
 
-  /* 루미 메인 카드 */
-  lumiCardWrap: { borderRadius: 22, overflow: 'hidden', marginBottom: 14,
-                  shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 12,
-                  shadowOffset: { width: 0, height: 4 }, elevation: 6 },
-  lumiCard:     { padding: 20 },
-  lumiTop:      { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
-  lumiAvatar:   { width: 52, height: 52, borderRadius: 26, backgroundColor: '#5C6BC0',
-                  alignItems: 'center', justifyContent: 'center' },
-  lumiAvatarTxt:{ fontSize: 26 },
-  lumiName:     { fontSize: 20, fontWeight: '900', color: '#16273E' },
-  lumiSub:      { fontSize: 13, color: '#7A90A8', marginTop: 2 },
-  lumiArrow:    { fontSize: 28, color: '#C5C9E8' },
-  lumiPromptBox:{ backgroundColor: '#F3F6FF', borderRadius: 14, padding: 16,
-                  flexDirection: 'row', gap: 6, alignItems: 'flex-start', marginBottom: 14 },
-  lumiPromptQuote:{ fontSize: 28, color: '#5C6BC0', lineHeight: 28, fontWeight: '900' },
-  lumiPromptTxt:{ fontSize: 18, color: '#16273E', fontWeight: '600', flex: 1, lineHeight: 26, paddingTop: 4 },
-  lumiFooter:   { alignItems: 'center' },
-  lumiFooterTxt:{ fontSize: 14, color: '#5C6BC0', fontWeight: '700' },
+  /* 병원 일정 카드 */
+  hospCard:  { flexDirection: 'row', alignItems: 'center',
+               backgroundColor: '#fff', borderRadius: 18, padding: 18, marginBottom: 14,
+               shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 10,
+               shadowOffset: { width: 0, height: 3 }, elevation: 4, gap: 12 },
+  hospLeft:  { alignItems: 'center', gap: 4 },
+  hospIcon:  { fontSize: 28 },
+  hospTitle: { fontSize: 13, fontWeight: '700', color: '#5C85C0' },
+  hospInfo:  { flex: 1 },
+  hospTime:  { fontSize: 22, fontWeight: '900', color: '#1565C0' },
+  hospName:  { fontSize: 18, fontWeight: '700', color: '#0D2B5E', marginTop: 2 },
+  hospEmpty: { flex: 1, fontSize: 17, color: '#90A4AE', fontWeight: '600' },
+  hospArrow: { fontSize: 30, color: '#90B4D0' },
 
-  /* 4개 소카드 */
-  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
-  cardWrap: { width: CARD_W, borderRadius: 18, overflow: 'hidden' },
-  card:     { paddingVertical: 18, paddingHorizontal: 14, gap: 6, alignItems: 'flex-start' },
-  cardEmoji:{ fontSize: 30 },
-  cardLabel:{ fontSize: 17, fontWeight: '800', color: '#fff' },
-  cardDesc: { fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: '500' },
+  /* 2x2 카드 */
+  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 14 },
+  card: {
+    width: CARD_W, borderRadius: 18, padding: 14,
+    alignItems: 'flex-start', gap: 10,
+    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 }, elevation: 3,
+  },
+  cardIconCircle: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
+  cardIconTxt:    { fontSize: 26 },
+  cardTextWrap:   { gap: 2 },
+  cardLabel:      { fontSize: 18, fontWeight: '900', color: '#0D2B5E' },
+  cardDesc:       { fontSize: 12, color: '#5C85A8', fontWeight: '500' },
+  cardArrow:      { alignSelf: 'flex-end', width: 28, height: 28, borderRadius: 14,
+                    alignItems: 'center', justifyContent: 'center' },
+  cardArrowTxt:   { fontSize: 18, fontWeight: '900', color: '#fff' },
 
   /* SOS */
-  sosBtn:    { flexDirection: 'row', alignItems: 'center', backgroundColor: '#C62828',
-               borderRadius: 20, paddingVertical: 16, paddingHorizontal: 20, gap: 14,
-               shadowColor: '#7B0000', shadowOpacity: 0.35, shadowRadius: 8,
-               shadowOffset: { width: 0, height: 3 }, elevation: 6 },
-  sosEmoji:  { fontSize: 30 },
-  sosTxtWrap:{ flex: 1 },
-  sosLabel:  { fontSize: 20, fontWeight: '900', color: '#fff' },
-  sosSub:    { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
-  sosArrow:  { fontSize: 28 },
+  sosBtn:      { flexDirection: 'row', alignItems: 'center',
+                 backgroundColor: '#E53935', borderRadius: 20,
+                 paddingVertical: 18, paddingHorizontal: 22, gap: 14,
+                 shadowColor: '#B71C1C', shadowOpacity: 0.35, shadowRadius: 10,
+                 shadowOffset: { width: 0, height: 4 }, elevation: 7 },
+  sosEmoji:    { fontSize: 34 },
+  sosTxtWrap:  { flex: 1 },
+  sosLabel:    { fontSize: 24, fontWeight: '900', color: '#fff' },
+  sosSub:      { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+  sosCircle:   { width: 40, height: 40, borderRadius: 20,
+                 backgroundColor: 'rgba(255,255,255,0.25)',
+                 alignItems: 'center', justifyContent: 'center' },
+  sosCircleTxt:{ fontSize: 24, fontWeight: '900', color: '#fff' },
 });
