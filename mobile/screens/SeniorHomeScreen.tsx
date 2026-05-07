@@ -155,20 +155,21 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           <Text style={s.topGreeting}>Silver Life AI</Text>
           <Text style={s.topDate}>{weather} {dateStr}</Text>
         </View>
-        <View style={s.topRight}>
-          <View style={s.langRow}>
-            {LANG_FLAGS.map(({ lang, flag }) => (
-              <TouchableOpacity
-                key={lang}
-                onPress={() => setLanguage(lang)}
-                style={[s.flagBtn, language === lang && s.flagBtnActive]}
-              >
-                <Text style={s.flagTxt}>{flag}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <Text style={s.topTime}>{timeStr}</Text>
-        </View>
+        <Text style={s.topTime}>{timeStr}</Text>
+      </View>
+
+      {/* ── 언어 선택 바 ── */}
+      <View style={s.langBar}>
+        {LANG_FLAGS.map(({ lang, flag }) => (
+          <TouchableOpacity
+            key={lang}
+            onPress={() => setLanguage(lang)}
+            style={[s.flagBtn, language === lang && s.flagBtnActive]}
+            activeOpacity={0.7}
+          >
+            <Text style={s.flagTxt}>{flag}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* ── 루미 말풍선 ── */}
@@ -276,10 +277,12 @@ const s = StyleSheet.create({
   topRight:  { alignItems: 'flex-end', gap: 3 },
   topDate:   { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.95)' },
   topTime:   { fontSize: 15, fontWeight: '800', color: '#fff' },
+  langBar:   { flexDirection: 'row', justifyContent: 'center', gap: 10,
+               paddingVertical: 6, paddingHorizontal: 18 },
   langRow:   { flexDirection: 'row', gap: 4, marginBottom: 4 },
-  flagBtn:   { paddingHorizontal: 5, paddingVertical: 2, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.20)' },
-  flagBtnActive: { backgroundColor: 'rgba(255,255,255,0.55)' },
-  flagTxt:   { fontSize: 18 },
+  flagBtn:   { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.25)' },
+  flagBtnActive: { backgroundColor: 'rgba(255,255,255,0.75)' },
+  flagTxt:   { fontSize: 22 },
 
   /* 루미 */
   hero:    { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 16 },
