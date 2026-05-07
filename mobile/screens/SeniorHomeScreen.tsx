@@ -153,32 +153,25 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       {/* ── 상단 바 ── */}
       <View style={[s.topBar, { paddingTop: Math.max(insets.top + 8, 24) }]}>
         <View style={s.topLeft}>
-          <Text style={s.topGreeting}>Silver Life AI</Text>
-          <Text style={s.topDate}>{weather} {dateStr}</Text>
+          <Text style={s.topGreeting}>{lumiGreeting}</Text>
+          <Text style={s.topDate}>{weather} {dateStr} · {timeStr}</Text>
         </View>
-        <Text style={s.topTime}>{timeStr}</Text>
-      </View>
-
-      {/* ── 언어 선택 바 ── */}
-      <View style={s.langBar}>
-        {LANG_FLAGS.map(({ lang, flag }) => (
-          <TouchableOpacity
-            key={lang}
-            onPress={() => setLanguage(lang)}
-            style={[s.flagBtn, language === lang && s.flagBtnActive]}
-            activeOpacity={0.7}
-          >
-            <Text style={s.flagTxt}>{flag}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* ── 루미 말풍선 ── */}
-      <View style={s.hero}>
-        <View style={s.lumiBubble}>
-          <Text style={s.lumiMsg}>{lumiGreeting}</Text>
+        <View style={s.langRow}>
+          {LANG_FLAGS.map(({ lang, flag }) => (
+            <TouchableOpacity
+              key={lang}
+              onPress={() => setLanguage(lang)}
+              style={[s.flagBtn, language === lang && s.flagBtnActive]}
+              activeOpacity={0.7}
+            >
+              <Text style={s.flagTxt}>{flag}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
+
+      {/* ── 히어로 (배경 이미지 노출 영역) ── */}
+      <View style={s.hero} />
 
       {/* ── 하단: 카드 + SOS ── */}
       <View style={s.bottom}>
@@ -267,24 +260,24 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 18, paddingBottom: 6,
   },
-  topLeft:     { flexShrink: 1, paddingRight: 10 },
+  topLeft:     { flex: 1, paddingRight: 12 },
   topGreeting: {
-    fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: 0.3,
-    textShadowColor: 'rgba(0,30,80,0.25)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
+    fontSize: 15, fontWeight: '800', color: '#fff', lineHeight: 22,
+    textShadowColor: 'rgba(0,30,80,0.30)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
   },
   topName: {
-    fontSize: 17, color: '#fff', fontWeight: '700', marginTop: 3,
+    fontSize: 15, color: '#fff', fontWeight: '700', marginTop: 3,
     textShadowColor: 'rgba(0,30,80,0.2)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3,
   },
   topRight:  { alignItems: 'flex-end', gap: 3 },
-  topDate:   { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.95)' },
-  topTime:   { fontSize: 15, fontWeight: '800', color: '#fff' },
+  topDate:   { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.90)', marginTop: 4 },
+  topTime:   { fontSize: 13, fontWeight: '800', color: '#fff' },
   langBar:   { flexDirection: 'row', justifyContent: 'center', gap: 10,
                paddingVertical: 6, paddingHorizontal: 18 },
-  langRow:   { flexDirection: 'row', gap: 4, marginBottom: 4 },
-  flagBtn:   { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.25)' },
-  flagBtnActive: { backgroundColor: 'rgba(255,255,255,0.75)' },
-  flagTxt:   { fontSize: 22 },
+  langRow:   { flexDirection: 'row', gap: 6, alignItems: 'center' },
+  flagBtn:   { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.22)' },
+  flagBtnActive: { backgroundColor: 'rgba(255,255,255,0.70)' },
+  flagTxt:   { fontSize: 20 },
 
   /* 루미 */
   hero:    { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 16 },
