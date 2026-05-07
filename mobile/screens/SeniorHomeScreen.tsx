@@ -18,6 +18,33 @@ const LANG_FLAGS: { lang: Language; flag: string }[] = [
   { lang: 'en', flag: '🇺🇸' },
 ];
 
+function getLumiGreeting(hour: number, name: string, lang: Language): string {
+  const n = name || '';
+  if (lang === 'zh') {
+    if (hour >= 6  && hour < 10) return `早上好，${n}！祝您今天健康愉快 🌅`;
+    if (hour >= 10 && hour < 12) return `上午好！您量血压了吗？💙`;
+    if (hour >= 12 && hour < 15) return `午饭吃好了吗？别忘了餐后服药 🤍`;
+    if (hour >= 15 && hour < 18) return `下午加油！今天的步数看看吧 🚶`;
+    if (hour >= 18 && hour < 21) return `今天辛苦了。是晚餐后的服药时间了 💊`;
+    return `今天也注意健康了。好好休息吧 🌙`;
+  }
+  if (lang === 'en') {
+    if (hour >= 6  && hour < 10) return `Good morning, ${n}! Have a healthy day 🌅`;
+    if (hour >= 10 && hour < 12) return `Good morning! Have you checked your blood pressure? 💙`;
+    if (hour >= 12 && hour < 15) return `Hope lunch was good! Don't forget your after-meal meds 🤍`;
+    if (hour >= 15 && hour < 18) return `Keep it up this afternoon! Check today's steps? 🚶`;
+    if (hour >= 18 && hour < 21) return `Great work today! Time for your evening medication 💊`;
+    return `You took care of your health today. Rest well 🌙`;
+  }
+  // 한국어 (기본)
+  if (hour >= 6  && hour < 10) return `좋은 아침이에요, ${n}님!\n오늘도 건강한 하루 시작해요 🌅`;
+  if (hour >= 10 && hour < 12) return `오전 잘 보내고 계세요?\n혈압 재셨나요? 💙`;
+  if (hour >= 12 && hour < 15) return `점심 맛있게 드셨어요?\n식후 약 잊지 마세요 🤍`;
+  if (hour >= 15 && hour < 18) return `오후도 힘내세요!\n오늘 걸음 수 확인해볼까요? 🚶`;
+  if (hour >= 18 && hour < 21) return `오늘 하루도 수고하셨어요.\n저녁 약 시간이에요 💊`;
+  return `오늘도 건강 잘 지키셨어요.\n푹 쉬세요 🌙`;
+}
+
 const API = 'https://silverlieai.onrender.com';
 const { width, height } = Dimensions.get('window');
 const CARD_GAP = 10;
@@ -114,7 +141,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   const h12     = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
   const timeStr = `${hour < 12 ? '오전' : '오후'} ${h12}:${String(now.getMinutes()).padStart(2, '0')}`;
   const weather  = hour >= 6 && hour < 19 ? '☀️' : '🌙';
-  const greeting = hour < 12 ? t.greetingMorning : hour < 18 ? t.greetingAfternoon : t.greetingEvening;
+  const lumiGreeting = getLumiGreeting(hour, name, language);
   const isGuest  = !userId || userId === 'guest';
 
   return (
@@ -125,8 +152,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       {/* ── 상단 바 ── */}
       <View style={[s.topBar, { paddingTop: Math.max(insets.top + 8, 24) }]}>
         <View style={s.topLeft}>
-          <Text style={s.topGreeting}>{greeting}</Text>
-          {name ? <Text style={s.topName}>{t.nameGreet(name)}</Text> : null}
+          <Text style={s.topGreeting}>Silver Life AI</Text>
+          <Text style={s.topDate}>{weather} {dateStr}</Text>
         </View>
         <View style={s.topRight}>
           <View style={s.langRow}>
@@ -140,13 +167,16 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={s.topDate}>{weather} {dateStr}</Text>
           <Text style={s.topTime}>{timeStr}</Text>
         </View>
       </View>
 
-      {/* 루미 캐릭터 없음 — 배경 이미지만 표시 */}
-      <View style={s.hero} />
+      {/* ── 루미 말풍선 ── */}
+      <View style={s.hero}>
+        <View style={s.lumiBubble}>
+          <Text style={s.lumiMsg}>{lumiGreeting}</Text>
+        </View>
+      </View>
 
       {/* ── 하단: 카드 + SOS ── */}
       <View style={s.bottom}>
@@ -252,8 +282,16 @@ const s = StyleSheet.create({
   flagTxt:   { fontSize: 18 },
 
   /* 루미 */
-  hero:    { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  hero:    { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 16 },
   lumiImg: { width: width * 0.75, height: '100%' },
+  lumiBubble: {
+    backgroundColor: 'rgba(255,255,255,0.88)',
+    borderRadius: 20, paddingHorizontal: 20, paddingVertical: 14,
+    marginHorizontal: 24, maxWidth: width - 48,
+    shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 }, elevation: 4,
+  },
+  lumiMsg: { fontSize: 16, fontWeight: '700', color: '#1A3A5C', lineHeight: 24, textAlign: 'center' },
 
   /* 하단 */
   bottom: { paddingHorizontal: 14, paddingBottom: 10 },
