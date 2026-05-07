@@ -147,6 +147,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   return (
     <View style={s.root}>
       <Image source={require('../assets/lumi16.png')} style={s.bg} resizeMode="cover" />
+      <View style={s.bgBlur} />
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       {/* ── 상단 바 ── */}
@@ -258,6 +259,7 @@ const CARD_H = Math.min(Math.floor((height - BOTTOM_H - 160) * 0.48), 110);
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#87CEEB' },
   bg:   { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
+  bgBlur: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.22)' },
 
   /* 상단 바 */
   topBar: {

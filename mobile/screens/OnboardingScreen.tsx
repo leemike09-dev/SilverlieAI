@@ -31,7 +31,7 @@ const SLIDES: { icon: string | null; lumi?: boolean; title: string; desc: string
   {
     icon: null,
     lumi: true,
-    title: '이제 걱정 마세요\nSilver Life AI가 함께합니다',
+    title: '걱정 마세요\n루미가 함께합니다',
     desc: '루미가 매일 건강을\n지켜드릴게요',
     color: '#7B1FA2',
   },
@@ -125,8 +125,8 @@ const s = StyleSheet.create({
               alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
   icon:  { fontSize: 100 },
   beeImg:    { width: 200, height: 200 },
-  lumiSlide: { justifyContent: 'flex-start', paddingTop: 28 },
-  lumiImg:   { width: 300, height: 300, marginBottom: 16 },
+  lumiSlide: { justifyContent: 'flex-start', paddingTop: 16 },
+  lumiImg:   { width: width - 40, height: width - 40, marginBottom: 8 },
   title: { fontSize: 32, fontWeight: '900', textAlign: 'center', marginBottom: 16 },
   desc:  { fontSize: 24, color: '#555', textAlign: 'center', lineHeight: 36 },
 

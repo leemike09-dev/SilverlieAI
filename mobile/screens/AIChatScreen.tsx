@@ -721,16 +721,13 @@ export default function AIChatScreen({ route, navigation }: Props) {
           <Text style={s.topTitle}>💬 루미와 대화</Text>
           <Text style={s.topSub}>건강·일상 무엇이든 물어보세요</Text>
         </View>
-        <TouchableOpacity style={s.newChatBtn} onPress={startNewSession} activeOpacity={0.8}>
-          <Text style={s.newChatTxt}>＋ 새 대화</Text>
-        </TouchableOpacity>
         <View style={s.onlineDot} />
       </View>
 
-      {/* ── 세션 탭 (저장된 대화가 있을 때) ── */}
-      {sessions.length > 0 && (
+      {/* ── 세션 바 (탭 + 새 대화 버튼) ── */}
+      <View style={s.sessionBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
-          style={s.sessionBar} contentContainerStyle={s.sessionBarInner}>
+          style={{ flex: 1 }} contentContainerStyle={s.sessionBarInner}>
           {sessions.map((sess, idx) => (
             <TouchableOpacity
               key={sess.id}
@@ -745,7 +742,10 @@ export default function AIChatScreen({ route, navigation }: Props) {
             </TouchableOpacity>
           ))}
         </ScrollView>
-      )}
+        <TouchableOpacity style={s.newChatBtn} onPress={startNewSession} activeOpacity={0.8}>
+          <Text style={s.newChatTxt}>＋ 새 대화</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* CRITICAL 배너 */}
       {showEmergency && (
@@ -1155,13 +1155,14 @@ const s = StyleSheet.create({
   condNoTxt: { fontSize: 20, color: '#2E7D32', fontWeight: '700' },
 
   // 새 대화 버튼
-  newChatBtn: { backgroundColor: '#EDE7F6', borderRadius: 16, paddingHorizontal: 12,
-    paddingVertical: 6, marginRight: 10, borderWidth: 1, borderColor: '#CE93D8' },
-  newChatTxt: { fontSize: 13, fontWeight: '800', color: '#7B1FA2' },
+  newChatBtn: { backgroundColor: '#7B1FA2', borderRadius: 14, paddingHorizontal: 12,
+    paddingVertical: 7, marginRight: 8, flexShrink: 0 },
+  newChatTxt: { fontSize: 13, fontWeight: '800', color: '#fff' },
 
   // 세션 탭바
-  sessionBar:       { backgroundColor: '#fff', maxHeight: 42, borderBottomWidth: 1, borderBottomColor: '#E1BEE7' },
-  sessionBarInner:  { paddingHorizontal: 10, paddingVertical: 6, gap: 8, flexDirection: 'row', alignItems: 'center' },
+  sessionBar:       { backgroundColor: '#F3E5F5', height: 46, flexDirection: 'row',
+    alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#CE93D8' },
+  sessionBarInner:  { paddingHorizontal: 8, paddingVertical: 6, gap: 8, flexDirection: 'row', alignItems: 'center' },
   sessionTab:       { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20,
     backgroundColor: '#F3E5F5', borderWidth: 1, borderColor: '#E1BEE7', maxWidth: 160 },
   sessionTabActive: { backgroundColor: '#7B1FA2', borderColor: '#7B1FA2' },
