@@ -502,6 +502,11 @@ export default function HealthScreen({ navigation }: any) {
               <Text style={s.cardTitle}>🚶 걸음수</Text>
               {stepsAuto && <View style={s.autoBadge}><Text style={s.autoBadgeTxt}>자동 측정 중</Text></View>}
               {stepsLoading && <ActivityIndicator color={BLUE} size="small" />}
+              {!stepsAuto && !stepsLoading && Platform.OS !== 'web' && (
+                <TouchableOpacity onPress={tryPedometer} activeOpacity={0.7}>
+                  <Text style={{ fontSize: 12, color: BLUE, fontWeight: '700' }}>권한 허용</Text>
+                </TouchableOpacity>
+              )}
             </View>
             <View style={s.bigInputRow}>
               <TextInput style={s.bigInput} value={steps}

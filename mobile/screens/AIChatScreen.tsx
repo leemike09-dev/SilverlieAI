@@ -346,15 +346,57 @@ export default function AIChatScreen({ route, navigation }: Props) {
       }),
     });
 
+    const applyResult = (cleanText: string, riskLevel: RiskLevel, dMemo: string | undefined, dMemoNeeded: boolean, isFinal: boolean, sosSent: boolean, profileUpdates: string[]) => {
+      setMessages(prev => {
+        const next = [...prev];
+        next[next.length - 1] = { role: 'ai', text: cleanText, riskLevel, doctorMemoNeeded: dMemoNeeded, doctorMemo: dMemo };
+        return next;
+      });
+      setHistory([...newHistory, { role: 'assistant', content: cleanText }]);
+      setTurnCount(t => t + 1);
+      if (ttsEnabled) speak(cleanForTTS(cleanText), 0.82, 0.88);
+      if (riskLevel === 'critical') { setShowEmergency(true); if (sosSent) setFamilyNotified(true); }
+      if (!isAboutOthers && memoState === 'idle' && riskLevel !== 'normal' && detectedIntent !== 'daily' &&
+          ((isFinal && dMemo) || (dMemoNeeded && dMemo && ['medium','high','critical'].includes(riskLevel)))) {
+        setPendingMemo(dMemo!);
+        const mainMs = ttsEnabled ? Math.min(Math.max(3000, cleanText.length * 80), 8000) : 1500;
+        setTimeout(() => setMemoState('asking'), mainMs);
+      }
+      if (profileUpdates.length > 0) setPendingConditions(profileUpdates);
+    };
+
+    const callNonStreaming = async () => {
+      const r = await fetch(`${API_URL}/ai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId, message: msg, history: history.slice(-10),
+          turn_count: turnCount, force_summary: false,
+          intent: detectedIntent, client_profile: healthProfile,
+        }),
+      });
+      if (!r.ok) throw new Error('api error');
+      const data = await r.json();
+      const cleanText = stripEmoji(data.reply) || '죄송합니다, 다시 시도해주세요.';
+      applyResult(cleanText, data.risk_level ?? 'normal', data.doctor_memo ?? undefined,
+                  data.doctor_memo_needed ?? false, data.is_final ?? false,
+                  data.sos_sent ?? false, data.profile_updates || []);
+    };
+
     try {
       let res = await fetchStream();
-      // 콜드스타트로 실패 시 3초 후 1회 자동 재시도
+      // 서버 콜드스타트 → 5초 대기 후 재시도
       if (!res.ok || !res.body) {
-        await new Promise(r => setTimeout(r, 3000));
+        await new Promise(r => setTimeout(r, 5000));
         res = await fetchStream();
       }
 
-      if (!res.ok || !res.body) throw new Error('stream error');
+      if (!res.ok) throw new Error('server error');
+
+      // React Native에서 res.body가 null이면 비스트리밍 폴백
+      if (!res.body) {
+        await callNonStreaming();
+      } else {
       const reader  = res.body.getReader();
       const decoder = new TextDecoder();
       let accumulated = '';
@@ -389,25 +431,12 @@ export default function AIChatScreen({ route, navigation }: Props) {
               const dMemoNeeded: boolean = data.doctor_memo_needed ?? false;
               const isFinal: boolean     = data.is_final ?? false;
               const cleanText = stripEmoji(accumulated) || '죄송합니다, 다시 시도해주세요.';
-
-              setMessages(prev => {
-                const next = [...prev];
-                next[next.length - 1] = { role: 'ai', text: cleanText, riskLevel, doctorMemoNeeded: dMemoNeeded, doctorMemo: dMemo };
-                return next;
-              });
-              setHistory([...newHistory, { role: 'assistant', content: cleanText }]);
-              setTurnCount(t => t + 1);
-              if (riskLevel === 'critical') { setShowEmergency(true); if (data.sos_sent) setFamilyNotified(true); }
-              if (!isAboutOthers && memoState === 'idle' && riskLevel !== 'normal' && detectedIntent !== 'daily' && ((isFinal && dMemo) || (dMemoNeeded && dMemo && ['medium','high','critical'].includes(riskLevel)))) {
-                setPendingMemo(dMemo!);
-                const mainMs = ttsEnabled ? Math.min(Math.max(3000, cleanText.length * 80), 8000) : 1500;
-                setTimeout(() => setMemoState('asking'), mainMs);
-              }
-              const updates: string[] = data.profile_updates || [];
-              if (updates.length > 0) setPendingConditions(updates);
+              applyResult(cleanText, riskLevel, dMemo, dMemoNeeded, isFinal,
+                          data.sos_sent ?? false, data.profile_updates || []);
             }
           } catch {}
         }
+      }
       }
     } catch {
       setMessages(prev => {

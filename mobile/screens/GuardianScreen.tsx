@@ -28,6 +28,23 @@ export default function GuardianScreen({ route, navigation }: any) {
   const [lastSentDate,   setLastSentDate]   = useState<string | null>(null);
   const [autoSentToday,  setAutoSentToday]  = useState(false);
   const [hospitalMemo,   setHospitalMemo]   = useState('');
+  const [showHospForm,   setShowHospForm]   = useState(false);
+  const [hospDate,       setHospDate]       = useState('');
+  const [hospName,       setHospName]       = useState('');
+  const [hospDept,       setHospDept]       = useState('');
+  const [hospTime,       setHospTime]       = useState('');
+  const [hospNote,       setHospNote]       = useState('');
+
+  const saveHospSchedule = async () => {
+    if (!hospName.trim() || !hospDate.trim()) {
+      Alert.alert('알림', '날짜와 병원명을 입력해 주세요.'); return;
+    }
+    const sched = { date: hospDate.trim(), hospital: hospName.trim(), department: hospDept.trim(), time: hospTime.trim(), note: hospNote.trim() };
+    await AsyncStorage.setItem('hospital_schedule', JSON.stringify(sched));
+    setHospSchedule(sched);
+    setShowHospForm(false);
+    setHospDate(''); setHospName(''); setHospDept(''); setHospTime(''); setHospNote('');
+  };
 
   const loadData = useCallback(async () => {
     const hs = await AsyncStorage.getItem('hospital_schedule');
@@ -131,7 +148,12 @@ export default function GuardianScreen({ route, navigation }: any) {
 
         {/* 건강 수치 */}
         <View style={s.card}>
-          <Text style={s.cardTitle}>🩺 최근 건강 수치</Text>
+          <View style={s.cardHeader}>
+            <Text style={s.cardTitle}>🩺 최근 건강 수치</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Health', { userId, name })} activeOpacity={0.7}>
+              <Text style={s.editSmall}>기록하기 →</Text>
+            </TouchableOpacity>
+          </View>
           {hasHealth ? (
             <View style={s.gridRow}>
               {r.blood_pressure_systolic && r.blood_pressure_diastolic && (
@@ -172,10 +194,32 @@ export default function GuardianScreen({ route, navigation }: any) {
 
         {/* 병원 예약 */}
         <View style={s.card}>
-          <Text style={s.cardTitle}>🏥 병원 예약</Text>
-          {hospSchedule ? (
+          <View style={s.cardHeader}>
+            <Text style={s.cardTitle}>🏥 병원 예약</Text>
+            <TouchableOpacity onPress={() => setShowHospForm(v => !v)} activeOpacity={0.7}>
+              <Text style={s.editSmall}>{showHospForm ? '취소' : hospSchedule ? '수정' : '+ 추가'}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {showHospForm ? (
+            <View style={s.hospForm}>
+              <TextInput style={s.hospInput} value={hospDate} onChangeText={setHospDate}
+                placeholder="날짜 (예: 2025-06-10)" placeholderTextColor="#bdbdbd" />
+              <TextInput style={s.hospInput} value={hospTime} onChangeText={setHospTime}
+                placeholder="시간 (예: 오전 10:30)" placeholderTextColor="#bdbdbd" />
+              <TextInput style={s.hospInput} value={hospName} onChangeText={setHospName}
+                placeholder="병원명 (예: 서울성모병원)" placeholderTextColor="#bdbdbd" />
+              <TextInput style={s.hospInput} value={hospDept} onChangeText={setHospDept}
+                placeholder="진료과 (예: 내과)" placeholderTextColor="#bdbdbd" />
+              <TextInput style={s.hospInput} value={hospNote} onChangeText={setHospNote}
+                placeholder="메모 (선택)" placeholderTextColor="#bdbdbd" />
+              <TouchableOpacity style={s.hospSaveBtn} onPress={saveHospSchedule} activeOpacity={0.85}>
+                <Text style={s.hospSaveTxt}>저장</Text>
+              </TouchableOpacity>
+            </View>
+          ) : hospSchedule ? (
             <View style={s.hospRow}>
-              <Text style={s.hospDate}>{hospSchedule.date}</Text>
+              <Text style={s.hospDate}>{hospSchedule.date}{hospSchedule.time ? ` ${hospSchedule.time}` : ''}</Text>
               <View style={s.hospInfo}>
                 <Text style={s.hospName}>{hospSchedule.hospital}</Text>
                 {hospSchedule.department ? <Text style={s.hospDept}>{hospSchedule.department}</Text> : null}
@@ -183,7 +227,9 @@ export default function GuardianScreen({ route, navigation }: any) {
               </View>
             </View>
           ) : (
-            <Text style={s.emptyTxt}>예약된 병원 일정이 없습니다</Text>
+            <TouchableOpacity onPress={() => setShowHospForm(true)} activeOpacity={0.7}>
+              <Text style={s.emptyTxt}>병원 예약을 추가해 주세요 →</Text>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -260,8 +306,16 @@ const s = StyleSheet.create({
   scroll:        { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 16, gap: 0 },
 
-  card:      { backgroundColor: '#fff', paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: '#1a2a3a', marginBottom: 10 },
+  card:       { backgroundColor: '#fff', paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  cardTitle:  { fontSize: 15, fontWeight: '700', color: '#1a2a3a', marginBottom: 10 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  editSmall:  { fontSize: 14, fontWeight: '700', color: '#1a5fbc' },
+
+  hospForm:    { gap: 8 },
+  hospInput:   { backgroundColor: '#F8F9FA', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
+                 fontSize: 15, color: '#1a2a3a', borderWidth: 1, borderColor: '#E8E8E8' },
+  hospSaveBtn: { backgroundColor: '#1a5fbc', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 4 },
+  hospSaveTxt: { color: '#fff', fontSize: 15, fontWeight: '800' },
 
   gridRow:  { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   statBox:  { backgroundColor: '#F3F6FF', borderRadius: 12, padding: 12, minWidth: 90, alignItems: 'center' },
