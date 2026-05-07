@@ -187,7 +187,9 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [pendingConditions, setPendingConditions] = useState<string[]>([]);
   const [sessions,          setSessions]         = useState<ChatSession[]>([]);
   const [currentSessionIdx, setCurrentSessionIdx] = useState(0);
-  const sessionIdRef = useRef<string>(Date.now().toString());
+  const sessionIdRef   = useRef<string>(Date.now().toString());
+  const historyRef     = useRef<HistoryItem[]>([]);
+  const turnCountRef   = useRef<number>(0);
 
   const scrollRef          = useRef<ScrollView>(null);
   const pulseAnim          = useRef(new Animated.Value(1)).current;
@@ -259,6 +261,10 @@ export default function AIChatScreen({ route, navigation }: Props) {
     return () => { stopSpeech(); };
   }, []);
 
+  // refs 최신 상태 동기화 (stale closure 방지)
+  useEffect(() => { historyRef.current   = history;    }, [history]);
+  useEffect(() => { turnCountRef.current = turnCount;  }, [turnCount]);
+
   // 메시지가 바뀔 때마다 현재 세션 자동 저장
   useEffect(() => {
     if (messages.length === 0) return;
@@ -270,8 +276,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
       date: today,
       label: label || '대화',
       messages,
-      history,
-      turnCount,
+      history:    historyRef.current,
+      turnCount:  turnCountRef.current,
     };
     AsyncStorage.getItem(SESSION_KEY).then(raw => {
       try {
@@ -721,8 +727,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
         <View style={s.onlineDot} />
       </View>
 
-      {/* ── 세션 탭 (대화가 2개 이상일 때) ── */}
-      {sessions.length > 1 && (
+      {/* ── 세션 탭 (저장된 대화가 있을 때) ── */}
+      {sessions.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           style={s.sessionBar} contentContainerStyle={s.sessionBarInner}>
           {sessions.map((sess, idx) => (
