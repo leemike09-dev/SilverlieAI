@@ -62,10 +62,37 @@ export default function GuardianScreen({ route, navigation }: any) {
     const hm = await AsyncStorage.getItem('hospital_memo');
     setHospitalMemo(hm || '');
 
+    // AsyncStorage에서 최신 건강 기록 로드 (항상 사용 가능)
+    try {
+      const stored = await AsyncStorage.getItem('health_records');
+      if (stored) {
+        const records: any[] = JSON.parse(stored);
+        if (records.length > 0) {
+          const latest = records[0]; // 최신순 저장
+          setHealthRecord({
+            blood_pressure_systolic:  latest.bp?.sys  ?? null,
+            blood_pressure_diastolic: latest.bp?.dia  ?? null,
+            blood_sugar:              latest.glucose?.val ?? null,
+            steps:                    latest.steps   ?? null,
+            sleep_hours:              latest.sleep?.hours ?? null,
+            date:                     latest.date,
+          });
+        }
+      }
+    } catch {}
+
+    // API에서도 시도 (더 최신 데이터가 있을 수 있음)
     if (userId) {
       fetch(`${API_URL}/health/history/${userId}?days=1`)
         .then(r => r.json())
-        .then(d => { if (d.records?.length > 0) setHealthRecord(d.records[0]); })
+        .then(d => {
+          if (d.records?.length > 0) {
+            const r = d.records[0];
+            if (r.blood_pressure_systolic || r.blood_sugar || r.steps) {
+              setHealthRecord(r);
+            }
+          }
+        })
         .catch(() => {});
     }
   }, [userId]);
@@ -150,9 +177,7 @@ export default function GuardianScreen({ route, navigation }: any) {
         <View style={s.card}>
           <View style={s.cardHeader}>
             <Text style={s.cardTitle}>🩺 최근 건강 수치</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Health', { userId, name })} activeOpacity={0.7}>
-              <Text style={s.editSmall}>기록하기 →</Text>
-            </TouchableOpacity>
+            {healthRecord?.date && <Text style={s.editSmall}>{healthRecord.date}</Text>}
           </View>
           {hasHealth ? (
             <View style={s.gridRow}>
