@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  TextInput, KeyboardAvoidingView, Platform,
+  TextInput, KeyboardAvoidingView, Platform, Keyboard,
   Animated, Modal, Linking, Alert, Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -300,6 +300,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
     setInput('');
     prevInputRef.current = '';
+    Keyboard.dismiss();
     stopSpeech();
     if (memoState !== 'saved') setMemoState('idle');
 
