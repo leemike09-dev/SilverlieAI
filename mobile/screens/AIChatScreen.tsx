@@ -716,11 +716,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
   return (
     <LinearGradient colors={['#F7F4FF', '#EDE7F6', '#E1BEE7']} locations={[0, 0.55, 1]} style={s.root}>
       {/* ── 탑바 ── */}
-      <View style={[s.topBar, { paddingTop: Math.max(insets.top + 10, 20) }]}>
-        <View style={{ flex: 1 }}>
-          <Text style={s.topTitle}>💬 루미와 대화</Text>
-          <Text style={s.topSub}>건강·일상 무엇이든 물어보세요</Text>
-        </View>
+      <View style={[s.topBar, { paddingTop: Math.max(insets.top + 4, 14) }]}>
+        <Text style={s.topTitle}>💬 루미와 대화</Text>
         <View style={s.onlineDot} />
       </View>
 
@@ -982,9 +979,9 @@ const s = StyleSheet.create({
   // 탑바
   topBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#fff', paddingHorizontal: 16, paddingBottom: 12,
+    backgroundColor: '#fff', paddingHorizontal: 16, paddingBottom: 8,
   },
-  topTitle: { fontSize: 22, fontWeight: '900', color: '#16273E' },
+  topTitle: { fontSize: 17, fontWeight: '900', color: '#16273E' },
   topSub:   { fontSize: 13, color: '#7A90A8', marginTop: 2 },
   onlineDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#3DAB7B',
     shadowColor: '#3DAB7B', shadowRadius: 4, shadowOpacity: 0.8 },
