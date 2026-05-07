@@ -21,6 +21,16 @@ type Msg = {
   doctorMemo?: string;
 };
 type HistoryItem = { role: 'user' | 'assistant'; content: string };
+type ChatSession = {
+  id: string;
+  date: string;
+  label: string;
+  messages: Msg[];
+  history: HistoryItem[];
+  turnCount: number;
+};
+const SESSION_KEY = 'ai_chat_sessions';
+const MAX_SESSIONS = 3;
 
 const C = {
   purple1: '#7B1FA2',
@@ -173,6 +183,9 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [medications,    setMedications]    = useState<any[]>([]);
   const [ttsEnabled,      setTtsEnabled]      = useState(true);
   const [pendingConditions, setPendingConditions] = useState<string[]>([]);
+  const [sessions,          setSessions]         = useState<ChatSession[]>([]);
+  const [currentSessionIdx, setCurrentSessionIdx] = useState(0);
+  const sessionIdRef = useRef<string>(Date.now().toString());
 
   const scrollRef          = useRef<ScrollView>(null);
   const pulseAnim          = useRef(new Animated.Value(1)).current;
@@ -187,37 +200,108 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const isWelcome = messages.length === 0 && !loading;
   const lastAiMsg = [...messages].reverse().find(m => m.role === 'ai');
 
-  // 초기 선제적 인사 + 건강프로필 + 건강기록 + 약 목록 + TTS 설정 로드
+  // 초기 로드: 건강프로필 + 건강기록 + 약 목록 + TTS + 세션 복원
   useEffect(() => {
     Promise.all([
       AsyncStorage.getItem('health_profile'),
       AsyncStorage.getItem('tts_enabled'),
       AsyncStorage.getItem('health_records'),
       AsyncStorage.getItem('medications'),
-    ]).then(([hp, tts, hr, meds]) => {
-      if (hp)   { try { setHealthProfile(JSON.parse(hp)); } catch {} }
+      AsyncStorage.getItem(SESSION_KEY),
+    ]).then(([hp, tts, hr, meds, sessRaw]) => {
+      if (hp)  { try { setHealthProfile(JSON.parse(hp)); } catch {} }
       if (tts !== null) setTtsEnabled(tts === 'true');
-      if (hr)   {
+      if (hr)  {
         try {
-          const records: any[] = JSON.parse(hr);
-          if (records.length > 0) {
-            const latest = records[0];
+          const recs: any[] = JSON.parse(hr);
+          if (recs.length > 0) {
+            const l = recs[0];
             setHealthRecord({
-              blood_pressure_systolic:  latest.bp?.sys  ?? null,
-              blood_pressure_diastolic: latest.bp?.dia  ?? null,
-              blood_sugar:              latest.glucose?.val ?? null,
-              steps:                    latest.steps   ?? null,
-              sleep_hours:              latest.sleep?.hours ?? null,
-              date:                     latest.date,
+              blood_pressure_systolic:  l.bp?.sys ?? null,
+              blood_pressure_diastolic: l.bp?.dia ?? null,
+              blood_sugar:  l.glucose?.val ?? null,
+              steps:        l.steps   ?? null,
+              sleep_hours:  l.sleep?.hours ?? null,
+              date:         l.date,
             });
           }
         } catch {}
       }
       if (meds) { try { setMedications(JSON.parse(meds)); } catch {} }
+
+      // 세션 복원
+      if (sessRaw) {
+        try {
+          const saved: ChatSession[] = JSON.parse(sessRaw);
+          if (saved.length > 0) {
+            setSessions(saved);
+            const today = new Date().toISOString().slice(0, 10);
+            const latest = saved[0];
+            if (latest.messages.length > 0) {
+              // 오늘 세션이면 자동 복원, 오래된 것도 복원 (사용자가 원함)
+              sessionIdRef.current = latest.id;
+              setMessages(latest.messages);
+              setHistory(latest.history);
+              setTurnCount(latest.turnCount);
+              setCurrentSessionIdx(0);
+              // 오늘 세션 복원 안내
+              if (latest.date === today) {
+                setTimeout(() => showToast('이전 대화를 이어갑니다'), 500);
+              }
+            }
+          }
+        } catch {}
+      }
     });
     fetchProactiveGreeting();
     return () => { stopSpeech(); };
   }, []);
+
+  // 메시지가 바뀔 때마다 현재 세션 자동 저장
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const firstUserMsg = messages.find(m => m.role === 'user')?.text || '';
+    const label = firstUserMsg.length > 20 ? firstUserMsg.slice(0, 20) + '…' : firstUserMsg;
+    const current: ChatSession = {
+      id: sessionIdRef.current,
+      date: today,
+      label: label || '대화',
+      messages,
+      history,
+      turnCount,
+    };
+    AsyncStorage.getItem(SESSION_KEY).then(raw => {
+      try {
+        const existing: ChatSession[] = raw ? JSON.parse(raw) : [];
+        const filtered = existing.filter(s => s.id !== current.id);
+        const updated = [current, ...filtered].slice(0, MAX_SESSIONS);
+        setSessions(updated);
+        AsyncStorage.setItem(SESSION_KEY, JSON.stringify(updated));
+      } catch {}
+    });
+  }, [messages]);
+
+  const startNewSession = () => {
+    stopSpeech();
+    sessionIdRef.current = Date.now().toString();
+    setMessages([]);
+    setHistory([]);
+    setTurnCount(0);
+    setMemoState('idle');
+    setCurrentSessionIdx(0);
+  };
+
+  const switchSession = (idx: number, sess: ChatSession) => {
+    stopSpeech();
+    sessionIdRef.current = sess.id;
+    setMessages(sess.messages);
+    setHistory(sess.history);
+    setTurnCount(sess.turnCount);
+    setMemoState('idle');
+    setCurrentSessionIdx(idx);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 100);
+  };
 
   // Render 콜드스타트 방지 Keep-alive (진입 즉시 + 13분마다 ping)
   useEffect(() => {
@@ -624,12 +708,35 @@ export default function AIChatScreen({ route, navigation }: Props) {
     <LinearGradient colors={['#F7F4FF', '#EDE7F6', '#E1BEE7']} locations={[0, 0.55, 1]} style={s.root}>
       {/* ── 탑바 ── */}
       <View style={[s.topBar, { paddingTop: Math.max(insets.top + 10, 20) }]}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={s.topTitle}>💬 루미와 대화</Text>
           <Text style={s.topSub}>건강·일상 무엇이든 물어보세요</Text>
         </View>
+        <TouchableOpacity style={s.newChatBtn} onPress={startNewSession} activeOpacity={0.8}>
+          <Text style={s.newChatTxt}>＋ 새 대화</Text>
+        </TouchableOpacity>
         <View style={s.onlineDot} />
       </View>
+
+      {/* ── 세션 탭 (대화가 2개 이상일 때) ── */}
+      {sessions.length > 1 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+          style={s.sessionBar} contentContainerStyle={s.sessionBarInner}>
+          {sessions.map((sess, idx) => (
+            <TouchableOpacity
+              key={sess.id}
+              style={[s.sessionTab, sess.id === sessionIdRef.current && s.sessionTabActive]}
+              onPress={() => switchSession(idx, sess)}
+              activeOpacity={0.8}
+            >
+              <Text style={[s.sessionTabTxt, sess.id === sessionIdRef.current && s.sessionTabTxtActive]}
+                numberOfLines={1}>
+                {sess.date === new Date().toISOString().slice(0,10) ? '오늘' : sess.date.slice(5)} · {sess.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
 
       {/* CRITICAL 배너 */}
       {showEmergency && (
@@ -1037,4 +1144,18 @@ const s = StyleSheet.create({
   condYesTxt:{ fontSize: 20, color: '#fff', fontWeight: '800' },
   condNo:    { flex: 1, backgroundColor: '#C8E6C9', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
   condNoTxt: { fontSize: 20, color: '#2E7D32', fontWeight: '700' },
+
+  // 새 대화 버튼
+  newChatBtn: { backgroundColor: '#EDE7F6', borderRadius: 16, paddingHorizontal: 12,
+    paddingVertical: 6, marginRight: 10, borderWidth: 1, borderColor: '#CE93D8' },
+  newChatTxt: { fontSize: 13, fontWeight: '800', color: '#7B1FA2' },
+
+  // 세션 탭바
+  sessionBar:       { backgroundColor: '#fff', maxHeight: 42, borderBottomWidth: 1, borderBottomColor: '#E1BEE7' },
+  sessionBarInner:  { paddingHorizontal: 10, paddingVertical: 6, gap: 8, flexDirection: 'row', alignItems: 'center' },
+  sessionTab:       { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20,
+    backgroundColor: '#F3E5F5', borderWidth: 1, borderColor: '#E1BEE7', maxWidth: 160 },
+  sessionTabActive: { backgroundColor: '#7B1FA2', borderColor: '#7B1FA2' },
+  sessionTabTxt:    { fontSize: 12, fontWeight: '600', color: '#9C27B0' },
+  sessionTabTxtActive: { color: '#fff' },
 });
