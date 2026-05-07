@@ -168,7 +168,9 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [turnCount,    setTurnCount]    = useState(0);
   const [currentIntent, setCurrentIntent] = useState<Intent>('health');
   const [showCrisis,    setShowCrisis]    = useState(false);
-  const [healthProfile, setHealthProfile] = useState<any>(null);
+  const [healthProfile,  setHealthProfile]  = useState<any>(null);
+  const [healthRecord,   setHealthRecord]   = useState<any>(null);
+  const [medications,    setMedications]    = useState<any[]>([]);
   const [ttsEnabled,      setTtsEnabled]      = useState(true);
   const [pendingConditions, setPendingConditions] = useState<string[]>([]);
 
@@ -185,14 +187,33 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const isWelcome = messages.length === 0 && !loading;
   const lastAiMsg = [...messages].reverse().find(m => m.role === 'ai');
 
-  // 초기 선제적 인사 + 건강프로필 + TTS 설정 로드
+  // 초기 선제적 인사 + 건강프로필 + 건강기록 + 약 목록 + TTS 설정 로드
   useEffect(() => {
     Promise.all([
       AsyncStorage.getItem('health_profile'),
       AsyncStorage.getItem('tts_enabled'),
-    ]).then(([hp, tts]) => {
-      if (hp) { try { setHealthProfile(JSON.parse(hp)); } catch {} }
+      AsyncStorage.getItem('health_records'),
+      AsyncStorage.getItem('medications'),
+    ]).then(([hp, tts, hr, meds]) => {
+      if (hp)   { try { setHealthProfile(JSON.parse(hp)); } catch {} }
       if (tts !== null) setTtsEnabled(tts === 'true');
+      if (hr)   {
+        try {
+          const records: any[] = JSON.parse(hr);
+          if (records.length > 0) {
+            const latest = records[0];
+            setHealthRecord({
+              blood_pressure_systolic:  latest.bp?.sys  ?? null,
+              blood_pressure_diastolic: latest.bp?.dia  ?? null,
+              blood_sugar:              latest.glucose?.val ?? null,
+              steps:                    latest.steps   ?? null,
+              sleep_hours:              latest.sleep?.hours ?? null,
+              date:                     latest.date,
+            });
+          }
+        } catch {}
+      }
+      if (meds) { try { setMedications(JSON.parse(meds)); } catch {} }
     });
     fetchProactiveGreeting();
     return () => { stopSpeech(); };
@@ -336,14 +357,19 @@ export default function AIChatScreen({ route, navigation }: Props) {
     // 빈 AI 메시지 선점 (스트리밍 채움용)
     setMessages(prev => [...prev, { role: 'ai', text: '' }]);
 
+    const chatBody = {
+      user_id: userId, message: msg, history: history.slice(-10),
+      turn_count: turnCount, force_summary: false,
+      intent: detectedIntent,
+      client_profile: healthProfile,
+      client_record:  healthRecord,
+      client_meds:    medications.length > 0 ? medications : undefined,
+    };
+
     const fetchStream = () => fetch(`${API_URL}/ai/chat/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: userId, message: msg, history: history.slice(-10),
-        turn_count: turnCount, force_summary: false,
-        intent: detectedIntent, client_profile: healthProfile,
-      }),
+      body: JSON.stringify(chatBody),
     });
 
     const applyResult = (cleanText: string, riskLevel: RiskLevel, dMemo: string | undefined, dMemoNeeded: boolean, isFinal: boolean, sosSent: boolean, profileUpdates: string[]) => {
@@ -369,11 +395,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       const r = await fetch(`${API_URL}/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: userId, message: msg, history: history.slice(-10),
-          turn_count: turnCount, force_summary: false,
-          intent: detectedIntent, client_profile: healthProfile,
-        }),
+        body: JSON.stringify(chatBody),
       });
       if (!r.ok) throw new Error('api error');
       const data = await r.json();
@@ -556,7 +578,10 @@ export default function AIChatScreen({ route, navigation }: Props) {
   };
 
   const toggleVoice = () => {
-    if (Platform.OS !== 'web') return;
+    if (Platform.OS !== 'web') {
+      showToast('키보드의 🎤 마이크 버튼으로 음성 입력하세요');
+      return;
+    }
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) { showToast('Chrome 브라우저를 사용해 주세요'); return; }
     if (isRecording) { stopVoice(); return; }
