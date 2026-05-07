@@ -113,12 +113,14 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       const r = await fetch(`${API}/health/records/${uid}`);
       if (!r.ok) return;
       const today         = new Date().toISOString().slice(0, 10);
-      const lastGreetDate = await AsyncStorage.getItem('tts_greeting_date');
-      if (!ttsDoneRef.current && lastGreetDate !== today) {
+      const h     = new Date().getHours();
+      const slot  = h < 12 ? 'am' : h < 18 ? 'pm' : 'eve';
+      const greetKey = `tts_greeting_${today}_${slot}`;
+      const alreadyGreeted = await AsyncStorage.getItem(greetKey);
+      if (!ttsDoneRef.current && !alreadyGreeted) {
         ttsDoneRef.current = true;
-        await AsyncStorage.setItem('tts_greeting_date', today);
+        await AsyncStorage.setItem(greetKey, '1');
         const uname = await AsyncStorage.getItem('userName') || '';
-        const h     = new Date().getHours();
         const g     = h < 12 ? '좋은 아침이에요' : h < 18 ? '좋은 오후예요' : '좋은 저녁이에요';
         const wish  = h < 12 ? '오늘도 건강한 하루 되세요' : h < 18 ? '편안한 오후 되세요' : '편안한 밤 되세요';
         const raw2  = await AsyncStorage.getItem('hospital_schedule');

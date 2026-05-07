@@ -187,6 +187,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [pendingConditions, setPendingConditions] = useState<string[]>([]);
   const [sessions,          setSessions]         = useState<ChatSession[]>([]);
   const [currentSessionIdx, setCurrentSessionIdx] = useState(0);
+  const [showRestoreNotice, setShowRestoreNotice] = useState(false);
   const sessionIdRef   = useRef<string>(Date.now().toString());
   const historyRef     = useRef<HistoryItem[]>([]);
   const turnCountRef   = useRef<number>(0);
@@ -250,7 +251,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
               setCurrentSessionIdx(0);
               // 오늘 세션 복원 안내
               if (latest.date === today) {
-                setTimeout(() => showToast('이전 대화를 이어갑니다'), 500);
+                setTimeout(() => { setShowRestoreNotice(true); setTimeout(() => setShowRestoreNotice(false), 2200); }, 600);
               }
             }
           }
@@ -968,6 +969,11 @@ export default function AIChatScreen({ route, navigation }: Props) {
       </Modal>
 
       {toastMsg ? <View style={s.toast}><Text style={s.toastTxt}>{toastMsg}</Text></View> : null}
+      {showRestoreNotice && (
+        <View style={s.restoreNotice}>
+          <Text style={s.restoreNoticeTxt}>💬 이전 대화를 이어갑니다</Text>
+        </View>
+      )}
       <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={name} />
     </LinearGradient>
   );
@@ -1165,4 +1171,12 @@ const s = StyleSheet.create({
   sessionTabActive: { backgroundColor: '#7B1FA2', borderColor: '#7B1FA2' },
   sessionTabTxt:    { fontSize: 12, fontWeight: '600', color: '#9C27B0' },
   sessionTabTxtActive: { color: '#fff' },
+
+  restoreNotice: {
+    position: 'absolute', top: '42%', alignSelf: 'center',
+    backgroundColor: 'rgba(123,31,162,0.90)', borderRadius: 22,
+    paddingHorizontal: 28, paddingVertical: 18, zIndex: 200,
+    shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8,
+  },
+  restoreNoticeTxt: { color: '#fff', fontSize: 18, fontWeight: '800' },
 });

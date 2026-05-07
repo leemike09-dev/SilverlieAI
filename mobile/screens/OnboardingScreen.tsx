@@ -73,7 +73,13 @@ export default function OnboardingScreen({ navigation }: Props) {
         {SLIDES.map((sl, i) => (
           <View key={i} style={[s.slide, { width }, sl.lumi && s.lumiSlide]}>
             {sl.lumi ? (
-              <Image source={require('../assets/lumi10.png')} style={s.lumiImg} resizeMode="contain" />
+              <View style={s.lumiFrame}>
+                <Image source={require('../assets/lumi10.png')} style={s.lumiImg} resizeMode="contain" />
+                <View style={s.lumiCaption}>
+                  <Text style={[s.title, { color: sl.color }]}>{sl.title}</Text>
+                  <Text style={s.desc}>{sl.desc}</Text>
+                </View>
+              </View>
             ) : (
               <View style={[s.iconWrap, { backgroundColor: sl.color + '18' }]}>
                 {sl.icon === null ? (
@@ -83,8 +89,8 @@ export default function OnboardingScreen({ navigation }: Props) {
                 )}
               </View>
             )}
-            <Text style={[s.title, { color: sl.color }]}>{sl.title}</Text>
-            <Text style={s.desc}>{sl.desc}</Text>
+            {!sl.lumi && <Text style={[s.title, { color: sl.color }]}>{sl.title}</Text>}
+            {!sl.lumi && <Text style={s.desc}>{sl.desc}</Text>}
           </View>
         ))}
       </ScrollView>
@@ -125,8 +131,14 @@ const s = StyleSheet.create({
               alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
   icon:  { fontSize: 100 },
   beeImg:    { width: 200, height: 200 },
-  lumiSlide: { justifyContent: 'flex-start', paddingTop: 16 },
-  lumiImg:   { width: width - 40, height: width - 40, marginBottom: 8 },
+  lumiSlide:   { padding: 0, justifyContent: 'flex-start' },
+  lumiFrame:   { width: width, height: width * 1.5 },
+  lumiImg:     { width: width, height: width * 1.5 },
+  lumiCaption: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.87)',
+    paddingVertical: 14, paddingHorizontal: 20,
+  },
   title: { fontSize: 32, fontWeight: '900', textAlign: 'center', marginBottom: 16 },
   desc:  { fontSize: 24, color: '#555', textAlign: 'center', lineHeight: 36 },
 
