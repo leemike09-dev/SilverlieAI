@@ -26,16 +26,17 @@ def sb_post(table: str, body: dict):
     r.raise_for_status()
 
 def get_user_home(user_id: str):
-    """사용자의 고정 집 좌표 반환 (없으면 None, None)"""
+    """location_logs에서 가장 최근 home_base 기록 반환 (없으면 None, None)"""
     try:
-        rows = req.get(
-            f"{SUPABASE_URL}/rest/v1/users",
-            headers=HEADERS,
-            params={"select": "home_lat,home_lng", "id": f"eq.{user_id}"},
-            timeout=10,
-        ).json()
-        if rows and rows[0].get("home_lat") and rows[0].get("home_lng"):
-            return float(rows[0]["home_lat"]), float(rows[0]["home_lng"])
+        rows = sb_get("location_logs", {
+            "select": "lat,lng",
+            "user_id": f"eq.{user_id}",
+            "activity": "eq.home_base",
+            "order": "created_at.desc",
+            "limit": 1,
+        })
+        if rows:
+            return float(rows[0]["lat"]), float(rows[0]["lng"])
     except Exception:
         pass
     return None, None
@@ -46,6 +47,7 @@ class LocationUpdate(BaseModel):
     lng: float
     address: Optional[str] = None
     activity: Optional[str] = "unknown"
+    force: Optional[bool] = False
 
 class SetHomeRequest(BaseModel):
     user_id: str
@@ -62,16 +64,15 @@ def haversine(lat1, lng1, lat2, lng2):
 
 @router.post("/set-home")
 def set_home(body: SetHomeRequest):
-    """사용자의 집 위치를 영구 저장"""
+    """집 위치를 location_logs에 home_base로 저장 (스키마 변경 불필요)"""
     try:
-        r = req.patch(
-            f"{SUPABASE_URL}/rest/v1/users",
-            headers=HEADERS,
-            params={"id": f"eq.{body.user_id}"},
-            json={"home_lat": body.lat, "home_lng": body.lng},
-            timeout=10,
-        )
-        r.raise_for_status()
+        sb_post("location_logs", {
+            "user_id": body.user_id,
+            "lat": body.lat,
+            "lng": body.lng,
+            "address": "집",
+            "activity": "home_base",
+        })
         return {"ok": True}
     except Exception as e:
         return {"ok": False, "error": str(e)}
@@ -84,7 +85,7 @@ def update_location(body: LocationUpdate):
             "order": "created_at.desc", "limit": 1
         })
 
-        if last_rows:
+        if last_rows and not body.force:
             p = last_rows[0]
             if haversine(p["lat"], p["lng"], body.lat, body.lng) < 50:
                 return {"ok": True, "skipped": True, "reason": "50m 이내 중복"}
@@ -253,15 +254,21 @@ def get_today_location(user_id: str):
     except Exception as e:
         return {"logs": [], "total_distance_m": 0, "current_activity": "unknown", "point_count": 0, "error": str(e)}
 
-    outdoor_logs = [l for l in logs if l["activity"] == "outdoor"]
+    # home_base 기록은 동선 통계에서 제외
+    travel_logs = [l for l in logs if l["activity"] != "home_base"]
+    outdoor_logs = [l for l in travel_logs if l["activity"] == "outdoor"]
     total_dist = 0
     for i in range(1, len(outdoor_logs)):
         total_dist += haversine(outdoor_logs[i-1]["lat"], outdoor_logs[i-1]["lng"],
                                 outdoor_logs[i]["lat"], outdoor_logs[i]["lng"])
 
+    current_activity = "unknown"
+    if travel_logs:
+        current_activity = travel_logs[-1]["activity"]
+
     return {
-        "logs": logs,
+        "logs": travel_logs,
         "total_distance_m": round(total_dist),
-        "current_activity": logs[-1]["activity"] if logs else "unknown",
+        "current_activity": current_activity,
         "point_count": len(outdoor_logs),
     }

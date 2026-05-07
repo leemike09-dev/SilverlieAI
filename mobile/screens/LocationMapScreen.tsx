@@ -82,7 +82,19 @@ export default function LocationMapScreen({ route, navigation }: any) {
               if (res.ok) {
                 await AsyncStorage.setItem('home_set', '1');
                 setHomeSet(true);
-                webViewRef.current?.reload();
+                // 집 설정 직후 위치를 즉시 재전송해서 home/outdoor 재평가
+                await fetch(`${BACKEND}/location/update`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    user_id: userId,
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    activity: 'unknown',
+                    force: true,
+                  }),
+                });
+                setTimeout(() => { webViewRef.current?.reload(); fetchStats(); }, 1500);
                 Alert.alert('완료', '집 위치가 등록되었습니다!\n이제 외출/귀가가 정확하게 표시됩니다.');
               } else {
                 Alert.alert('오류', '저장에 실패했습니다. 다시 시도해 주세요.');
