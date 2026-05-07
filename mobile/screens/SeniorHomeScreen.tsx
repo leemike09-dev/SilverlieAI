@@ -37,7 +37,8 @@ function getLumiGreeting(hour: number, name: string, lang: Language): string {
     return `You took care of your health today. Rest well 🌙`;
   }
   // 한국어 (기본)
-  if (hour >= 6  && hour < 10) return `좋은 아침이에요, ${n}님!\n오늘도 건강한 하루 시작해요 🌅`;
+  const sfx = n ? `, ${n}님` : '';
+  if (hour >= 6  && hour < 10) return `좋은 아침이에요${sfx}!\n오늘도 건강한 하루 시작해요 🌅`;
   if (hour >= 10 && hour < 12) return `오전 잘 보내고 계세요?\n혈압 재셨나요? 💙`;
   if (hour >= 12 && hour < 15) return `점심 맛있게 드셨어요?\n식후 약 잊지 마세요 🤍`;
   if (hour >= 15 && hour < 18) return `오후도 힘내세요!\n오늘 걸음 수 확인해볼까요? 🚶`;
@@ -316,10 +317,10 @@ const s = StyleSheet.create({
   /* SOS */
   sosBtn: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#D32F2F',
+    backgroundColor: '#E07858',
     borderRadius: 18, paddingVertical: 13, paddingHorizontal: 18, gap: 12,
-    shadowColor: '#B71C1C', shadowOpacity: 0.3,
-    shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 5,
+    shadowColor: '#B05030', shadowOpacity: 0.22,
+    shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 4,
   },
   sosEmoji:   { fontSize: 26 },
   sosTxtWrap: { flex: 1 },

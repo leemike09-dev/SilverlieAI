@@ -1173,10 +1173,12 @@ const s = StyleSheet.create({
   sessionTabTxtActive: { color: '#fff' },
 
   restoreNotice: {
-    position: 'absolute', top: '42%', alignSelf: 'center',
-    backgroundColor: 'rgba(123,31,162,0.90)', borderRadius: 22,
-    paddingHorizontal: 28, paddingVertical: 18, zIndex: 200,
-    shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8,
+    position: 'absolute', alignSelf: 'center',
+    top: '38%',
+    backgroundColor: '#5E1188', borderRadius: 24,
+    paddingHorizontal: 32, paddingVertical: 22, zIndex: 200,
+    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
   },
-  restoreNoticeTxt: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  restoreNoticeTxt: { color: '#fff', fontSize: 22, fontWeight: '900', letterSpacing: 0.5 },
 });

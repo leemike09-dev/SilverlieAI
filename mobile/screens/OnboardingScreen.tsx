@@ -76,8 +76,7 @@ export default function OnboardingScreen({ navigation }: Props) {
               <View style={s.lumiFrame}>
                 <Image source={require('../assets/lumi10.png')} style={s.lumiImg} resizeMode="contain" />
                 <View style={s.lumiCaption}>
-                  <Text style={[s.title, { color: sl.color }]}>{sl.title}</Text>
-                  <Text style={s.desc}>{sl.desc}</Text>
+                  <Text style={[s.title, { color: sl.color, marginBottom: 0 }]}>{sl.title}</Text>
                 </View>
               </View>
             ) : (
@@ -132,12 +131,13 @@ const s = StyleSheet.create({
   icon:  { fontSize: 100 },
   beeImg:    { width: 200, height: 200 },
   lumiSlide:   { padding: 0, justifyContent: 'flex-start' },
-  lumiFrame:   { width: width, height: width * 1.5 },
-  lumiImg:     { width: width, height: width * 1.5 },
+  lumiFrame:   { width: width, height: width * 1.5, paddingBottom: 104 },
+  lumiImg:     { width: width, flex: 1 },
   lumiCaption: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.87)',
-    paddingVertical: 14, paddingHorizontal: 20,
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: 104,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    paddingHorizontal: 20,
   },
   title: { fontSize: 32, fontWeight: '900', textAlign: 'center', marginBottom: 16 },
   desc:  { fontSize: 24, color: '#555', textAlign: 'center', lineHeight: 36 },
