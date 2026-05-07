@@ -198,9 +198,10 @@ export default function AIChatScreen({ route, navigation }: Props) {
     return () => { stopSpeech(); };
   }, []);
 
-  // Render 콜드스타트 방지 Keep-alive (13분마다 ping)
+  // Render 콜드스타트 방지 Keep-alive (진입 즉시 + 13분마다 ping)
   useEffect(() => {
     const ping = () => fetch(`${API_URL}/`).catch(() => {});
+    ping(); // 화면 진입 시 즉시 서버 깨우기
     const id = setInterval(ping, 13 * 60 * 1000);
     return () => clearInterval(id);
   }, []);
@@ -335,16 +336,23 @@ export default function AIChatScreen({ route, navigation }: Props) {
     // 빈 AI 메시지 선점 (스트리밍 채움용)
     setMessages(prev => [...prev, { role: 'ai', text: '' }]);
 
+    const fetchStream = () => fetch(`${API_URL}/ai/chat/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: userId, message: msg, history: history.slice(-10),
+        turn_count: turnCount, force_summary: false,
+        intent: detectedIntent, client_profile: healthProfile,
+      }),
+    });
+
     try {
-      const res = await fetch(`${API_URL}/ai/chat/stream`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: userId, message: msg, history: history.slice(-10),
-          turn_count: turnCount, force_summary: false,
-          intent: detectedIntent, client_profile: healthProfile,
-        }),
-      });
+      let res = await fetchStream();
+      // 콜드스타트로 실패 시 3초 후 1회 자동 재시도
+      if (!res.ok || !res.body) {
+        await new Promise(r => setTimeout(r, 3000));
+        res = await fetchStream();
+      }
 
       if (!res.ok || !res.body) throw new Error('stream error');
       const reader  = res.body.getReader();
