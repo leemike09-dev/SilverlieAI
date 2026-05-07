@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { speak, stopSpeech } from '../utils/speech';
 import SeniorTabBar from '../components/SeniorTabBar';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const API_URL = 'https://silverlieai.onrender.com';
 type Props = { route: any; navigation: any };
@@ -163,6 +164,7 @@ function getGreeting(name: string): string {
 
 export default function AIChatScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { language } = useLanguage();
   const { name = '회원', userId = '' } = route?.params ?? {};
 
   const [messages,     setMessages]     = useState<Msg[]>([]);
@@ -448,6 +450,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       client_profile: healthProfile,
       client_record:  healthRecord,
       client_meds:    medications.length > 0 ? medications : undefined,
+      language,
     };
 
     const fetchStream = () => fetch(`${API_URL}/ai/chat/stream`, {

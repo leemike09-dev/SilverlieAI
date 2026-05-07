@@ -9,6 +9,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import SeniorTabBar from '../components/SeniorTabBar';
 import * as Location from 'expo-location';
+import { useLanguage } from '../i18n/LanguageContext';
+import { Language } from '../i18n/translations';
+
+const LANG_FLAGS: { lang: Language; flag: string }[] = [
+  { lang: 'ko', flag: '🇰🇷' },
+  { lang: 'zh', flag: '🇨🇳' },
+  { lang: 'en', flag: '🇺🇸' },
+];
 
 const API = 'https://silverlieai.onrender.com';
 const { width, height } = Dimensions.get('window');
@@ -24,6 +32,7 @@ const BOTTOM_H = 318;
 
 export default function SeniorHomeScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
+  const { language, setLanguage, t } = useLanguage();
   const [userId,       setUserId]       = useState<string>(route?.params?.userId || '');
   const [name,         setName]         = useState<string>(route?.params?.name   || '');
   const ttsDoneRef  = useRef(false);
@@ -105,7 +114,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   const h12     = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
   const timeStr = `${hour < 12 ? '오전' : '오후'} ${h12}:${String(now.getMinutes()).padStart(2, '0')}`;
   const weather  = hour >= 6 && hour < 19 ? '☀️' : '🌙';
-  const greeting = hour < 12 ? '좋은 아침이에요!' : hour < 18 ? '좋은 오후예요!' : '좋은 저녁이에요!';
+  const greeting = hour < 12 ? t.greetingMorning : hour < 18 ? t.greetingAfternoon : t.greetingEvening;
   const isGuest  = !userId || userId === 'guest';
 
   return (
@@ -117,9 +126,20 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       <View style={[s.topBar, { paddingTop: Math.max(insets.top + 8, 24) }]}>
         <View style={s.topLeft}>
           <Text style={s.topGreeting}>{greeting}</Text>
-          {name ? <Text style={s.topName}>{name}님, 반가워요 👋</Text> : null}
+          {name ? <Text style={s.topName}>{t.nameGreet(name)}</Text> : null}
         </View>
         <View style={s.topRight}>
+          <View style={s.langRow}>
+            {LANG_FLAGS.map(({ lang, flag }) => (
+              <TouchableOpacity
+                key={lang}
+                onPress={() => setLanguage(lang)}
+                style={[s.flagBtn, language === lang && s.flagBtnActive]}
+              >
+                <Text style={s.flagTxt}>{flag}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
           <Text style={s.topDate}>{weather} {dateStr}</Text>
           <Text style={s.topTime}>{timeStr}</Text>
         </View>
@@ -133,8 +153,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
         {isGuest && (
           <TouchableOpacity style={s.guestBanner} onPress={() => navigation.navigate('Login')} activeOpacity={0.85}>
-            <Text style={s.guestTxt}>👤 로그인하면 건강기록이 저장돼요</Text>
-            <Text style={s.guestBtn}>로그인 →</Text>
+            <Text style={s.guestTxt}>👤 {t.guestBannerTxt}</Text>
+            <Text style={s.guestBtn}>{t.guestBannerBtn}</Text>
           </TouchableOpacity>
         )}
 
@@ -145,8 +165,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             activeOpacity={0.88}>
             <LinearGradient colors={['rgba(235,248,255,0.30)', 'rgba(200,235,255,0.30)']} style={s.card}>
               <Text style={s.iconEmoji}>🗺️</Text>
-              <Text style={s.cardLabel}>내 위치</Text>
-              <Text style={s.cardDesc}>현재 위치 확인</Text>
+              <Text style={s.cardLabel}>{t.myLocation}</Text>
+              <Text style={s.cardDesc}>{t.myLocationDesc}</Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -155,8 +175,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             activeOpacity={0.88}>
             <LinearGradient colors={['rgba(255,245,248,0.30)', 'rgba(255,220,230,0.30)']} style={s.card}>
               <Text style={s.iconEmoji}>❤️</Text>
-              <Text style={s.cardLabel}>건강 체크</Text>
-              <Text style={s.cardDesc}>혈압·혈당·체온</Text>
+              <Text style={s.cardLabel}>{t.healthCheck}</Text>
+              <Text style={s.cardDesc}>{t.healthCheckDesc}</Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -165,8 +185,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             activeOpacity={0.88}>
             <LinearGradient colors={['rgba(247,242,255,0.30)', 'rgba(228,216,255,0.30)']} style={s.card}>
               <Text style={s.iconEmoji}>💬</Text>
-              <Text style={s.cardLabel}>루미와 대화</Text>
-              <Text style={s.cardDesc}>무엇이든 질문</Text>
+              <Text style={s.cardLabel}>{t.lumiChat}</Text>
+              <Text style={s.cardDesc}>{t.lumiChatDesc}</Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -175,8 +195,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             activeOpacity={0.88}>
             <LinearGradient colors={['rgba(240,255,248,0.30)', 'rgba(210,245,230,0.30)']} style={s.card}>
               <Text style={s.iconEmoji}>👨‍👩‍👧</Text>
-              <Text style={s.cardLabel}>보호자</Text>
-              <Text style={s.cardDesc}>가족에게 알리기</Text>
+              <Text style={s.cardLabel}>{t.guardianMenu}</Text>
+              <Text style={s.cardDesc}>{t.guardianMenuDesc}</Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -189,8 +209,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         >
           <Text style={s.sosEmoji}>🚨</Text>
           <View style={s.sosTxtWrap}>
-            <Text style={s.sosLabel}>SOS 긴급 도움</Text>
-            <Text style={s.sosSub}>위급할 때 눌러주세요</Text>
+            <Text style={s.sosLabel}>{t.sosBtnLabel}</Text>
+            <Text style={s.sosSub}>{t.sosBtnSub}</Text>
           </View>
           <Text style={s.sosPhone}>📞</Text>
         </TouchableOpacity>
@@ -226,6 +246,10 @@ const s = StyleSheet.create({
   topRight:  { alignItems: 'flex-end', gap: 3 },
   topDate:   { fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.95)' },
   topTime:   { fontSize: 15, fontWeight: '800', color: '#fff' },
+  langRow:   { flexDirection: 'row', gap: 4, marginBottom: 4 },
+  flagBtn:   { paddingHorizontal: 5, paddingVertical: 2, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.20)' },
+  flagBtnActive: { backgroundColor: 'rgba(255,255,255,0.55)' },
+  flagTxt:   { fontSize: 18 },
 
   /* 루미 */
   hero:    { flex: 1, alignItems: 'center', justifyContent: 'center' },

@@ -292,7 +292,7 @@ def load_chat_context(user_id: str, db) -> dict:
 def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
                         chat_ctx: Optional[dict] = None,
                         turn_count: int = 0, force_summary: bool = False,
-                        intent: str = "health") -> str:
+                        intent: str = "health", language: str = "ko") -> str:
     p   = health_ctx.get('profile', {}) or {}
     meds_raw = health_ctx.get('medications', []) or []
     rec = health_ctx.get('today_record', {}) or {}
@@ -421,6 +421,29 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         "[RISK:HIGH]     - 오늘 내 병원 방문 필요\n"
         "[RISK:CRITICAL] - 즉시 119 또는 응급실 (의식저하/마비/심한 흉통/호흡곤란)\n"
     )
+
+    if language == "zh":
+        prompt += (
+            "\n[언어 설정]\n"
+            "반드시 중국어(简体中文)로만 답변하세요. "
+            "따뜻하고 품위 있는 중국어를 사용하고, "
+            "사용자 이름은 그대로 사용하세요. "
+            "응급 연락처는 중국 현지(120) 기준으로 안내하세요.\n"
+        )
+    elif language == "en":
+        prompt += (
+            "\n[Language Setting]\n"
+            "Respond ONLY in English. Use warm, respectful English. "
+            "Keep the user's name as-is. "
+            "For emergency guidance, refer to 911.\n"
+        )
+    elif language == "ja":
+        prompt += (
+            "\n[言語設定]\n"
+            "必ず日本語のみで回答してください。"
+            "温かく上品な日本語を使ってください。"
+            "緊急時は119番を案内してください。\n"
+        )
 
     # 장기 대화 맥락 삽입
     if chat_ctx:
@@ -795,7 +818,8 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
     system_prompt = build_system_prompt(user_row, health_ctx, relevant_qa, chat_ctx,
                                         turn_count=request.turn_count,
                                         force_summary=request.force_summary,
-                                        intent=request.intent)
+                                        intent=request.intent,
+                                        language=request.language)
     history_msgs = [{"role": m.role, "content": m.content} for m in (request.history or [])[-10:]]
     model        = choose_model(history_msgs, request.message)
     ai_messages  = history_msgs + [{"role": "user", "content": request.message}]
@@ -899,7 +923,7 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
 
     system_prompt = build_system_prompt(user_row, health_ctx, relevant_qa, chat_ctx,
                                           turn_count=request.turn_count, force_summary=request.force_summary,
-                                          intent=request.intent)
+                                          intent=request.intent, language=request.language)
     history_msgs  = [{"role": m.role, "content": m.content} for m in (request.history or [])[-10:]]
     model         = choose_model(history_msgs, request.message)
     messages      = history_msgs + [{"role": "user", "content": request.message}]
