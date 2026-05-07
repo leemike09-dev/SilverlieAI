@@ -47,14 +47,18 @@ export default function GuardianScreen({ route, navigation }: any) {
   };
 
   const loadData = useCallback(async () => {
-    const hs = await AsyncStorage.getItem('hospital_schedule');
-    if (hs) setHospSchedule(JSON.parse(hs));
+    try {
+      const hs = await AsyncStorage.getItem('hospital_schedule');
+      if (hs) setHospSchedule(JSON.parse(hs));
+    } catch {}
 
     const dm = await AsyncStorage.getItem('doctor_memo');
     setDoctorMemo(dm || '');
 
-    const fm = await AsyncStorage.getItem('family_members');
-    setFamilyMembers(fm ? JSON.parse(fm) : []);
+    try {
+      const fm = await AsyncStorage.getItem('family_members');
+      setFamilyMembers(fm ? JSON.parse(fm) : []);
+    } catch { setFamilyMembers([]); }
 
     const lastSent = await AsyncStorage.getItem('guardian_last_sent');
     setLastSentDate(lastSent);
@@ -99,11 +103,11 @@ export default function GuardianScreen({ route, navigation }: any) {
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  // 7일 자동 발송 체크
+  // 7일 자동 발송 체크 (한 번도 안 보낸 경우 자동발송 제외)
   useEffect(() => {
-    if (autoSentToday || familyMembers.length === 0) return;
+    if (autoSentToday || familyMembers.length === 0 || !lastSentDate) return;
     const now = Date.now();
-    const last = lastSentDate ? new Date(lastSentDate).getTime() : 0;
+    const last = new Date(lastSentDate).getTime();
     if (now - last >= SEVEN_DAYS_MS) {
       setAutoSentToday(true);
       handleShare(true);
