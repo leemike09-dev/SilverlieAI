@@ -161,7 +161,7 @@ export default function GuardianScreen({ route, navigation }: any) {
   };
 
   const r = healthRecord;
-  const hasHealth = r && (r.blood_pressure_systolic || r.blood_sugar || r.steps);
+  const hasHealth = r && (r.blood_pressure_systolic || r.blood_sugar || r.steps || r.sleep_hours);
 
   return (
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -207,6 +207,12 @@ export default function GuardianScreen({ route, navigation }: any) {
                 <View style={s.statBox}>
                   <Text style={s.statVal}>{r.steps.toLocaleString()}</Text>
                   <Text style={s.statLbl}>걸음수</Text>
+                </View>
+              )}
+              {r.sleep_hours && (
+                <View style={s.statBox}>
+                  <Text style={s.statVal}>{r.sleep_hours}시간</Text>
+                  <Text style={s.statLbl}>수면</Text>
                 </View>
               )}
             </View>

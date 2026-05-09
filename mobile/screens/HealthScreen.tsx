@@ -142,19 +142,28 @@ export default function HealthScreen({ navigation }: any) {
 
       if (Platform.OS === 'ios') {
         setStepsLoading(true);
-        const midnight = new Date();
-        midnight.setHours(0, 0, 0, 0);
-        const result = await Pedometer.getStepCountAsync(midnight, new Date());
-        if (result?.steps != null) {
-          setSteps(String(result.steps));
-          setStepsAuto(true);
+        try {
+          const midnight = new Date();
+          midnight.setHours(0, 0, 0, 0);
+          const result = await Pedometer.getStepCountAsync(midnight, new Date());
+          if (result?.steps != null) {
+            setSteps(String(result.steps));
+            setStepsAuto(true);
+          }
+        } finally {
+          setStepsLoading(false);
         }
-        setStepsLoading(false);
       } else {
-        // Android: TYPE_STEP_COUNTER — 부팅 이후 누적값. 앱이 꺼져도 하드웨어가 계속 카운트.
-        // 오늘 첫 실행 시 누적값을 기준으로 저장하고, 이후 차이로 오늘 걸음수 계산.
+        // Android: TYPE_STEP_COUNTER — 부팅 이후 누적값.
+        // watchStepCount는 걸음이 감지될 때만 콜백 → 5초 타임아웃으로 무한 로딩 방지.
         setStepsLoading(true);
+        let callbackFired = false;
+        const stepTimeout = setTimeout(() => {
+          if (!callbackFired) setStepsLoading(false);
+        }, 5000);
         const sub = Pedometer.watchStepCount(async (result) => {
+          callbackFired = true;
+          clearTimeout(stepTimeout);
           sub.remove();
           setStepsLoading(false);
           const currentTotal = result.steps;
@@ -163,18 +172,14 @@ export default function HealthScreen({ navigation }: any) {
             const raw = await AsyncStorage.getItem('step_baseline_android');
             const baseline = raw ? JSON.parse(raw) : null;
             if (baseline && baseline.date === today && currentTotal >= baseline.total) {
-              // 오늘 기준값 있음 → 차이가 오늘 걸음수
               setSteps(String(currentTotal - baseline.total));
               setStepsAuto(true);
             } else {
-              // 오늘 첫 실행 또는 재부팅 → 기준값 저장
               await AsyncStorage.setItem('step_baseline_android', JSON.stringify({ date: today, total: currentTotal }));
               setSteps('0');
               setStepsAuto(true);
             }
-          } catch {
-            setStepsLoading(false);
-          }
+          } catch {}
         });
         pedometerSubRef.current = sub;
       }
@@ -238,8 +243,11 @@ export default function HealthScreen({ navigation }: any) {
     const today = todayKey();
 
     // 오늘 기존 기록이 있으면 병합, 없으면 새 레코드 생성
-    const stored  = await AsyncStorage.getItem(STORAGE_KEY).catch(() => null);
-    const existing: any[] = stored ? JSON.parse(stored) : [];
+    let existing: any[] = [];
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+      if (stored) existing = JSON.parse(stored);
+    } catch {}
     const todayIdx = existing.findIndex(r => r.date === today);
     const base = todayIdx >= 0 ? { ...existing[todayIdx] } : {
       id:   Date.now().toString(),
