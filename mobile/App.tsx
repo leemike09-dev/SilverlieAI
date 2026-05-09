@@ -83,7 +83,9 @@ async function fetchWithTimeout(url: string, options: RequestInit, ms = FETCH_TI
 
 export default function App() {
   useEffect(() => {
-    fetch(`${BACKEND}/`).catch(() => {});
+    const ping = () => fetch(`${BACKEND}/`).catch(() => {});
+    ping();
+    const pingTimer = setInterval(ping, 13 * 60 * 1000);
     const initNotifications = async () => {
       await initNotificationHandler();
       const firstRun = await AsyncStorage.getItem('notification_init');
@@ -119,7 +121,7 @@ export default function App() {
     const appStateSub = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') initStepBaseline();
     });
-    return () => appStateSub.remove();
+    return () => { clearInterval(pingTimer); appStateSub.remove(); };
   }, []);
 
   // 네이티브 딥링크 (iOS/Android 앱용)

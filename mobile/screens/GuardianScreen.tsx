@@ -50,29 +50,24 @@ export default function GuardianScreen({ route, navigation }: any) {
     try {
       const hs = await AsyncStorage.getItem('hospital_schedule');
       if (hs) setHospSchedule(JSON.parse(hs));
-    } catch {}
 
-    const dm = await AsyncStorage.getItem('doctor_memo');
-    setDoctorMemo(dm || '');
+      const dm = await AsyncStorage.getItem('doctor_memo');
+      setDoctorMemo(dm || '');
 
-    try {
       const fm = await AsyncStorage.getItem('family_members');
       setFamilyMembers(fm ? JSON.parse(fm) : []);
-    } catch { setFamilyMembers([]); }
 
-    const lastSent = await AsyncStorage.getItem('guardian_last_sent');
-    setLastSentDate(lastSent);
+      const lastSent = await AsyncStorage.getItem('guardian_last_sent');
+      setLastSentDate(lastSent);
 
-    const hm = await AsyncStorage.getItem('hospital_memo');
-    setHospitalMemo(hm || '');
+      const hm = await AsyncStorage.getItem('hospital_memo');
+      setHospitalMemo(hm || '');
 
-    // AsyncStorage에서 최신 건강 기록 로드 (항상 사용 가능)
-    try {
       const stored = await AsyncStorage.getItem('health_records');
       if (stored) {
         const records: any[] = JSON.parse(stored);
         if (records.length > 0) {
-          const latest = records[0]; // 최신순 저장
+          const latest = records[0];
           setHealthRecord({
             blood_pressure_systolic:  latest.bp?.sys  ?? null,
             blood_pressure_diastolic: latest.bp?.dia  ?? null,
@@ -85,7 +80,6 @@ export default function GuardianScreen({ route, navigation }: any) {
       }
     } catch {}
 
-    // API에서도 시도 (더 최신 데이터가 있을 수 있음)
     if (userId) {
       fetch(`${API_URL}/health/history/${userId}?days=1`)
         .then(r => r.json())
@@ -101,7 +95,7 @@ export default function GuardianScreen({ route, navigation }: any) {
     }
   }, [userId]);
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  useFocusEffect(useCallback(() => { loadData().catch(() => {}); }, [loadData]));
 
   // 7일 자동 발송 체크 (한 번도 안 보낸 경우 자동발송 제외)
   useEffect(() => {
