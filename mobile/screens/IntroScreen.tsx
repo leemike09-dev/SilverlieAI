@@ -50,7 +50,7 @@ export default function IntroScreen({ navigation }: any) {
       {/* ── 좌상단 로고 ── */}
       <Animated.View style={[s.logo, { top: Math.max(insets.top + 18, 36), opacity: fadeAnim }]}>
         <Image
-          source={require('../assets/lumi8.png')}
+          source={require('../assets/lumi10.png')}
           style={s.logoImg}
           resizeMode="contain"
         />
@@ -103,7 +103,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  logoImg: { width: 46, height: 46 },
+  logoImg: { width: 48, height: 48 },
   logoName: {
     fontSize: 22, fontWeight: '800',
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
