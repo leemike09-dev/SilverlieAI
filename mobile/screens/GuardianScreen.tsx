@@ -23,7 +23,7 @@ function GuardianScreenInner({ route, navigation }: any) {
   useEffect(() => { return () => { isMountedRef.current = false; }; }, []);
 
   const [hospSchedule,   setHospSchedule]   = useState<any>(null);
-  const [doctorMemo,     setDoctorMemo]     = useState('');
+  const [doctorOpinion,  setDoctorOpinion]  = useState('');
   const [familyMembers,  setFamilyMembers]  = useState<any[]>([]);
   const [lastSentDate,   setLastSentDate]   = useState<string | null>(null);
   const [autoSentToday,  setAutoSentToday]  = useState(false);
@@ -52,8 +52,8 @@ function GuardianScreenInner({ route, navigation }: any) {
       const hs = await AsyncStorage.getItem('hospital_schedule');
       if (hs) setHospSchedule(JSON.parse(hs));
 
-      const dm = await AsyncStorage.getItem('doctor_memo');
-      setDoctorMemo(dm || '');
+      const op = await AsyncStorage.getItem('doctor_opinion');
+      setDoctorOpinion(op || '');
 
       const fm = await AsyncStorage.getItem('family_members');
       setFamilyMembers(fm ? JSON.parse(fm) : []);
@@ -94,9 +94,9 @@ const lr = await AsyncStorage.getItem('lumi_weekly_cache');
       lines.push('');
     }
 
-    if (doctorMemo) {
-      lines.push('📝 의사 메모');
-      lines.push(`  ${doctorMemo}`);
+    if (doctorOpinion) {
+      lines.push('📝 의사 소견');
+      lines.push(`  ${doctorOpinion}`);
       lines.push('');
     }
 
@@ -131,9 +131,9 @@ const lr = await AsyncStorage.getItem('lumi_weekly_cache');
           <Text style={s.cardTitle}>📝 의사 소견</Text>
           <TextInput
             style={s.memoInput}
-            value={doctorMemo}
-            onChangeText={setDoctorMemo}
-            onBlur={() => AsyncStorage.setItem('doctor_memo', doctorMemo)}
+            value={doctorOpinion}
+            onChangeText={setDoctorOpinion}
+            onBlur={() => AsyncStorage.setItem('doctor_opinion', doctorOpinion)}
             placeholder="진료 후 의사 소견이나 처방 내용을 기록해 두세요"
             placeholderTextColor="#bdbdbd"
             multiline
