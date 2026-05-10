@@ -30,6 +30,8 @@ function GuardianScreenInner({ route, navigation }: any) {
   const [lastSentDate,   setLastSentDate]   = useState<string | null>(null);
   const [autoSentToday,  setAutoSentToday]  = useState(false);
   const [hospitalMemo,   setHospitalMemo]   = useState('');
+  const [lumiReport,     setLumiReport]     = useState<any>(null);
+  const [showLumi,       setShowLumi]       = useState(false);
   const [showHospForm,   setShowHospForm]   = useState(false);
   const [hospDate,       setHospDate]       = useState('');
   const [hospName,       setHospName]       = useState('');
@@ -64,6 +66,9 @@ function GuardianScreenInner({ route, navigation }: any) {
 
       const hm = await AsyncStorage.getItem('hospital_memo');
       setHospitalMemo(hm || '');
+
+      const lr = await AsyncStorage.getItem('lumi_weekly_cache');
+      if (lr) setLumiReport(JSON.parse(lr));
 
       const stored = await AsyncStorage.getItem('health_records');
       if (stored) {
@@ -236,6 +241,35 @@ function GuardianScreenInner({ route, navigation }: any) {
             placeholderTextColor="#bdbdbd"
             multiline
           />
+
+          {lumiReport && (
+            <>
+              <View style={s.divider} />
+              <TouchableOpacity
+                style={s.lumiRefHeader}
+                onPress={() => setShowLumi(v => !v)}
+                activeOpacity={0.7}
+              >
+                <Text style={s.lumiRefTitle}>💡 루미 7일 건강 분석 참고</Text>
+                <Text style={s.lumiRefToggle}>{showLumi ? '접기 ▲' : '펼치기 ▼'}</Text>
+              </TouchableOpacity>
+              {showLumi && (
+                <View style={s.lumiRefBody}>
+                  {lumiReport.summary && (
+                    <Text style={s.lumiRefTxt}>📋 {lumiReport.summary}</Text>
+                  )}
+                  {lumiReport.recommendation && (
+                    <Text style={[s.lumiRefTxt, { color: '#1a5fbc', marginTop: 6 }]}>
+                      🎯 {lumiReport.recommendation}
+                    </Text>
+                  )}
+                  {lumiReport.improvements?.length > 0 && lumiReport.improvements.map((imp: string, i: number) => (
+                    <Text key={i} style={[s.lumiRefTxt, { color: '#E65100', marginTop: 4 }]}>• {imp}</Text>
+                  ))}
+                </View>
+              )}
+            </>
+          )}
         </View>
 
         {/* 병원 예약 */}
@@ -369,8 +403,13 @@ const s = StyleSheet.create({
   hospNote: { fontSize: 13, color: '#90a4ae', marginTop: 4 },
 
   memoTxt:   { fontSize: 15, color: '#374151', lineHeight: 22 },
-  divider:   { height: 1, backgroundColor: '#F0F0F0', marginVertical: 14 },
-  subTitle:  { fontSize: 14, fontWeight: '700', color: '#5c6bc0', marginBottom: 8 },
+  divider:       { height: 1, backgroundColor: '#F0F0F0', marginVertical: 14 },
+  subTitle:      { fontSize: 14, fontWeight: '700', color: '#5c6bc0', marginBottom: 8 },
+  lumiRefHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  lumiRefTitle:  { fontSize: 13, fontWeight: '700', color: '#7B5EA7' },
+  lumiRefToggle: { fontSize: 12, color: '#90a4ae' },
+  lumiRefBody:   { marginTop: 10, gap: 2 },
+  lumiRefTxt:    { fontSize: 13, color: '#374151', lineHeight: 20 },
   memoInput: { fontSize: 15, color: '#374151', lineHeight: 22, minHeight: 70,
                backgroundColor: '#F8F9FA', borderRadius: 10, padding: 12,
                textAlignVertical: 'top' },

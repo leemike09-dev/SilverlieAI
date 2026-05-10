@@ -137,6 +137,7 @@ export default function WeeklyReportScreen({ route, navigation }: any) {
       if (res.ok) {
         const d = await res.json();
         setAiReport(d.data);
+        AsyncStorage.setItem('lumi_weekly_cache', JSON.stringify(d.data)).catch(() => {});
       }
     } catch (e) {
     } finally {
