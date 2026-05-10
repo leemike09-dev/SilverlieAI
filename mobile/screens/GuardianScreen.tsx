@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Share, Alert, TextInput, KeyboardAvoidingView, Platform,
@@ -16,10 +16,12 @@ function fmtDate(iso: string) {
   return `${d.getMonth() + 1}월 ${d.getDate()}일`;
 }
 
-export default function GuardianScreen({ route, navigation }: any) {
+function GuardianScreenInner({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
   const userId = route?.params?.userId || '';
   const name   = route?.params?.name   || '어르신';
+  const isMountedRef = useRef(true);
+  useEffect(() => { return () => { isMountedRef.current = false; }; }, []);
 
   const [hospSchedule,   setHospSchedule]   = useState<any>(null);
   const [doctorMemo,     setDoctorMemo]     = useState('');
@@ -84,6 +86,7 @@ export default function GuardianScreen({ route, navigation }: any) {
       fetch(`${API_URL}/health/history/${userId}?days=1`)
         .then(r => r.json())
         .then(d => {
+          if (!isMountedRef.current) return;
           if (d.records?.length > 0) {
             const r = d.records[0];
             if (r.blood_pressure_systolic || r.blood_sugar || r.steps) {
@@ -104,7 +107,7 @@ export default function GuardianScreen({ route, navigation }: any) {
     const last = new Date(lastSentDate).getTime();
     if (now - last >= SEVEN_DAYS_MS) {
       setAutoSentToday(true);
-      handleShare(true);
+      handleShare(true).catch(() => {});
     }
   }, [familyMembers, lastSentDate]);
 
@@ -148,16 +151,17 @@ export default function GuardianScreen({ route, navigation }: any) {
   };
 
   const handleShare = async (isAuto = false) => {
-    const text = buildSummaryText();
     try {
+      const text = buildSummaryText();
       await Share.share({ message: text, title: `${name}님 건강 요약` });
+      if (!isMountedRef.current) return;
       const now = new Date().toISOString();
       await AsyncStorage.setItem('guardian_last_sent', now);
       setLastSentDate(now);
       if (isAuto) {
         Alert.alert('자동 발송', '7일이 지나 가족에게 건강 요약을 전달했습니다.');
       }
-    } catch (_) {}
+    } catch {}
   };
 
   const r = healthRecord;
@@ -376,3 +380,28 @@ const s = StyleSheet.create({
   shareCardSub:  { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
   shareCardLast: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 12, textAlign: 'right' },
 });
+
+class GuardianScreen extends React.Component<any, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 20 }}>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: '#1a2a3a', textAlign: 'center' }}>
+            화면을 불러오지 못했습니다{'\n'}잠시 후 다시 시도해 주세요
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: '#1a5fbc', borderRadius: 12, paddingHorizontal: 32, paddingVertical: 14 }}
+            onPress={() => { this.setState({ hasError: false }); this.props.navigation?.goBack(); }}
+          >
+            <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>홈으로 돌아가기</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return <GuardianScreenInner {...this.props} />;
+  }
+}
+
+export default GuardianScreen;
