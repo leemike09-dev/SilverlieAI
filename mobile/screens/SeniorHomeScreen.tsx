@@ -86,11 +86,13 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
   useEffect(() => {
     const init = async () => {
-      const storedId   = await AsyncStorage.getItem('userId')   || route?.params?.userId || '';
-      const storedName = await AsyncStorage.getItem('userName') || route?.params?.name   || '';
+      const paramId    = route?.params?.userId || '';
+      const guestMode  = paramId === 'guest';
+      const storedId   = guestMode ? 'guest' : (await AsyncStorage.getItem('userId')   || paramId);
+      const storedName = guestMode ? (route?.params?.name || '게스트') : (await AsyncStorage.getItem('userName') || route?.params?.name || '');
       if (storedId)   setUserId(storedId);
       if (storedName) setName(storedName);
-      if (storedId)   fetchLatest(storedId);
+      if (storedId && storedId !== 'guest') fetchLatest(storedId);
       startLocationTracking(storedId);
       if (Platform.OS !== 'web') {
         const asked = await AsyncStorage.getItem('pedometer_asked');
