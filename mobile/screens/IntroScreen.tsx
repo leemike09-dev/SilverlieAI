@@ -41,7 +41,7 @@ export default function IntroScreen({ navigation }: any) {
       <VideoView
         player={player1}
         style={[StyleSheet.absoluteFill, s.video]}
-        contentFit="contain"
+        contentFit="cover"
         nativeControls={false}
       />
 
@@ -50,7 +50,7 @@ export default function IntroScreen({ navigation }: any) {
 
       {/* ── 상단: 앱 이름 ── */}
       <Animated.View style={[s.topContent, { paddingTop: Math.max(insets.top + 24, 48), opacity: fadeAnim }]}>
-        <Text style={s.appName}>Silver Life AI</Text>
+        <Text style={s.appName}>루미가 인사드립니다</Text>
         <Text style={s.appSub}>어르신의 건강한 삶을 함께합니다</Text>
       </Animated.View>
 
@@ -95,14 +95,15 @@ const s = StyleSheet.create({
     paddingHorizontal: 24,
   },
   appName: {
-    fontSize: 42,
-    fontWeight: '900',
+    fontSize: 38,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     color: '#fff',
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
     marginBottom: 8,
-    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowColor: 'rgba(0,0,0,0.5)',
     textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
+    textShadowRadius: 10,
   },
   appSub: {
     fontSize: 20,
