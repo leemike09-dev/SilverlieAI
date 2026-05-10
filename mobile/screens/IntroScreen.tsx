@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Animated, Platform, Dimensions,
+  Animated, Platform, Dimensions, Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -49,7 +49,12 @@ export default function IntroScreen({ navigation }: any) {
 
       {/* ── 좌상단 로고 ── */}
       <Animated.View style={[s.logo, { top: Math.max(insets.top + 18, 36), opacity: fadeAnim }]}>
-        {/* 워드마크 */}
+        {/* 상담창과 동일한 방식: borderRadius로 원형 클립 */}
+        <Image
+          source={require('../assets/lumi8.png')}
+          style={s.logoImg}
+          resizeMode="contain"
+        />
         <View>
           <Text style={s.logoName}>LUMI</Text>
           <Text style={s.logoSub}>Silver Life AI</Text>
@@ -98,7 +103,12 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  logoImg: { width: 48, height: 48 },
+  // 상담창 lumiAvatar와 동일한 방식 (borderRadius = 사이즈/2)
+  logoImg: {
+    width: 44, height: 44,
+    borderRadius: 22,
+    resizeMode: 'contain',
+  },
   logoName: {
     fontSize: 22, fontWeight: '800',
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
