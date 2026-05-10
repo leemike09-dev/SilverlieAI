@@ -30,7 +30,6 @@ export default function IntroScreen({ navigation }: any) {
     Animated.timing(fadeAnim, {
       toValue: 1, duration: 900, useNativeDriver: isNative,
     }).start();
-
     player1.play();
   }, []);
 
@@ -48,9 +47,17 @@ export default function IntroScreen({ navigation }: any) {
       {/* 어두운 오버레이 */}
       <View style={s.overlay} />
 
-      {/* ── 상단: 앱 이름 ── */}
-      <Animated.View style={[s.topContent, { paddingTop: Math.max(insets.top + 24, 48), opacity: fadeAnim }]}>
-        <Text style={s.appName}>루미가 인사드립니다</Text>
+      {/* ── 좌상단 로고 ── */}
+      <Animated.View style={[s.logo, { top: Math.max(insets.top + 18, 36), opacity: fadeAnim }]}>
+        {/* 마크: 라벤더 원 + 보라 하트 */}
+        <View style={s.logoOrb}>
+          <Text style={s.logoHeart}>💜</Text>
+        </View>
+        {/* 워드마크 */}
+        <View>
+          <Text style={s.logoName}>LUMI</Text>
+          <Text style={s.logoSub}>Silver Life AI</Text>
+        </View>
       </Animated.View>
 
       {/* ── 하단: 말풍선 + 버튼 ── */}
@@ -84,36 +91,42 @@ const s = StyleSheet.create({
   video:   { width, height },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(0,0,0,0.42)',
   },
 
-  topContent: {
+  // ── 좌상단 로고 ──
+  logo: {
     position: 'absolute',
-    top: 0, left: 0, right: 0,
+    left: 22,
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    gap: 10,
   },
-  appName: {
-    fontSize: 38,
-    fontWeight: '700',
+  logoOrb: {
+    width: 46, height: 46, borderRadius: 23,
+    backgroundColor: 'rgba(179,147,215,0.80)',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.45)',
+    shadowColor: '#7B1FA2', shadowOpacity: 0.5,
+    shadowRadius: 12, shadowOffset: { width: 0, height: 3 },
+    elevation: 8,
+  },
+  logoHeart: { fontSize: 22, lineHeight: 28 },
+  logoName: {
+    fontSize: 22, fontWeight: '800',
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    color: '#fff',
-    letterSpacing: 1.5,
-    marginBottom: 8,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 10,
-  },
-  appSub: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.9)',
-    textAlign: 'center',
+    color: '#fff', letterSpacing: 4,
     textShadowColor: 'rgba(0,0,0,0.4)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 6,
   },
+  logoSub: {
+    fontSize: 10, fontWeight: '500',
+    color: 'rgba(255,255,255,0.65)',
+    letterSpacing: 2, marginTop: 1,
+  },
 
+  // ── 하단 ──
   bottomContent: {
     position: 'absolute',
     bottom: 0, left: 0, right: 0,
