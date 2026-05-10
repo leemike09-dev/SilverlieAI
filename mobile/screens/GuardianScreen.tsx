@@ -175,7 +175,7 @@ function GuardianScreenInner({ route, navigation }: any) {
         showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
       >
 
-        {/* 건강 수치 */}
+        {/* 건강 수치 + 의사 소견 통합 카드 */}
         <View style={s.card}>
           <View style={s.cardHeader}>
             <Text style={s.cardTitle}>🩺 최근 건강 수치</Text>
@@ -223,6 +223,19 @@ function GuardianScreenInner({ route, navigation }: any) {
           ) : (
             <Text style={s.emptyTxt}>오늘 기록된 건강 수치가 없습니다</Text>
           )}
+
+          {/* 의사 소견 — 건강 수치와 함께 보는 메모 */}
+          <View style={s.divider} />
+          <Text style={s.subTitle}>📝 의사 소견</Text>
+          <TextInput
+            style={s.memoInput}
+            value={doctorMemo}
+            onChangeText={setDoctorMemo}
+            onBlur={() => AsyncStorage.setItem('doctor_memo', doctorMemo)}
+            placeholder="진료 후 의사 소견이나 처방 내용을 기록해 두세요"
+            placeholderTextColor="#bdbdbd"
+            multiline
+          />
         </View>
 
         {/* 병원 예약 */}
@@ -266,13 +279,6 @@ function GuardianScreenInner({ route, navigation }: any) {
           )}
         </View>
 
-        {/* 의사 메모 */}
-        {doctorMemo ? (
-          <View style={s.card}>
-            <Text style={s.cardTitle}>📝 의사 메모</Text>
-            <Text style={s.memoTxt}>{doctorMemo}</Text>
-          </View>
-        ) : null}
 
         {/* 병원 메모 */}
         <View style={s.card}>
@@ -363,6 +369,8 @@ const s = StyleSheet.create({
   hospNote: { fontSize: 13, color: '#90a4ae', marginTop: 4 },
 
   memoTxt:   { fontSize: 15, color: '#374151', lineHeight: 22 },
+  divider:   { height: 1, backgroundColor: '#F0F0F0', marginVertical: 14 },
+  subTitle:  { fontSize: 14, fontWeight: '700', color: '#5c6bc0', marginBottom: 8 },
   memoInput: { fontSize: 15, color: '#374151', lineHeight: 22, minHeight: 70,
                backgroundColor: '#F8F9FA', borderRadius: 10, padding: 12,
                textAlignVertical: 'top' },
