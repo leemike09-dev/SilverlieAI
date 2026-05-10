@@ -7,7 +7,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
-type Props = { navigation: any };
+type Props = { navigation: any; route: any };
 
 const SLIDES: { icon: string | null; lumi?: boolean; title: string; desc: string; color: string }[] = [
   {
@@ -37,10 +37,12 @@ const SLIDES: { icon: string | null; lumi?: boolean; title: string; desc: string
   },
 ];
 
-export default function OnboardingScreen({ navigation }: Props) {
+export default function OnboardingScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const [idx, setIdx] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
+
+  const isGuest = route?.params?.isGuest === true;
 
   const goNext = async () => {
     if (idx < SLIDES.length - 1) {
@@ -49,7 +51,11 @@ export default function OnboardingScreen({ navigation }: Props) {
       scrollRef.current?.scrollTo({ x: width * next, animated: true });
     } else {
       await AsyncStorage.setItem('onboarding_seen', 'true');
-      navigation.replace('Login');
+      if (isGuest) {
+        navigation.replace('SeniorHome', { userId: 'guest', name: '게스트' });
+      } else {
+        navigation.replace('Login');
+      }
     }
   };
 

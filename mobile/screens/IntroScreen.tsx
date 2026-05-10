@@ -24,7 +24,7 @@ export default function IntroScreen({ navigation }: any) {
     navigation.replace('Login');
   };
   const handleStart = () => navigation.replace('Onboarding');
-  const handleGuest = () => navigation.replace('SeniorHome', { userId: 'guest', name: '게스트' });
+  const handleGuest = () => navigation.replace('Onboarding', { isGuest: true });
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
