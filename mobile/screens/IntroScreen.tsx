@@ -51,7 +51,6 @@ export default function IntroScreen({ navigation }: any) {
       {/* ── 상단: 앱 이름 ── */}
       <Animated.View style={[s.topContent, { paddingTop: Math.max(insets.top + 24, 48), opacity: fadeAnim }]}>
         <Text style={s.appName}>루미가 인사드립니다</Text>
-        <Text style={s.appSub}>어르신의 건강한 삶을 함께합니다</Text>
       </Animated.View>
 
       {/* ── 하단: 말풍선 + 버튼 ── */}
