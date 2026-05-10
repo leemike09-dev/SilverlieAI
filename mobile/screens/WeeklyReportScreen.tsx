@@ -456,9 +456,9 @@ function WeeklyReportScreenInner({ route, navigation }: any) {
   );
 }
 
-class WeeklyReportScreen extends React.Component<any, { hasError: boolean }> {
-  state = { hasError: false };
-  static getDerivedStateFromError() { return { hasError: true }; }
+class WeeklyReportScreen extends React.Component<any, { hasError: boolean; errMsg: string }> {
+  state = { hasError: false, errMsg: '' };
+  static getDerivedStateFromError(e: any) { return { hasError: true, errMsg: String(e?.message || e) }; }
   render() {
     if (this.state.hasError) {
       return (
@@ -466,9 +466,10 @@ class WeeklyReportScreen extends React.Component<any, { hasError: boolean }> {
           <Text style={{ fontSize: 20, fontWeight: '700', color: '#1a2a3a', textAlign: 'center' }}>
             화면을 불러오지 못했습니다{'\n'}잠시 후 다시 시도해 주세요
           </Text>
+          <Text style={{ fontSize: 13, color: '#E53935', textAlign: 'center' }}>{this.state.errMsg}</Text>
           <TouchableOpacity
             style={{ backgroundColor: '#1a5fbc', borderRadius: 12, paddingHorizontal: 32, paddingVertical: 14 }}
-            onPress={() => { this.setState({ hasError: false }); this.props.navigation?.goBack(); }}
+            onPress={() => { this.setState({ hasError: false, errMsg: '' }); this.props.navigation?.goBack(); }}
           >
             <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>돌아가기</Text>
           </TouchableOpacity>
