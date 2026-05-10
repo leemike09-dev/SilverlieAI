@@ -24,6 +24,8 @@ function GuardianScreenInner({ route, navigation }: any) {
 
   const [hospSchedule,   setHospSchedule]   = useState<any>(null);
   const [doctorOpinion,  setDoctorOpinion]  = useState('');
+  const [doctorMemo,     setDoctorMemo]     = useState('');
+  const [showDoctorMemo, setShowDoctorMemo] = useState(false);
   const [familyMembers,  setFamilyMembers]  = useState<any[]>([]);
   const [lastSentDate,   setLastSentDate]   = useState<string | null>(null);
   const [autoSentToday,  setAutoSentToday]  = useState(false);
@@ -51,6 +53,13 @@ function GuardianScreenInner({ route, navigation }: any) {
     try {
       const hs = await AsyncStorage.getItem('hospital_schedule');
       if (hs) setHospSchedule(JSON.parse(hs));
+
+      const dm = await AsyncStorage.getItem('doctor_memo');
+      if (dm) {
+        // 최근 건강 수치 섹션 제거 (기존 저장 메모 호환)
+        const cleaned = dm.replace(/■ 최근 건강 수치[\s\S]*?(?=\n■|\n\*|$)/g, '').replace(/\n{3,}/g, '\n\n').trim();
+        setDoctorMemo(cleaned);
+      }
 
       const op = await AsyncStorage.getItem('doctor_opinion');
       setDoctorOpinion(op || '');
@@ -129,6 +138,28 @@ const lr = await AsyncStorage.getItem('lumi_weekly_cache');
         {/* 의사 소견 */}
         <View style={s.card}>
           <Text style={s.cardTitle}>📝 의사 소견</Text>
+
+          {/* 루미 의사 전달 메모 — 접기/펼치기 */}
+          {doctorMemo ? (
+            <>
+              <TouchableOpacity
+                style={s.lumiRefHeader}
+                onPress={() => setShowDoctorMemo(v => !v)}
+                activeOpacity={0.7}
+              >
+                <Text style={s.lumiRefTitle}>📋 루미 의사 전달 메모</Text>
+                <Text style={s.lumiRefToggle}>{showDoctorMemo ? '접기 ▲' : '펼치기 ▼'}</Text>
+              </TouchableOpacity>
+              {showDoctorMemo && (
+                <View style={s.lumiRefBody}>
+                  <Text style={s.lumiRefTxt}>{doctorMemo}</Text>
+                </View>
+              )}
+              <View style={s.divider} />
+            </>
+          ) : null}
+
+          {/* 의사 소견 직접 입력 */}
           <TextInput
             style={s.memoInput}
             value={doctorOpinion}
@@ -138,6 +169,7 @@ const lr = await AsyncStorage.getItem('lumi_weekly_cache');
             placeholderTextColor="#bdbdbd"
             multiline
           />
+
           {lumiReport && (
             <>
               <View style={s.divider} />
