@@ -41,7 +41,7 @@ export default function IntroScreen({ navigation }: any) {
       <VideoView
         player={player1}
         style={[StyleSheet.absoluteFill, s.video]}
-        contentFit="cover"
+        contentFit="contain"
         nativeControls={false}
       />
 
