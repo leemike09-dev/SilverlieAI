@@ -516,6 +516,20 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 - [ ] DoctorMemoScreen 인쇄 기능
 - [ ] HealthProfileScreen 작성 중요성 팝업 안내
 
+### 📱 건강앱 연동 (1차 — EAS Build 시점에 함께 구현)
+- [ ] **iOS HealthKit** — `react-native-health` 라이브러리, 걸음수/심박수/혈압/혈당/체중/수면 읽기
+- [ ] **Android Health Connect** — `react-native-health-connect` 라이브러리, 삼성 갤럭시 헬스 포함
+- [ ] HealthScreen 자동 입력 연동 (수동 입력 병행 유지)
+- [ ] 백엔드 source 필드 확장: `'manual' | 'healthkit' | 'healthconnect' | 'ble'`
+- [ ] iOS HealthKit entitlement 추가 (앱스토어 심사 시 건강 데이터 접근 사유 명시 필요)
+- [ ] 최소 Android 9+ (Health Connect 조건)
+- **설계 원칙**: 웨어러블(갤럭시워치/애플워치) 데이터는 각 건강앱에 집약되므로 별도 웨어러블 연동 불필요
+
+### 🔵 BLE 의료기기 직접 연결 (2차)
+- [ ] `react-native-ble-plx` — 혈압계(오므론 등)/혈당계/스마트체중계/산소포화도계 BLE 직접 연결
+- [ ] 기기별 GATT 프로파일 파싱
+- [ ] 측정값 실시간 수신 → 백엔드 저장 (source: 'ble')
+
 ### 🏗️ 빌드 / 배포
 - [ ] EAS Build 설정 (앱스토어/플레이스토어 제출용)
 - [ ] iOS App Store 제출 (Apple 로그인 추가 필요)
