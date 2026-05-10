@@ -114,10 +114,25 @@ export default function MedicationScreen({ navigation }: any) {
     if (!med) return;
     const nowTaking = !med.taken;
     if (nowTaking) speak(`${med.name} 복용 완료예요. 건강 챙기셨네요!`, 0.85);
-    const updated = meds.map(m => m.id === id ? { ...m, taken: nowTaking, skipped: false } : m);
+
+    // 재고: 복용 시 -1 (0 미만 방지), 취소 시 +1 복원
+    const curStock = med.stock ?? 0;
+    const newStock = nowTaking ? Math.max(0, curStock - 1) : curStock + 1;
+
+    const updated = meds.map(m =>
+      m.id === id ? { ...m, taken: nowTaking, skipped: false, stock: newStock } : m
+    );
     saveMeds(updated);
     apiToggle(userId, id, 'taken', nowTaking);
     if (!nowTaking) apiToggle(userId, id, 'skipped', false);
+
+    if (!isDemo(userId)) {
+      fetch(`${API_URL}/medications/update-stock/${userId}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stock: newStock }),
+      }).catch(() => {});
+    }
   };
 
   const toggleSkipped = (id: string) => {

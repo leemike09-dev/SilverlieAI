@@ -231,6 +231,16 @@ def toggle_med_status(req: ToggleRequest):
         }).execute()
     return {"ok": True}
 
+class StockUpdateRequest(BaseModel):
+    stock: int
+
+@router.put("/update-stock/{user_id}/{med_id}")
+def update_stock(user_id: str, med_id: str, req: StockUpdateRequest):
+    db = get_supabase()
+    db.table("medications").update({"stock": max(0, req.stock)}) \
+        .eq("id", med_id).eq("user_id", user_id).execute()
+    return {"ok": True}
+
 @router.delete("/delete/{user_id}/{med_id}")
 def delete_med_v2(user_id: str, med_id: str):
     db = get_supabase()
