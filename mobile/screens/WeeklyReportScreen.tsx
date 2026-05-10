@@ -232,13 +232,13 @@ function WeeklyReportScreenInner({ route, navigation }: any) {
 
       {/* ── 상단 바 ── */}
       <View style={[styles.topBar, { paddingTop: Math.max(insets.top + 10, 20) }]}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.topTitle}>📊 7일 건강 리포트</Text>
           <Text style={styles.topSub}>
             {dateRange || '기록 없음'}{avgScore > 0 ? ` · 평균 ${avgScore}점` : ''}
           </Text>
         </View>
-        <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7} style={[styles.backBtn, { flexShrink: 0, marginLeft: 12 }]}>
           <Text style={styles.backBtnTxt}>← 돌아가기</Text>
         </TouchableOpacity>
       </View>
