@@ -317,14 +317,15 @@ const s = StyleSheet.create({
   /* SOS */
   sosBtn: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#E07858',
+    backgroundColor: 'rgba(200, 70, 40, 0.58)',
     borderRadius: 18, paddingVertical: 13, paddingHorizontal: 18, gap: 12,
-    shadowColor: '#B05030', shadowOpacity: 0.22,
-    shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 4,
+    borderWidth: 1, borderColor: 'rgba(200, 70, 40, 0.30)',
+    shadowColor: '#B05030', shadowOpacity: 0.12,
+    shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3,
   },
   sosEmoji:   { fontSize: 26 },
   sosTxtWrap: { flex: 1 },
   sosLabel:   { fontSize: 19, fontWeight: '900', color: '#fff' },
-  sosSub:     { fontSize: 11, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+  sosSub:     { fontSize: 11, color: 'rgba(255,255,255,0.80)', marginTop: 2 },
   sosPhone:   { fontSize: 24 },
 });
