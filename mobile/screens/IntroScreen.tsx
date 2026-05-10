@@ -49,14 +49,11 @@ export default function IntroScreen({ navigation }: any) {
 
       {/* ── 좌상단 로고 ── */}
       <Animated.View style={[s.logo, { top: Math.max(insets.top + 18, 36), opacity: fadeAnim }]}>
-        {/* 마크: 라벤더 원 + 보라 하트 */}
-        <View style={s.logoOrb}>
-          <Image
-            source={require('../assets/lumi8.png')}
-            style={s.logoImg}
-            resizeMode="contain"
-          />
-        </View>
+        <Image
+          source={require('../assets/lumi8.png')}
+          style={s.logoImg}
+          resizeMode="contain"
+        />
         {/* 워드마크 */}
         <View>
           <Text style={s.logoName}>LUMI</Text>
@@ -106,16 +103,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  logoOrb: {
-    width: 46, height: 46, borderRadius: 23,
-    backgroundColor: 'rgba(179,147,215,0.80)',
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.45)',
-    shadowColor: '#7B1FA2', shadowOpacity: 0.5,
-    shadowRadius: 12, shadowOffset: { width: 0, height: 3 },
-    elevation: 8,
-  },
-  logoImg: { width: 38, height: 38 },
+  logoImg: { width: 46, height: 46 },
   logoName: {
     fontSize: 22, fontWeight: '800',
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
