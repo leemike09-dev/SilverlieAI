@@ -105,8 +105,8 @@ const s = StyleSheet.create({
   },
   // 상담창 lumiAvatar와 동일한 방식 (borderRadius = 사이즈/2)
   logoImg: {
-    width: 44, height: 44,
-    borderRadius: 22,
+    width: 52, height: 52,
+    borderRadius: 26,
     resizeMode: 'contain',
   },
   logoName: {
