@@ -659,8 +659,12 @@ export default function AIChatScreen({ route, navigation }: Props) {
       const cleanMemo = pendingMemo
         .replace(/지금까지\s*(증상을|내용을|이야기를)?\s*요약해\s*(주세요|줘)[.。]?\s*/g, '')
         .trim();
-      await AsyncStorage.setItem('doctor_memo', cleanMemo);
-      await AsyncStorage.setItem('doctor_memo_date', new Date().toISOString());
+      const now = new Date().toISOString();
+      const newItem = { id: now, createdAt: now, memo: cleanMemo, opinion: '' };
+      const raw = await AsyncStorage.getItem('doctor_memos');
+      const existing = raw ? JSON.parse(raw) : [];
+      const updated = [newItem, ...existing].slice(0, 10);
+      await AsyncStorage.setItem('doctor_memos', JSON.stringify(updated));
       showToast('메모가 저장되었습니다');
     } catch { showToast('저장에 실패했습니다'); }
   };

@@ -515,6 +515,7 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 ### 📋 미완성 화면
 - [ ] DoctorMemoScreen 인쇄 기능
 - [ ] HealthProfileScreen 작성 중요성 팝업 안내
+- [ ] **의사 전달 메모 Supabase 마이그레이션 (B안)** — 현재 AsyncStorage 배열(`doctor_memos`)에 저장 중. 추후 `doctor_memos` Supabase 테이블로 마이그레이션 시 기기간 동기화·가족 공유 가능. 스키마: `id, user_id, created_at, memo TEXT, opinion TEXT`
 
 ### 📱 건강앱 연동 (1차 — EAS Build 시점에 함께 구현)
 - [ ] **iOS HealthKit** — `react-native-health` 라이브러리, 걸음수/심박수/혈압/혈당/체중/수면 읽기

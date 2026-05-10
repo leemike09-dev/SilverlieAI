@@ -10,9 +10,21 @@ import SeniorTabBar from '../components/SeniorTabBar';
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
+type DoctorMemoItem = {
+  id: string;
+  createdAt: string;
+  memo: string;
+  opinion: string;
+};
+
 function fmtDate(iso: string) {
   const d = new Date(iso);
   return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+}
+
+function fmtDateTime(iso: string) {
+  const d = new Date(iso);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${d.getHours()}시`;
 }
 
 function GuardianScreenInner({ route, navigation }: any) {
@@ -22,21 +34,24 @@ function GuardianScreenInner({ route, navigation }: any) {
   const isMountedRef = useRef(true);
   useEffect(() => { return () => { isMountedRef.current = false; }; }, []);
 
-  const [hospSchedule,   setHospSchedule]   = useState<any>(null);
-  const [doctorOpinion,  setDoctorOpinion]  = useState('');
-  const [doctorMemo,     setDoctorMemo]     = useState('');
-  const [showDoctorMemo, setShowDoctorMemo] = useState(false);
-  const [familyMembers,  setFamilyMembers]  = useState<any[]>([]);
-  const [lastSentDate,   setLastSentDate]   = useState<string | null>(null);
-  const [autoSentToday,  setAutoSentToday]  = useState(false);
-  const [lumiReport,     setLumiReport]     = useState<any>(null);
-  const [showLumi,       setShowLumi]       = useState(false);
-  const [showHospForm,   setShowHospForm]   = useState(false);
-  const [hospDate,       setHospDate]       = useState('');
-  const [hospName,       setHospName]       = useState('');
-  const [hospDept,       setHospDept]       = useState('');
-  const [hospTime,       setHospTime]       = useState('');
-  const [hospNote,       setHospNote]       = useState('');
+  const [hospSchedule,  setHospSchedule]  = useState<any>(null);
+  const [doctorMemos,   setDoctorMemos]   = useState<DoctorMemoItem[]>([]);
+  const [expandedId,    setExpandedId]    = useState<string | null>(null);
+  const [familyMembers, setFamilyMembers] = useState<any[]>([]);
+  const [lastSentDate,  setLastSentDate]  = useState<string | null>(null);
+  const [autoSentToday, setAutoSentToday] = useState(false);
+  const [lumiReport,    setLumiReport]    = useState<any>(null);
+  const [showLumi,      setShowLumi]      = useState(false);
+  const [showHospForm,  setShowHospForm]  = useState(false);
+  const [hospDate,      setHospDate]      = useState('');
+  const [hospName,      setHospName]      = useState('');
+  const [hospDept,      setHospDept]      = useState('');
+  const [hospTime,      setHospTime]      = useState('');
+  const [hospNote,      setHospNote]      = useState('');
+
+  // ref for safe AsyncStorage save in closures
+  const doctorMemosRef = useRef<DoctorMemoItem[]>([]);
+  useEffect(() => { doctorMemosRef.current = doctorMemos; }, [doctorMemos]);
 
   const saveHospSchedule = async () => {
     if (!hospName.trim() || !hospDate.trim()) {
@@ -54,15 +69,25 @@ function GuardianScreenInner({ route, navigation }: any) {
       const hs = await AsyncStorage.getItem('hospital_schedule');
       if (hs) setHospSchedule(JSON.parse(hs));
 
-      const dm = await AsyncStorage.getItem('doctor_memo');
-      if (dm) {
-        // 최근 건강 수치 섹션 제거 (기존 저장 메모 호환)
-        const cleaned = dm.replace(/■ 최근 건강 수치[\s\S]*?(?=\n■|\n\*|$)/g, '').replace(/\n{3,}/g, '\n\n').trim();
-        setDoctorMemo(cleaned);
+      // 다중 메모 로드 (기존 단일 메모 마이그레이션 포함)
+      const memosRaw = await AsyncStorage.getItem('doctor_memos');
+      let memos: DoctorMemoItem[] = memosRaw ? JSON.parse(memosRaw) : [];
+
+      if (memos.length === 0) {
+        const oldMemo = await AsyncStorage.getItem('doctor_memo');
+        if (oldMemo) {
+          const oldDate = await AsyncStorage.getItem('doctor_memo_date') || new Date().toISOString();
+          const cleaned = oldMemo.replace(/■ 최근 건강 수치[\s\S]*?(?=\n■|\n\*|$)/g, '').replace(/\n{3,}/g, '\n\n').trim();
+          const oldOpinion = await AsyncStorage.getItem('doctor_opinion') || '';
+          memos = [{ id: oldDate, createdAt: oldDate, memo: cleaned, opinion: oldOpinion }];
+          await AsyncStorage.setItem('doctor_memos', JSON.stringify(memos));
+          await AsyncStorage.removeItem('doctor_memo');
+          await AsyncStorage.removeItem('doctor_memo_date');
+          await AsyncStorage.removeItem('doctor_opinion');
+        }
       }
 
-      const op = await AsyncStorage.getItem('doctor_opinion');
-      setDoctorOpinion(op || '');
+      setDoctorMemos(memos);
 
       const fm = await AsyncStorage.getItem('family_members');
       setFamilyMembers(fm ? JSON.parse(fm) : []);
@@ -70,7 +95,7 @@ function GuardianScreenInner({ route, navigation }: any) {
       const lastSent = await AsyncStorage.getItem('guardian_last_sent');
       setLastSentDate(lastSent);
 
-const lr = await AsyncStorage.getItem('lumi_weekly_cache');
+      const lr = await AsyncStorage.getItem('lumi_weekly_cache');
       if (lr) setLumiReport(JSON.parse(lr));
 
     } catch {}
@@ -78,7 +103,6 @@ const lr = await AsyncStorage.getItem('lumi_weekly_cache');
 
   useFocusEffect(useCallback(() => { loadData().catch(() => {}); }, [loadData]));
 
-  // 7일 자동 발송 체크 (한 번도 안 보낸 경우 자동발송 제외)
   useEffect(() => {
     if (autoSentToday || familyMembers.length === 0 || !lastSentDate) return;
     const now = Date.now();
@@ -88,6 +112,29 @@ const lr = await AsyncStorage.getItem('lumi_weekly_cache');
       handleShare(true).catch(() => {});
     }
   }, [familyMembers, lastSentDate]);
+
+  const updateMemoOpinion = (id: string, text: string) => {
+    const updated = doctorMemos.map(m => m.id === id ? { ...m, opinion: text } : m);
+    setDoctorMemos(updated);
+  };
+
+  const saveMemosToStorage = async () => {
+    await AsyncStorage.setItem('doctor_memos', JSON.stringify(doctorMemosRef.current));
+  };
+
+  const deleteMemo = (id: string) => {
+    Alert.alert('메모 삭제', '이 메모를 삭제할까요?', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '삭제', style: 'destructive', onPress: async () => {
+          const updated = doctorMemosRef.current.filter(m => m.id !== id);
+          setDoctorMemos(updated);
+          await AsyncStorage.setItem('doctor_memos', JSON.stringify(updated));
+          if (expandedId === id) setExpandedId(null);
+        },
+      },
+    ]);
+  };
 
   const buildSummaryText = () => {
     const today = new Date().toLocaleDateString('ko-KR');
@@ -103,9 +150,10 @@ const lr = await AsyncStorage.getItem('lumi_weekly_cache');
       lines.push('');
     }
 
-    if (doctorOpinion) {
-      lines.push('📝 의사 소견');
-      lines.push(`  ${doctorOpinion}`);
+    const latestOpinion = doctorMemos[0]?.opinion;
+    if (latestOpinion) {
+      lines.push('📝 의사 소견 (최신)');
+      lines.push(`  ${latestOpinion}`);
       lines.push('');
     }
 
@@ -135,51 +183,68 @@ const lr = await AsyncStorage.getItem('lumi_weekly_cache');
         showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
       >
 
-        {/* 의사 소견 */}
+        {/* 의사 전달 메모 목록 */}
         <View style={s.card}>
-          <Text style={s.cardTitle}>📝 의사 소견</Text>
+          <Text style={s.cardTitle}>📋 의사 전달 메모</Text>
 
-          {/* 루미 의사 전달 메모 — 접기/펼치기 */}
-          {doctorMemo ? (
-            <>
-              <TouchableOpacity
-                style={s.lumiRefHeader}
-                onPress={() => setShowDoctorMemo(v => !v)}
-                activeOpacity={0.7}
-              >
-                <Text style={s.lumiRefTitle}>📋 루미 의사 전달 메모</Text>
-                <Text style={s.lumiRefToggle}>{showDoctorMemo ? '접기 ▲' : '펼치기 ▼'}</Text>
-              </TouchableOpacity>
-              {showDoctorMemo && (
-                <View style={s.lumiRefBody}>
-                  <Text style={s.lumiRefTxt}>{doctorMemo}</Text>
-                </View>
-              )}
-              <View style={s.divider} />
-            </>
-          ) : null}
+          {doctorMemos.length === 0 ? (
+            <Text style={s.emptyTxt}>루미와 대화 후 메모를 저장하면 여기에 표시됩니다</Text>
+          ) : (
+            doctorMemos.map((item, index) => (
+              <View key={item.id} style={[s.memoItem, index > 0 && { marginTop: 10 }]}>
+                <TouchableOpacity
+                  style={s.memoHeader}
+                  onPress={() => setExpandedId(expandedId === item.id ? null : item.id)}
+                  activeOpacity={0.7}
+                >
+                  <View style={s.memoHeaderLeft}>
+                    <Text style={s.memoNum}>메모 {index + 1}</Text>
+                    <Text style={s.memoDate}>{fmtDateTime(item.createdAt)}</Text>
+                  </View>
+                  <View style={s.memoHeaderRight}>
+                    <TouchableOpacity
+                      onPress={() => deleteMemo(item.id)}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Text style={s.memoDelete}>삭제</Text>
+                    </TouchableOpacity>
+                    <Text style={s.toggleTxt}>{expandedId === item.id ? '접기 ▲' : '펼치기 ▼'}</Text>
+                  </View>
+                </TouchableOpacity>
 
-          {/* 의사 소견 직접 입력 */}
-          <TextInput
-            style={s.memoInput}
-            value={doctorOpinion}
-            onChangeText={setDoctorOpinion}
-            onBlur={() => AsyncStorage.setItem('doctor_opinion', doctorOpinion)}
-            placeholder="진료 후 의사 소견이나 처방 내용을 기록해 두세요"
-            placeholderTextColor="#bdbdbd"
-            multiline
-          />
+                {expandedId === item.id && (
+                  <View style={s.memoBody}>
+                    <Text style={s.memoSectionLabel}>📋 루미 메모</Text>
+                    <View style={s.memoAiBox}>
+                      <Text style={s.memoAiTxt}>{item.memo}</Text>
+                    </View>
+                    <Text style={[s.memoSectionLabel, { marginTop: 12 }]}>📝 의사 소견</Text>
+                    <TextInput
+                      style={s.memoInput}
+                      value={item.opinion}
+                      onChangeText={text => updateMemoOpinion(item.id, text)}
+                      onBlur={saveMemosToStorage}
+                      placeholder="진료 후 의사 소견이나 처방 내용을 기록해 두세요"
+                      placeholderTextColor="#bdbdbd"
+                      multiline
+                    />
+                  </View>
+                )}
+              </View>
+            ))
+          )}
 
+          {/* 루미 7일 건강 분석 참고 */}
           {lumiReport && (
             <>
-              <View style={s.divider} />
+              <View style={[s.divider, { marginTop: 16 }]} />
               <TouchableOpacity
                 style={s.lumiRefHeader}
                 onPress={() => setShowLumi(v => !v)}
                 activeOpacity={0.7}
               >
                 <Text style={s.lumiRefTitle}>💡 루미 7일 건강 분석 참고</Text>
-                <Text style={s.lumiRefToggle}>{showLumi ? '접기 ▲' : '펼치기 ▼'}</Text>
+                <Text style={s.toggleTxt}>{showLumi ? '접기 ▲' : '펼치기 ▼'}</Text>
               </TouchableOpacity>
               {showLumi && (
                 <View style={s.lumiRefBody}>
@@ -264,7 +329,6 @@ const lr = await AsyncStorage.getItem('lumi_weekly_cache');
           </View>
         )}
 
-
         {/* 가족 전달 카드 */}
         <TouchableOpacity style={s.shareCard} onPress={() => handleShare(false)} activeOpacity={0.85}>
           <View style={s.shareCardTop}>
@@ -297,16 +361,36 @@ const s = StyleSheet.create({
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   editSmall:  { fontSize: 14, fontWeight: '700', color: '#1a5fbc' },
 
+  // 메모 아이템
+  memoItem:        { borderWidth: 1, borderColor: '#E8E8F0', borderRadius: 12, overflow: 'hidden' },
+  memoHeader:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+                     backgroundColor: '#F3F0FA', paddingHorizontal: 14, paddingVertical: 12 },
+  memoHeaderLeft:  { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  memoHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  memoNum:         { fontSize: 14, fontWeight: '800', color: '#7B5EA7' },
+  memoDate:        { fontSize: 13, color: '#6b7280' },
+  memoDelete:      { fontSize: 13, color: '#EF4444', fontWeight: '600' },
+  toggleTxt:       { fontSize: 12, color: '#90a4ae' },
+
+  memoBody:         { paddingHorizontal: 14, paddingVertical: 12, gap: 4 },
+  memoSectionLabel: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 4 },
+  memoAiBox:        { backgroundColor: '#F8F9FA', borderRadius: 8, padding: 10 },
+  memoAiTxt:        { fontSize: 13, color: '#374151', lineHeight: 20 },
+  memoInput:        { fontSize: 14, color: '#374151', lineHeight: 22, minHeight: 60,
+                      backgroundColor: '#F8F9FA', borderRadius: 8, padding: 10,
+                      textAlignVertical: 'top', borderWidth: 1, borderColor: '#E8E8E8' },
+
+  divider:       { height: 1, backgroundColor: '#F0F0F0', marginVertical: 14 },
+  lumiRefHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  lumiRefTitle:  { fontSize: 13, fontWeight: '700', color: '#7B5EA7' },
+  lumiRefBody:   { marginTop: 10, gap: 2 },
+  lumiRefTxt:    { fontSize: 13, color: '#374151', lineHeight: 20 },
+
   hospForm:    { gap: 8 },
   hospInput:   { backgroundColor: '#F8F9FA', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
                  fontSize: 15, color: '#1a2a3a', borderWidth: 1, borderColor: '#E8E8E8' },
   hospSaveBtn: { backgroundColor: '#1a5fbc', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 4 },
   hospSaveTxt: { color: '#fff', fontSize: 15, fontWeight: '800' },
-
-  gridRow:  { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  statBox:  { backgroundColor: '#F3F6FF', borderRadius: 12, padding: 12, minWidth: 90, alignItems: 'center' },
-  statVal:  { fontSize: 18, fontWeight: '800', color: '#1a5fbc' },
-  statLbl:  { fontSize: 12, color: '#90a4ae', marginTop: 2 },
 
   hospRow:  { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
   hospDate: { fontSize: 15, fontWeight: '700', color: '#1a5fbc', minWidth: 60 },
@@ -315,19 +399,8 @@ const s = StyleSheet.create({
   hospDept: { fontSize: 14, color: '#5c6bc0', marginTop: 2 },
   hospNote: { fontSize: 13, color: '#90a4ae', marginTop: 4 },
 
-  memoTxt:   { fontSize: 15, color: '#374151', lineHeight: 22 },
-  divider:       { height: 1, backgroundColor: '#F0F0F0', marginVertical: 14 },
-  subTitle:      { fontSize: 14, fontWeight: '700', color: '#5c6bc0', marginBottom: 8 },
-  lumiRefHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  lumiRefTitle:  { fontSize: 13, fontWeight: '700', color: '#7B5EA7' },
-  lumiRefToggle: { fontSize: 12, color: '#90a4ae' },
-  lumiRefBody:   { marginTop: 10, gap: 2 },
-  lumiRefTxt:    { fontSize: 13, color: '#374151', lineHeight: 20 },
-  memoInput: { fontSize: 15, color: '#374151', lineHeight: 22, minHeight: 70,
-               backgroundColor: '#F8F9FA', borderRadius: 10, padding: 12,
-               textAlignVertical: 'top' },
-  linkTxt:   { fontSize: 15, color: '#1a5fbc', fontWeight: '600' },
-  emptyTxt:  { fontSize: 14, color: '#bdbdbd' },
+  linkTxt:  { fontSize: 15, color: '#1a5fbc', fontWeight: '600' },
+  emptyTxt: { fontSize: 14, color: '#bdbdbd' },
 
   memberRow:      { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   memberName:     { fontSize: 15, fontWeight: '600', color: '#1a2a3a' },
