@@ -29,7 +29,6 @@ function GuardianScreenInner({ route, navigation }: any) {
   const [familyMembers,  setFamilyMembers]  = useState<any[]>([]);
   const [lastSentDate,   setLastSentDate]   = useState<string | null>(null);
   const [autoSentToday,  setAutoSentToday]  = useState(false);
-  const [hospitalMemo,   setHospitalMemo]   = useState('');
   const [lumiReport,     setLumiReport]     = useState<any>(null);
   const [showLumi,       setShowLumi]       = useState(false);
   const [showHospForm,   setShowHospForm]   = useState(false);
@@ -64,10 +63,7 @@ function GuardianScreenInner({ route, navigation }: any) {
       const lastSent = await AsyncStorage.getItem('guardian_last_sent');
       setLastSentDate(lastSent);
 
-      const hm = await AsyncStorage.getItem('hospital_memo');
-      setHospitalMemo(hm || '');
-
-      const lr = await AsyncStorage.getItem('lumi_weekly_cache');
+const lr = await AsyncStorage.getItem('lumi_weekly_cache');
       if (lr) setLumiReport(JSON.parse(lr));
 
       const stored = await AsyncStorage.getItem('health_records');
@@ -229,47 +225,6 @@ function GuardianScreenInner({ route, navigation }: any) {
             <Text style={s.emptyTxt}>오늘 기록된 건강 수치가 없습니다</Text>
           )}
 
-          {/* 의사 소견 — 건강 수치와 함께 보는 메모 */}
-          <View style={s.divider} />
-          <Text style={s.subTitle}>📝 의사 소견</Text>
-          <TextInput
-            style={s.memoInput}
-            value={doctorMemo}
-            onChangeText={setDoctorMemo}
-            onBlur={() => AsyncStorage.setItem('doctor_memo', doctorMemo)}
-            placeholder="진료 후 의사 소견이나 처방 내용을 기록해 두세요"
-            placeholderTextColor="#bdbdbd"
-            multiline
-          />
-
-          {lumiReport && (
-            <>
-              <View style={s.divider} />
-              <TouchableOpacity
-                style={s.lumiRefHeader}
-                onPress={() => setShowLumi(v => !v)}
-                activeOpacity={0.7}
-              >
-                <Text style={s.lumiRefTitle}>💡 루미 7일 건강 분석 참고</Text>
-                <Text style={s.lumiRefToggle}>{showLumi ? '접기 ▲' : '펼치기 ▼'}</Text>
-              </TouchableOpacity>
-              {showLumi && (
-                <View style={s.lumiRefBody}>
-                  {lumiReport.summary && (
-                    <Text style={s.lumiRefTxt}>📋 {lumiReport.summary}</Text>
-                  )}
-                  {lumiReport.recommendation && (
-                    <Text style={[s.lumiRefTxt, { color: '#1a5fbc', marginTop: 6 }]}>
-                      🎯 {lumiReport.recommendation}
-                    </Text>
-                  )}
-                  {lumiReport.improvements?.length > 0 && lumiReport.improvements.map((imp: string, i: number) => (
-                    <Text key={i} style={[s.lumiRefTxt, { color: '#E65100', marginTop: 4 }]}>• {imp}</Text>
-                  ))}
-                </View>
-              )}
-            </>
-          )}
         </View>
 
         {/* 병원 예약 */}
@@ -314,18 +269,46 @@ function GuardianScreenInner({ route, navigation }: any) {
         </View>
 
 
-        {/* 병원 메모 */}
+        {/* 의사 소견 */}
         <View style={s.card}>
-          <Text style={s.cardTitle}>🏥 병원 메모</Text>
+          <Text style={s.cardTitle}>📝 의사 소견</Text>
           <TextInput
             style={s.memoInput}
-            value={hospitalMemo}
-            onChangeText={setHospitalMemo}
-            onBlur={() => AsyncStorage.setItem('hospital_memo', hospitalMemo)}
-            placeholder="병원 방문 시 참고할 메모를 적어두세요"
+            value={doctorMemo}
+            onChangeText={setDoctorMemo}
+            onBlur={() => AsyncStorage.setItem('doctor_memo', doctorMemo)}
+            placeholder="진료 후 의사 소견이나 처방 내용을 기록해 두세요"
             placeholderTextColor="#bdbdbd"
             multiline
           />
+          {lumiReport && (
+            <>
+              <View style={s.divider} />
+              <TouchableOpacity
+                style={s.lumiRefHeader}
+                onPress={() => setShowLumi(v => !v)}
+                activeOpacity={0.7}
+              >
+                <Text style={s.lumiRefTitle}>💡 루미 7일 건강 분석 참고</Text>
+                <Text style={s.lumiRefToggle}>{showLumi ? '접기 ▲' : '펼치기 ▼'}</Text>
+              </TouchableOpacity>
+              {showLumi && (
+                <View style={s.lumiRefBody}>
+                  {lumiReport.summary && (
+                    <Text style={s.lumiRefTxt}>📋 {lumiReport.summary}</Text>
+                  )}
+                  {lumiReport.recommendation && (
+                    <Text style={[s.lumiRefTxt, { color: '#1a5fbc', marginTop: 6 }]}>
+                      🎯 {lumiReport.recommendation}
+                    </Text>
+                  )}
+                  {lumiReport.improvements?.length > 0 && lumiReport.improvements.map((imp: string, i: number) => (
+                    <Text key={i} style={[s.lumiRefTxt, { color: '#E65100', marginTop: 4 }]}>• {imp}</Text>
+                  ))}
+                </View>
+              )}
+            </>
+          )}
         </View>
 
         {/* 동선 */}
