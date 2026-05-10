@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Animated, Platform, Dimensions,
+  Animated, Platform, Dimensions, Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -51,7 +51,11 @@ export default function IntroScreen({ navigation }: any) {
       <Animated.View style={[s.logo, { top: Math.max(insets.top + 18, 36), opacity: fadeAnim }]}>
         {/* 마크: 라벤더 원 + 보라 하트 */}
         <View style={s.logoOrb}>
-          <Text style={s.logoHeart}>💜</Text>
+          <Image
+            source={require('../assets/lumi8.png')}
+            style={s.logoImg}
+            resizeMode="contain"
+          />
         </View>
         {/* 워드마크 */}
         <View>
@@ -111,7 +115,7 @@ const s = StyleSheet.create({
     shadowRadius: 12, shadowOffset: { width: 0, height: 3 },
     elevation: 8,
   },
-  logoHeart: { fontSize: 22, lineHeight: 28 },
+  logoImg: { width: 38, height: 38 },
   logoName: {
     fontSize: 22, fontWeight: '800',
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
