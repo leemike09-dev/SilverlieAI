@@ -8,7 +8,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import SeniorTabBar from '../components/SeniorTabBar';
 
-const API_URL = 'https://silverlieai.onrender.com';
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 function fmtDate(iso: string) {
@@ -25,7 +24,6 @@ function GuardianScreenInner({ route, navigation }: any) {
 
   const [hospSchedule,   setHospSchedule]   = useState<any>(null);
   const [doctorMemo,     setDoctorMemo]     = useState('');
-  const [healthRecord,   setHealthRecord]   = useState<any>(null);
   const [familyMembers,  setFamilyMembers]  = useState<any[]>([]);
   const [lastSentDate,   setLastSentDate]   = useState<string | null>(null);
   const [autoSentToday,  setAutoSentToday]  = useState(false);
@@ -66,37 +64,7 @@ function GuardianScreenInner({ route, navigation }: any) {
 const lr = await AsyncStorage.getItem('lumi_weekly_cache');
       if (lr) setLumiReport(JSON.parse(lr));
 
-      const stored = await AsyncStorage.getItem('health_records');
-      if (stored) {
-        const records: any[] = JSON.parse(stored);
-        if (records.length > 0) {
-          const latest = records[0];
-          setHealthRecord({
-            blood_pressure_systolic:  latest.bp?.sys  ?? null,
-            blood_pressure_diastolic: latest.bp?.dia  ?? null,
-            blood_sugar:              latest.glucose?.val ?? null,
-            steps:                    latest.steps   ?? null,
-            sleep_hours:              latest.sleep?.hours ?? null,
-            date:                     latest.date,
-          });
-        }
-      }
     } catch {}
-
-    if (userId) {
-      fetch(`${API_URL}/health/history/${userId}?days=1`)
-        .then(r => r.json())
-        .then(d => {
-          if (!isMountedRef.current) return;
-          if (d.records?.length > 0) {
-            const r = d.records[0];
-            if (r.blood_pressure_systolic || r.blood_sugar || r.steps) {
-              setHealthRecord(r);
-            }
-          }
-        })
-        .catch(() => {});
-    }
   }, [userId]);
 
   useFocusEffect(useCallback(() => { loadData().catch(() => {}); }, [loadData]));
@@ -119,21 +87,6 @@ const lr = await AsyncStorage.getItem('lumi_weekly_cache');
       `📅 ${today}`,
       '',
     ];
-
-    if (healthRecord) {
-      lines.push('🩺 최근 건강 수치');
-      if (healthRecord.blood_pressure_systolic && healthRecord.blood_pressure_diastolic)
-        lines.push(`  혈압: ${healthRecord.blood_pressure_systolic}/${healthRecord.blood_pressure_diastolic} mmHg`);
-      if (healthRecord.blood_sugar)
-        lines.push(`  혈당: ${healthRecord.blood_sugar} mg/dL`);
-      if (healthRecord.heart_rate)
-        lines.push(`  심박수: ${healthRecord.heart_rate} bpm`);
-      if (healthRecord.weight)
-        lines.push(`  체중: ${healthRecord.weight} kg`);
-      if (healthRecord.steps)
-        lines.push(`  걸음수: ${healthRecord.steps.toLocaleString()} 보`);
-      lines.push('');
-    }
 
     if (hospSchedule) {
       lines.push('🏥 병원 예약');
@@ -165,9 +118,6 @@ const lr = await AsyncStorage.getItem('lumi_weekly_cache');
     } catch {}
   };
 
-  const r = healthRecord;
-  const hasHealth = r && (r.blood_pressure_systolic || r.blood_sugar || r.steps || r.sleep_hours);
-
   return (
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
@@ -175,99 +125,6 @@ const lr = await AsyncStorage.getItem('lumi_weekly_cache');
         contentContainerStyle={[s.scrollContent, { paddingTop: Math.max(insets.top + 16, 24) }]}
         showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
       >
-
-        {/* 건강 수치 + 의사 소견 통합 카드 */}
-        <View style={s.card}>
-          <View style={s.cardHeader}>
-            <Text style={s.cardTitle}>🩺 최근 건강 수치</Text>
-            {healthRecord?.date && <Text style={s.editSmall}>{healthRecord.date}</Text>}
-          </View>
-          {hasHealth ? (
-            <View style={s.gridRow}>
-              {r.blood_pressure_systolic && r.blood_pressure_diastolic && (
-                <View style={s.statBox}>
-                  <Text style={s.statVal}>{r.blood_pressure_systolic}/{r.blood_pressure_diastolic}</Text>
-                  <Text style={s.statLbl}>혈압 mmHg</Text>
-                </View>
-              )}
-              {r.blood_sugar && (
-                <View style={s.statBox}>
-                  <Text style={s.statVal}>{r.blood_sugar}</Text>
-                  <Text style={s.statLbl}>혈당 mg/dL</Text>
-                </View>
-              )}
-              {r.heart_rate && (
-                <View style={s.statBox}>
-                  <Text style={s.statVal}>{r.heart_rate}</Text>
-                  <Text style={s.statLbl}>심박수 bpm</Text>
-                </View>
-              )}
-              {r.weight && (
-                <View style={s.statBox}>
-                  <Text style={s.statVal}>{r.weight}</Text>
-                  <Text style={s.statLbl}>체중 kg</Text>
-                </View>
-              )}
-              {r.steps && (
-                <View style={s.statBox}>
-                  <Text style={s.statVal}>{r.steps.toLocaleString()}</Text>
-                  <Text style={s.statLbl}>걸음수</Text>
-                </View>
-              )}
-              {r.sleep_hours && (
-                <View style={s.statBox}>
-                  <Text style={s.statVal}>{r.sleep_hours}시간</Text>
-                  <Text style={s.statLbl}>수면</Text>
-                </View>
-              )}
-            </View>
-          ) : (
-            <Text style={s.emptyTxt}>오늘 기록된 건강 수치가 없습니다</Text>
-          )}
-
-        </View>
-
-        {/* 병원 예약 */}
-        <View style={s.card}>
-          <View style={s.cardHeader}>
-            <Text style={s.cardTitle}>🏥 병원 예약</Text>
-            <TouchableOpacity onPress={() => setShowHospForm(v => !v)} activeOpacity={0.7}>
-              <Text style={s.editSmall}>{showHospForm ? '취소' : hospSchedule ? '수정' : '+ 추가'}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {showHospForm ? (
-            <View style={s.hospForm}>
-              <TextInput style={s.hospInput} value={hospDate} onChangeText={setHospDate}
-                placeholder="날짜 (예: 2025-06-10)" placeholderTextColor="#bdbdbd" />
-              <TextInput style={s.hospInput} value={hospTime} onChangeText={setHospTime}
-                placeholder="시간 (예: 오전 10:30)" placeholderTextColor="#bdbdbd" />
-              <TextInput style={s.hospInput} value={hospName} onChangeText={setHospName}
-                placeholder="병원명 (예: 서울성모병원)" placeholderTextColor="#bdbdbd" />
-              <TextInput style={s.hospInput} value={hospDept} onChangeText={setHospDept}
-                placeholder="진료과 (예: 내과)" placeholderTextColor="#bdbdbd" />
-              <TextInput style={s.hospInput} value={hospNote} onChangeText={setHospNote}
-                placeholder="메모 (선택)" placeholderTextColor="#bdbdbd" />
-              <TouchableOpacity style={s.hospSaveBtn} onPress={saveHospSchedule} activeOpacity={0.85}>
-                <Text style={s.hospSaveTxt}>저장</Text>
-              </TouchableOpacity>
-            </View>
-          ) : hospSchedule ? (
-            <View style={s.hospRow}>
-              <Text style={s.hospDate}>{hospSchedule.date}{hospSchedule.time ? ` ${hospSchedule.time}` : ''}</Text>
-              <View style={s.hospInfo}>
-                <Text style={s.hospName}>{hospSchedule.hospital}</Text>
-                {hospSchedule.department ? <Text style={s.hospDept}>{hospSchedule.department}</Text> : null}
-                {hospSchedule.note ? <Text style={s.hospNote}>{hospSchedule.note}</Text> : null}
-              </View>
-            </View>
-          ) : (
-            <TouchableOpacity onPress={() => setShowHospForm(true)} activeOpacity={0.7}>
-              <Text style={s.emptyTxt}>병원 예약을 추가해 주세요 →</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
 
         {/* 의사 소견 */}
         <View style={s.card}>
@@ -308,6 +165,47 @@ const lr = await AsyncStorage.getItem('lumi_weekly_cache');
                 </View>
               )}
             </>
+          )}
+        </View>
+
+        {/* 병원 예약 */}
+        <View style={s.card}>
+          <View style={s.cardHeader}>
+            <Text style={s.cardTitle}>🏥 병원 예약</Text>
+            <TouchableOpacity onPress={() => setShowHospForm(v => !v)} activeOpacity={0.7}>
+              <Text style={s.editSmall}>{showHospForm ? '취소' : hospSchedule ? '수정' : '+ 추가'}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {showHospForm ? (
+            <View style={s.hospForm}>
+              <TextInput style={s.hospInput} value={hospDate} onChangeText={setHospDate}
+                placeholder="날짜 (예: 2025-06-10)" placeholderTextColor="#bdbdbd" />
+              <TextInput style={s.hospInput} value={hospTime} onChangeText={setHospTime}
+                placeholder="시간 (예: 오전 10:30)" placeholderTextColor="#bdbdbd" />
+              <TextInput style={s.hospInput} value={hospName} onChangeText={setHospName}
+                placeholder="병원명 (예: 서울성모병원)" placeholderTextColor="#bdbdbd" />
+              <TextInput style={s.hospInput} value={hospDept} onChangeText={setHospDept}
+                placeholder="진료과 (예: 내과)" placeholderTextColor="#bdbdbd" />
+              <TextInput style={s.hospInput} value={hospNote} onChangeText={setHospNote}
+                placeholder="메모 (선택)" placeholderTextColor="#bdbdbd" />
+              <TouchableOpacity style={s.hospSaveBtn} onPress={saveHospSchedule} activeOpacity={0.85}>
+                <Text style={s.hospSaveTxt}>저장</Text>
+              </TouchableOpacity>
+            </View>
+          ) : hospSchedule ? (
+            <View style={s.hospRow}>
+              <Text style={s.hospDate}>{hospSchedule.date}{hospSchedule.time ? ` ${hospSchedule.time}` : ''}</Text>
+              <View style={s.hospInfo}>
+                <Text style={s.hospName}>{hospSchedule.hospital}</Text>
+                {hospSchedule.department ? <Text style={s.hospDept}>{hospSchedule.department}</Text> : null}
+                {hospSchedule.note ? <Text style={s.hospNote}>{hospSchedule.note}</Text> : null}
+              </View>
+            </View>
+          ) : (
+            <TouchableOpacity onPress={() => setShowHospForm(true)} activeOpacity={0.7}>
+              <Text style={s.emptyTxt}>병원 예약을 추가해 주세요 →</Text>
+            </TouchableOpacity>
           )}
         </View>
 
