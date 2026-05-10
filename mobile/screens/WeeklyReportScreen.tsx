@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, StatusBar, ActivityIndicator, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SeniorTabBar from '../components/SeniorTabBar';
@@ -68,9 +68,12 @@ function bpTrend(vals: number[]): { arrow: string; color: string } {
   return t;
 }
 
-export default function WeeklyReportScreen({ route, navigation }: any) {
+function WeeklyReportScreenInner({ route, navigation }: any) {
   const { name = '', userId: paramId = '' } = route?.params ?? {};
   const insets = useSafeAreaInsets();
+  const isMountedRef = useRef(true);
+  useEffect(() => { return () => { isMountedRef.current = false; }; }, []);
+
   const [userId, setUserId] = useState(paramId);
   const [records, setRecords]   = useState<any[]>([]);
   const [aiReport, setAiReport] = useState<any>(null);
@@ -133,22 +136,26 @@ export default function WeeklyReportScreen({ route, navigation }: any) {
       // 3) 병합: 서버 기록 우선, 서버에 없는 날짜는 로컬로 보완
       const serverDates = new Set(serverRecs.map((r: any) => r.date));
       const localOnly   = localRecs.filter((r: any) => !serverDates.has(r.date));
-      const merged = [...serverRecs, ...localOnly].sort((a, b) => a.date.localeCompare(b.date));
+      const merged = [...serverRecs, ...localOnly]
+        .filter((r: any) => typeof r.date === 'string')   // date 없는 레코드 방어
+        .sort((a, b) => a.date.localeCompare(b.date));
 
+      if (!isMountedRef.current) return;
       setRecords(merged);
       if (merged.length > 0) {
         const first = merged[0].date.slice(5);
         const last  = merged[merged.length - 1].date.slice(5);
         setDateRange(`${first} — ${last}`);
-        fetchAiReport(uid, merged);
+        fetchAiReport(uid, merged).catch(() => {});
       }
     } catch (e) {
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
     }
   };
 
   const fetchAiReport = async (uid: string, recs: any[]) => {
+    if (!isMountedRef.current) return;
     setAiLoading(true);
     try {
       const userName = (await AsyncStorage.getItem('userName')) || name || '회원';
@@ -170,12 +177,14 @@ export default function WeeklyReportScreen({ route, navigation }: any) {
       });
       if (res.ok) {
         const d = await res.json();
-        setAiReport(d.data);
-        AsyncStorage.setItem('lumi_weekly_cache', JSON.stringify(d.data)).catch(() => {});
+        if (isMountedRef.current) {
+          setAiReport(d.data);
+          AsyncStorage.setItem('lumi_weekly_cache', JSON.stringify(d.data)).catch(() => {});
+        }
       }
     } catch (e) {
     } finally {
-      setAiLoading(false);
+      if (isMountedRef.current) setAiLoading(false);
     }
   };
 
@@ -446,6 +455,30 @@ export default function WeeklyReportScreen({ route, navigation }: any) {
     </LinearGradient>
   );
 }
+
+class WeeklyReportScreen extends React.Component<any, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 20 }}>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: '#1a2a3a', textAlign: 'center' }}>
+            화면을 불러오지 못했습니다{'\n'}잠시 후 다시 시도해 주세요
+          </Text>
+          <TouchableOpacity
+            style={{ backgroundColor: '#1a5fbc', borderRadius: 12, paddingHorizontal: 32, paddingVertical: 14 }}
+            onPress={() => { this.setState({ hasError: false }); this.props.navigation?.goBack(); }}
+          >
+            <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>돌아가기</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return <WeeklyReportScreenInner {...this.props} />;
+  }
+}
+export default WeeklyReportScreen;
 
 const styles = StyleSheet.create({
   safe:       { flex: 1 },
