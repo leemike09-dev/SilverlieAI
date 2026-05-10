@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Animated, Platform, Dimensions, Image,
+  Animated, Platform, Dimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -49,11 +49,6 @@ export default function IntroScreen({ navigation }: any) {
 
       {/* ── 좌상단 로고 ── */}
       <Animated.View style={[s.logo, { top: Math.max(insets.top + 18, 36), opacity: fadeAnim }]}>
-        <Image
-          source={require('../assets/lumi10.png')}
-          style={s.logoImg}
-          resizeMode="contain"
-        />
         {/* 워드마크 */}
         <View>
           <Text style={s.logoName}>LUMI</Text>
