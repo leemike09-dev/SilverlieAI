@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Platform, View, Text, TextInput, ActivityIndicator, StyleSheet, AppState } from 'react-native';
+import * as Updates from 'expo-updates';
 
 // Android 시스템 폰트 크기 설정이 앱에 중복 적용되지 않도록 전역 차단
 (Text as any).defaultProps = { ...((Text as any).defaultProps || {}), allowFontScaling: false };
@@ -86,6 +87,20 @@ export default function App() {
     const ping = () => fetch(`${BACKEND}/`).catch(() => {});
     ping();
     const pingTimer = setInterval(ping, 13 * 60 * 1000);
+
+    // OTA 자동 업데이트: 새 버전 있으면 즉시 적용
+    if (!__DEV__) {
+      (async () => {
+        try {
+          const update = await Updates.checkForUpdateAsync();
+          if (update.isAvailable) {
+            await Updates.fetchUpdateAsync();
+            await Updates.reloadAsync();
+          }
+        } catch {}
+      })();
+    }
+
     const initNotifications = async () => {
       await initNotificationHandler();
       const firstRun = await AsyncStorage.getItem('notification_init');
