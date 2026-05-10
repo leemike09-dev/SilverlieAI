@@ -317,10 +317,10 @@ const s = StyleSheet.create({
   /* SOS */
   sosBtn: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(200, 70, 40, 0.58)',
+    backgroundColor: 'rgba(200, 70, 40, 0.35)',
     borderRadius: 18, paddingVertical: 13, paddingHorizontal: 18, gap: 12,
-    borderWidth: 1, borderColor: 'rgba(200, 70, 40, 0.30)',
-    shadowColor: '#B05030', shadowOpacity: 0.12,
+    borderWidth: 1, borderColor: 'rgba(200, 70, 40, 0.22)',
+    shadowColor: '#B05030', shadowOpacity: 0.08,
     shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3,
   },
   sosEmoji:   { fontSize: 26 },
