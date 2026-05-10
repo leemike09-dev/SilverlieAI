@@ -381,19 +381,24 @@ const s = StyleSheet.create({
   shareCardLast: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 12, textAlign: 'right' },
 });
 
-class GuardianScreen extends React.Component<any, { hasError: boolean }> {
-  state = { hasError: false };
-  static getDerivedStateFromError() { return { hasError: true }; }
+class GuardianScreen extends React.Component<any, { hasError: boolean; errorMsg: string }> {
+  state = { hasError: false, errorMsg: '' };
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, errorMsg: error?.message || String(error) };
+  }
   render() {
     if (this.state.hasError) {
       return (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 20 }}>
           <Text style={{ fontSize: 20, fontWeight: '700', color: '#1a2a3a', textAlign: 'center' }}>
-            화면을 불러오지 못했습니다{'\n'}잠시 후 다시 시도해 주세요
+            화면 오류
+          </Text>
+          <Text style={{ fontSize: 13, color: '#e53935', textAlign: 'center', fontFamily: 'monospace' }}>
+            {this.state.errorMsg}
           </Text>
           <TouchableOpacity
             style={{ backgroundColor: '#1a5fbc', borderRadius: 12, paddingHorizontal: 32, paddingVertical: 14 }}
-            onPress={() => { this.setState({ hasError: false }); this.props.navigation?.goBack(); }}
+            onPress={() => { this.setState({ hasError: false, errorMsg: '' }); this.props.navigation?.goBack(); }}
           >
             <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>홈으로 돌아가기</Text>
           </TouchableOpacity>
