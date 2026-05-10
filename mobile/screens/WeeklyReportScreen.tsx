@@ -91,22 +91,56 @@ export default function WeeklyReportScreen({ route, navigation }: any) {
     init();
   }, []);
 
+  // AsyncStorage 로컬 기록을 백엔드 포맷으로 변환
+  const localToServer = (r: any) => ({
+    date: r.date,
+    blood_pressure_systolic:  r.bp?.sys   ?? null,
+    blood_pressure_diastolic: r.bp?.dia   ?? null,
+    blood_sugar:   r.glucose?.val         ?? null,
+    steps:         r.steps                ?? null,
+    sleep_hours:   r.sleep?.hours         ?? null,
+    heart_rate:    r.heartRate            ?? null,
+    weight:        r.weight               ?? null,
+  });
+
   const loadData = async (uid: string) => {
     setLoading(true);
     try {
-      const r = await fetch(`${API}/health/history/${uid}?days=7`);
-      if (r.ok) {
-        const d = await r.json();
-        const recs: any[] = d.records || [];
-        // 날짜 오름차순 정렬 (오래된 것이 왼쪽)
-        recs.sort((a, b) => a.date.localeCompare(b.date));
-        setRecords(recs);
-        if (recs.length > 0) {
-          const first = recs[0].date.slice(5);   // MM-DD
-          const last  = recs[recs.length - 1].date.slice(5);
-          setDateRange(`${first} — ${last}`);
-          fetchAiReport(uid, recs);
+      // 1) 로컬 AsyncStorage에서 최근 7일 기록 로드 (오프라인/백엔드 미저장 방어)
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      sevenDaysAgo.setHours(0, 0, 0, 0);
+      let localRecs: any[] = [];
+      try {
+        const raw = await AsyncStorage.getItem('health_records');
+        if (raw) {
+          localRecs = JSON.parse(raw)
+            .filter((r: any) => r.date && new Date(r.date) >= sevenDaysAgo)
+            .map(localToServer);
         }
+      } catch {}
+
+      // 2) 백엔드 API 시도
+      let serverRecs: any[] = [];
+      try {
+        const res = await fetch(`${API}/health/history/${uid}?days=7`);
+        if (res.ok) {
+          const d = await res.json();
+          serverRecs = d.records || [];
+        }
+      } catch {}
+
+      // 3) 병합: 서버 기록 우선, 서버에 없는 날짜는 로컬로 보완
+      const serverDates = new Set(serverRecs.map((r: any) => r.date));
+      const localOnly   = localRecs.filter((r: any) => !serverDates.has(r.date));
+      const merged = [...serverRecs, ...localOnly].sort((a, b) => a.date.localeCompare(b.date));
+
+      setRecords(merged);
+      if (merged.length > 0) {
+        const first = merged[0].date.slice(5);
+        const last  = merged[merged.length - 1].date.slice(5);
+        setDateRange(`${first} — ${last}`);
+        fetchAiReport(uid, merged);
       }
     } catch (e) {
     } finally {
