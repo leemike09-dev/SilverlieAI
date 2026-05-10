@@ -1,4 +1,5 @@
 import os, re, json, httpx
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import anthropic
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse
@@ -241,30 +242,35 @@ def build_qa_context(relevant_qa: List[dict]) -> str:
 
 
 def load_health_context(user_id: str, db) -> dict:
-    """medications + medication_logs(오늘) + health_records 최근 7일 로드."""
+    """medications + medication_logs(오늘) + health_records 최근 7일 — 병렬 로드."""
     ctx: dict = {}
     today_str = date.today().isoformat()
-    try:
+
+    def _meds():
         r = db.table("medications").select("id,name,dosage,times,med_type").eq("user_id", user_id).execute()
-        if r.data:
-            ctx['medications'] = r.data
-    except Exception as e:
-        print(f"[medications] {e}")
-    try:
-        # 오늘 복용 로그 — taken/skipped 현황
+        return 'medications', r.data or []
+
+    def _med_logs():
         r = db.table("medication_logs").select("medication_id,medication_name,scheduled_time,taken,status")\
             .eq("user_id", user_id).eq("date", today_str).execute()
-        if r.data:
-            ctx['today_med_logs'] = r.data
-    except Exception as e:
-        print(f"[medication_logs] {e}")
-    try:
+        return 'today_med_logs', r.data or []
+
+    def _health_records():
         r = db.table("health_records").select("*").eq("user_id", user_id).order("date", desc=True).limit(7).execute()
-        if r.data:
-            ctx['health_records'] = r.data
-            ctx['today_record'] = r.data[0]  # 가장 최근 기록
-    except Exception as e:
-        print(f"[health_records] {e}")
+        return 'health_records', r.data or []
+
+    with ThreadPoolExecutor(max_workers=3) as ex:
+        futures = [ex.submit(_meds), ex.submit(_med_logs), ex.submit(_health_records)]
+        for f in as_completed(futures):
+            try:
+                k, v = f.result()
+                if v:
+                    ctx[k] = v
+            except Exception as e:
+                print(f"[load_health_context] {e}")
+
+    if ctx.get('health_records'):
+        ctx['today_record'] = ctx['health_records'][0]
     return ctx
 
 
@@ -355,15 +361,18 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
     hr    = f"{rec.get('heart_rate','')} bpm" if rec.get('heart_rate') else '미측정'
     wt    = f"{rec.get('weight','')} kg" if rec.get('weight') else '미측정'
 
-    # 최근 7일 건강 기록 트렌드
+    # 최근 7일 건강 기록 트렌드 (오늘 포함)
     records_7d = health_ctx.get('health_records', [])
     trend_lines = []
-    for r in records_7d[1:5]:  # 오늘 제외 최근 4일
+    for r in records_7d[:7]:
         parts = [str(r.get('date',''))]
         bs2 = r.get('blood_pressure_systolic'); bd2 = r.get('blood_pressure_diastolic')
         if bs2 and bd2: parts.append(f"혈압 {bs2}/{bd2}")
         if r.get('blood_sugar'): parts.append(f"혈당 {r['blood_sugar']}")
+        if r.get('steps'): parts.append(f"걸음 {r['steps']}")
+        if r.get('sleep_hours'): parts.append(f"수면 {r['sleep_hours']}h")
         if r.get('weight'): parts.append(f"체중 {r['weight']}kg")
+        if r.get('heart_rate'): parts.append(f"심박 {r['heart_rate']}")
         trend_lines.append("  " + " / ".join(parts))
     trend_str = "\n".join(trend_lines) if trend_lines else "  기록 없음"
 
@@ -402,7 +411,7 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         f"최근 기록 심박수: {hr}\n"
         f"최근 기록 체중: {wt}\n"
         f"최근 기록 걸음수: {steps}\n"
-        f"최근 4일 트렌드:\n{trend_str}\n"
+        f"최근 7일 건강 기록:\n{trend_str}\n"
         f"생활습관: {habits}\n\n"
         "[답변 원칙]\n"
         f"1. 반드시 '{name}님'으로 시작할 것\n"
@@ -766,9 +775,10 @@ class ChatRequest(BaseModel):
     user_id: Optional[str] = None
     language: str = "ko"
     history: Optional[List[HistoryMessage]] = []
-    client_profile: Optional[dict] = None
-    client_meds:    Optional[list] = None
-    client_record:  Optional[dict] = None
+    client_profile:     Optional[dict] = None
+    client_meds:        Optional[list] = None
+    client_record:      Optional[dict] = None
+    client_records_7d:  Optional[list] = None
     turn_count:     int = 0
     force_summary:  bool = False
     intent:         str  = "health"   # health|emotional|cognitive|crisis|daily
@@ -790,6 +800,12 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
         'medications':  request.client_meds    or [],
         'today_record': request.client_record  or {},
     }
+    # 클라이언트가 7일 기록을 보내면 먼저 채워둠 (DB 값으로 덮어씀)
+    if request.client_records_7d:
+        health_ctx['health_records'] = request.client_records_7d
+        if not health_ctx['today_record'] and request.client_records_7d:
+            health_ctx['today_record'] = request.client_records_7d[0]
+
     chat_ctx = None
     db = None
 

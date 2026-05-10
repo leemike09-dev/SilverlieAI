@@ -180,9 +180,10 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [turnCount,    setTurnCount]    = useState(0);
   const [currentIntent, setCurrentIntent] = useState<Intent>('health');
   const [showCrisis,    setShowCrisis]    = useState(false);
-  const [healthProfile,  setHealthProfile]  = useState<any>(null);
-  const [healthRecord,   setHealthRecord]   = useState<any>(null);
-  const [medications,    setMedications]    = useState<any[]>([]);
+  const [healthProfile,    setHealthProfile]    = useState<any>(null);
+  const [healthRecord,     setHealthRecord]     = useState<any>(null);
+  const [healthRecords7d,  setHealthRecords7d]  = useState<any[]>([]);
+  const [medications,      setMedications]      = useState<any[]>([]);
   const [ttsEnabled,      setTtsEnabled]      = useState(true);
   const [pendingConditions, setPendingConditions] = useState<string[]>([]);
   const [sessions,          setSessions]         = useState<ChatSession[]>([]);
@@ -227,8 +228,22 @@ export default function AIChatScreen({ route, navigation }: Props) {
               blood_sugar:  l.glucose?.val ?? null,
               steps:        l.steps   ?? null,
               sleep_hours:  l.sleep?.hours ?? null,
+              heart_rate:   l.heartRate ?? null,
+              weight:       l.weight ?? null,
               date:         l.date,
             });
+            // 7일치 기록 변환하여 저장
+            const r7 = recs.slice(0, 7).map((r: any) => ({
+              date:                     r.date,
+              blood_pressure_systolic:  r.bp?.sys ?? null,
+              blood_pressure_diastolic: r.bp?.dia ?? null,
+              blood_sugar:              r.glucose?.val ?? null,
+              steps:                    r.steps ?? null,
+              sleep_hours:              r.sleep?.hours ?? null,
+              heart_rate:               r.heartRate ?? null,
+              weight:                   r.weight ?? null,
+            }));
+            setHealthRecords7d(r7);
           }
         } catch {}
       }
@@ -454,9 +469,10 @@ export default function AIChatScreen({ route, navigation }: Props) {
       user_id: userId, message: msg, history: history.slice(-10),
       turn_count: turnCount, force_summary: false,
       intent: detectedIntent,
-      client_profile: healthProfile,
-      client_record:  healthRecord,
-      client_meds:    medications.length > 0 ? medications : undefined,
+      client_profile:    healthProfile,
+      client_record:     healthRecord,
+      client_records_7d: healthRecords7d.length > 0 ? healthRecords7d : undefined,
+      client_meds:       medications.length > 0 ? medications : undefined,
       language,
     };
 
