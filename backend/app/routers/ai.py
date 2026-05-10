@@ -554,7 +554,6 @@ def build_doctor_memo(user: dict, health_ctx: dict, current_msg: str) -> str:
     from datetime import datetime as _dt
     p        = health_ctx.get('profile', {}) or {}
     meds_raw = health_ctx.get('medications', []) or []
-    rec      = health_ctx.get('today_record', {}) or {}
     name     = user.get('name') or p.get('name', '')
     age      = user.get('age')  or p.get('age', '')
     gender   = user.get('gender') or p.get('gender', '')
@@ -567,9 +566,6 @@ def build_doctor_memo(user: dict, health_ctx: dict, current_msg: str) -> str:
         f"{m.get('name','')} {m.get('dosage','')}({m.get('time_slot','')})"
         for m in meds_raw
     ]) if meds_raw else ''
-    bp    = f"{rec.get('bp_sys','')}/{rec.get('bp_dia','')} mmHg" if rec.get('bp_sys') else ''
-    sugar = f"{rec.get('glucose','')} mg/dL" if rec.get('glucose') else ''
-    steps = f"{rec.get('steps','')} 보" if rec.get('steps') else ''
     age_gender = f"{age}세 {gender}" if (age or gender) else ''
     now = _dt.now().strftime('%Y년 %m월 %d일 %H:%M')
     lines = [
@@ -587,10 +583,8 @@ def build_doctor_memo(user: dict, health_ctx: dict, current_msg: str) -> str:
         "■ 복용 중인 약",
         meds_str or '없음',
         "",
-        "■ 최근 건강 수치",
-        f"혈압: {bp or '미측정'}",
-        f"혈당: {sugar or '미측정'}",
-        f"걸음수: {steps or '미측정'}",
+        "■ 의사 소견",
+        "(직접 입력해 주세요)",
         "",
         "* Silver Life AI 루미 상담 내용을 기반으로 자동 생성된 메모입니다.",
     ]
