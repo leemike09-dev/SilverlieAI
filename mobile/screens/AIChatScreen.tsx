@@ -190,7 +190,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [sessions,          setSessions]         = useState<ChatSession[]>([]);
   const [currentSessionIdx, setCurrentSessionIdx] = useState(0);
   const [showRestoreNotice, setShowRestoreNotice] = useState(false);
-  const [weatherSummary,    setWeatherSummary]    = useState<string | undefined>(undefined);
+  const weatherRef     = useRef<string | undefined>(undefined);
   const sessionIdRef   = useRef<string>(Date.now().toString());
   const historyRef     = useRef<HistoryItem[]>([]);
   const turnCountRef   = useRef<number>(0);
@@ -288,7 +288,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
         );
         if (!res.ok) return;
         const data = await res.json();
-        if (data?.summary) setWeatherSummary(data.summary);
+        if (data?.summary) { weatherRef.current = data.summary; }
       } catch {}
     })();
 
@@ -491,7 +491,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       client_record:     healthRecord,
       client_records_7d: healthRecords7d.length > 0 ? healthRecords7d : undefined,
       client_meds:       medications.length > 0 ? medications : undefined,
-      client_weather:    weatherSummary,
+      client_weather:    weatherRef.current,
       language,
     };
 

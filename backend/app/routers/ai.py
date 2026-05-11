@@ -414,7 +414,7 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         f"최근 기록 걸음수: {steps}\n"
         f"최근 7일 건강 기록:\n{trend_str}\n"
         f"생활습관: {habits}\n"
-        + (f"현재 날씨: {weather_str}\n" if weather_str else "")
+        + (f"[실시간 날씨 데이터] {weather_str} (GPS 기반 실시간 수집 완료)\n" if weather_str else "")
         + "\n"
         "[답변 원칙]\n"
         f"1. 반드시 '{name}님'으로 시작할 것\n"
@@ -427,7 +427,7 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         "8. 응급 증상 시 [RISK:CRITICAL] 태그 필수\n"
         "9. 의료 답변 끝에: '이 내용은 참고용이며, 정확한 진단은 의사 선생님께 꼭 여쭤보세요'\n"
         "10. 타인(친구·가족·지인) 건강 이야기 시: [RISK:] 태그 금지, 이용자 본인에게 병원 방문 권유 금지\n"
-        "11. 날씨 정보가 있으면 자연스럽게 건강 조언에 반영 (더위·추위·비·황사 등)\n\n"
+        "11. [실시간 날씨 데이터]가 위에 제공된 경우: 사용자가 날씨를 물으면 그 데이터를 그대로 알려줄 것. '실시간 날씨를 확인할 수 없다'는 답변 절대 금지. 날씨가 건강에 미치는 영향도 자연스럽게 안내.\n\n"
         "[위험도 판단]\n"
         "[RISK:LOW]      - 경미하거나 만성적, 일상 지장 없음\n"
         "[RISK:MEDIUM]   - 지속 시 병원 필요, 당장 응급 아님\n"
