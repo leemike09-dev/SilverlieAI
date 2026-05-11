@@ -22,13 +22,26 @@ export default function LoginScreen({ navigation }: any) {
     setLoading('kakao');
     try {
       const token = await kakaoLogin();
-      const res = await fetch(`${BACKEND}/users/kakao-token-login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: token.accessToken }),
-      });
-      if (!res.ok) throw new Error('서버 오류');
-      const data = await res.json();
+
+      // 백엔드 콜드스타트 대응: 실패 시 3초 후 1회 재시도
+      const callBackend = async () => {
+        const res = await fetch(`${BACKEND}/users/kakao-token-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: token.accessToken }),
+        });
+        if (!res.ok) throw new Error('서버 오류');
+        return res.json();
+      };
+
+      let data: any;
+      try {
+        data = await callBackend();
+      } catch {
+        await new Promise(r => setTimeout(r, 3000));
+        data = await callBackend();
+      }
+
       if (!data?.id) throw new Error('사용자 정보 오류');
       await AsyncStorage.setItem('userId',   String(data.id));
       await AsyncStorage.setItem('userName', data.name || '');

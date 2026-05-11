@@ -1,3 +1,4 @@
+import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -31,6 +32,46 @@ app.include_router(medications.router, prefix="/medications", tags=["medications
 app.include_router(family.router, prefix="/family", tags=["family"])
 app.include_router(anomaly.router, prefix="/anomaly", tags=["anomaly"])
 app.include_router(location.router, prefix="/location", tags=["location"])
+
+_WMO_KO = {
+    0: "맑음", 1: "대체로 맑음", 2: "구름 조금", 3: "흐림",
+    45: "안개", 48: "결빙 안개",
+    51: "가벼운 이슬비", 53: "이슬비", 55: "짙은 이슬비",
+    61: "약한 비", 63: "비", 65: "강한 비",
+    71: "약한 눈", 73: "눈", 75: "강한 눈",
+    80: "소나기", 81: "소나기", 82: "강한 소나기",
+    95: "뇌우", 99: "우박 동반 뇌우",
+}
+
+@app.get("/weather")
+def get_weather(lat: float, lon: float):
+    """Open-Meteo 날씨 — API 키 불필요, 전 세계 지원 (중국 포함)"""
+    try:
+        r = httpx.get(
+            "https://api.open-meteo.com/v1/forecast",
+            params={
+                "latitude": lat, "longitude": lon,
+                "current": "temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m",
+                "timezone": "auto",
+            },
+            timeout=8,
+        )
+        r.raise_for_status()
+        d   = r.json()
+        cur = d.get("current", {})
+        temp  = cur.get("temperature_2m")
+        code  = cur.get("weather_code", 0)
+        humid = cur.get("relative_humidity_2m")
+        wind  = cur.get("wind_speed_10m")
+        tz    = d.get("timezone", "")
+        condition = _WMO_KO.get(code, "알 수 없음")
+        parts = [f"{temp}°C {condition}"]
+        if humid is not None: parts.append(f"습도 {humid}%")
+        if wind  is not None: parts.append(f"풍속 {wind:.1f}km/h")
+        return {"summary": " / ".join(parts), "timezone": tz}
+    except Exception:
+        return {"summary": None}
+
 
 @app.get("/kakao/callback")
 def kakao_callback(code: str = None, state: str = None, error: str = None):

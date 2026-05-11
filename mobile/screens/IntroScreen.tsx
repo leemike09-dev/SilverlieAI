@@ -31,6 +31,8 @@ export default function IntroScreen({ navigation }: any) {
       toValue: 1, duration: 900, useNativeDriver: isNative,
     }).start();
     player1.play();
+    // 인트로에서 미리 백엔드 웨이크업 (Render.com 콜드스타트 대응)
+    fetch('https://silverlieai.onrender.com/').catch(() => {});
   }, []);
 
   return (

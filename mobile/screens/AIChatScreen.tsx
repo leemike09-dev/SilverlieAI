@@ -7,6 +7,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Location from 'expo-location';
 import { speak, stopSpeech } from '../utils/speech';
 import SeniorTabBar from '../components/SeniorTabBar';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -189,6 +190,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [sessions,          setSessions]         = useState<ChatSession[]>([]);
   const [currentSessionIdx, setCurrentSessionIdx] = useState(0);
   const [showRestoreNotice, setShowRestoreNotice] = useState(false);
+  const [weatherSummary,    setWeatherSummary]    = useState<string | undefined>(undefined);
   const sessionIdRef   = useRef<string>(Date.now().toString());
   const historyRef     = useRef<HistoryItem[]>([]);
   const turnCountRef   = useRef<number>(0);
@@ -274,6 +276,22 @@ export default function AIChatScreen({ route, navigation }: Props) {
       }
     });
     fetchProactiveGreeting();
+
+    // 날씨 조회 (위치 권한 있을 때만, 실패해도 무시)
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        const res = await fetch(
+          `${API_URL}/weather?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.summary) setWeatherSummary(data.summary);
+      } catch {}
+    })();
+
     return () => { stopSpeech(); };
   }, []);
 
@@ -473,6 +491,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       client_record:     healthRecord,
       client_records_7d: healthRecords7d.length > 0 ? healthRecords7d : undefined,
       client_meds:       medications.length > 0 ? medications : undefined,
+      client_weather:    weatherSummary,
       language,
     };
 
