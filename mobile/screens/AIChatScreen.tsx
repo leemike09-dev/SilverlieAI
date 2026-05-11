@@ -277,12 +277,17 @@ export default function AIChatScreen({ route, navigation }: Props) {
     });
     fetchProactiveGreeting();
 
-    // 날씨 조회 (위치 권한 있을 때만, 실패해도 무시)
+    // 날씨 조회: getLastKnownPositionAsync로 즉시 반환 (GPS 대기 없음)
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') return;
-        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        // 캐시된 위치 즉시 사용, 없으면 저정밀도로 빠르게 조회
+        let pos = await Location.getLastKnownPositionAsync();
+        if (!pos) {
+          pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+        }
+        if (!pos) return;
         const res = await fetch(
           `${API_URL}/weather?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`
         );
