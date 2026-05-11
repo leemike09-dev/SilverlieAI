@@ -496,6 +496,13 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 - [ ] 모델 동적 선택 고도화 (CRITICAL→Opus / 일반→Sonnet / 요약→Haiku)
 - [ ] 실사용자 대화 데이터 파이프라인
 
+### 🔊 루미 TTS 음성 개선 (귀국 후 즉시)
+- [ ] **자연스러운 한국어 TTS 연동** — 현재 expo-speech(기기 내장 TTS, 기계음)를 AI 음성으로 교체
+  - 추천: Google Cloud TTS Neural2 `ko-KR-Neural2-A` (월 100만자 무료) 또는 Azure TTS `ko-KR-SunHiNeural` (월 50만자 무료, 신용카드 불필요)
+  - 구현 방식: 모바일 → 백엔드 `/tts` 엔드포인트 → TTS API 호출 → MP3 반환 → expo-av 재생
+  - API 키는 Render.com 환경변수에 저장 (중국 포함 전 세계 작동)
+  - ⚠️ 현재 중국 체류 중이라 API 계정 생성 불가 → 한국 귀국 후 진행
+
 ### 🏥 헬스케어 API / 웨어러블 연동 (2차 개발)
 - [ ] **Android 만보계 Google Health Connect 전환** — 현재 `TYPE_STEP_COUNTER`(부팅 이후 누적값) 기반이라 앱 실행 전 걸음은 누락됨. `react-native-health-connect` 패키지 + 새 EAS 빌드 필요. Health Connect는 시간 범위 기반 걸음수 조회 가능 → iOS `getStepCountAsync`처럼 정확한 오늘 걸음수 제공 가능.
 - [ ] 삼성헬스 SDK / Apple HealthKit 연동 → 걸음수/심박수 자동 수집
