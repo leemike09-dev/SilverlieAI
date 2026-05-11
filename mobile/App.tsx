@@ -111,32 +111,41 @@ export default function App() {
       }
     };
     initNotifications();
-    // Android 걸음수: 앱 시작 시 오늘 기준값 자동 저장
-    const initStepBaseline = async () => {
+    // Android 걸음수: 앱 전체에서 구독 유지 → 걸음 발생 시마다 오늘 걸음수 저장
+    let stepSub: any = null;
+    const startStepTracking = async () => {
       if (Platform.OS !== 'android') return;
       try {
-        const today = new Date().toDateString();
-        const raw = await AsyncStorage.getItem('step_baseline_android');
-        const baseline = raw ? JSON.parse(raw) : null;
-        if (baseline?.date === today) return;
         const { Pedometer } = await import('expo-sensors');
         const { status } = await Pedometer.getPermissionsAsync();
         if (status !== 'granted') return;
         const available = await Pedometer.isAvailableAsync();
         if (!available) return;
-        const sub = Pedometer.watchStepCount(async (result) => {
-          sub.remove();
-          await AsyncStorage.setItem('step_baseline_android', JSON.stringify({ date: today, total: result.steps }));
+        if (stepSub) { stepSub.remove(); stepSub = null; }
+        stepSub = Pedometer.watchStepCount(async (result) => {
+          const today = new Date().toDateString();
+          const currentTotal = result.steps;
+          const raw = await AsyncStorage.getItem('step_baseline_android');
+          const baseline = raw ? JSON.parse(raw) : null;
+          if (!baseline || baseline.date !== today) {
+            // 새 날 — 현재 누적값을 기준값으로 저장, 오늘 걸음 0
+            await AsyncStorage.setItem('step_baseline_android', JSON.stringify({ date: today, total: currentTotal }));
+            await AsyncStorage.setItem('steps_today_android', '0');
+          } else {
+            // 오늘 걸음 = 현재 누적 - 기준값
+            const todaySteps = Math.max(0, currentTotal - baseline.total);
+            await AsyncStorage.setItem('steps_today_android', String(todaySteps));
+          }
         });
       } catch {}
     };
-    initStepBaseline();
+    startStepTracking();
 
-    // 앱이 백그라운드 → 포그라운드 복귀 시 날짜 변경 감지 → 새 날 기준값 저장
+    // 백그라운드 → 포그라운드 복귀 시 날짜 변경 감지 → 구독 재시작
     const appStateSub = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'active') initStepBaseline();
+      if (nextState === 'active') startStepTracking();
     });
-    return () => { clearInterval(pingTimer); appStateSub.remove(); };
+    return () => { clearInterval(pingTimer); appStateSub.remove(); if (stepSub) stepSub.remove(); };
   }, []);
 
   // 네이티브 딥링크 (iOS/Android 앱용)
