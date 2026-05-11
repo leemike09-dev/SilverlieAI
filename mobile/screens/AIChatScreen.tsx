@@ -488,13 +488,34 @@ export default function AIChatScreen({ route, navigation }: Props) {
     // 빈 AI 메시지 선점 (스트리밍 채움용)
     setMessages(prev => [...prev, { role: 'ai', text: '' }]);
 
+    // 매 전송마다 AsyncStorage에서 직접 읽어 state 타이밍 문제 방지
+    let records7d: any[] = healthRecords7d;
+    try {
+      const raw = await AsyncStorage.getItem('health_records');
+      if (raw) {
+        const recs: any[] = JSON.parse(raw);
+        if (recs.length > 0) {
+          records7d = recs.slice(0, 7).map((r: any) => ({
+            date:                     r.date,
+            blood_pressure_systolic:  r.bp?.sys   ?? null,
+            blood_pressure_diastolic: r.bp?.dia   ?? null,
+            blood_sugar:              r.glucose?.val ?? null,
+            steps:                    r.steps     ?? null,
+            sleep_hours:              r.sleep?.hours ?? null,
+            heart_rate:               r.heartRate ?? null,
+            weight:                   r.weight    ?? null,
+          }));
+        }
+      }
+    } catch {}
+
     const chatBody = {
       user_id: userId, message: msg, history: history.slice(-10),
       turn_count: turnCount, force_summary: false,
       intent: detectedIntent,
       client_profile:    healthProfile,
       client_record:     healthRecord,
-      client_records_7d: healthRecords7d.length > 0 ? healthRecords7d : undefined,
+      client_records_7d: records7d.length > 0 ? records7d : undefined,
       client_meds:       medications.length > 0 ? medications : undefined,
       client_weather:    weatherRef.current,
       language,
