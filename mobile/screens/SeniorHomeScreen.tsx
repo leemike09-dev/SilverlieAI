@@ -320,7 +320,7 @@ const s = StyleSheet.create({
   /* SOS */
   sosBtn: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(210, 30, 55, 0.45)',
+    backgroundColor: 'rgba(210, 30, 55, 0.30)',
     borderRadius: 18, paddingVertical: 13, paddingHorizontal: 18, gap: 12,
   },
   sosEmoji:   { fontSize: 26 },
