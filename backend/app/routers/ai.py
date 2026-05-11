@@ -428,7 +428,8 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         "8. 응급 증상 시 [RISK:CRITICAL] 태그 필수\n"
         "9. 의료 답변 끝에: '이 내용은 참고용이며, 정확한 진단은 의사 선생님께 꼭 여쭤보세요'\n"
         "10. 타인(친구·가족·지인) 건강 이야기 시: [RISK:] 태그 금지, 이용자 본인에게 병원 방문 권유 금지\n"
-        "11. [실시간 날씨 데이터]가 위에 제공된 경우: 사용자가 날씨를 물으면 그 데이터를 그대로 알려줄 것. '실시간 날씨를 확인할 수 없다'는 답변 절대 금지. 날씨가 건강에 미치는 영향도 자연스럽게 안내.\n\n"
+        "11. [실시간 날씨 데이터]가 위에 제공된 경우: 사용자가 날씨를 물으면 그 데이터를 그대로 알려줄 것. '실시간 날씨를 확인할 수 없다'는 답변 절대 금지. 날씨가 건강에 미치는 영향도 자연스럽게 안내.\n"
+        "12. [최근 7일 건강 기록]에 데이터가 있으면: 사용자가 건강 기록·트렌드를 물을 때 그 데이터를 참조하여 답변. '기록에 접근할 수 없다', '데이터가 없다'는 답변 절대 금지. 기록 없음으로 표시된 경우에만 '기록된 수치가 없다'고 안내.\n\n"
         "[위험도 판단]\n"
         "[RISK:LOW]      - 경미하거나 만성적, 일상 지장 없음\n"
         "[RISK:MEDIUM]   - 지속 시 병원 필요, 당장 응급 아님\n"
@@ -806,7 +807,8 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
         'medications':  request.client_meds    or [],
         'today_record': request.client_record  or {},
     }
-    # 클라이언트가 7일 기록을 보내면 먼저 채워둠 (DB 값으로 덮어씀)
+    # 클라이언트가 7일 기록을 보내면 먼저 채워둠 (클라이언트 데이터 우선)
+    print(f"[chat/records] client_records_7d count={len(request.client_records_7d) if request.client_records_7d else 0}")
     if request.client_records_7d:
         health_ctx['health_records'] = request.client_records_7d
         if not health_ctx['today_record'] and request.client_records_7d:
@@ -824,6 +826,9 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
             server_ctx = load_health_context(request.user_id, db)
             for k, v in server_ctx.items():
                 if v:
+                    # 클라이언트가 이미 보낸 건강기록은 덮어쓰지 않음 (클라이언트 우선)
+                    if k in ('health_records', 'today_record') and health_ctx.get(k):
+                        continue
                     health_ctx[k] = v
             if user_row.get("health_profile") and not health_ctx.get("profile"):
                 health_ctx["profile"] = user_row["health_profile"]
@@ -831,6 +836,7 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
         except Exception as ex:
             print(f"[stream/user_load] {ex}")
 
+    print(f"[chat/records] final health_records count={len(health_ctx.get('health_records') or [])}")
     system_prompt = build_system_prompt(user_row, health_ctx, relevant_qa, chat_ctx,
                                         turn_count=request.turn_count,
                                         force_summary=request.force_summary,
