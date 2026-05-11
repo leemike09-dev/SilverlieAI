@@ -497,6 +497,7 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 - [ ] 실사용자 대화 데이터 파이프라인
 
 ### 🏥 헬스케어 API / 웨어러블 연동 (2차 개발)
+- [ ] **Android 만보계 Google Health Connect 전환** — 현재 `TYPE_STEP_COUNTER`(부팅 이후 누적값) 기반이라 앱 실행 전 걸음은 누락됨. `react-native-health-connect` 패키지 + 새 EAS 빌드 필요. Health Connect는 시간 범위 기반 걸음수 조회 가능 → iOS `getStepCountAsync`처럼 정확한 오늘 걸음수 제공 가능.
 - [ ] 삼성헬스 SDK / Apple HealthKit 연동 → 걸음수/심박수 자동 수집
 - [ ] 갤럭시 워치 / 애플 워치 / 핏빗 웨어러블 연동 → 위치: 설정 화면 "기기 연동" 항목 + 건강 화면 데이터 표시
 - [ ] 마이헬스웨이 API 연동
