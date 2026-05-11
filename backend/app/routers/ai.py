@@ -375,7 +375,10 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         if r.get('weight'): parts.append(f"체중 {r['weight']}kg")
         if r.get('heart_rate'): parts.append(f"심박 {r['heart_rate']}")
         trend_lines.append("  " + " / ".join(parts))
-    trend_str = "\n".join(trend_lines) if trend_lines else "  기록 없음"
+    if trend_lines:
+        trend_str = "아래 데이터는 사용자가 앱에 직접 입력한 건강 기록입니다. 실제 측정값이므로 반드시 참조하세요.\n" + "\n".join(trend_lines)
+    else:
+        trend_str = "사용자가 앱에 아직 건강 수치를 입력하지 않았습니다."
 
     habits_parts = []
     for key, label in [('smoking','흡연'), ('drinking','음주'), ('exercise','운동'), ('meal','식사')]:
@@ -431,7 +434,7 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         "9. 의료 답변 끝에: '이 내용은 참고용이며, 정확한 진단은 의사 선생님께 꼭 여쭤보세요'\n"
         "10. 타인(친구·가족·지인) 건강 이야기 시: [RISK:] 태그 금지, 이용자 본인에게 병원 방문 권유 금지\n"
         "11. [실시간 날씨 데이터]가 위에 제공된 경우: 사용자가 날씨를 물으면 그 데이터를 그대로 알려줄 것. '실시간 날씨를 확인할 수 없다'는 답변 절대 금지. 날씨가 건강에 미치는 영향도 자연스럽게 안내.\n"
-        "12. [최근 7일 건강 기록]에 데이터가 있으면: 사용자가 건강 기록·트렌드를 물을 때 그 데이터를 참조하여 답변. '기록에 접근할 수 없다', '데이터가 없다'는 답변 절대 금지. 기록 없음으로 표시된 경우에만 '기록된 수치가 없다'고 안내.\n\n"
+        "12. 건강 기록 관련 절대 금지 표현: '기록을 가져오는 데 실패', '데이터 조회 불가', '기록에 접근할 수 없다', '실시간 조회 불가' — 이 시스템은 루미가 직접 DB를 조회하는 구조가 아님. 위 [환자 정보]에 포함된 건강 기록이 이미 사전에 제공된 실제 데이터임. 기록이 있으면 그대로 참조하고, '아직 입력된 수치가 없습니다'라고만 안내하면 됨.\n\n"
         "[위험도 판단]\n"
         "[RISK:LOW]      - 경미하거나 만성적, 일상 지장 없음\n"
         "[RISK:MEDIUM]   - 지속 시 병원 필요, 당장 응급 아님\n"
