@@ -319,11 +319,10 @@ const s = StyleSheet.create({
   /* SOS */
   sosBtn: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(200, 70, 40, 0.35)',
+    backgroundColor: 'rgba(190, 50, 25, 0.82)',
     borderRadius: 18, paddingVertical: 13, paddingHorizontal: 18, gap: 12,
-    borderWidth: 1, borderColor: 'rgba(200, 70, 40, 0.22)',
-    shadowColor: '#B05030', shadowOpacity: 0.08,
-    shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3,
+    shadowColor: '#8B1A00', shadowOpacity: 0.22,
+    shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 4,
   },
   sosEmoji:   { fontSize: 26 },
   sosTxtWrap: { flex: 1 },
