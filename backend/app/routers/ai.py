@@ -418,7 +418,9 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         + (f"[실시간 날씨 데이터] {weather_str} (GPS 기반 실시간 수집 완료)\n" if weather_str else "")
         + "\n"
         "[답변 원칙]\n"
-        f"1. 반드시 '{name}님'으로 시작할 것\n"
+        + (f"1. 첫 번째 답변이므로 반드시 '{name}님'으로 시작할 것\n" if turn_count == 0 else
+           f"1. 두 번째 이후 답변: '{name}님'으로 시작하지 말 것. 자연스럽게 대화를 이어갈 것\n")
+        +
         "2. 질문 의도를 먼저 파악 (건강/여가/감정/일상)\n"
         "3. 건강 질문: 위 건강 정보 참고, 복용약·알레르기 반드시 고려\n"
         "4. 여가·문화 질문: 시니어 친화 활동을 품위 있게 추천 (접근성·체력 고려)\n"
