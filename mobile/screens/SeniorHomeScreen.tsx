@@ -233,16 +233,17 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         </View>
 
         <TouchableOpacity
-          style={s.sosBtn}
           onPress={() => navigation.navigate('SOS', { userId, name })}
           activeOpacity={0.85}
         >
-          <Text style={s.sosEmoji}>🚨</Text>
-          <View style={s.sosTxtWrap}>
-            <Text style={s.sosLabel}>{t.sosBtnLabel}</Text>
-            <Text style={s.sosSub}>{t.sosBtnSub}</Text>
+          <View style={s.sosBtn}>
+            <Text style={s.sosEmoji}>🚨</Text>
+            <View style={s.sosTxtWrap}>
+              <Text style={s.sosLabel}>{t.sosBtnLabel}</Text>
+              <Text style={s.sosSub}>{t.sosBtnSub}</Text>
+            </View>
+            <Text style={s.sosPhone}>📞</Text>
           </View>
-          <Text style={s.sosPhone}>📞</Text>
         </TouchableOpacity>
 
       </View>
@@ -319,10 +320,8 @@ const s = StyleSheet.create({
   /* SOS */
   sosBtn: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(190, 50, 25, 0.82)',
+    backgroundColor: 'rgba(210, 30, 55, 0.45)',
     borderRadius: 18, paddingVertical: 13, paddingHorizontal: 18, gap: 12,
-    shadowColor: '#8B1A00', shadowOpacity: 0.22,
-    shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 4,
   },
   sosEmoji:   { fontSize: 26 },
   sosTxtWrap: { flex: 1 },
