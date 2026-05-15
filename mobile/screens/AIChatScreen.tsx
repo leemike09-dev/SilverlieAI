@@ -509,6 +509,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
       }
     } catch {}
 
+    console.log('[chat/send] records7d count=', records7d.length, 'userId=', userId);
+
     const chatBody = {
       user_id: userId, message: msg, history: history.slice(-10),
       turn_count: turnCount, force_summary: false,
