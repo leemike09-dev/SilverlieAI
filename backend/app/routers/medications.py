@@ -141,7 +141,7 @@ def get_low_stock(user_id: str):
 # ── 프론트 MedicationScreen 전용 심플 API ──────────────────────────
 
 class SimpleMedRequest(BaseModel):
-    id: str
+    id: Optional[str] = None
     name: str
     dosage: str = '1정'
     method: str = '식후'
@@ -181,11 +181,10 @@ def get_today_meds(user_id: str):
 
 @router.post("/add-simple/{user_id}")
 def add_med_simple(user_id: str, med: SimpleMedRequest):
-    """약 추가 (프론트 단순 포맷)."""
+    """약 추가 (프론트 단순 포맷). id는 Supabase 자동 생성."""
     db = get_supabase()
     try:
-        db.table("medications").insert({
-            "id":        med.id,
+        payload = {
             "user_id":   user_id,
             "name":      med.name,
             "dosage":    med.dosage,
@@ -193,11 +192,13 @@ def add_med_simple(user_id: str, med: SimpleMedRequest):
             "time_slot": med.time_slot,
             "stock":     med.stock,
             "times":     [med.time_slot],
-        }).execute()
+        }
+        res = db.table("medications").insert(payload).execute()
+        saved = res.data[0] if res.data else {}
+        return {"ok": True, "id": saved.get("id")}
     except Exception as e:
         print(f"[add_med_simple] {e}")
         return {"ok": False, "note": str(e)}
-    return {"ok": True}
 
 @router.put("/toggle")
 def toggle_med_status(req: ToggleRequest):
@@ -220,10 +221,12 @@ def toggle_med_status(req: ToggleRequest):
         db.table("medication_logs").update({"taken": req.field == 'taken', "status": status}) \
             .eq("id", existing[0]["id"]).execute()
     else:
+        med_row = db.table("medications").select("name").eq("id", req.med_id).execute().data
+        med_name = med_row[0]["name"] if med_row else ""
         db.table("medication_logs").insert({
             "user_id":         req.user_id,
             "medication_id":   req.med_id,
-            "medication_name": "",
+            "medication_name": med_name,
             "scheduled_time":  req.field,
             "date":            today,
             "taken":           req.field == 'taken',

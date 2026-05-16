@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import SeniorTabBar from '../components/SeniorTabBar';
-import { scheduleMedNotification, cancelMedNotification } from '../utils/notifications';
+import { scheduleMedNotification } from '../utils/notifications';
 import { speak } from '../utils/speech';
 
 const API_URL = 'https://silverlieai.onrender.com';
@@ -46,14 +46,8 @@ export default function MedicationScreen({ navigation }: any) {
       if (stored) {
         try {
           const loaded = JSON.parse(stored);
-          // 이전 userId의 예시 데이터 제거: id가 숫자형(Date.now)이 아닌 demo 데이터 필터
-          const isRealData = loaded.every((m: any) => /^\d{10,}$/.test(String(m.id)));
-          if (isRealData || isDemo(uid)) {
-            setMeds(loaded);
-            announceMeds(loaded);
-          } else {
-            await AsyncStorage.removeItem(STORAGE_KEY);
-          }
+          setMeds(loaded);
+          announceMeds(loaded);
         } catch {}
       }
 
@@ -145,13 +139,14 @@ export default function MedicationScreen({ navigation }: any) {
     if (!nowSkipping) apiToggle(userId, id, 'taken', false);
   };
 
-  const addMed = () => {
+  const addMed = async () => {
     if (!form.name.trim()) {
       Alert.alert('입력 오류', '약 이름을 입력해 주세요.');
       return;
     }
+    const tempId = Date.now().toString();
     const newMed = {
-      id:       Date.now().toString(),
+      id:       tempId,
       name:     form.name.trim(),
       dosage:   form.dosage.trim()  || '1정',
       method:   form.method.trim()  || '식후',
@@ -161,22 +156,34 @@ export default function MedicationScreen({ navigation }: any) {
       skipped:  false,
     };
     const updatedMeds = [...meds, newMed];
-    // 모달 즉시 닫기 (알림 권한 다이얼로그보다 먼저)
+    // 모달 즉시 닫기
     setMeds(updatedMeds);
     setForm(EMPTY_FORM);
     setAddModal(false);
-    // 비동기 저장은 백그라운드에서
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedMeds)).catch(() => {});
-    scheduleMedNotification(newMed.id, newMed.name, newMed.timeSlot);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedMeds)).catch(() => {});
+    scheduleMedNotification(tempId, newMed.name, newMed.timeSlot);
     if (!isDemo(userId)) {
-      fetch(`${API_URL}/medications/add-simple/${userId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: newMed.id, name: newMed.name, dosage: newMed.dosage,
-          method: newMed.method, time_slot: newMed.timeSlot, stock: newMed.stock,
-        }),
-      }).catch(() => {});
+      try {
+        const res = await fetch(`${API_URL}/medications/add-simple/${userId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: newMed.name, dosage: newMed.dosage,
+            method: newMed.method, time_slot: newMed.timeSlot, stock: newMed.stock,
+          }),
+        });
+        if (res.ok) {
+          const result = await res.json();
+          if (result.ok && result.id && result.id !== tempId) {
+            // 서버가 생성한 실제 UUID로 로컬 캐시 업데이트
+            const finalMeds = updatedMeds.map((m: any) =>
+              m.id === tempId ? { ...m, id: result.id } : m
+            );
+            setMeds(finalMeds);
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(finalMeds)).catch(() => {});
+          }
+        }
+      } catch {}
     }
   };
 
