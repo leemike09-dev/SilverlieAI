@@ -39,6 +39,7 @@ import {
   initNotificationHandler,
   requestNotificationPermission,
   scheduleHealthDailyReminder,
+  registerPushToken,
 } from './utils/notifications';
 import HealthProfileScreen from './screens/HealthProfileScreen';
 import FAQScreen from './screens/FAQScreen';
@@ -166,6 +167,7 @@ export default function App() {
             await AsyncStorage.setItem('userId', String(data.id));
             await AsyncStorage.setItem('userName', data.name || '');
             await AsyncStorage.setItem('onboarding_seen', '1');
+            registerPushToken(String(data.id)).catch(() => {});
             navigationRef.navigate('SeniorHome', { name: data.name || '회원', userId: String(data.id) });
           }
         }
@@ -281,6 +283,7 @@ export default function App() {
             await AsyncStorage.setItem('userName', data.name || '');
             await AsyncStorage.setItem('onboarding_seen', '1');
             setKakaoProcessing(false);
+            registerPushToken(String(data.id)).catch(() => {});
             navigationRef.navigate('SeniorHome', { name: data.name || '회원', userId: String(data.id) });
             return;
           } else {

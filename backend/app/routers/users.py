@@ -284,6 +284,23 @@ def apple_login(req: AppleLoginRequest):
     return {"id": user["id"], "name": user["name"], "email": user["email"]}
 
 
+class PushTokenRequest(BaseModel):
+    token: str
+    platform: Optional[str] = None
+
+
+@router.post("/{user_id}/push-token")
+def save_push_token(user_id: str, req: PushTokenRequest):
+    """Expo 푸시 토큰 저장 — 가족 SOS 알림용."""
+    db = get_supabase()
+    existing = db.table("push_tokens").select("id").eq("user_id", user_id).eq("token", req.token).execute()
+    if existing.data:
+        db.table("push_tokens").update({"updated_at": "now()"}).eq("id", existing.data[0]["id"]).execute()
+    else:
+        db.table("push_tokens").insert({"user_id": user_id, "token": req.token, "platform": req.platform}).execute()
+    return {"ok": True}
+
+
 @router.delete("/{user_id}")
 def delete_account(user_id: str):
     """회원탈퇴: 해당 유저의 모든 데이터 삭제"""
