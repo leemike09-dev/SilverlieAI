@@ -275,6 +275,69 @@ export default function AIChatScreen({ route, navigation }: Props) {
         } catch {}
       }
     });
+
+    // 서버에서 건강기록 백그라운드 동기화 (AsyncStorage 없거나 오래됐을 때 보완)
+    if (userId && userId !== 'guest') {
+      (async () => {
+        try {
+          const res = await fetch(`${API_URL}/health/records/${userId}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          const serverRecs = (data.records || []) as any[];
+          if (serverRecs.length === 0) return;
+
+          // 서버 평면 포맷 → 중첩 포맷 (AsyncStorage 표준)
+          const toNested = (r: any) => ({
+            id:   r.id,
+            date: r.date,
+            time: '',
+            ...(r.blood_pressure_systolic ? { bp: { sys: r.blood_pressure_systolic, dia: r.blood_pressure_diastolic } } : {}),
+            ...(r.blood_sugar  != null ? { glucose: { val: r.blood_sugar,  type: '공복' } } : {}),
+            ...(r.steps        != null ? { steps:   r.steps    } : {}),
+            ...(r.sleep_hours  != null ? { sleep:   { hours: r.sleep_hours, start: '', end: '' } } : {}),
+            ...(r.heart_rate   != null ? { heartRate: r.heart_rate } : {}),
+            ...(r.weight       != null ? { weight:    r.weight     } : {}),
+          });
+
+          const cached = await AsyncStorage.getItem('health_records');
+          const local: any[] = cached ? JSON.parse(cached) : [];
+          const localDates = new Set(local.map((r: any) => r.date));
+          const serverNested = serverRecs.map(toNested);
+          const merged = [
+            ...serverNested,
+            ...local.filter((r: any) => !localDates.has(r.date) || serverRecs.every((s: any) => s.date !== r.date)),
+          ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 90);
+
+          await AsyncStorage.setItem('health_records', JSON.stringify(merged));
+
+          const latest = merged[0];
+          if (latest) {
+            setHealthRecord({
+              blood_pressure_systolic:  latest.bp?.sys    ?? null,
+              blood_pressure_diastolic: latest.bp?.dia    ?? null,
+              blood_sugar:              latest.glucose?.val ?? null,
+              steps:                    latest.steps      ?? null,
+              sleep_hours:              latest.sleep?.hours ?? null,
+              heart_rate:               latest.heartRate   ?? null,
+              weight:                   latest.weight      ?? null,
+              date:                     latest.date,
+            });
+          }
+          const r7 = merged.slice(0, 7).map((r: any) => ({
+            date:                     r.date,
+            blood_pressure_systolic:  r.bp?.sys    ?? null,
+            blood_pressure_diastolic: r.bp?.dia    ?? null,
+            blood_sugar:              r.glucose?.val ?? null,
+            steps:                    r.steps      ?? null,
+            sleep_hours:              r.sleep?.hours ?? null,
+            heart_rate:               r.heartRate   ?? null,
+            weight:                   r.weight      ?? null,
+          }));
+          setHealthRecords7d(r7);
+        } catch {}
+      })();
+    }
+
     fetchProactiveGreeting();
 
     // 날씨 조회: getLastKnownPositionAsync로 즉시 반환 (GPS 대기 없음)
