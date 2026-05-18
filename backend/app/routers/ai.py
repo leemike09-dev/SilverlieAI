@@ -1,3 +1,4 @@
+import asyncio
 import os, re, json, httpx
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import anthropic
@@ -899,7 +900,7 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
             all_syms = [m.content for m in (request.history or []) if m.role == 'user'] + [request.message]
             doctor_memo = build_doctor_memo(user_row, health_ctx, ' / '.join(all_syms))
 
-        # ── 만성질환 자동 추출 ──────────────────────────────────────────────
+        # ── 만성질환 자동 추출 (스레드 풀 — 이벤트 루프 블로킹 방지) ─────────
         profile_updates: list = []
         if (request.user_id and request.user_id not in ("demo-user", "guest")
                 and request.intent != "daily"):
@@ -907,7 +908,8 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
                 (health_ctx.get('profile') or {}).get('diseases') or
                 (health_ctx.get('profile') or {}).get('chronic_diseases') or []
             )
-            profile_updates = extract_user_conditions_sync(
+            profile_updates = await asyncio.to_thread(
+                extract_user_conditions_sync,
                 client_ai, request.message, existing_diseases
             )
             if profile_updates:
