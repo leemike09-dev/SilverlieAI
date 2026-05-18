@@ -389,7 +389,9 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
 
     age_gender = f"{age}세 {gender}" if (age or gender) else ''
 
+    today_str = date.today().isoformat()
     prompt = (
+        f"오늘 날짜: {today_str}\n\n"
         "당신은 Silver Life AI의 루미입니다.\n\n"
         "[루미 페르소나]\n"
         "루미는 품격 있는 온기를 지닌 건강 동반자입니다.\n"
@@ -645,9 +647,10 @@ def call_claude(client: anthropic.Anthropic, model: str, system: str, messages: 
 HEALTH_QUERY_TOOL = {
     "name": "query_health_records",
     "description": (
-        "사용자의 건강 기록을 날짜 범위로 조회합니다. "
-        "사용자가 특정 날짜 또는 기간의 걸음수, 혈압, 혈당, 체온, 체중을 물어볼 때 사용하세요. "
-        "예: '한달 전 걸음수', '지난주 혈압', '3월 체중 변화'"
+        "사용자의 과거 건강 기록을 날짜 범위로 조회합니다. "
+        "최근 7일 데이터는 시스템 프롬프트 [최근 7일 건강 기록]에 이미 포함되어 있으므로 이 도구를 사용하지 마세요. "
+        "7일 이전의 과거 데이터가 필요할 때만 사용하세요. "
+        "예: '한달 전 걸음수', '3월 혈압', '작년 체중 변화'"
     ),
     "input_schema": {
         "type": "object",
@@ -667,7 +670,7 @@ def execute_health_query(user_id: str, tool_input: dict, db) -> str:
     try:
         result = (
             db.table("health_records")
-            .select("date,blood_pressure_systolic,blood_pressure_diastolic,blood_sugar,temp,weight,steps")
+            .select("date,blood_pressure_systolic,blood_pressure_diastolic,blood_sugar,weight,steps,sleep_hours,heart_rate")
             .eq("user_id", user_id)
             .gte("date", date_from)
             .lte("date", date_to)
@@ -946,6 +949,8 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
             server_ctx = load_health_context(request.user_id, db)
             for k, v in server_ctx.items():
                 if v:
+                    if k in ('health_records', 'today_record') and health_ctx.get(k):
+                        continue
                     health_ctx[k] = v
             # Supabase에 저장된 health_profile JSONB → client_profile 미전송 시 폴백
             if user_row.get("health_profile") and not health_ctx.get("profile"):
