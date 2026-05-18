@@ -1,5 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   TextInput, KeyboardAvoidingView, Platform, Keyboard,
@@ -164,17 +163,24 @@ function getGreeting(name: string): string {
   return `${name}님, 편안한 밤 되세요. 잠 자기 전 건강이나 걱정되는 것 있으시면 언제든 말씀해요.`;
 }
 
-function toFlatRecord(r: any) {
-  return {
-    date:                     r.date,
-    blood_pressure_systolic:  r.bp?.sys   ?? r.blood_pressure_systolic  ?? null,
-    blood_pressure_diastolic: r.bp?.dia   ?? r.blood_pressure_diastolic ?? null,
-    blood_sugar:              r.glucose?.val ?? r.blood_sugar            ?? null,
-    steps:                    r.steps        ?? null,
-    sleep_hours:              r.sleep?.hours ?? r.sleep_hours            ?? null,
-    heart_rate:               r.heartRate    ?? r.heart_rate             ?? null,
-    weight:                   r.weight       ?? null,
-  };
+async function readHealthRecords7d(): Promise<any[]> {
+  try {
+    const raw = await AsyncStorage.getItem('health_records');
+    if (!raw) return [];
+    const recs: any[] = JSON.parse(raw);
+    return recs.slice(0, 7).map(r => ({
+      date:                     r.date,
+      blood_pressure_systolic:  r.bp?.sys    ?? null,
+      blood_pressure_diastolic: r.bp?.dia    ?? null,
+      blood_sugar:              r.glucose?.val ?? null,
+      steps:                    r.steps      ?? null,
+      sleep_hours:              r.sleep?.hours ?? null,
+      heart_rate:               r.heartRate  ?? null,
+      weight:                   r.weight     ?? null,
+    })).filter(r => !!r.date);
+  } catch {
+    return [];
+  }
 }
 
 export default function AIChatScreen({ route, navigation }: Props) {
@@ -208,7 +214,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const historyRef     = useRef<HistoryItem[]>([]);
   const turnCountRef   = useRef<number>(0);
 
-  const healthRecords7dRef = useRef<any[]>([]);
   const scrollRef          = useRef<ScrollView>(null);
   const pulseAnim          = useRef(new Animated.Value(1)).current;
   const dotsAnim           = useRef(new Animated.Value(0)).current;
@@ -248,7 +253,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
               weight:       l.weight ?? null,
               date:         l.date,
             });
-            healthRecords7dRef.current = recs.slice(0, 7).map(toFlatRecord).filter(r => !!r.date);
           }
         } catch {}
       }
@@ -279,58 +283,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
       }
     });
 
-    // 서버에서 건강기록 백그라운드 동기화 (AsyncStorage 없거나 오래됐을 때 보완)
-    if (userId && userId !== 'guest') {
-      (async () => {
-        try {
-          const res = await fetch(`${API_URL}/health/records/${userId}`);
-          if (!res.ok) return;
-          const data = await res.json();
-          const serverRecs = (data.records || []) as any[];
-          if (serverRecs.length === 0) return;
-
-          // 서버 평면 포맷 → 중첩 포맷 (AsyncStorage 표준)
-          const toNested = (r: any) => ({
-            id:   r.id,
-            date: r.date,
-            time: '',
-            ...(r.blood_pressure_systolic ? { bp: { sys: r.blood_pressure_systolic, dia: r.blood_pressure_diastolic } } : {}),
-            ...(r.blood_sugar  != null ? { glucose: { val: r.blood_sugar,  type: '공복' } } : {}),
-            ...(r.steps        != null ? { steps:   r.steps    } : {}),
-            ...(r.sleep_hours  != null ? { sleep:   { hours: r.sleep_hours, start: '', end: '' } } : {}),
-            ...(r.heart_rate   != null ? { heartRate: r.heart_rate } : {}),
-            ...(r.weight       != null ? { weight:    r.weight     } : {}),
-          });
-
-          const cached = await AsyncStorage.getItem('health_records');
-          const local: any[] = cached ? JSON.parse(cached) : [];
-          const localDates = new Set(local.map((r: any) => r.date));
-          const serverNested = serverRecs.map(toNested);
-          const merged = [
-            ...serverNested,
-            ...local.filter((r: any) => !localDates.has(r.date) || serverRecs.every((s: any) => s.date !== r.date)),
-          ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 90);
-
-          await AsyncStorage.setItem('health_records', JSON.stringify(merged));
-          healthRecords7dRef.current = merged.slice(0, 7).map(toFlatRecord).filter(r => !!r.date);
-
-          const latest = merged[0];
-          if (latest) {
-            setHealthRecord({
-              blood_pressure_systolic:  latest.bp?.sys    ?? null,
-              blood_pressure_diastolic: latest.bp?.dia    ?? null,
-              blood_sugar:              latest.glucose?.val ?? null,
-              steps:                    latest.steps      ?? null,
-              sleep_hours:              latest.sleep?.hours ?? null,
-              heart_rate:               latest.heartRate   ?? null,
-              weight:                   latest.weight      ?? null,
-              date:                     latest.date,
-            });
-          }
-        } catch {}
-      })();
-    }
-
     fetchProactiveGreeting();
 
     // 날씨 조회: getLastKnownPositionAsync로 즉시 반환 (GPS 대기 없음)
@@ -359,21 +311,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
   // refs 최신 상태 동기화 (stale closure 방지)
   useEffect(() => { historyRef.current   = history;    }, [history]);
   useEffect(() => { turnCountRef.current = turnCount;  }, [turnCount]);
-
-  // 탭 화면은 useEffect가 최초 1회만 실행되므로, 포커스 때마다 건강기록 갱신
-  useFocusEffect(
-    useCallback(() => {
-      AsyncStorage.getItem('health_records').then(raw => {
-        if (!raw) return;
-        try {
-          const recs: any[] = JSON.parse(raw);
-          if (recs.length > 0) {
-            healthRecords7dRef.current = recs.slice(0, 7).map(toFlatRecord).filter(r => !!r.date);
-          }
-        } catch {}
-      });
-    }, [])
-  );
 
   // 메시지가 바뀔 때마다 현재 세션 자동 저장
   useEffect(() => {
@@ -559,21 +496,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
     // 빈 AI 메시지 선점 (스트리밍 채움용)
     setMessages(prev => [...prev, { role: 'ai', text: '' }]);
 
-    // 마운트 시 ref에 저장된 7일 건강기록 사용 (AsyncStorage 재읽기 불필요)
-    let records7d: any[] = [...healthRecords7dRef.current];
-    if (records7d.length === 0) {
-      // ref가 비어있을 경우 (앱 재시작 직후 등) AsyncStorage에서 직접 읽기
-      try {
-        const raw = await AsyncStorage.getItem('health_records');
-        if (raw) {
-          const recs: any[] = JSON.parse(raw);
-          if (recs.length > 0) {
-            records7d = recs.slice(0, 7).map(toFlatRecord).filter(r => !!r.date);
-            healthRecords7dRef.current = records7d;
-          }
-        }
-      } catch {}
-    }
+    const records7d = await readHealthRecords7d();
 
     const chatBody = {
       user_id: userId, message: msg, history: history.slice(-10),
