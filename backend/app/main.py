@@ -91,4 +91,4 @@ def root():
         db_status = "ok"
     except Exception:
         db_status = "unavailable"
-    return {"status": "ok", "message": "Silver Life AI API", "db": db_status}
+    return {"status": "ok", "message": "Silver Life AI API", "db": db_status, "v": "2.1"}

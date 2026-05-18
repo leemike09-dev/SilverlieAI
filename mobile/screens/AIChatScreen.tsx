@@ -497,19 +497,24 @@ export default function AIChatScreen({ route, navigation }: Props) {
         if (recs.length > 0) {
           records7d = recs.slice(0, 7).map((r: any) => ({
             date:                     r.date,
-            blood_pressure_systolic:  r.bp?.sys   ?? null,
-            blood_pressure_diastolic: r.bp?.dia   ?? null,
-            blood_sugar:              r.glucose?.val ?? null,
+            // 중첩 포맷(bp.sys) 우선, 평면 포맷(blood_pressure_systolic) 폴백
+            blood_pressure_systolic:  r.bp?.sys   ?? r.blood_pressure_systolic  ?? null,
+            blood_pressure_diastolic: r.bp?.dia   ?? r.blood_pressure_diastolic ?? null,
+            blood_sugar:              r.glucose?.val ?? r.blood_sugar ?? null,
             steps:                    r.steps     ?? null,
-            sleep_hours:              r.sleep?.hours ?? null,
-            heart_rate:               r.heartRate ?? null,
+            sleep_hours:              r.sleep?.hours ?? r.sleep_hours ?? null,
+            heart_rate:               r.heartRate ?? r.heart_rate ?? null,
             weight:                   r.weight    ?? null,
-          }));
+          })).filter((r: any) => r.date); // date 없는 항목 제거
         }
       }
     } catch {}
 
-    console.log('[chat/send] records7d count=', records7d.length, 'userId=', userId);
+    // 실제로 값이 있는 레코드 수 출력 (진단용)
+    const nonEmptyCount = records7d.filter((r: any) =>
+      r.blood_pressure_systolic || r.blood_sugar || r.steps || r.sleep_hours || r.heart_rate
+    ).length;
+    console.log('[chat/send] records7d count=', records7d.length, 'with values=', nonEmptyCount, 'userId=', userId);
 
     const chatBody = {
       user_id: userId, message: msg, history: history.slice(-10),
