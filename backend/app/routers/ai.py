@@ -969,10 +969,7 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
 
     try:
         client = anthropic.Anthropic(api_key=api_key)
-        db_ref = db if (request.user_id and request.user_id not in ("demo-user", "guest")) else None
-        reply_raw = call_claude_with_health_tool(client, model, system_prompt, messages, request.user_id or "", db_ref)
-        if not reply_raw:
-            reply_raw = call_claude(client, model, system_prompt, messages)
+        reply_raw = call_claude(client, model, system_prompt, messages)
         risk      = detect_risk(reply_raw)
         if risk == 'critical' and model != "claude-opus-4-6":
             reply_raw = call_claude(client, "claude-opus-4-6", system_prompt, messages)
