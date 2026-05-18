@@ -163,6 +163,19 @@ function getGreeting(name: string): string {
   return `${name}님, 편안한 밤 되세요. 잠 자기 전 건강이나 걱정되는 것 있으시면 언제든 말씀해요.`;
 }
 
+function toFlatRecord(r: any) {
+  return {
+    date:                     r.date,
+    blood_pressure_systolic:  r.bp?.sys   ?? r.blood_pressure_systolic  ?? null,
+    blood_pressure_diastolic: r.bp?.dia   ?? r.blood_pressure_diastolic ?? null,
+    blood_sugar:              r.glucose?.val ?? r.blood_sugar            ?? null,
+    steps:                    r.steps        ?? null,
+    sleep_hours:              r.sleep?.hours ?? r.sleep_hours            ?? null,
+    heart_rate:               r.heartRate    ?? r.heart_rate             ?? null,
+    weight:                   r.weight       ?? null,
+  };
+}
+
 export default function AIChatScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { language } = useLanguage();
@@ -194,6 +207,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const historyRef     = useRef<HistoryItem[]>([]);
   const turnCountRef   = useRef<number>(0);
 
+  const healthRecords7dRef = useRef<any[]>([]);
   const scrollRef          = useRef<ScrollView>(null);
   const pulseAnim          = useRef(new Animated.Value(1)).current;
   const dotsAnim           = useRef(new Animated.Value(0)).current;
@@ -233,6 +247,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
               weight:       l.weight ?? null,
               date:         l.date,
             });
+            healthRecords7dRef.current = recs.slice(0, 7).map(toFlatRecord).filter(r => !!r.date);
           }
         } catch {}
       }
@@ -296,6 +311,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
           ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 90);
 
           await AsyncStorage.setItem('health_records', JSON.stringify(merged));
+          healthRecords7dRef.current = merged.slice(0, 7).map(toFlatRecord).filter(r => !!r.date);
 
           const latest = merged[0];
           if (latest) {
@@ -527,41 +543,17 @@ export default function AIChatScreen({ route, navigation }: Props) {
     // 빈 AI 메시지 선점 (스트리밍 채움용)
     setMessages(prev => [...prev, { role: 'ai', text: '' }]);
 
-    // 건강기록: AsyncStorage → 없으면 서버 직접 페치 (WeeklyReportScreen과 동일 방식)
-    const toFlat = (r: any) => ({
-      date:                     r.date,
-      blood_pressure_systolic:  r.bp?.sys   ?? r.blood_pressure_systolic  ?? null,
-      blood_pressure_diastolic: r.bp?.dia   ?? r.blood_pressure_diastolic ?? null,
-      blood_sugar:              r.glucose?.val ?? r.blood_sugar            ?? null,
-      steps:                    r.steps        ?? null,
-      sleep_hours:              r.sleep?.hours ?? r.sleep_hours            ?? null,
-      heart_rate:               r.heartRate    ?? r.heart_rate             ?? null,
-      weight:                   r.weight       ?? null,
-    });
-
-    let records7d: any[] = [];
-    try {
-      const raw = await AsyncStorage.getItem('health_records');
-      if (raw) {
-        const recs: any[] = JSON.parse(raw);
-        if (recs.length > 0) records7d = recs.slice(0, 7).map(toFlat).filter((r: any) => r.date);
-      }
-    } catch {}
-
-    // AsyncStorage에 값이 없으면 서버에서 즉시 조회 (서버 레코드는 이미 평면 포맷)
-    const hasValues = records7d.some((r: any) =>
-      r.blood_pressure_systolic || r.blood_sugar || r.steps || r.sleep_hours || r.heart_rate
-    );
-    if ((!records7d.length || !hasValues) && userId && userId !== 'guest') {
+    // 마운트 시 ref에 저장된 7일 건강기록 사용 (AsyncStorage 재읽기 불필요)
+    let records7d: any[] = [...healthRecords7dRef.current];
+    if (records7d.length === 0) {
+      // ref가 비어있을 경우 (앱 재시작 직후 등) AsyncStorage에서 직접 읽기
       try {
-        const res = await fetch(`${API_URL}/health/history/${userId}?days=7`);
-        if (res.ok) {
-          const d = await res.json();
-          const srvRecs: any[] = d.records || [];
-          if (srvRecs.length > 0) {
-            records7d = srvRecs.map(toFlat).filter((r: any) => r.date);
-            // 나중을 위해 AsyncStorage 갱신
-            AsyncStorage.setItem('health_records', JSON.stringify(srvRecs)).catch(() => {});
+        const raw = await AsyncStorage.getItem('health_records');
+        if (raw) {
+          const recs: any[] = JSON.parse(raw);
+          if (recs.length > 0) {
+            records7d = recs.slice(0, 7).map(toFlatRecord).filter(r => !!r.date);
+            healthRecords7dRef.current = records7d;
           }
         }
       } catch {}
