@@ -183,7 +183,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [showCrisis,    setShowCrisis]    = useState(false);
   const [healthProfile,    setHealthProfile]    = useState<any>(null);
   const [healthRecord,     setHealthRecord]     = useState<any>(null);
-  const [healthRecords7d,  setHealthRecords7d]  = useState<any[]>([]);
   const [medications,      setMedications]      = useState<any[]>([]);
   const [ttsEnabled,      setTtsEnabled]      = useState(true);
   const [pendingConditions, setPendingConditions] = useState<string[]>([]);
@@ -234,18 +233,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
               weight:       l.weight ?? null,
               date:         l.date,
             });
-            // 7일치 기록 변환하여 저장
-            const r7 = recs.slice(0, 7).map((r: any) => ({
-              date:                     r.date,
-              blood_pressure_systolic:  r.bp?.sys ?? null,
-              blood_pressure_diastolic: r.bp?.dia ?? null,
-              blood_sugar:              r.glucose?.val ?? null,
-              steps:                    r.steps ?? null,
-              sleep_hours:              r.sleep?.hours ?? null,
-              heart_rate:               r.heartRate ?? null,
-              weight:                   r.weight ?? null,
-            }));
-            setHealthRecords7d(r7);
           }
         } catch {}
       }
@@ -323,17 +310,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
               date:                     latest.date,
             });
           }
-          const r7 = merged.slice(0, 7).map((r: any) => ({
-            date:                     r.date,
-            blood_pressure_systolic:  r.bp?.sys    ?? null,
-            blood_pressure_diastolic: r.bp?.dia    ?? null,
-            blood_sugar:              r.glucose?.val ?? null,
-            steps:                    r.steps      ?? null,
-            sleep_hours:              r.sleep?.hours ?? null,
-            heart_rate:               r.heartRate   ?? null,
-            weight:                   r.weight      ?? null,
-          }));
-          setHealthRecords7d(r7);
         } catch {}
       })();
     }
@@ -551,33 +527,45 @@ export default function AIChatScreen({ route, navigation }: Props) {
     // 빈 AI 메시지 선점 (스트리밍 채움용)
     setMessages(prev => [...prev, { role: 'ai', text: '' }]);
 
-    // 매 전송마다 AsyncStorage에서 직접 읽어 state 타이밍 문제 방지
-    let records7d: any[] = healthRecords7d;
+    // 건강기록: AsyncStorage → 없으면 서버 직접 페치 (WeeklyReportScreen과 동일 방식)
+    const toFlat = (r: any) => ({
+      date:                     r.date,
+      blood_pressure_systolic:  r.bp?.sys   ?? r.blood_pressure_systolic  ?? null,
+      blood_pressure_diastolic: r.bp?.dia   ?? r.blood_pressure_diastolic ?? null,
+      blood_sugar:              r.glucose?.val ?? r.blood_sugar            ?? null,
+      steps:                    r.steps        ?? null,
+      sleep_hours:              r.sleep?.hours ?? r.sleep_hours            ?? null,
+      heart_rate:               r.heartRate    ?? r.heart_rate             ?? null,
+      weight:                   r.weight       ?? null,
+    });
+
+    let records7d: any[] = [];
     try {
       const raw = await AsyncStorage.getItem('health_records');
       if (raw) {
         const recs: any[] = JSON.parse(raw);
-        if (recs.length > 0) {
-          records7d = recs.slice(0, 7).map((r: any) => ({
-            date:                     r.date,
-            // 중첩 포맷(bp.sys) 우선, 평면 포맷(blood_pressure_systolic) 폴백
-            blood_pressure_systolic:  r.bp?.sys   ?? r.blood_pressure_systolic  ?? null,
-            blood_pressure_diastolic: r.bp?.dia   ?? r.blood_pressure_diastolic ?? null,
-            blood_sugar:              r.glucose?.val ?? r.blood_sugar ?? null,
-            steps:                    r.steps     ?? null,
-            sleep_hours:              r.sleep?.hours ?? r.sleep_hours ?? null,
-            heart_rate:               r.heartRate ?? r.heart_rate ?? null,
-            weight:                   r.weight    ?? null,
-          })).filter((r: any) => r.date); // date 없는 항목 제거
-        }
+        if (recs.length > 0) records7d = recs.slice(0, 7).map(toFlat).filter((r: any) => r.date);
       }
     } catch {}
 
-    // 실제로 값이 있는 레코드 수 출력 (진단용)
-    const nonEmptyCount = records7d.filter((r: any) =>
+    // AsyncStorage에 값이 없으면 서버에서 즉시 조회 (서버 레코드는 이미 평면 포맷)
+    const hasValues = records7d.some((r: any) =>
       r.blood_pressure_systolic || r.blood_sugar || r.steps || r.sleep_hours || r.heart_rate
-    ).length;
-    console.log('[chat/send] records7d count=', records7d.length, 'with values=', nonEmptyCount, 'userId=', userId);
+    );
+    if ((!records7d.length || !hasValues) && userId && userId !== 'guest') {
+      try {
+        const res = await fetch(`${API_URL}/health/history/${userId}?days=7`);
+        if (res.ok) {
+          const d = await res.json();
+          const srvRecs: any[] = d.records || [];
+          if (srvRecs.length > 0) {
+            records7d = srvRecs.map(toFlat).filter((r: any) => r.date);
+            // 나중을 위해 AsyncStorage 갱신
+            AsyncStorage.setItem('health_records', JSON.stringify(srvRecs)).catch(() => {});
+          }
+        }
+      } catch {}
+    }
 
     const chatBody = {
       user_id: userId, message: msg, history: history.slice(-10),
