@@ -208,12 +208,16 @@ export default function HealthScreen({ navigation }: any) {
           id: r.id,
           date: r.date,
           time: local?.time || '',
-          ...(r.blood_pressure_systolic && { bp: { sys: r.blood_pressure_systolic, dia: r.blood_pressure_diastolic } }),
-          ...(r.blood_sugar != null && { glucose: { val: r.blood_sugar, type: local?.glucose?.type || '공복' } }),
+          ...(r.blood_pressure_systolic
+            ? { bp: { sys: r.blood_pressure_systolic, dia: r.blood_pressure_diastolic } }
+            : local?.bp ? { bp: local.bp } : {}),
+          ...(r.blood_sugar != null
+            ? { glucose: { val: r.blood_sugar, type: local?.glucose?.type || '공복' } }
+            : local?.glucose ? { glucose: local.glucose } : {}),
           ...(r.steps != null ? { steps: r.steps } : local?.steps != null ? { steps: local.steps } : {}),
           ...(r.sleep_hours != null ? { sleep: { hours: r.sleep_hours, start: local?.sleep?.start || '', end: local?.sleep?.end || '' } }
               : local?.sleep ? { sleep: local.sleep } : {}),
-          ...(r.heart_rate != null && { heartRate: r.heart_rate }),
+          ...(r.heart_rate != null ? { heartRate: r.heart_rate } : local?.heartRate != null ? { heartRate: local.heartRate } : {}),
         };
       });
       // 서버에 없는 로컬 기록도 보존 (오프라인 저장분)

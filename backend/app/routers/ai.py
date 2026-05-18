@@ -845,6 +845,8 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
             print(f"[stream/user_load] {ex}")
 
     print(f"[chat/records] final health_records count={len(health_ctx.get('health_records') or [])}")
+    _sample = (health_ctx.get('health_records') or [{}])[0]
+    print(f"[chat/records] sample={_sample}")
     system_prompt = build_system_prompt(user_row, health_ctx, relevant_qa, chat_ctx,
                                         turn_count=request.turn_count,
                                         force_summary=request.force_summary,
