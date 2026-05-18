@@ -937,6 +937,11 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         'medications':  request.client_meds    or [],
         'today_record': request.client_record  or {},
     }
+    # 클라이언트가 7일 기록을 보내면 먼저 채워둠 (스트리밍 엔드포인트와 동일 처리)
+    if request.client_records_7d:
+        health_ctx['health_records'] = request.client_records_7d
+        if not health_ctx['today_record'] and request.client_records_7d:
+            health_ctx['today_record'] = request.client_records_7d[0]
     chat_ctx: Optional[dict] = None
 
     db = None

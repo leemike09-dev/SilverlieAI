@@ -199,13 +199,16 @@ export default function HealthScreen({ navigation }: any) {
     } catch {}
     if (!id) return;
     try {
-      let res = await fetch('https://silverlieai.onrender.com/health/records/' + id);
-      if (!res.ok) {
-        // Render cold start — wait for server to wake up and retry once
-        await new Promise(r => setTimeout(r, 8000));
-        res = await fetch('https://silverlieai.onrender.com/health/records/' + id);
-        if (!res.ok) return;
+      // Render 콜드 스타트(최대 60초) 대응 — 10초 간격 최대 5회 재시도
+      let res: Response | null = null;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          const r = await fetch('https://silverlieai.onrender.com/health/records/' + id);
+          if (r.ok) { res = r; break; }
+        } catch {}
+        await new Promise(r => setTimeout(r, 10000));
       }
+      if (!res) return;
       const data = await res.json();
       const serverRecords = (data.records || []).map((r: any) => {
         const local = localRecords.find(lr => lr.date === r.date);
