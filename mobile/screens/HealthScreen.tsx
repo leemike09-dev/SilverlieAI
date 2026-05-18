@@ -226,6 +226,23 @@ export default function HealthScreen({ navigation }: any) {
       const merged = [...serverRecords, ...localOnly].sort((a, b) => b.date.localeCompare(a.date));
       setRecords(merged);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+
+      // 서버가 살아있는 지금, 로컬에만 있던 기록을 Supabase로 동기화
+      for (const r of localOnly) {
+        if (!r.bp && !r.glucose && r.steps == null && !r.sleep) continue;
+        const body: any = { user_id: id, date: r.date, source: 'manual' };
+        if (r.bp)           { body.blood_pressure_systolic = r.bp.sys; body.blood_pressure_diastolic = r.bp.dia; }
+        if (r.glucose)      { body.blood_sugar = r.glucose.val; }
+        if (r.steps != null){ body.steps = r.steps; }
+        if (r.sleep)        { body.sleep_hours = r.sleep.hours; }
+        if (r.heartRate != null) { body.heart_rate = r.heartRate; }
+        if (r.weight != null)   { body.weight = r.weight; }
+        fetch('https://silverlieai.onrender.com/health/records', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        }).catch(() => {});
+      }
     } catch {}
   };
 
@@ -271,11 +288,20 @@ export default function HealthScreen({ navigation }: any) {
         if (record.glucose) apiBody.blood_sugar  = record.glucose.val;
         if (record.steps)   apiBody.steps        = record.steps;
         if (record.sleep)   apiBody.sleep_hours  = record.sleep.hours;
-        fetch('https://silverlieai.onrender.com/health/records', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(apiBody),
-        }).catch(() => {});
+        const postRecord = async (retries = 2) => {
+          for (let i = 0; i <= retries; i++) {
+            try {
+              const r = await fetch('https://silverlieai.onrender.com/health/records', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(apiBody),
+              });
+              if (r.ok) return;
+            } catch {}
+            if (i < retries) await new Promise(res => setTimeout(res, 3000));
+          }
+        };
+        postRecord();
       }
       let updated: any[];
       if (todayIdx >= 0) {
