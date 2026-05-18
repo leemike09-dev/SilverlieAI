@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  StatusBar, Dimensions, Alert, Platform, Image,
+  StatusBar, Alert, Platform, Image, useWindowDimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { speak, stopSpeech } from '../utils/speech';
@@ -47,18 +47,13 @@ function getLumiGreeting(hour: number, name: string, lang: Language): string {
 }
 
 const API = 'https://silverlieai.onrender.com';
-const { width, height } = Dimensions.get('window');
 const CARD_GAP = 10;
-const CARD_W   = (width - 32 - CARD_GAP) / 2;
-
-// 하단 영역 높이 추정: 카드 2행 + SOS + 탭바
-// 카드 1행 높이 ≈ 90px, 2행 = 180 + gap 10 = 190
-// SOS ≈ 58px, marginBottom 10
-// 탭바 ≈ 60px
-// → bottom 고정 높이 = 190 + 68 + 60 = 318
 const BOTTOM_H = 318;
 
 export default function SeniorHomeScreen({ route, navigation }: any) {
+  const { width, height } = useWindowDimensions();
+  const cardW = (width - 32 - CARD_GAP) / 2;
+  const cardH = Math.min(Math.floor((height - BOTTOM_H - 160) * 0.48), 110);
   const insets = useSafeAreaInsets();
   const { language, setLanguage, t } = useLanguage();
   const [userId,       setUserId]       = useState<string>(route?.params?.userId || '');
@@ -190,40 +185,40 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
         <View style={s.cardGrid}>
 
-          <TouchableOpacity style={s.cardWrap}
+          <TouchableOpacity style={[s.cardWrap, { width: cardW }]}
             onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0, userId })}
             activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(235,248,255,0.30)', 'rgba(200,235,255,0.30)']} style={s.card}>
+            <LinearGradient colors={['rgba(235,248,255,0.30)', 'rgba(200,235,255,0.30)']} style={[s.card, { height: cardH }]}>
               <Text style={s.iconEmoji}>🗺️</Text>
               <Text style={s.cardLabel}>{t.myLocation}</Text>
               <Text style={s.cardDesc}>{t.myLocationDesc}</Text>
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.cardWrap}
+          <TouchableOpacity style={[s.cardWrap, { width: cardW }]}
             onPress={() => navigation.navigate('Health', { userId, name })}
             activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(255,245,248,0.30)', 'rgba(255,220,230,0.30)']} style={s.card}>
+            <LinearGradient colors={['rgba(255,245,248,0.30)', 'rgba(255,220,230,0.30)']} style={[s.card, { height: cardH }]}>
               <Text style={s.iconEmoji}>❤️</Text>
               <Text style={s.cardLabel}>{t.healthCheck}</Text>
               <Text style={s.cardDesc}>{t.healthCheckDesc}</Text>
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.cardWrap}
+          <TouchableOpacity style={[s.cardWrap, { width: cardW }]}
             onPress={() => navigation.navigate('AIChat', { userId, name })}
             activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(247,242,255,0.30)', 'rgba(228,216,255,0.30)']} style={s.card}>
+            <LinearGradient colors={['rgba(247,242,255,0.30)', 'rgba(228,216,255,0.30)']} style={[s.card, { height: cardH }]}>
               <Text style={s.iconEmoji}>💬</Text>
               <Text style={s.cardLabel}>{t.lumiChat}</Text>
               <Text style={s.cardDesc}>{t.lumiChatDesc}</Text>
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.cardWrap}
+          <TouchableOpacity style={[s.cardWrap, { width: cardW }]}
             onPress={() => navigation.navigate('Guardian', { userId, name })}
             activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(240,255,248,0.30)', 'rgba(210,245,230,0.30)']} style={s.card}>
+            <LinearGradient colors={['rgba(240,255,248,0.30)', 'rgba(210,245,230,0.30)']} style={[s.card, { height: cardH }]}>
               <Text style={s.iconEmoji}>👨‍👩‍👧</Text>
               <Text style={s.cardLabel}>{t.guardianMenu}</Text>
               <Text style={s.cardDesc}>{t.guardianMenuDesc}</Text>
@@ -252,8 +247,6 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
     </View>
   );
 }
-
-const CARD_H = Math.min(Math.floor((height - BOTTOM_H - 160) * 0.48), 110);
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#87CEEB' },
@@ -287,11 +280,11 @@ const s = StyleSheet.create({
 
   /* 루미 */
   hero:    { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 16 },
-  lumiImg: { width: width * 0.75, height: '100%' },
+  lumiImg: { width: '75%', height: '100%' },
   lumiBubble: {
     backgroundColor: 'rgba(255,255,255,0.88)',
     borderRadius: 20, paddingHorizontal: 20, paddingVertical: 14,
-    marginHorizontal: 24, maxWidth: width - 48,
+    marginHorizontal: 24, maxWidth: '92%',
     shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 }, elevation: 4,
   },
@@ -311,8 +304,8 @@ const s = StyleSheet.create({
 
   /* 4개 카드 */
   cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: CARD_GAP, marginBottom: 10 },
-  cardWrap: { width: CARD_W, borderRadius: 18, overflow: 'hidden' },
-  card:     { height: CARD_H, paddingVertical: 12, paddingHorizontal: 14, justifyContent: 'center', gap: 4 },
+  cardWrap: { borderRadius: 18, overflow: 'hidden' },
+  card:     { paddingVertical: 12, paddingHorizontal: 14, justifyContent: 'center', gap: 4 },
   iconEmoji:{ fontSize: 26 },
   cardLabel:{ fontSize: 16, fontWeight: '900', color: '#0D2B5E' },
   cardDesc: { fontSize: 11, color: '#3A5070', fontWeight: '500' },
