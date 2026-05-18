@@ -199,8 +199,13 @@ export default function HealthScreen({ navigation }: any) {
     } catch {}
     if (!id) return;
     try {
-      const res = await fetch('https://silverlieai.onrender.com/health/records/' + id);
-      if (!res.ok) return;
+      let res = await fetch('https://silverlieai.onrender.com/health/records/' + id);
+      if (!res.ok) {
+        // Render cold start — wait for server to wake up and retry once
+        await new Promise(r => setTimeout(r, 8000));
+        res = await fetch('https://silverlieai.onrender.com/health/records/' + id);
+        if (!res.ok) return;
+      }
       const data = await res.json();
       const serverRecords = (data.records || []).map((r: any) => {
         const local = localRecords.find(lr => lr.date === r.date);
