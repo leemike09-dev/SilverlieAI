@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   TextInput, KeyboardAvoidingView, Platform, Keyboard,
@@ -358,6 +359,21 @@ export default function AIChatScreen({ route, navigation }: Props) {
   // refs 최신 상태 동기화 (stale closure 방지)
   useEffect(() => { historyRef.current   = history;    }, [history]);
   useEffect(() => { turnCountRef.current = turnCount;  }, [turnCount]);
+
+  // 탭 화면은 useEffect가 최초 1회만 실행되므로, 포커스 때마다 건강기록 갱신
+  useFocusEffect(
+    useCallback(() => {
+      AsyncStorage.getItem('health_records').then(raw => {
+        if (!raw) return;
+        try {
+          const recs: any[] = JSON.parse(raw);
+          if (recs.length > 0) {
+            healthRecords7dRef.current = recs.slice(0, 7).map(toFlatRecord).filter(r => !!r.date);
+          }
+        } catch {}
+      });
+    }, [])
+  );
 
   // 메시지가 바뀔 때마다 현재 세션 자동 저장
   useEffect(() => {
