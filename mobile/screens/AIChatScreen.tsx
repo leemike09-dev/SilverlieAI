@@ -216,7 +216,9 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
   const scrollRef          = useRef<ScrollView>(null);
   const pulseAnim          = useRef(new Animated.Value(1)).current;
-  const dotsAnim           = useRef(new Animated.Value(0)).current;
+  const dot1Anim           = useRef(new Animated.Value(0.3)).current;
+  const dot2Anim           = useRef(new Animated.Value(0.3)).current;
+  const dot3Anim           = useRef(new Animated.Value(0.3)).current;
   const recognitionRef     = useRef<any>(null);
   const silenceTimerRef    = useRef<any>(null);
   const toastTimerRef      = useRef<any>(null);
@@ -366,16 +368,28 @@ export default function AIChatScreen({ route, navigation }: Props) {
     return () => clearInterval(id);
   }, []);
 
-  // 로딩 애니메이션
+  // 로딩 애니메이션 (점 3개 순차 깜빡)
   useEffect(() => {
     if (loading) {
-      Animated.loop(Animated.sequence([
-        Animated.timing(dotsAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-        Animated.timing(dotsAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
-      ])).start();
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(dot1Anim, { toValue: 1, duration: 220, useNativeDriver: true }),
+          Animated.parallel([
+            Animated.timing(dot1Anim, { toValue: 0.3, duration: 220, useNativeDriver: true }),
+            Animated.timing(dot2Anim, { toValue: 1,   duration: 220, useNativeDriver: true }),
+          ]),
+          Animated.parallel([
+            Animated.timing(dot2Anim, { toValue: 0.3, duration: 220, useNativeDriver: true }),
+            Animated.timing(dot3Anim, { toValue: 1,   duration: 220, useNativeDriver: true }),
+          ]),
+          Animated.timing(dot3Anim, { toValue: 0.3, duration: 220, useNativeDriver: true }),
+          Animated.delay(180),
+        ])
+      ).start();
     } else {
-      dotsAnim.stopAnimation();
-      dotsAnim.setValue(0);
+      dot1Anim.stopAnimation(); dot1Anim.setValue(0.3);
+      dot2Anim.stopAnimation(); dot2Anim.setValue(0.3);
+      dot3Anim.stopAnimation(); dot3Anim.setValue(0.3);
     }
   }, [loading]);
 
@@ -877,13 +891,18 @@ export default function AIChatScreen({ route, navigation }: Props) {
                     )}
                     <View style={msg.role === 'ai' ? s.aiBubble : s.userBubble}>
                     {msg.role === 'ai' && <Text style={s.bubbleName}>루미</Text>}
-                    <Text style={msg.role === 'ai' ? s.aiTxt : s.userTxt}>
-                      {isStreaming ? (
-                        <Animated.Text style={{ opacity: dotsAnim.interpolate({ inputRange:[0,1], outputRange:[0.3,1] }) }}>
-                          ···
-                        </Animated.Text>
-                      ) : msg.text}
-                    </Text>
+                    {isStreaming ? (
+                      <View>
+                        <Text style={s.thinkingLabel}>루미 생각 중...</Text>
+                        <View style={s.thinkingDots}>
+                          <Animated.View style={[s.thinkingDot, { opacity: dot1Anim }]} />
+                          <Animated.View style={[s.thinkingDot, { opacity: dot2Anim }]} />
+                          <Animated.View style={[s.thinkingDot, { opacity: dot3Anim }]} />
+                        </View>
+                      </View>
+                    ) : (
+                      <Text style={msg.role === 'ai' ? s.aiTxt : s.userTxt}>{msg.text}</Text>
+                    )}
                     {msg.role === 'ai' && !isStreaming && msg.text.length > 0 && ttsEnabled && (
                       <TouchableOpacity
                         onPress={() => speak(cleanForTTS(msg.text), 0.82, 0.88)}
@@ -1086,7 +1105,10 @@ const s = StyleSheet.create({
   bubbleName:  { fontSize: 14, color: '#7B1FA2', fontWeight: '700', marginBottom: 4 },
   aiTxt:       { fontSize: 22, color: '#16273E', lineHeight: 38, fontWeight: '600' },
   userTxt:     { fontSize: 22, color: '#fff',     lineHeight: 34, fontWeight: '500' },
-  loadingTxt:  { fontSize: 30, color: '#9C27B0', letterSpacing: 6 },
+  loadingTxt:      { fontSize: 30, color: '#9C27B0', letterSpacing: 6 },
+  thinkingLabel:   { fontSize: 15, color: '#7B1FA2', fontWeight: '600', marginBottom: 10 },
+  thinkingDots:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  thinkingDot:     { width: 12, height: 12, borderRadius: 6, backgroundColor: '#9C27B0' },
 
   // 의사 메모 제안
   memoPrompt: {
