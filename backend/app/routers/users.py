@@ -301,6 +301,30 @@ def save_push_token(user_id: str, req: PushTokenRequest):
     return {"ok": True}
 
 
+@router.get("/{user_id}/family-push-tokens")
+def get_family_push_tokens(user_id: str):
+    """시니어의 가족 구성원 Expo 푸시 토큰 목록 반환 — 클라이언트 측 SOS 오프라인 캐시용."""
+    db = get_supabase()
+    tokens: list = []
+    try:
+        for tbl, col in [("family_connections", "family_user_id"), ("family_links", "family_id")]:
+            try:
+                res = db.table(tbl).select(col).eq("senior_user_id" if tbl == "family_connections" else "senior_id", user_id).execute()
+                for row in (res.data or []):
+                    fid = row.get(col)
+                    if not fid:
+                        continue
+                    tok = db.table("push_tokens").select("token").eq("user_id", fid).execute()
+                    tokens += [t["token"] for t in (tok.data or []) if t.get("token")]
+                if tokens:
+                    break
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return {"tokens": list(set(tokens))}
+
+
 @router.delete("/{user_id}")
 def delete_account(user_id: str):
     """회원탈퇴: 해당 유저의 모든 데이터 삭제"""

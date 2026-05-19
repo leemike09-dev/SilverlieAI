@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { speak, stopSpeech } from '../utils/speech';
+import { sendSOSPushDirect } from '../utils/notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, StyleSheet, TouchableOpacity,
@@ -129,13 +130,15 @@ export default function SOSScreen({ navigation, route }: Props) {
     setSmsSent(true);
   }, []);
 
-  // 백엔드 푸시
+  // 백엔드 푸시 — 실패 시 캐시된 토큰으로 Expo 직접 발송 (Render OOM 대응)
   const notifyBackend = useCallback(() => {
     if (!userId) return;
     fetch(`${API}/notifications/sos-push`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: userId, name: name || '' }),
-    }).catch(() => {});
+    }).catch(() => {
+      sendSOSPushDirect(name || '사용자').catch(() => {});
+    });
   }, [userId, name]);
 
   // 순차 전화 실행

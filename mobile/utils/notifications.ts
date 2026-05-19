@@ -153,6 +153,45 @@ export async function registerPushToken(userId: string): Promise<string | null> 
   }
 }
 
+// ── 가족 푸시 토큰 로컬 캐시 (Render OOM 시 클라이언트 직접 발송용) ──
+export async function cacheFamilyPushTokens(userId: string): Promise<void> {
+  try {
+    const res = await fetch(`https://silverlieai.onrender.com/users/${userId}/family-push-tokens`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const tokens: string[] = data.tokens || [];
+    if (tokens.length > 0) {
+      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+      await AsyncStorage.setItem('family_push_tokens', JSON.stringify(tokens));
+    }
+  } catch {}
+}
+
+// ── 캐시된 토큰으로 Expo 푸시 직접 발송 (백엔드 무관) ──
+export async function sendSOSPushDirect(senderName: string): Promise<boolean> {
+  try {
+    const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+    const raw = await AsyncStorage.getItem('family_push_tokens');
+    if (!raw) return false;
+    const tokens: string[] = JSON.parse(raw);
+    if (tokens.length === 0) return false;
+    await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tokens.map(to => ({
+        to,
+        title: '🚨 SOS 긴급 알림',
+        body: `${senderName}님이 SOS를 눌렀습니다. 즉시 확인해주세요.`,
+        sound: 'default',
+        priority: 'high',
+      }))),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ── SOS 가족 푸시 알림 전송 ──
 export async function sendSOSPushToFamily(userId: string, senderName: string) {
   try {
