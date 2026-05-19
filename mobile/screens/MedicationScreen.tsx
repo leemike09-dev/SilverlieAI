@@ -41,15 +41,26 @@ export default function MedicationScreen({ navigation }: any) {
       setUserId(uid);
       setUname(name);
 
-      // 로컬 캐시 먼저 표시 (빠른 로딩)
+      // 로컬 캐시 먼저 표시 — 날짜가 바뀌었으면 taken/skipped 리셋 (stock 유지)
+      const today = new Date().toISOString().slice(0, 10);
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       if (stored) {
         try {
-          const loaded = JSON.parse(stored);
-          setMeds(loaded);
-          announceMeds(loaded);
+          const loaded: any[] = JSON.parse(stored);
+          const storedDate = await AsyncStorage.getItem('medications_date');
+          const isNewDay = storedDate !== today;
+          const displayed = isNewDay
+            ? loaded.map(m => ({ ...m, taken: false, skipped: false, takenDate: null }))
+            : loaded;
+          if (isNewDay) {
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(displayed));
+            await AsyncStorage.setItem('medications_date', today);
+          }
+          setMeds(displayed);
+          announceMeds(displayed);
         } catch {}
       }
+      await AsyncStorage.setItem('medications_date', today);
 
       if (!isDemo(uid)) {
         // 서버 데이터로 동기화 — 로컬에만 있는 새 약도 보존
@@ -107,14 +118,20 @@ export default function MedicationScreen({ navigation }: any) {
     const med = meds.find(m => m.id === id);
     if (!med) return;
     const nowTaking = !med.taken;
+    const today = new Date().toISOString().slice(0, 10);
     if (nowTaking) speak(`${med.name} 복용 완료예요. 건강 챙기셨네요!`, 0.85);
 
-    // 재고: 복용 시 -1 (0 미만 방지), 취소 시 +1 복원
+    // 재고: 복용 시 -1, 취소는 당일 완료한 경우에만 +1 복원
     const curStock = med.stock ?? 0;
-    const newStock = nowTaking ? Math.max(0, curStock - 1) : curStock + 1;
+    const sameDay  = med.takenDate === today;
+    const newStock = nowTaking
+      ? Math.max(0, curStock - 1)
+      : sameDay ? curStock + 1 : curStock;
 
     const updated = meds.map(m =>
-      m.id === id ? { ...m, taken: nowTaking, skipped: false, stock: newStock } : m
+      m.id === id
+        ? { ...m, taken: nowTaking, skipped: false, stock: newStock, takenDate: nowTaking ? today : null }
+        : m
     );
     saveMeds(updated);
     apiToggle(userId, id, 'taken', nowTaking);
