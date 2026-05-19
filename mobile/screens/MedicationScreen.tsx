@@ -425,13 +425,15 @@ const s = StyleSheet.create({
                borderBottomWidth: 1, borderBottomColor: '#C8E6C9' },
   topTitle:  { fontSize: 22, fontWeight: '900', color: '#1A2C4E', marginBottom: 8 },
   addBtn:    { backgroundColor: GREEN, borderRadius: 14,
-               paddingHorizontal: 18, paddingVertical: 10, alignSelf: 'flex-start' },
+               paddingHorizontal: 20, paddingVertical: 14, alignSelf: 'flex-start',
+               minHeight: 56, justifyContent: 'center' },
   addBtnTxt: { fontSize: 18, fontWeight: '800', color: '#fff' },
   gearBtn:   { backgroundColor: LGREEN, borderRadius: 14,
-               paddingHorizontal: 9, paddingVertical: 4,
-               borderWidth: 1, borderColor: '#A5D6A7', alignItems: 'center' },
-  gearEmoji: { fontSize: 20 },
-  gearLabel: { fontSize: 10, color: GREEN, fontWeight: '700', textAlign: 'center', marginTop: 1 },
+               paddingHorizontal: 14, paddingVertical: 10,
+               borderWidth: 1, borderColor: '#A5D6A7', alignItems: 'center',
+               minHeight: 56, justifyContent: 'center' },
+  gearEmoji: { fontSize: 22 },
+  gearLabel: { fontSize: 11, color: GREEN, fontWeight: '700', textAlign: 'center', marginTop: 2 },
 
   // 스크롤
   scroll:  { flex: 1 },
@@ -484,14 +486,16 @@ const s = StyleSheet.create({
   stockWarn:   { fontSize: 18, color: '#D32F2F', fontWeight: '700' },
   stockOk:     { fontSize: 16, color: '#B0BEC5' },
 
-  // 버튼
+  // 버튼 — 최소 터치 타깃 60dp
   medBtns:    { flexDirection: 'column', gap: 8, marginLeft: 12 },
-  btnTake:    { backgroundColor: GREEN, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 12 },
+  btnTake:    { backgroundColor: GREEN, borderRadius: 14, paddingHorizontal: 20, paddingVertical: 16,
+                minHeight: 60, justifyContent: 'center' },
   btnTakeTxt: { fontSize: 18, fontWeight: '800', color: '#fff', textAlign: 'center' },
-  btnSkip:    { backgroundColor: '#F5F5F5', borderRadius: 14, paddingHorizontal: 18, paddingVertical: 12 },
+  btnSkip:    { backgroundColor: '#F5F5F5', borderRadius: 14, paddingHorizontal: 20, paddingVertical: 16,
+                minHeight: 60, justifyContent: 'center' },
   btnSkipTxt: { fontSize: 18, fontWeight: '700', color: '#888', textAlign: 'center' },
-  btnUndo:    { backgroundColor: LGREEN, borderRadius: 14, paddingHorizontal: 18, paddingVertical: 12,
-                borderWidth: 1, borderColor: '#A5D6A7' },
+  btnUndo:    { backgroundColor: LGREEN, borderRadius: 14, paddingHorizontal: 20, paddingVertical: 16,
+                borderWidth: 1, borderColor: '#A5D6A7', minHeight: 60, justifyContent: 'center' },
   btnUndoTxt: { fontSize: 18, fontWeight: '700', color: GREEN, textAlign: 'center' },
 
   // 모달
