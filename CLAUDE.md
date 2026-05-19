@@ -311,7 +311,9 @@ const KKULBI_IMAGES = {
 | `cancelMedNotification(medId)` | 특정 복약 알림 취소 |
 | `scheduleHealthDailyReminder()` | 매일 오전 8시 건강 기록 알림 |
 | `registerPushToken(userId)` | Expo Push Token 발급 → 서버 저장 |
-| `sendSOSPushToFamily(userId, name)` | SOS 발생 시 가족 푸시 알림 전송 |
+| `cacheFamilyPushTokens(userId)` | 가족 Push Token을 AsyncStorage에 캐시 (SOS 오프라인 대비) |
+| `sendSOSPushDirect(senderName)` | 캐시된 토큰으로 Expo API에 직접 SOS 푸시 (백엔드 무관) |
+| `sendSOSPushToFamily(userId, name)` | SOS 발생 시 백엔드 경유 가족 푸시 알림 전송 |
 
 ### 알림 시간 슬롯
 ```typescript
@@ -383,6 +385,7 @@ DOCTOR_KEYWORDS = ['병원', '진료', '의사', '내원', '검사받']
 | `medication_logs` | 일별 복용 여부 (taken: bool, status, scheduled_time) |
 | `health_records` | 건강 수치 (date, blood_pressure_systolic/diastolic, blood_sugar, heart_rate, weight, steps) |
 | `family_links` | 가족 연결 (senior_id, family_id, link_code, status) |
+| `push_tokens` | Expo Push Token (user_id, token, platform, updated_at) — SOS 가족 알림용 |
 
 ---
 
@@ -411,8 +414,10 @@ DOCTOR_KEYWORDS = ['병원', '진료', '의사', '내원', '검사받']
 | `health_profile` | 건강 프로파일 JSON (5단계) |
 | `health_records` | 건강 수치 기록 |
 | `medications` | 복약 목록 |
+| `medications_date` | 복약 날짜 추적 (날짜 변경 시 taken 초기화용) |
 | `doctor_memo` | 의사 메모 텍스트 |
 | `doctor_memo_date` | 메모 저장 일시 |
+| `family_push_tokens` | 가족 Expo Push Token 로컬 캐시 (SOS 오프라인 대비) |
 
 ---
 
@@ -445,6 +450,20 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 ## 미완성 / 추후작업 / 2차개발
 
 > ⚠️ 이 섹션은 대화 중 언급된 모든 미완성·추후 작업·2차 개발 항목을 자동으로 누적합니다.
+
+### ✅ 2026-05-19 버그 수정 및 안정화 완료
+
+- [x] **루미 "7일 기록 없다" 수정** — `/ai/chat` non-streaming 엔드포인트에 `client_records_7d` 주입 누락 → 추가 완료 (Android fallback 경로 동일 처리)
+- [x] **Supabase 동기화 재시도 강화** — HealthScreen `loadRecords()`: 8초 1회 → 10초 × 5회(50초 총) retry 루프 (Render cold start 대응)
+- [x] **Supabase RLS 활성화** — 7개 테이블에 Row Level Security 활성화 완료 (`users`, `medications`, `health_records`, `ai_chat_logs`, `ai_chat_summaries`, `medication_logs`, `push_tokens`)
+- [x] **push_tokens 테이블 생성** — `user_id`, `token`, `platform`, UNIQUE(user_id, token)
+- [x] **SOS 서버 독립** — `cacheFamilyPushTokens()` + `sendSOSPushDirect()` 추가: 백엔드 다운 시 로컬 캐시 토큰으로 Expo API 직접 발송
+- [x] **SeniorHomeScreen 폴더블/회전 대응** — `Dimensions` → `useWindowDimensions()` 훅 전환, 동적 카드 크기 적용
+- [x] **MedicationScreen 날짜 리셋 버그** — `medications_date` 키로 날짜 비교, 새 날 자동 taken/skipped 초기화
+- [x] **MedicationScreen 재고 복원 버그** — `takenDate` 추적으로 당일 취소 시에만 재고 +1 (전날 취소 시 재고 복원 차단)
+- [x] **MedicationScreen 터치타겟** — 복용/건너뜀/취소 버튼 `minHeight: 60` 이상 확보
+- [x] **HealthScreen 입력 유효성 검사** — 수축기(60~250), 이완기(40~150), 혈당(20~600), 걸음수(0~99,999) 범위 초과 시 Alert 차단
+- [x] **asyncio 블로킹 수정** — `extract_user_conditions_sync` → `asyncio.to_thread()` 래핑 (FastAPI 이벤트루프 블로킹 방지)
 
 ### ✅ 2026-04-28 UI 리디자인 완료 (헤더 제거 + 그라디언트 통일)
 - [x] SeniorHomeScreen — 파란 그라디언트 배경, 구름 장식, 루미 scale 확대, 카드 그라디언트, ⚙️설정 pill
