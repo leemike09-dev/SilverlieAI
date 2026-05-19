@@ -267,6 +267,18 @@ export default function HealthScreen({ navigation }: any) {
       Alert.alert('수면 입력', '시작 시간과 종료 시간을 모두 입력해 주세요.');
       return;
     }
+    if (bpSys && (Number(bpSys) < 60 || Number(bpSys) > 250)) {
+      Alert.alert('입력 오류', '수축기 혈압은 60~250 범위로 입력해 주세요.'); return;
+    }
+    if (bpDia && (Number(bpDia) < 40 || Number(bpDia) > 150)) {
+      Alert.alert('입력 오류', '이완기 혈압은 40~150 범위로 입력해 주세요.'); return;
+    }
+    if (glucose && (Number(glucose) < 20 || Number(glucose) > 600)) {
+      Alert.alert('입력 오류', '혈당은 20~600 범위로 입력해 주세요.'); return;
+    }
+    if (steps && (Number(steps) < 0 || Number(steps) > 99999)) {
+      Alert.alert('입력 오류', '걸음수는 0~99,999 범위로 입력해 주세요.'); return;
+    }
     setSaving(true);
     const today = todayKey();
 
