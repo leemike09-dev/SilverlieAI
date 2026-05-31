@@ -227,6 +227,14 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const isWelcome = messages.length === 0 && !loading;
   const lastAiMsg = [...messages].reverse().find(m => m.role === 'ai');
 
+  const lumiAvatar = () => {
+    if (loading) return require('../assets/lumi-focused.png');
+    if (!lastAiMsg) return require('../assets/lumi-happy.png');
+    const r = lastAiMsg.riskLevel;
+    if (r === 'critical' || r === 'high') return require('../assets/lumi-worried.png');
+    return require('../assets/lumi-happy.png');
+  };
+
   // 초기 로드: 건강프로필 + 건강기록 + 약 목록 + TTS + 세션 복원
   useEffect(() => {
     Promise.all([
@@ -772,30 +780,14 @@ export default function AIChatScreen({ route, navigation }: Props) {
     <LinearGradient colors={['#F7F4FF', '#EDE7F6', '#E1BEE7']} locations={[0, 0.55, 1]} style={s.root}>
       {/* ── 탑바 ── */}
       <View style={[s.topBar, { paddingTop: Math.max(insets.top + 4, 14) }]}>
-        <Text style={s.topTitle}>💬 루미와 대화</Text>
-        <View style={s.onlineDot} />
-      </View>
-
-      {/* ── 세션 바 (탭 + 새 대화 버튼) ── */}
-      <View style={s.sessionBar}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}
-          style={{ flex: 1 }} contentContainerStyle={s.sessionBarInner}>
-          {sessions.map((sess, idx) => (
-            <TouchableOpacity
-              key={sess.id}
-              style={[s.sessionTab, sess.id === sessionIdRef.current && s.sessionTabActive]}
-              onPress={() => switchSession(idx, sess)}
-              activeOpacity={0.8}
-            >
-              <Text style={[s.sessionTabTxt, sess.id === sessionIdRef.current && s.sessionTabTxtActive]}
-                numberOfLines={1}>
-                {sess.date === new Date().toISOString().slice(0,10) ? '오늘' : sess.date.slice(5)} · {sess.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+          <Text style={s.backBtnTxt}>‹</Text>
+        </TouchableOpacity>
+        <View style={s.topCenter}>
+          <Text style={s.topTitle}>루미와 대화</Text>
+        </View>
         <TouchableOpacity style={s.newChatBtn} onPress={startNewSession} activeOpacity={0.8}>
-          <Text style={s.newChatTxt}>＋ 새 대화</Text>
+          <Text style={s.newChatTxt}>새 대화</Text>
         </TouchableOpacity>
       </View>
 
@@ -873,7 +865,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
                 return (
                   <View key={i} style={msg.role === 'ai' ? s.aiRow : s.userRow}>
                     {msg.role === 'ai' && (
-                      <Image source={require('../assets/lumi8.png')} style={s.lumiAvatar} />
+                      <Image source={lumiAvatar()} style={s.lumiAvatar} />
                     )}
                     <View style={msg.role === 'ai' ? s.aiBubble : s.userBubble}>
                     {msg.role === 'ai' && <Text style={s.bubbleName}>루미</Text>}
@@ -947,24 +939,36 @@ export default function AIChatScreen({ route, navigation }: Props) {
             </TouchableOpacity>
           )}
 
-          {/* 2열 빠른 질문 카드 그리드 */}
+          {/* 웰컴 상태: 루미 + 인사 + 빠른 질문 */}
           {isWelcome && memoState === 'idle' && !loading && (
-            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
-              {Array.from({ length: Math.ceil(QUICK_CARDS.length / 2) }, (_, ri) => (
-                <View key={ri} style={s.cardRow}>
-                  {QUICK_CARDS.slice(ri * 2, ri * 2 + 2).map(q => (
-                    <TouchableOpacity
-                      key={q.label}
-                      style={[s.cardItem, { backgroundColor: q.bg, borderColor: q.color + '44' }]}
-                      onPress={() => send(q.label.replace(/\n/g, ' '))}
-                      activeOpacity={0.75}
-                    >
-                      <Text style={s.cardEmoji}>{q.emoji}</Text>
-                      <Text style={[s.cardLabel, { color: q.color }]}>{q.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ))}
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 8, alignItems: 'center' }}>
+
+              {/* 루미 크게 */}
+              <Image source={lumiAvatar()} style={s.lumiWelcome} />
+              <Text style={s.lumiWelcomeName}>루미</Text>
+              <View style={s.lumiGreetBubble}>
+                <Text style={s.lumiGreetTxt}>{getGreeting(name)}</Text>
+              </View>
+
+              {/* 빠른 질문 카드 2열 */}
+              <View style={s.quickGrid}>
+                {Array.from({ length: Math.ceil(QUICK_CARDS.length / 2) }, (_, ri) => (
+                  <View key={ri} style={s.cardRow}>
+                    {QUICK_CARDS.slice(ri * 2, ri * 2 + 2).map(q => (
+                      <TouchableOpacity
+                        key={q.label}
+                        style={[s.cardItem, { backgroundColor: q.bg, borderColor: q.color + '44' }]}
+                        onPress={() => send(q.label.replace(/\n/g, ' '))}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={s.cardEmoji}>{q.emoji}</Text>
+                        <Text style={[s.cardLabel, { color: q.color }]}>{q.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ))}
+              </View>
             </ScrollView>
           )}
         </View>
@@ -1039,19 +1043,16 @@ const s = StyleSheet.create({
   // 탑바
   topBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#fff', paddingHorizontal: 16, paddingBottom: 8,
+    backgroundColor: '#fff', paddingHorizontal: 12, paddingBottom: 10,
+    borderBottomWidth: 1, borderBottomColor: '#F3E5F5',
   },
-  topTitle: { fontSize: 17, fontWeight: '900', color: '#16273E' },
-  topSub:   { fontSize: 13, color: '#7A90A8', marginTop: 2 },
-  onlineDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#3DAB7B',
+  backBtn:    { padding: 8 },
+  backBtnTxt: { fontSize: 28, color: C.purple1, fontWeight: '700', lineHeight: 30 },
+  topCenter:  { flex: 1, alignItems: 'center' },
+  topTitle:   { fontSize: 22, fontWeight: '900', color: '#16273E' },
+  topSub:     { fontSize: 13, color: '#7A90A8', marginTop: 2 },
+  onlineDot:  { width: 10, height: 10, borderRadius: 5, backgroundColor: '#3DAB7B',
     shadowColor: '#3DAB7B', shadowRadius: 4, shadowOpacity: 0.8 },
-  gearBtn: {
-    backgroundColor: '#F3E5F5', borderRadius: 14,
-    paddingHorizontal: 9, paddingVertical: 4,
-    borderWidth: 1, borderColor: '#CE93D8', alignItems: 'center',
-  },
-  gearEmoji: { fontSize: 20 },
-  gearLabel: { fontSize: 10, color: '#7B1FA2', fontWeight: '700', textAlign: 'center', marginTop: 1 },
 
   // 메인 바디
   body: { flex: 1, flexDirection: 'column', paddingHorizontal: 22, paddingTop: 10, paddingBottom: 6 },
@@ -1120,7 +1121,7 @@ const s = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 1,
   },
   cardEmoji: { fontSize: 28 },
-  cardLabel: { fontSize: 17, fontWeight: '800', lineHeight: 25 },
+  cardLabel: { fontSize: 20, fontWeight: '800', lineHeight: 28 },
 
   // 입력
   inputWrap: { backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#E1BEE7',
@@ -1211,20 +1212,35 @@ const s = StyleSheet.create({
   condNo:    { flex: 1, backgroundColor: '#C8E6C9', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
   condNoTxt: { fontSize: 20, color: '#2E7D32', fontWeight: '700' },
 
-  // 새 대화 버튼
-  newChatBtn: { backgroundColor: '#7B1FA2', borderRadius: 14, paddingHorizontal: 12,
-    paddingVertical: 7, marginRight: 8, flexShrink: 0 },
-  newChatTxt: { fontSize: 13, fontWeight: '800', color: '#fff' },
+  // 새 대화 버튼 (탑바 오른쪽)
+  newChatBtn: { backgroundColor: '#F3E5F5', borderRadius: 14, paddingHorizontal: 12,
+    paddingVertical: 7, borderWidth: 1, borderColor: '#CE93D8' },
+  newChatTxt: { fontSize: 13, fontWeight: '800', color: '#7B1FA2' },
 
-  // 세션 탭바
-  sessionBar:       { backgroundColor: '#F3E5F5', height: 46, flexDirection: 'row',
-    alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#CE93D8' },
-  sessionBarInner:  { paddingHorizontal: 8, paddingVertical: 6, gap: 8, flexDirection: 'row', alignItems: 'center' },
-  sessionTab:       { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20,
-    backgroundColor: '#F3E5F5', borderWidth: 1, borderColor: '#E1BEE7', maxWidth: 160 },
-  sessionTabActive: { backgroundColor: '#7B1FA2', borderColor: '#7B1FA2' },
-  sessionTabTxt:    { fontSize: 12, fontWeight: '600', color: '#9C27B0' },
-  sessionTabTxtActive: { color: '#fff' },
+  // 루미 웰컴
+  lumiWelcome: {
+    width: 140, height: 140,
+    borderRadius: 70, resizeMode: 'contain',
+    marginTop: 16, marginBottom: 8,
+    shadowColor: '#7B1FA2', shadowOpacity: 0.2,
+    shadowRadius: 16, shadowOffset: { width: 0, height: 6 },
+  },
+  lumiWelcomeName: {
+    fontSize: 20, fontWeight: '900', color: C.purple1, marginBottom: 12,
+  },
+  lumiGreetBubble: {
+    backgroundColor: '#fff', borderRadius: 20,
+    paddingHorizontal: 20, paddingVertical: 14,
+    marginHorizontal: 20, marginBottom: 20,
+    shadowColor: '#000', shadowOpacity: 0.07,
+    shadowRadius: 10, elevation: 2,
+    borderWidth: 1, borderColor: '#E1BEE7',
+  },
+  lumiGreetTxt: {
+    fontSize: 18, fontWeight: '600', color: C.text,
+    textAlign: 'center', lineHeight: 28,
+  },
+  quickGrid: { alignSelf: 'stretch' },
 
   restoreNotice: {
     position: 'absolute', alignSelf: 'center',

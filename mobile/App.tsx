@@ -13,18 +13,17 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LanguageProvider } from './i18n/LanguageContext';
 
 import IntroScreen from './screens/IntroScreen';
-import HomeScreen from './screens/HomeScreen';
 import LoginScreen from './screens/LoginScreen';
 import HealthScreen from './screens/HealthScreen';
-import HealthInfoScreen from './screens/HealthInfoScreen';
 import DashboardScreen from './screens/DashboardScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import WeeklyReportScreen from './screens/WeeklyReportScreen';
 import AIChatScreen from './screens/AIChatScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
-import ProfileSetupScreen from './screens/ProfileSetupScreen';
 import SeniorHomeScreen from './screens/SeniorHomeScreen';
+import HospitalScheduleScreen from './screens/HospitalScheduleScreen';
+import HospitalScheduleAddScreen from './screens/HospitalScheduleAddScreen';
 import MedicationScreen from './screens/MedicationScreen';
 import EmailAuthScreen    from './screens/EmailAuthScreen';
 import FamilyConnectScreen from './screens/FamilyConnectScreen';
@@ -32,7 +31,6 @@ import FamilyDashboardScreen from './screens/FamilyDashboardScreen';
 import GuardianScreen        from './screens/GuardianScreen';
 import FamilyChatScreen     from './screens/FamilyChatScreen';
 import LocationMapScreen     from './screens/LocationMapScreen';
-import ProfileScreen from './screens/ProfileScreen';
 import ImportantContactsScreen from './screens/ImportantContactsScreen';
 import SOSScreen from './screens/SOSScreen';
 import {
@@ -321,7 +319,6 @@ export default function App() {
           <NavigationContainer ref={navigationRef} onReady={handleNavigationReady}>
             <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRoute}>
               <Stack.Screen name="Intro"         component={IntroScreen}           />
-              <Stack.Screen name="Home"          component={HomeScreen}            />
               <Stack.Screen name="Login"         component={LoginScreen}           />
               <Stack.Screen name="Health"        component={HealthScreen} />
               <Stack.Screen name="Dashboard"     component={DashboardScreen} />
@@ -330,9 +327,9 @@ export default function App() {
               <Stack.Screen name="Settings"      component={SettingsScreen} />
               <Stack.Screen name="WeeklyReport"  component={WeeklyReportScreen} />
               <Stack.Screen name="Onboarding"    component={OnboardingScreen}      />
-              <Stack.Screen name="ProfileSetup"  component={ProfileSetupScreen}    />
-              <Stack.Screen name="HealthInfo"    component={HealthInfoScreen}      />
               <Stack.Screen name="SeniorHome"    component={SeniorHomeScreen} />
+              <Stack.Screen name="HospitalSchedule"    component={HospitalScheduleScreen} />
+              <Stack.Screen name="HospitalScheduleAdd" component={HospitalScheduleAddScreen} />
               <Stack.Screen name="Medication"    component={MedicationScreen} />
               <Stack.Screen name="EmailAuth"     component={EmailAuthScreen}       />
               <Stack.Screen name="FamilyConnect" component={FamilyConnectScreen} />
@@ -340,7 +337,6 @@ export default function App() {
               <Stack.Screen name="Guardian"        component={GuardianScreen} />
               <Stack.Screen name="FamilyChat"      component={FamilyChatScreen} />
               <Stack.Screen name="LocationMap"   component={LocationMapScreen} />
-              <Stack.Screen name="Profile"            component={ProfileScreen}           />
               <Stack.Screen name="ImportantContacts"  component={ImportantContactsScreen} />
               <Stack.Screen name="SOS"                component={SOSScreen}               />
               <Stack.Screen name="HealthProfile"      component={HealthProfileScreen} />

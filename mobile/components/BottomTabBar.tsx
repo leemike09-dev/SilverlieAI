@@ -17,7 +17,7 @@ export default function BottomTabBar({ navigation, activeTab = 'Home', userId = 
   const isGuest = !userId;
 
   const tabs = [
-    { key: 'Home',      icon: '🏠', label: '홈',      screen: 'Home'      },
+    { key: 'Home',      icon: '🏠', label: '홈',      screen: 'SeniorHome' },
     { key: 'Health',    icon: '🫀', label: '건강·운동', screen: 'Health'    },
     { key: 'Life',      icon: '🌿', label: '라이프',   screen: 'Life'      },
     { key: 'Board',     icon: '📋', label: '게시판',   screen: 'Board'     },

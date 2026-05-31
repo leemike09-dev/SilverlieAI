@@ -1,304 +1,357 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Platform, TextInput, Alert, Modal, Share,
-  ActivityIndicator, KeyboardAvoidingView,
+  StatusBar, Alert, Clipboard, Image,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import QRCode from 'react-native-qrcode-svg';
+import SeniorTabBar from '../components/SeniorTabBar';
+
+const BLUE     = '#3B82F6';
+const SKY_FROM = '#CDE3F4';
+const SKY_TO   = '#F1F7FC';
+const INK      = '#0F1B2D';
+const INK_SOFT = '#3D4B62';
+const INK_MUTE = '#7E8AA1';
+const CARD_BG  = '#EFF6FF';
 
 const API = 'https://silverlieai.onrender.com';
-
-const RELATION_OPTIONS = [
-  { key: 'father',   label: '아버지',    emoji: '👴' },
-  { key: 'mother',   label: '어머니',    emoji: '👵' },
-  { key: 'spouse',   label: '배우자',    emoji: '💑' },
-  { key: 'son',      label: '아들',      emoji: '👦' },
-  { key: 'daughter', label: '딸',        emoji: '👧' },
-  { key: 'sibling',  label: '형제/자매', emoji: '👫' },
-  { key: 'other',    label: '기타',      emoji: '👤' },
-];
+const SESSION_SECS = 600; // 10분
 
 export default function FamilyConnectScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
-  const [userId,      setUserId]      = useState('');
-  const [userName,    setUserName]    = useState('');
-  const [myCode,      setMyCode]      = useState('');
-  const [inputCode,   setInputCode]   = useState('');
-  const [connecting,  setConnecting]  = useState(false);
-  const [relModal,    setRelModal]    = useState(false);
-  const [pendingMember, setPendingMember] = useState<any>(null);
-  const [loading,     setLoading]     = useState(true);
+  const { userId, name } = route.params;
 
-  // ── 초기화: 연결된 가족 확인 ──
+  const [code,      setCode]      = useState<string>('');
+  const [qrPayload, setQrPayload] = useState<string>('');
+  const [timeLeft,  setTimeLeft]  = useState<number>(SESSION_SECS);
+  const [expired,   setExpired]   = useState(false);
+
   useEffect(() => {
-    const init = async () => {
-      const uid   = (await AsyncStorage.getItem('userId'))   || '';
-      const uname = (await AsyncStorage.getItem('userName')) || '';
-      setUserId(uid);
-      setUserName(uname);
-
-      // 이미 연결된 가족이 있으면 바로 대시보드로 (addMode면 건너뜀)
-      const addMode = route?.params?.addMode;
-      if (!addMode) {
-        const stored = await AsyncStorage.getItem('family_members');
-        if (stored) {
-          const mems = JSON.parse(stored);
-          if (mems && mems.length > 0) {
-            navigation.replace('FamilyDashboard', { userId: uid, name: uname });
-            return;
-          }
-        }
-      }
-
-      // 내 연결 코드 가져오기
-      if (uid) {
-        try {
-          const r = await fetch(`${API}/family/mycode/${uid}`);
-          if (r.ok) {
-            const d = await r.json();
-            setMyCode(d.code || generateCode());
-          } else {
-            setMyCode(generateCode());
-          }
-        } catch {
-          setMyCode(generateCode());
-        }
-      }
-
-      setLoading(false);
-    };
-    init();
+    generateCode();
   }, []);
 
-  const generateCode = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let r = '';
-    for (let i = 0; i < 3; i++) r += chars[Math.floor(Math.random() * chars.length)];
-    r += '-';
-    for (let i = 0; i < 4; i++) r += chars[Math.floor(Math.random() * chars.length)];
-    return r;
-  };
-
-  // ── 코드 공유 ──
-  const shareCode = async () => {
+  const generateCode = async () => {
+    setExpired(false);
+    setTimeLeft(SESSION_SECS);
     try {
-      await Share.share({
-        message: `[SilverLifeAI] 가족 연결 코드: ${myCode}\n앱에서 코드를 입력하면 가족으로 연결됩니다.`,
-      });
-    } catch {}
-  };
-
-  // ── 가족 코드로 연결하기 ──
-  const connect = async () => {
-    const code = inputCode.trim().toUpperCase();
-    if (code.length < 7) {
-      Alert.alert('입력 오류', '올바른 연결 코드를 입력해 주세요. (예: ABC-1234)');
-      return;
-    }
-    setConnecting(true);
-
-    try {
-      const r = await fetch(`${API}/family/connect`, {
+      const res = await fetch(`${API}/pairing-codes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ myUserId: userId, code }),
+        body: JSON.stringify({ userId }),
       });
-      if (r.ok) {
-        const d = await r.json();
-        setPendingMember({
-          id:    d.targetUserId || d.userId || '',
-          name:  d.name  || '가족',
-          phone: d.phone || '',
-          relation: '',
-        });
-        setRelModal(true);
-      } else {
-        const err = await r.json().catch(() => ({}));
-        Alert.alert('연결 실패', err.message || '코드를 다시 확인해 주세요.');
-      }
+      const data = await res.json();
+      const newCode = data.code || makeFallbackCode();
+      setCode(newCode);
+      setQrPayload(data.qrPayload || `silverlifeai://pair?code=${newCode}&uid=${userId}`);
     } catch {
-      Alert.alert('오류', '네트워크 오류가 발생했습니다.');
+      const fallback = makeFallbackCode();
+      setCode(fallback);
+      setQrPayload(`silverlifeai://pair?code=${fallback}&uid=${userId}`);
     }
-    setConnecting(false);
   };
 
-  // ── 관계 선택 후 저장 ──
-  const saveRelation = async (rel: { key: string; label: string }) => {
-    if (!pendingMember) return;
-    const member = { ...pendingMember, relation: rel.key };
+  const makeFallbackCode = () =>
+    String(Math.floor(100000 + Math.random() * 900000));
 
-    // AsyncStorage에 family_members 저장
-    try {
-      const stored = await AsyncStorage.getItem('family_members');
-      const existing: any[] = stored ? JSON.parse(stored) : [];
-      const updated = [...existing.filter(m => m.id !== member.id), member];
-      await AsyncStorage.setItem('family_members', JSON.stringify(updated));
-    } catch {}
-
-    try {
-      await fetch(`${API}/family/relation`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, targetUserId: pendingMember.id, relation: rel.key }),
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setExpired(true);
+          return 0;
+        }
+        return prev - 1;
       });
-    } catch {}
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [code]);
 
-    setRelModal(false);
-    navigation.replace('FamilyDashboard', { userId, name: userName });
+  const handleCopy = async () => {
+    await Clipboard.setString(code);
+    Alert.alert('', '코드가 복사됐어요 📋', [{ text: '확인' }]);
   };
 
+  const formatTime = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
-  if (loading) {
-    return (
-      <View style={[s.root, s.center]}>
-        <ActivityIndicator size="large" color="#1A4A8A" />
-        <Text style={s.loadingTxt}>연결 정보 확인 중...</Text>
-      </View>
-    );
-  }
+  const progress = timeLeft / SESSION_SECS;
+  const timerColor = timeLeft > 120 ? BLUE : '#EF4444';
 
   return (
-    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
+    <LinearGradient colors={[SKY_FROM, SKY_TO]} style={s.root}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
-      {/* 헤더 */}
-      <View style={[s.header, { paddingTop: Math.max(insets.top + 14, 28) }]}>
-        <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-          <Text style={s.backArrow}>←</Text>
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>가족 연결</Text>
-        <Text style={s.headerSub}>가족과 건강을 함께 확인해 보세요</Text>
-      </View>
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+        {/* Header */}
+        <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 24) }]}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+            <Ionicons name="chevron-back" size={28} color={INK} />
+          </TouchableOpacity>
+          <Text style={s.headerTitle}>가족 연결</Text>
+          <View style={{ width: 48 }} />
+        </View>
 
-      <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        {/* Lumi */}
+        <View style={s.lumiRow}>
+          <Image source={require('../assets/lumi-happy.png')} style={s.lumiImg} />
+          <View style={s.lumiBubble}>
+            <Text style={s.lumiText}>가족과 연결하면{'\n'}더 안심이 돼요 💜</Text>
+          </View>
+        </View>
 
-        {/* ── 내 연결 코드 섹션 ── */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>내 연결 코드</Text>
-          <Text style={s.sectionDesc}>아래 코드를 가족에게 공유하면{`\n`}가족이 내 건강 정보를 확인할 수 있어요</Text>
-
-          <View style={s.codeBox}>
-            <Text style={s.codeText}>{myCode}</Text>
+        {/* ── QR Code 섹션 ── */}
+        <View style={s.sectionWrap}>
+          <View style={s.stepRow}>
+            <View style={s.stepBadge}><Text style={s.stepNum}>1</Text></View>
+            <Text style={s.stepTitle}>가족 폰으로 QR 코드 찍기</Text>
           </View>
 
-          <TouchableOpacity style={s.shareBtn} onPress={shareCode}>
-            <Text style={s.shareBtnTxt}>📤  코드 공유하기</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* 구분선 */}
-        <View style={s.divRow}>
-          <View style={s.divLine} />
-          <Text style={s.divTxt}>또는</Text>
-          <View style={s.divLine} />
-        </View>
-
-        {/* ── 가족 코드 입력 섹션 ── */}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>가족 코드 입력</Text>
-          <Text style={s.sectionDesc}>가족에게 받은 코드를 입력하면{`\n`}가족의 건강 정보를 확인할 수 있어요</Text>
-
-          <TextInput
-            style={s.input}
-            value={inputCode}
-            onChangeText={t => setInputCode(t.toUpperCase())}
-            placeholder="ABC-1234"
-            placeholderTextColor="#B0BEC5"
-            autoCapitalize="characters"
-            maxLength={8}
-          />
-
-          <TouchableOpacity
-            style={[s.connectBtn, connecting && s.connectBtnOff]}
-            onPress={connect}
-            disabled={connecting}
-          >
-            {connecting
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={s.connectBtnTxt}>연결하기</Text>
-            }
-          </TouchableOpacity>
-        </View>
-
-      </ScrollView>
-
-      {/* ── 관계 선택 모달 ── */}
-      <Modal visible={relModal} transparent animationType="slide">
-        <View style={s.modalOverlay}>
-          <View style={s.modalBox}>
-            <Text style={s.modalTitle}>{pendingMember?.name}님과의 관계</Text>
-            <Text style={s.modalSub}>연결된 분과의 관계를 선택해 주세요</Text>
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              {RELATION_OPTIONS.map(opt => (
-                <TouchableOpacity key={opt.key} style={s.relOpt} onPress={() => saveRelation(opt)}>
-                  <Text style={s.relEmoji}>{opt.emoji}</Text>
-                  <Text style={s.relLabel}>{opt.label}</Text>
+          <View style={s.qrCard}>
+            {expired ? (
+              /* 만료 상태 */
+              <View style={s.expiredBox}>
+                <Text style={s.expiredIcon}>⏱️</Text>
+                <Text style={s.expiredTitle}>시간이 만료됐어요</Text>
+                <TouchableOpacity style={s.refreshBtn} onPress={generateCode}>
+                  <Ionicons name="refresh" size={20} color="#fff" />
+                  <Text style={s.refreshTxt}>새 코드 받기</Text>
                 </TouchableOpacity>
+              </View>
+            ) : (
+              /* QR 코드 */
+              <View style={s.qrWrap}>
+                {qrPayload ? (
+                  <QRCode
+                    value={qrPayload}
+                    size={220}
+                    color={INK}
+                    backgroundColor="#fff"
+                    logo={require('../assets/lumi-happy.png')}
+                    logoSize={40}
+                    logoBackgroundColor="#fff"
+                    logoBorderRadius={8}
+                  />
+                ) : (
+                  <View style={s.qrLoading}>
+                    <Text style={{ fontSize: 32 }}>📱</Text>
+                    <Text style={s.qrLoadingTxt}>생성 중...</Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* 타이머 */}
+            {!expired && (
+              <>
+                <Text style={[s.timerLabel, { color: timerColor }]}>
+                  {formatTime(timeLeft)} 동안 사용 가능해요
+                </Text>
+                <View style={s.timerBar}>
+                  <View style={[s.timerFill, {
+                    width: `${progress * 100}%` as any,
+                    backgroundColor: timerColor,
+                  }]} />
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+
+        {/* ── 또는 ── */}
+        <View style={s.divider}>
+          <View style={s.divLine} />
+          <Text style={s.divText}>또는</Text>
+          <View style={s.divLine} />
+        </View>
+
+        {/* ── 6자리 코드 섹션 ── */}
+        <View style={s.sectionWrap}>
+          <View style={s.stepRow}>
+            <View style={s.stepBadge}><Text style={s.stepNum}>2</Text></View>
+            <Text style={s.stepTitle}>6자리 코드 알려주기</Text>
+          </View>
+
+          <View style={s.codeCard}>
+            <View style={s.codeBoxes}>
+              {(code || '------').split('').map((digit, i) => (
+                <View key={i} style={[s.codeBox, expired && s.codeBoxExpired]}>
+                  <Text style={[s.codeDigit, expired && { color: INK_MUTE }]}>
+                    {digit}
+                  </Text>
+                </View>
               ))}
-            </ScrollView>
-            <TouchableOpacity style={s.modalCancel} onPress={() => setRelModal(false)}>
-              <Text style={s.modalCancelTxt}>닫기</Text>
+            </View>
+
+            <TouchableOpacity
+              style={[s.btnCopy, expired && s.btnCopyDisabled]}
+              onPress={expired ? undefined : handleCopy}
+              activeOpacity={expired ? 1 : 0.7}
+            >
+              <Ionicons name="copy-outline" size={20}
+                color={expired ? INK_MUTE : BLUE} />
+              <Text style={[s.btnCopyTxt, expired && { color: INK_MUTE }]}>
+                코드 복사하기
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
-    </KeyboardAvoidingView>
+
+        {/* 안내 */}
+        <View style={s.hint}>
+          <Ionicons name="information-circle-outline" size={20} color={INK_MUTE} />
+          <Text style={s.hintTxt}>
+            가족이 Silver Life AI 앱에서{'\n'}'코드로 연결하기'를 눌러주세요
+          </Text>
+        </View>
+      </ScrollView>
+
+      <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={name} />
+    </LinearGradient>
   );
 }
 
 const s = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: '#F0F5FB' },
-  center: { justifyContent: 'center', alignItems: 'center', gap: 16 },
+  root: { flex: 1 },
 
-  header:      { backgroundColor: '#1A4A8A', paddingHorizontal: 24, paddingBottom: 28 },
-  backBtn:     { marginBottom: 12, alignSelf: 'flex-start' },
-  backArrow:   { fontSize: 28, color: '#fff', fontWeight: '300', lineHeight: 32 },
-  headerTitle: { fontSize: 32, fontWeight: '900', color: '#fff', marginBottom: 6 },
-  headerSub:   { fontSize: 20, color: 'rgba(255,255,255,0.85)' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingBottom: 8,
+  },
+  backBtn:     { padding: 10 },
+  headerTitle: { flex: 1, fontSize: 26, fontWeight: '900', color: INK, textAlign: 'center' },
 
-  scroll:  { flex: 1 },
-  content: { padding: 20, paddingBottom: 60 },
+  lumiRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  lumiImg:    { width: 60, height: 60, borderRadius: 30 },
+  lumiBubble: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  lumiText: { fontSize: 18, fontWeight: '700', color: INK, lineHeight: 26 },
 
-  section:      { backgroundColor: '#fff', borderRadius: 22, padding: 24, marginBottom: 16,
-                  shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.07, shadowRadius: 8, elevation: 3 },
-  sectionTitle: { fontSize: 24, fontWeight: '900', color: '#1A4A8A', marginBottom: 8 },
-  sectionDesc:  { fontSize: 18, color: '#78909C', marginBottom: 22, lineHeight: 28 },
+  sectionWrap: { paddingHorizontal: 18, marginTop: 20 },
+  stepRow:     { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+  stepBadge:   {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: BLUE,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  stepNum:   { fontSize: 20, fontWeight: '900', color: '#fff' },
+  stepTitle: { fontSize: 22, fontWeight: '800', color: INK },
 
-  codeBox:  { backgroundColor: '#EBF3FB', borderRadius: 18, paddingVertical: 30,
-              alignItems: 'center', marginBottom: 18,
-              borderWidth: 2.5, borderColor: '#1A4A8A' },
-  codeText: { fontSize: 40, fontWeight: '900', color: '#1A4A8A', letterSpacing: 6 },
+  qrCard: {
+    backgroundColor: '#fff',
+    borderRadius: 22,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 2,
+  },
+  qrWrap: {
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    marginBottom: 20,
+  },
+  qrLoading: {
+    width: 220, height: 220,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: CARD_BG, borderRadius: 12,
+  },
+  qrLoadingTxt: { fontSize: 18, fontWeight: '700', color: INK_SOFT, marginTop: 8 },
 
-  shareBtn:    { backgroundColor: '#FEE500', borderRadius: 16, paddingVertical: 20, alignItems: 'center' },
-  shareBtnTxt: { fontSize: 22, fontWeight: '800', color: '#3A1D00' },
+  expiredBox: {
+    width: 220, height: 220,
+    alignItems: 'center', justifyContent: 'center', gap: 12,
+    backgroundColor: '#FEF2F2', borderRadius: 12, marginBottom: 20,
+  },
+  expiredIcon:  { fontSize: 48 },
+  expiredTitle: { fontSize: 18, fontWeight: '800', color: '#EF4444' },
+  refreshBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: BLUE, borderRadius: 14,
+    paddingHorizontal: 18, paddingVertical: 12,
+    marginTop: 4,
+  },
+  refreshTxt: { fontSize: 16, fontWeight: '800', color: '#fff' },
 
-  divRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 8 },
-  divLine:{ flex: 1, height: 1, backgroundColor: '#CFD8DC' },
-  divTxt: { fontSize: 20, color: '#90A4AE', marginHorizontal: 16, fontWeight: '700' },
+  timerLabel: { fontSize: 16, fontWeight: '800', marginBottom: 10 },
+  timerBar: {
+    width: '100%', height: 6,
+    backgroundColor: 'rgba(15,27,45,0.08)',
+    borderRadius: 3, overflow: 'hidden',
+  },
+  timerFill: { height: '100%', borderRadius: 3 },
 
-  input: { backgroundColor: '#F5F8FF', borderRadius: 16, borderWidth: 2, borderColor: '#90CAF9',
-           fontSize: 28, fontWeight: '800', color: '#1A4A8A',
-           paddingVertical: 20, paddingHorizontal: 16,
-           textAlign: 'center', marginBottom: 18, letterSpacing: 4 },
+  divider: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 18, marginVertical: 24, gap: 12,
+  },
+  divLine: { flex: 1, height: 1, backgroundColor: 'rgba(15,27,45,0.08)' },
+  divText: { fontSize: 15, fontWeight: '700', color: INK_MUTE },
 
-  connectBtn:    { backgroundColor: '#1A4A8A', borderRadius: 18, paddingVertical: 22, alignItems: 'center' },
-  connectBtnOff: { backgroundColor: '#90A4AE' },
-  connectBtnTxt: { fontSize: 24, fontWeight: '900', color: '#fff' },
+  codeCard: {
+    backgroundColor: '#fff',
+    borderRadius: 22,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 2,
+  },
+  codeBoxes: {
+    flexDirection: 'row', gap: 8,
+    marginBottom: 24, justifyContent: 'center',
+  },
+  codeBox: {
+    width: 52, height: 64,
+    backgroundColor: CARD_BG,
+    borderRadius: 14,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: 'transparent',
+  },
+  codeBoxExpired: { backgroundColor: '#F1F5F9' },
+  codeDigit: { fontSize: 34, fontWeight: '900', color: BLUE },
 
-  loadingTxt: { fontSize: 20, color: '#90A4AE' },
+  btnCopy: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    minHeight: 56, paddingHorizontal: 24,
+    borderRadius: 16, borderWidth: 2, borderColor: BLUE,
+  },
+  btnCopyDisabled: { borderColor: '#E5E7EB' },
+  btnCopyTxt: { fontSize: 18, fontWeight: '800', color: BLUE },
 
-  modalOverlay:{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalBox:    { backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30,
-                 padding: 30, paddingBottom: 48, maxHeight: '80%' },
-  modalTitle:  { fontSize: 26, fontWeight: '900', color: '#1A4A8A', textAlign: 'center', marginBottom: 8 },
-  modalSub:    { fontSize: 18, color: '#90A4AE', textAlign: 'center', marginBottom: 22 },
-  relOpt:  { flexDirection: 'row', alignItems: 'center', gap: 18, backgroundColor: '#F5F8FF',
-             borderRadius: 18, padding: 20, marginBottom: 10 },
-  relEmoji:{ fontSize: 32 },
-  relLabel:{ fontSize: 24, fontWeight: '700', color: '#2C2C2C' },
-  modalCancel:    { marginTop: 8, padding: 20, alignItems: 'center',
-                    backgroundColor: '#ECEFF1', borderRadius: 16 },
-  modalCancelTxt: { fontSize: 22, color: '#546E7A', fontWeight: '700' },
+  hint: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    gap: 8, paddingHorizontal: 24, marginTop: 24, marginBottom: 8,
+  },
+  hintTxt: {
+    flex: 1, fontSize: 16, fontWeight: '600',
+    color: INK_MUTE, lineHeight: 24,
+  },
 });

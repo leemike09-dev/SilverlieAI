@@ -1,71 +1,59 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView,
   StatusBar, Alert, Platform, Image, useWindowDimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { speak, stopSpeech } from '../utils/speech';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import SeniorTabBar from '../components/SeniorTabBar';
 import * as Location from 'expo-location';
-import { useLanguage } from '../i18n/LanguageContext';
-import { Language } from '../i18n/translations';
+import * as Linking from 'expo-linking';
 
-const LANG_FLAGS: { lang: Language; flag: string }[] = [
-  { lang: 'ko', flag: '🇰🇷' },
-  { lang: 'zh', flag: '🇨🇳' },
-  { lang: 'en', flag: '🇺🇸' },
-];
+const BLUE = '#3B82F6';
+const SKY_FROM = '#CDE3F4';
+const SKY_TO = '#F1F7FC';
+const INK = '#0F1B2D';
+const INK_SOFT = '#3D4B62';
+const INK_MUTE = '#7E8AA1';
+const GREEN = '#3BA559';
+const ORANGE = '#F58A4D';
+const RED = '#E5453C';
+const PURPLE = '#7C5BE3';
+const WARN = '#F5A623';
 
-function getLumiGreeting(hour: number, name: string, lang: Language): string {
-  const n = name || '';
-  if (lang === 'zh') {
-    if (hour >= 6  && hour < 10) return `早上好，${n}！祝您今天健康愉快 🌅`;
-    if (hour >= 10 && hour < 12) return `上午好！您量血压了吗？💙`;
-    if (hour >= 12 && hour < 15) return `午饭吃好了吗？别忘了餐后服药 🤍`;
-    if (hour >= 15 && hour < 18) return `下午加油！今天的步数看看吧 🚶`;
-    if (hour >= 18 && hour < 21) return `今天辛苦了。是晚餐后的服药时间了 💊`;
-    return `今天也注意健康了。好好休息吧 🌙`;
-  }
-  if (lang === 'en') {
-    if (hour >= 6  && hour < 10) return `Good morning, ${n}! Have a healthy day 🌅`;
-    if (hour >= 10 && hour < 12) return `Good morning! Have you checked your blood pressure? 💙`;
-    if (hour >= 12 && hour < 15) return `Hope lunch was good! Don't forget your after-meal meds 🤍`;
-    if (hour >= 15 && hour < 18) return `Keep it up this afternoon! Check today's steps? 🚶`;
-    if (hour >= 18 && hour < 21) return `Great work today! Time for your evening medication 💊`;
-    return `You took care of your health today. Rest well 🌙`;
-  }
-  // 한국어 (기본)
-  const sfx = n ? `, ${n}님` : '';
-  if (hour >= 6  && hour < 10) return `좋은 아침이에요${sfx}!\n오늘도 건강한 하루 시작해요 🌅`;
-  if (hour >= 10 && hour < 12) return `오전 잘 보내고 계세요?\n혈압 재셨나요? 💙`;
-  if (hour >= 12 && hour < 15) return `점심 맛있게 드셨어요?\n식후 약 잊지 마세요 🤍`;
-  if (hour >= 15 && hour < 18) return `오후도 힘내세요!\n오늘 걸음 수 확인해볼까요? 🚶`;
-  if (hour >= 18 && hour < 21) return `오늘 하루도 수고하셨어요.\n저녁 약 시간이에요 💊`;
-  return `오늘도 건강 잘 지키셨어요.\n푹 쉬세요 🌙`;
-}
+const MOOD_BG = ['#FFE9B8', '#D7EFE0', '#E5E5EA', '#FFD9E0', '#FFCFCF'];
+const MOOD_EMOJI = ['😊', '😌', '😐', '😟', '😢'];
+const MOOD_LABEL = ['좋아요', '평온해요', '그저 그래요', '걱정돼요', '힘들어요'];
+
+const CARD_HOSPITAL = '#E8F1FC';
+const CARD_CHAT = '#ECE3FB';
+const CARD_HEALTH = '#FFE6DC';
+const CARD_LOCATION = '#E6F4E2';
+const CARD_SCHEDULE = '#FFF3D6';
 
 const API = 'https://silverlieai.onrender.com';
-const CARD_GAP = 10;
-const BOTTOM_H = 318;
 
 export default function SeniorHomeScreen({ route, navigation }: any) {
-  const { width, height } = useWindowDimensions();
-  const cardW = (width - 32 - CARD_GAP) / 2;
-  const cardH = Math.min(Math.floor((height - BOTTOM_H - 160) * 0.48), 110);
   const insets = useSafeAreaInsets();
-  const { language, setLanguage, t } = useLanguage();
-  const [userId,       setUserId]       = useState<string>(route?.params?.userId || '');
-  const [name,         setName]         = useState<string>(route?.params?.name   || '');
-  const ttsDoneRef  = useRef(false);
+  const [userId, setUserId] = useState<string>(route?.params?.userId || '');
+  const [name, setName] = useState<string>(route?.params?.name || '');
+  const [todayMood, setTodayMood] = useState<number | null>(null);
+  const [todaySchedule, setTodaySchedule] = useState<any>(null);
+  const [nextMedication, setNextMedication] = useState<any>(null);
+  const [healthToday, setHealthToday] = useState<any>(null);
+  const [familyMessage, setFamilyMessage] = useState<string>('');
+
+  const ttsDoneRef = useRef(false);
   const locationRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const todayKey = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   const sendLocation = async (uid: string) => {
     try {
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       await fetch(`${API}/location/update`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: uid, lat: pos.coords.latitude, lng: pos.coords.longitude, activity: 'unknown' }),
       });
     } catch {}
@@ -81,14 +69,19 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
   useEffect(() => {
     const init = async () => {
-      const paramId    = route?.params?.userId || '';
-      const guestMode  = paramId === 'guest';
-      const storedId   = guestMode ? 'guest' : (await AsyncStorage.getItem('userId')   || paramId);
+      const paramId = route?.params?.userId || '';
+      const guestMode = paramId === 'guest';
+      const storedId = guestMode ? 'guest' : (await AsyncStorage.getItem('userId') || paramId);
       const storedName = guestMode ? (route?.params?.name || '게스트') : (await AsyncStorage.getItem('userName') || route?.params?.name || '');
-      if (storedId)   setUserId(storedId);
+
+      if (storedId) setUserId(storedId);
       if (storedName) setName(storedName);
-      if (storedId && storedId !== 'guest') fetchLatest(storedId);
-      startLocationTracking(storedId);
+
+      if (storedId && storedId !== 'guest') {
+        startLocationTracking(storedId);
+        loadTodayData(storedId);
+      }
+
       if (Platform.OS !== 'web') {
         const asked = await AsyncStorage.getItem('pedometer_asked');
         if (!asked) {
@@ -103,222 +96,520 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       }
     };
     init();
-    return () => { stopSpeech(); if (locationRef.current) clearInterval(locationRef.current); };
+    return () => {
+      if (locationRef.current) clearInterval(locationRef.current);
+    };
   }, []);
 
-  const fetchLatest = async (uid: string) => {
+  const loadTodayData = async (uid: string) => {
     try {
-      const r = await fetch(`${API}/health/records/${uid}`);
-      if (!r.ok) return;
-      const today         = new Date().toISOString().slice(0, 10);
-      const h     = new Date().getHours();
-      const slot  = h < 12 ? 'am' : h < 18 ? 'pm' : 'eve';
-      const greetKey = `tts_greeting_${today}_${slot}`;
-      const alreadyGreeted = await AsyncStorage.getItem(greetKey);
-      if (!ttsDoneRef.current && !alreadyGreeted) {
-        ttsDoneRef.current = true;
-        await AsyncStorage.setItem(greetKey, '1');
-        const uname = await AsyncStorage.getItem('userName') || '';
-        const g     = h < 12 ? '좋은 아침이에요' : h < 18 ? '좋은 오후예요' : '좋은 저녁이에요';
-        const wish  = h < 12 ? '오늘도 건강한 하루 되세요' : h < 18 ? '편안한 오후 되세요' : '편안한 밤 되세요';
-        const raw2  = await AsyncStorage.getItem('hospital_schedule');
-        let msg = `${g}, ${uname}님! ${wish}.`;
-        if (raw2) {
-          const p = JSON.parse(raw2);
-          if (p.date === today) msg += ` 오늘 ${p.time} ${p.clinic} 가시는 날이에요.`;
-        }
-        setTimeout(() => speak(msg, 0.85), 800);
-      } else {
-        ttsDoneRef.current = true;
+      // Load mood
+      const mood = await AsyncStorage.getItem(`mood.${uid}.${todayKey}`);
+      if (mood) setTodayMood(parseInt(mood));
+
+      // Load next hospital schedule (show any upcoming, not just today)
+      const schedule = await AsyncStorage.getItem('hospital_schedule');
+      if (schedule) {
+        const parsed = JSON.parse(schedule);
+        if (parsed.date >= todayKey) setTodaySchedule(parsed);
+      }
+
+      // Load next medication
+      const meds = await AsyncStorage.getItem('medications');
+      if (meds) {
+        const medList = JSON.parse(meds);
+        if (medList.length > 0) setNextMedication(medList[0]);
+      }
+
+      // Load today's health
+      const records = await AsyncStorage.getItem('health_records');
+      if (records) {
+        const recList = JSON.parse(records);
+        const todayRec = recList.find((r: any) => r.date === todayKey);
+        if (todayRec) setHealthToday(todayRec);
       }
     } catch {}
   };
 
-  const now     = new Date();
-  const hour    = now.getHours();
-  const days    = ['일', '월', '화', '수', '목', '금', '토'];
+  const handleMoodSelect = async (moodIndex: number) => {
+    setTodayMood(moodIndex);
+    await AsyncStorage.setItem(`mood.${userId}.${todayKey}`, String(moodIndex));
+    Alert.alert('', MOOD_LABEL[moodIndex] + '는 공감합니다 ❤️', [{ text: '닫기' }]);
+  };
+
+  const now = new Date();
+  const hour = now.getHours();
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
   const dateStr = `${now.getMonth() + 1}월 ${now.getDate()}일 ${days[now.getDay()]}요일`;
-  const h12     = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
   const timeStr = `${hour < 12 ? '오전' : '오후'} ${h12}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const weather  = hour >= 6 && hour < 19 ? '☀️' : '🌙';
-  const lumiGreeting = getLumiGreeting(hour, name, language);
-  const isGuest  = !userId || userId === 'guest';
+  const lumiImage = require('../assets/lumi-happy.png');
+  const isGuest = !userId || userId === 'guest';
 
   return (
-    <View style={s.root}>
-      <Image source={require('../assets/lumi16.png')} style={s.bg} resizeMode="cover" />
-      <View style={s.bgBlur} />
+    <LinearGradient colors={[SKY_FROM, SKY_TO]} style={s.root}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
-      {/* ── 상단 바 ── */}
-      <View style={[s.topBar, { paddingTop: Math.max(insets.top + 8, 24) }]}>
-        <View style={s.topLeft}>
-          <Text style={s.topGreeting}>{lumiGreeting}</Text>
-          <Text style={s.topDate}>{weather} {dateStr} · {timeStr}</Text>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
+        {/* TOP BAR */}
+        <View style={[s.topBar, { paddingTop: Math.max(insets.top + 8, 24) }]}>
+          <Text style={s.wordmark}>Lumi ♥</Text>
+          <View>
+            <Text style={s.topDate}>{dateStr}</Text>
+            <Text style={s.topTime}>{timeStr}</Text>
+          </View>
         </View>
-        <View style={s.langRow}>
-          {LANG_FLAGS.map(({ lang, flag }) => (
-            <TouchableOpacity
-              key={lang}
-              onPress={() => setLanguage(lang)}
-              style={[s.flagBtn, language === lang && s.flagBtnActive]}
-              activeOpacity={0.7}
-            >
-              <Text style={s.flagTxt}>{flag}</Text>
-            </TouchableOpacity>
-          ))}
+
+        {/* HERO — 큰 루미 + 말풍선 */}
+        <View style={s.heroSection}>
+          <Image source={lumiImage} style={s.lumiHero} />
+          <View style={s.heroBubble}>
+            <Text style={s.heroBubbleText}>좋은 아침이에요, {name}님!{'\n'}오늘도 함께해요 ☀️</Text>
+          </View>
         </View>
-      </View>
 
-      {/* ── 히어로 (배경 이미지 노출 영역) ── */}
-      <View style={s.hero} />
+        {/* 기분 체크인 */}
+        <View style={[s.card, { backgroundColor: '#fff' }]}>
+          <View style={s.moodHeader}>
+            <Text style={s.cardTitle}>💭 오늘 기분</Text>
+            {todayMood !== null && (
+              <View style={[s.moodSelected, { backgroundColor: MOOD_BG[todayMood] }]}>
+                <Text style={s.moodSelectedTxt}>{MOOD_LABEL[todayMood]}</Text>
+              </View>
+            )}
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}
+            contentContainerStyle={s.moodRow}>
+            {MOOD_EMOJI.map((emoji, idx) => {
+              const active = todayMood === idx;
+              return (
+                <TouchableOpacity key={idx}
+                  style={[s.moodBtn,
+                    { backgroundColor: MOOD_BG[idx] },
+                    active && s.moodBtnActive,
+                    !active && todayMood !== null && s.moodBtnDim,
+                  ]}
+                  onPress={() => handleMoodSelect(idx)}
+                  activeOpacity={0.8}>
+                  <Text style={s.moodEmoji}>{emoji}</Text>
+                  <Text style={s.moodText}>{MOOD_LABEL[idx]}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
 
-      {/* ── 하단: 카드 + SOS ── */}
-      <View style={s.bottom}>
-
-        {isGuest && (
-          <TouchableOpacity style={s.guestBanner} onPress={() => navigation.navigate('Login')} activeOpacity={0.85}>
-            <Text style={s.guestTxt}>👤 {t.guestBannerTxt}</Text>
-            <Text style={s.guestBtn}>{t.guestBannerBtn}</Text>
+        {/* 병원 일정 카드 */}
+        {todaySchedule && (
+          <TouchableOpacity
+            style={[s.card, { backgroundColor: CARD_HOSPITAL }]}
+            onPress={() => navigation.navigate('HospitalSchedule', { userId, name })}
+            activeOpacity={0.85}
+          >
+            <View style={s.scheduleTop}>
+              <Text style={s.scheduleIcon}>🏥</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={s.scheduleBadge}>
+                  {todaySchedule.date === todayKey ? '오늘 일정' : '다가오는 일정'}
+                </Text>
+                <Text style={s.scheduleClinic}>{todaySchedule.clinic}</Text>
+              </View>
+              <Text style={s.scheduleArrow}>›</Text>
+            </View>
+            <View style={s.scheduleInfo}>
+              <View style={s.scheduleChip}>
+                <Text style={s.scheduleChipTxt}>📅 {todaySchedule.date}</Text>
+              </View>
+              {todaySchedule.time ? (
+                <View style={s.scheduleChip}>
+                  <Text style={s.scheduleChipTxt}>🕐 {todaySchedule.time}</Text>
+                </View>
+              ) : null}
+            </View>
+            {todaySchedule.memo ? (
+              <Text style={s.scheduleMemo} numberOfLines={1}>{todaySchedule.memo}</Text>
+            ) : null}
           </TouchableOpacity>
         )}
 
-        <View style={s.cardGrid}>
-
-          <TouchableOpacity style={[s.cardWrap, { width: cardW }]}
-            onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0, userId })}
-            activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(235,248,255,0.30)', 'rgba(200,235,255,0.30)']} style={[s.card, { height: cardH }]}>
-              <Text style={s.iconEmoji}>🗺️</Text>
-              <Text style={s.cardLabel}>{t.myLocation}</Text>
-              <Text style={s.cardDesc}>{t.myLocationDesc}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[s.cardWrap, { width: cardW }]}
-            onPress={() => navigation.navigate('Health', { userId, name })}
-            activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(255,245,248,0.30)', 'rgba(255,220,230,0.30)']} style={[s.card, { height: cardH }]}>
-              <Text style={s.iconEmoji}>❤️</Text>
-              <Text style={s.cardLabel}>{t.healthCheck}</Text>
-              <Text style={s.cardDesc}>{t.healthCheckDesc}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[s.cardWrap, { width: cardW }]}
-            onPress={() => navigation.navigate('AIChat', { userId, name })}
-            activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(247,242,255,0.30)', 'rgba(228,216,255,0.30)']} style={[s.card, { height: cardH }]}>
-              <Text style={s.iconEmoji}>💬</Text>
-              <Text style={s.cardLabel}>{t.lumiChat}</Text>
-              <Text style={s.cardDesc}>{t.lumiChatDesc}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[s.cardWrap, { width: cardW }]}
-            onPress={() => navigation.navigate('Guardian', { userId, name })}
-            activeOpacity={0.88}>
-            <LinearGradient colors={['rgba(240,255,248,0.30)', 'rgba(210,245,230,0.30)']} style={[s.card, { height: cardH }]}>
-              <Text style={s.iconEmoji}>👨‍👩‍👧</Text>
-              <Text style={s.cardLabel}>{t.guardianMenu}</Text>
-              <Text style={s.cardDesc}>{t.guardianMenuDesc}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-        </View>
-
+        {/* 루미 대화 */}
         <TouchableOpacity
-          onPress={() => navigation.navigate('SOS', { userId, name })}
+          style={[s.card, { backgroundColor: CARD_CHAT }]}
+          onPress={() => navigation.navigate('AIChat', { userId, name })}
+        >
+          <View style={s.chatCardTop}>
+            <Image source={lumiImage} style={s.lumiSmall} />
+            <Text style={s.cardTitle}>루미와 대화</Text>
+          </View>
+          <Text style={s.cardSubtitle}>오늘 컨디션 어떠세요?</Text>
+          <TouchableOpacity style={s.micButton}>
+            <Text style={s.micIcon}>🎤</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+
+        {/* 건강 상태 */}
+        {healthToday && (
+          <TouchableOpacity
+            style={[s.card, { backgroundColor: CARD_HEALTH }]}
+            onPress={() => navigation.navigate('Health', { userId, name })}
+          >
+            <Text style={s.cardTitle}>❤️ 건강 상태</Text>
+            <Text style={s.healthValue}>혈압 {healthToday.blood_pressure_systolic}/{healthToday.blood_pressure_diastolic}</Text>
+            <Text style={s.cardSubtitle}>오늘도 모두 정상이에요</Text>
+            <View style={s.healthMetrics}>
+              <View style={s.metric}>
+                <Text style={s.metricValue}>{healthToday.blood_pressure_systolic}</Text>
+                <Text style={s.metricLabel}>혈압</Text>
+              </View>
+              <View style={s.metric}>
+                <Text style={s.metricValue}>{healthToday.blood_sugar}</Text>
+                <Text style={s.metricLabel}>혈당</Text>
+              </View>
+              <View style={s.metric}>
+                <Text style={s.metricValue}>{healthToday.heart_rate}</Text>
+                <Text style={s.metricLabel}>심박</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {/* 약 알림 */}
+        {nextMedication && (
+          <TouchableOpacity
+            style={[s.card, { backgroundColor: CARD_SCHEDULE }]}
+            onPress={() => navigation.navigate('Medication', { userId, name })}
+          >
+            <Text style={s.cardTitle}>💊 다음 약</Text>
+            <Text style={s.cardSubtitle}>2시간 후</Text>
+            <Text style={s.medicationText}>점심 12:30, {nextMedication.name} 1정</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* 보호자 카드 */}
+        <TouchableOpacity
+          style={[s.card, { backgroundColor: CARD_LOCATION }]}
+          onPress={() => navigation.navigate('Guardian', { userId, name })}
           activeOpacity={0.85}
         >
-          <View style={s.sosBtn}>
-            <Text style={s.sosEmoji}>🚨</Text>
-            <View style={s.sosTxtWrap}>
-              <Text style={s.sosLabel}>{t.sosBtnLabel}</Text>
-              <Text style={s.sosSub}>{t.sosBtnSub}</Text>
+          <View style={s.guardianRow}>
+            <Text style={s.guardianIcon}>👨‍👩‍👧</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.guardianTitle}>보호자 연락처</Text>
+              <Text style={s.guardianSub}>가족에게 바로 연락할 수 있어요</Text>
             </View>
-            <Text style={s.sosPhone}>📞</Text>
+            <Text style={s.scheduleArrow}>›</Text>
           </View>
         </TouchableOpacity>
 
-      </View>
+        {/* SOS 버튼 */}
+        <TouchableOpacity
+          style={s.sosButton}
+          onPress={() => navigation.navigate('SOS', { userId, name })}
+        >
+          <Text style={s.sosEmoji}>🚨</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={s.sosLabel}>긴급 상황</Text>
+            <Text style={s.sosSub}>위급할 때 눌러주세요</Text>
+          </View>
+          <Text style={s.sosPhone}>📞</Text>
+        </TouchableOpacity>
+      </ScrollView>
 
       <SeniorTabBar navigation={navigation} activeTab="home" userId={userId} name={name} />
-    </View>
+    </LinearGradient>
   );
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#87CEEB' },
-  bg:   { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
-  bgBlur: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.22)' },
+  root: {
+    flex: 1,
+    backgroundColor: SKY_TO,
+  },
 
-  /* 상단 바 */
   topBar: {
-    flexDirection: 'row', alignItems: 'flex-start',
+    flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 18, paddingBottom: 6,
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingBottom: 16,
   },
-  topLeft:     { flex: 1, paddingRight: 12 },
-  topGreeting: {
-    fontSize: 15, fontWeight: '800', color: '#fff', lineHeight: 22,
-    textShadowColor: 'rgba(0,30,80,0.30)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
+  wordmark: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: INK,
   },
-  topName: {
-    fontSize: 15, color: '#fff', fontWeight: '700', marginTop: 3,
-    textShadowColor: 'rgba(0,30,80,0.2)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3,
+  topDate: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: INK_SOFT,
+    textAlign: 'right',
   },
-  topRight:  { alignItems: 'flex-end', gap: 3 },
-  topDate:   { fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.90)', marginTop: 4 },
-  topTime:   { fontSize: 13, fontWeight: '800', color: '#fff' },
-  langBar:   { flexDirection: 'row', justifyContent: 'center', gap: 10,
-               paddingVertical: 6, paddingHorizontal: 18 },
-  langRow:   { flexDirection: 'row', gap: 6, alignItems: 'center' },
-  flagBtn:   { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.22)' },
-  flagBtnActive: { backgroundColor: 'rgba(255,255,255,0.70)' },
-  flagTxt:   { fontSize: 20 },
+  topTime: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: BLUE,
+    textAlign: 'right',
+    marginTop: 4,
+  },
 
-  /* 루미 */
-  hero:    { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 16 },
-  lumiImg: { width: '75%', height: '100%' },
-  lumiBubble: {
-    backgroundColor: 'rgba(255,255,255,0.88)',
-    borderRadius: 20, paddingHorizontal: 20, paddingVertical: 14,
-    marginHorizontal: 24, maxWidth: '92%',
-    shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 }, elevation: 4,
+  heroSection: {
+    alignItems: 'center',
+    marginVertical: 24,
+    paddingHorizontal: 18,
   },
-  lumiMsg: { fontSize: 16, fontWeight: '700', color: '#1A3A5C', lineHeight: 24, textAlign: 'center' },
-
-  /* 하단 */
-  bottom: { paddingHorizontal: 14, paddingBottom: 10 },
-
-  /* 게스트 */
-  guestBanner: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: 'rgba(255,255,255,0.80)',
-    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8, marginBottom: 8,
+  lumiHero: {
+    width: 210,
+    height: 210,
+    resizeMode: 'contain',
+    marginBottom: 12,
   },
-  guestTxt: { fontSize: 13, fontWeight: '600', color: '#1A4A8A', flex: 1 },
-  guestBtn: { fontSize: 13, fontWeight: '800', color: '#1A4A8A' },
-
-  /* 4개 카드 */
-  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: CARD_GAP, marginBottom: 10 },
-  cardWrap: { borderRadius: 18, overflow: 'hidden' },
-  card:     { paddingVertical: 12, paddingHorizontal: 14, justifyContent: 'center', gap: 4 },
-  iconEmoji:{ fontSize: 26 },
-  cardLabel:{ fontSize: 16, fontWeight: '900', color: '#0D2B5E' },
-  cardDesc: { fontSize: 11, color: '#3A5070', fontWeight: '500' },
-
-  /* SOS */
-  sosBtn: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(210, 30, 55, 0.30)',
-    borderRadius: 18, paddingVertical: 13, paddingHorizontal: 18, gap: 12,
+  heroBubble: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+    maxWidth: '90%',
   },
-  sosEmoji:   { fontSize: 26 },
-  sosTxtWrap: { flex: 1 },
-  sosLabel:   { fontSize: 19, fontWeight: '900', color: '#fff' },
-  sosSub:     { fontSize: 11, color: 'rgba(255,255,255,0.80)', marginTop: 2 },
-  sosPhone:   { fontSize: 24 },
+  heroBubbleText: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: INK,
+    textAlign: 'center',
+    lineHeight: 32,
+  },
+
+  card: {
+    marginHorizontal: 18,
+    marginBottom: 16,
+    borderRadius: 22,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  cardTitle: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: INK,
+    marginBottom: 8,
+  },
+  cardSubtitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: INK_SOFT,
+    marginBottom: 16,
+  },
+
+  moodHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  moodSelected: {
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  moodSelectedTxt: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: INK,
+  },
+  moodRow: {
+    gap: 10,
+    paddingRight: 4,
+    paddingBottom: 4,
+  },
+  moodBtn: {
+    width: 76,
+    height: 88,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  moodBtnActive: {
+    borderColor: INK,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  moodBtnDim: {
+    opacity: 0.35,
+  },
+  moodEmoji: {
+    fontSize: 34,
+    marginBottom: 6,
+  },
+  moodText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: INK,
+    textAlign: 'center',
+  },
+
+  scheduleTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  scheduleIcon: { fontSize: 32 },
+  scheduleBadge: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: BLUE,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  scheduleClinic: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: INK,
+  },
+  scheduleArrow: { fontSize: 28, color: INK_MUTE },
+  scheduleInfo: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  scheduleChip: {
+    backgroundColor: 'rgba(59,130,246,0.12)',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  scheduleChipTxt: { fontSize: 15, fontWeight: '700', color: BLUE },
+  scheduleMemo: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: INK_SOFT,
+    marginTop: 10,
+  },
+  scheduleText: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: BLUE,
+    marginBottom: 16,
+  },
+
+  chatCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  lumiSmall: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    resizeMode: 'contain',
+  },
+
+  micButton: {
+    marginTop: 16,
+    alignItems: 'center',
+  },
+  micIcon: {
+    fontSize: 56,
+  },
+
+  healthValue: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: RED,
+    marginBottom: 8,
+  },
+  healthMetrics: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 16,
+    justifyContent: 'space-around',
+  },
+  metric: {
+    alignItems: 'center',
+  },
+  metricValue: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: BLUE,
+  },
+  metricLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: INK_MUTE,
+    marginTop: 4,
+  },
+
+  medicationText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: WARN,
+  },
+
+  guardianRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  guardianIcon:  { fontSize: 32 },
+  guardianTitle: { fontSize: 20, fontWeight: '900', color: INK, marginBottom: 4 },
+  guardianSub:   { fontSize: 14, fontWeight: '600', color: INK_SOFT },
+
+  sosButton: {
+    marginHorizontal: 18,
+    marginBottom: 24,
+    marginTop: 12,
+    backgroundColor: RED,
+    borderRadius: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    shadowColor: RED,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+  sosEmoji: {
+    fontSize: 28,
+  },
+  sosLabel: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#fff',
+  },
+  sosSub: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 2,
+  },
+  sosPhone: {
+    fontSize: 24,
+  },
+
+  btnSecondary: {
+    marginTop: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    alignItems: 'center',
+  },
+  btnSecondaryText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: BLUE,
+  },
 });

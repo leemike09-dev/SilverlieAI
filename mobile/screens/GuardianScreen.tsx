@@ -1,440 +1,448 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Share, Alert, TextInput, KeyboardAvoidingView, Platform,
+  View, Text, TouchableOpacity, StyleSheet, ScrollView,
+  StatusBar, Alert, Modal, TextInput, Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import SeniorTabBar from '../components/SeniorTabBar';
+import * as Linking from 'expo-linking';
 
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+const BLUE     = '#3B82F6';
+const GREEN    = '#22C55E';
+const RED      = '#EF4444';
+const SKY_FROM = '#CDE3F4';
+const SKY_TO   = '#F1F7FC';
+const INK      = '#0F1B2D';
+const INK_SOFT = '#3D4B62';
+const INK_MUTE = '#7E8AA1';
 
-type DoctorMemoItem = {
+const AVATAR_COLORS = ['#6366F1', '#EC4899', '#F59E0B', '#10B981', '#8B5CF6'];
+const getAvatarColor = (idx: number) => AVATAR_COLORS[idx % AVATAR_COLORS.length];
+const getInitials = (name: string) =>
+  name.trim().slice(0, 2) || '?';
+
+type Guardian = {
   id: string;
-  createdAt: string;
-  memo: string;
-  opinion: string;
+  name: string;
+  relation: string;
+  phoneNumber: string;
+  priority?: number;
 };
 
-function fmtDate(iso: string) {
-  const d = new Date(iso);
-  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
-}
+const RELATIONS = ['딸', '아들', '배우자', '형제/자매', '기타'];
 
-function fmtDateTime(iso: string) {
-  const d = new Date(iso);
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${d.getHours()}시`;
-}
-
-function GuardianScreenInner({ route, navigation }: any) {
+export default function GuardianScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
-  const userId = route?.params?.userId || '';
-  const name   = route?.params?.name   || '어르신';
-  const isMountedRef = useRef(true);
-  useEffect(() => { return () => { isMountedRef.current = false; }; }, []);
+  const { userId, name } = route.params;
 
-  const [hospSchedule,  setHospSchedule]  = useState<any>(null);
-  const [doctorMemos,   setDoctorMemos]   = useState<DoctorMemoItem[]>([]);
-  const [expandedId,    setExpandedId]    = useState<string | null>(null);
-  const [familyMembers, setFamilyMembers] = useState<any[]>([]);
-  const [lastSentDate,  setLastSentDate]  = useState<string | null>(null);
-  const [autoSentToday, setAutoSentToday] = useState(false);
-  const [lumiReport,    setLumiReport]    = useState<any>(null);
-  const [showLumi,      setShowLumi]      = useState(false);
-  const [showHospForm,  setShowHospForm]  = useState(false);
-  const [hospDate,      setHospDate]      = useState('');
-  const [hospName,      setHospName]      = useState('');
-  const [hospDept,      setHospDept]      = useState('');
-  const [hospTime,      setHospTime]      = useState('');
-  const [hospNote,      setHospNote]      = useState('');
+  const [guardians, setGuardians]   = useState<Guardian[]>([]);
+  const [modalOpen, setModalOpen]   = useState(false);
+  const [inputName, setInputName]   = useState('');
+  const [inputRel,  setInputRel]    = useState('딸');
+  const [inputPhone, setInputPhone] = useState('');
 
-  // ref for safe AsyncStorage save in closures
-  const doctorMemosRef = useRef<DoctorMemoItem[]>([]);
-  useEffect(() => { doctorMemosRef.current = doctorMemos; }, [doctorMemos]);
-
-  const saveHospSchedule = async () => {
-    if (!hospName.trim() || !hospDate.trim()) {
-      Alert.alert('알림', '날짜와 병원명을 입력해 주세요.'); return;
-    }
-    const sched = { date: hospDate.trim(), hospital: hospName.trim(), department: hospDept.trim(), time: hospTime.trim(), note: hospNote.trim() };
-    await AsyncStorage.setItem('hospital_schedule', JSON.stringify(sched));
-    setHospSchedule(sched);
-    setShowHospForm(false);
-    setHospDate(''); setHospName(''); setHospDept(''); setHospTime(''); setHospNote('');
-  };
-
-  const loadData = useCallback(async () => {
+  const load = useCallback(async () => {
     try {
-      const hs = await AsyncStorage.getItem('hospital_schedule');
-      if (hs) setHospSchedule(JSON.parse(hs));
-
-      // 다중 메모 로드 (기존 단일 메모 마이그레이션 포함)
-      const memosRaw = await AsyncStorage.getItem('doctor_memos');
-      let memos: DoctorMemoItem[] = memosRaw ? JSON.parse(memosRaw) : [];
-
-      if (memos.length === 0) {
-        const oldMemo = await AsyncStorage.getItem('doctor_memo');
-        if (oldMemo) {
-          const oldDate = await AsyncStorage.getItem('doctor_memo_date') || new Date().toISOString();
-          const cleaned = oldMemo.replace(/■ 최근 건강 수치[\s\S]*?(?=\n■|\n\*|$)/g, '').replace(/\n{3,}/g, '\n\n').trim();
-          const oldOpinion = await AsyncStorage.getItem('doctor_opinion') || '';
-          memos = [{ id: oldDate, createdAt: oldDate, memo: cleaned, opinion: oldOpinion }];
-          await AsyncStorage.setItem('doctor_memos', JSON.stringify(memos));
-          await AsyncStorage.removeItem('doctor_memo');
-          await AsyncStorage.removeItem('doctor_memo_date');
-          await AsyncStorage.removeItem('doctor_opinion');
-        }
-      }
-
-      setDoctorMemos(memos);
-
-      const fm = await AsyncStorage.getItem('family_members');
-      setFamilyMembers(fm ? JSON.parse(fm) : []);
-
-      const lastSent = await AsyncStorage.getItem('guardian_last_sent');
-      setLastSentDate(lastSent);
-
-      const lr = await AsyncStorage.getItem('lumi_weekly_cache');
-      if (lr) setLumiReport(JSON.parse(lr));
-
+      const raw = await AsyncStorage.getItem(`guardians.${userId}`);
+      if (raw) setGuardians(JSON.parse(raw));
     } catch {}
   }, [userId]);
 
-  useFocusEffect(useCallback(() => { loadData().catch(() => {}); }, [loadData]));
+  useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    if (autoSentToday || familyMembers.length === 0 || !lastSentDate) return;
-    const now = Date.now();
-    const last = new Date(lastSentDate).getTime();
-    if (now - last >= SEVEN_DAYS_MS) {
-      setAutoSentToday(true);
-      handleShare(true).catch(() => {});
-    }
-  }, [familyMembers, lastSentDate]);
-
-  const updateMemoOpinion = (id: string, text: string) => {
-    const updated = doctorMemos.map(m => m.id === id ? { ...m, opinion: text } : m);
-    setDoctorMemos(updated);
+  const save = async (list: Guardian[]) => {
+    setGuardians(list);
+    await AsyncStorage.setItem(`guardians.${userId}`, JSON.stringify(list));
   };
 
-  const saveMemosToStorage = async () => {
-    await AsyncStorage.setItem('doctor_memos', JSON.stringify(doctorMemosRef.current));
+  const handleAdd = async () => {
+    const trimName  = inputName.trim();
+    const trimPhone = inputPhone.trim();
+    if (!trimName)  { Alert.alert('알림', '이름을 입력해주세요'); return; }
+    if (!trimPhone) { Alert.alert('알림', '전화번호를 입력해주세요'); return; }
+    const newItem: Guardian = {
+      id: Date.now().toString(),
+      name: trimName,
+      relation: inputRel,
+      phoneNumber: trimPhone,
+      priority: guardians.length === 0 ? 1 : undefined,
+    };
+    await save([...guardians, newItem]);
+    setModalOpen(false);
+    setInputName('');
+    setInputPhone('');
+    setInputRel('딸');
   };
 
-  const deleteMemo = (id: string) => {
-    Alert.alert('메모 삭제', '이 메모를 삭제할까요?', [
+  const handleDelete = (id: string) => {
+    Alert.alert('삭제', '이 연락처를 삭제할까요?', [
       { text: '취소', style: 'cancel' },
-      {
-        text: '삭제', style: 'destructive', onPress: async () => {
-          const updated = doctorMemosRef.current.filter(m => m.id !== id);
-          setDoctorMemos(updated);
-          await AsyncStorage.setItem('doctor_memos', JSON.stringify(updated));
-          if (expandedId === id) setExpandedId(null);
-        },
+      { text: '삭제', style: 'destructive',
+        onPress: async () => {
+          const updated = guardians.filter(g => g.id !== id);
+          await save(updated);
+        }
       },
     ]);
   };
 
-  const buildSummaryText = () => {
-    const today = new Date().toLocaleDateString('ko-KR');
-    const lines: string[] = [
-      `📋 Silver Life — ${name}님 건강 요약`,
-      `📅 ${today}`,
-      '',
-    ];
-
-    if (hospSchedule) {
-      lines.push('🏥 병원 예약');
-      lines.push(`  ${hospSchedule.date || ''} ${hospSchedule.hospital || ''} ${hospSchedule.department || ''}`);
-      lines.push('');
-    }
-
-    const latestOpinion = doctorMemos[0]?.opinion;
-    if (latestOpinion) {
-      lines.push('📝 의사 소견 (최신)');
-      lines.push(`  ${latestOpinion}`);
-      lines.push('');
-    }
-
-    lines.push('— Silver Life AI 루미가 전달드립니다 —');
-    return lines.join('\n');
+  const handleCall = (g: Guardian) => {
+    if (!g.phoneNumber) { Alert.alert('알림', '연락처가 없습니다'); return; }
+    Linking.openURL(`tel:${g.phoneNumber}`).catch(() => {});
   };
 
-  const handleShare = async (isAuto = false) => {
-    try {
-      const text = buildSummaryText();
-      await Share.share({ message: text, title: `${name}님 건강 요약` });
-      if (!isMountedRef.current) return;
-      const now = new Date().toISOString();
-      await AsyncStorage.setItem('guardian_last_sent', now);
-      setLastSentDate(now);
-      if (isAuto) {
-        Alert.alert('자동 발송', '7일이 지나 가족에게 건강 요약을 전달했습니다.');
-      }
-    } catch {}
+  const handleMessage = (g: Guardian) => {
+    if (!g.phoneNumber) { Alert.alert('알림', '연락처가 없습니다'); return; }
+    Linking.openURL(`sms:${g.phoneNumber}`).catch(() => {});
   };
 
   return (
-    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
-        style={s.scroll}
-        contentContainerStyle={[s.scrollContent, { paddingTop: Math.max(insets.top + 16, 24) }]}
-        showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
-      >
+    <LinearGradient colors={[SKY_FROM, SKY_TO]} style={s.root}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
-        {/* 의사 전달 메모 목록 */}
-        <View style={s.card}>
-          <Text style={s.cardTitle}>📋 의사 전달 메모</Text>
-
-          {doctorMemos.length === 0 ? (
-            <Text style={s.emptyTxt}>루미와 대화 후 메모를 저장하면 여기에 표시됩니다</Text>
-          ) : (
-            doctorMemos.map((item, index) => (
-              <View key={item.id} style={[s.memoItem, index > 0 && { marginTop: 10 }]}>
-                <TouchableOpacity
-                  style={s.memoHeader}
-                  onPress={() => setExpandedId(expandedId === item.id ? null : item.id)}
-                  activeOpacity={0.7}
-                >
-                  <View style={s.memoHeaderLeft}>
-                    <Text style={s.memoNum}>메모 {index + 1}</Text>
-                    <Text style={s.memoDate}>{fmtDateTime(item.createdAt)}</Text>
-                  </View>
-                  <View style={s.memoHeaderRight}>
-                    <TouchableOpacity
-                      onPress={() => deleteMemo(item.id)}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      <Text style={s.memoDelete}>삭제</Text>
-                    </TouchableOpacity>
-                    <Text style={s.toggleTxt}>{expandedId === item.id ? '접기 ▲' : '펼치기 ▼'}</Text>
-                  </View>
-                </TouchableOpacity>
-
-                {expandedId === item.id && (
-                  <View style={s.memoBody}>
-                    <Text style={s.memoSectionLabel}>📋 루미 메모</Text>
-                    <View style={s.memoAiBox}>
-                      <Text style={s.memoAiTxt}>{item.memo}</Text>
-                    </View>
-                    <Text style={[s.memoSectionLabel, { marginTop: 12 }]}>📝 의사 소견</Text>
-                    <TextInput
-                      style={s.memoInput}
-                      value={item.opinion}
-                      onChangeText={text => updateMemoOpinion(item.id, text)}
-                      onBlur={saveMemosToStorage}
-                      placeholder="진료 후 의사 소견이나 처방 내용을 기록해 두세요"
-                      placeholderTextColor="#bdbdbd"
-                      multiline
-                    />
-                  </View>
-                )}
-              </View>
-            ))
-          )}
-
-          {/* 루미 7일 건강 분석 참고 */}
-          {lumiReport && (
-            <>
-              <View style={[s.divider, { marginTop: 16 }]} />
-              <TouchableOpacity
-                style={s.lumiRefHeader}
-                onPress={() => setShowLumi(v => !v)}
-                activeOpacity={0.7}
-              >
-                <Text style={s.lumiRefTitle}>💡 루미 7일 건강 분석 참고</Text>
-                <Text style={s.toggleTxt}>{showLumi ? '접기 ▲' : '펼치기 ▼'}</Text>
-              </TouchableOpacity>
-              {showLumi && (
-                <View style={s.lumiRefBody}>
-                  {lumiReport.summary && (
-                    <Text style={s.lumiRefTxt}>📋 {lumiReport.summary}</Text>
-                  )}
-                  {lumiReport.recommendation && (
-                    <Text style={[s.lumiRefTxt, { color: '#1a5fbc', marginTop: 6 }]}>
-                      🎯 {lumiReport.recommendation}
-                    </Text>
-                  )}
-                  {lumiReport.improvements?.length > 0 && lumiReport.improvements.map((imp: string, i: number) => (
-                    <Text key={i} style={[s.lumiRefTxt, { color: '#E65100', marginTop: 4 }]}>• {imp}</Text>
-                  ))}
-                </View>
-              )}
-            </>
-          )}
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+        {/* Header */}
+        <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 24) }]}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+            <Ionicons name="chevron-back" size={28} color={INK} />
+          </TouchableOpacity>
+          <Text style={s.headerTitle}>보호자 연락처</Text>
+          <TouchableOpacity onPress={() => setModalOpen(true)} style={s.addHeaderBtn}>
+            <Ionicons name="add" size={28} color={BLUE} />
+          </TouchableOpacity>
         </View>
 
-        {/* 병원 예약 */}
-        <View style={s.card}>
-          <View style={s.cardHeader}>
-            <Text style={s.cardTitle}>🏥 병원 예약</Text>
-            <TouchableOpacity onPress={() => setShowHospForm(v => !v)} activeOpacity={0.7}>
-              <Text style={s.editSmall}>{showHospForm ? '취소' : hospSchedule ? '수정' : '+ 추가'}</Text>
+        {/* Lumi greeting */}
+        <View style={s.lumiRow}>
+          <Image source={require('../assets/lumi-happy.png')} style={s.lumiImg} />
+          <View style={s.lumiBubble}>
+            <Text style={s.lumiText}>
+              {name}님 가족이{'\n'}항상 곁에 있어요 💜
+            </Text>
+          </View>
+        </View>
+
+        {guardians.length === 0 ? (
+          /* ─── Empty state ─── */
+          <View style={s.emptyCard}>
+            <Text style={s.emptyIcon}>👨‍👩‍👧</Text>
+            <Text style={s.emptyTitle}>아직 보호자가 없어요</Text>
+            <Text style={s.emptyDesc}>가족 연락처를 추가하면{'\n'}SOS 상황에 바로 연결돼요</Text>
+            <TouchableOpacity style={s.btnPrimary} onPress={() => setModalOpen(true)}>
+              <Text style={s.btnPrimaryText}>+ 첫 보호자 추가하기</Text>
             </TouchableOpacity>
           </View>
+        ) : (
+          /* ─── Guardian list ─── */
+          <View style={s.listWrap}>
+            {guardians.map((g, idx) => (
+              <View key={g.id} style={s.card}>
+                {/* Top row */}
+                <View style={s.cardTop}>
+                  <View style={[s.avatar, { backgroundColor: getAvatarColor(idx) }]}>
+                    <Text style={s.avatarText}>{getInitials(g.name)}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={s.nameRow}>
+                      <Text style={s.memberName}>{g.name}</Text>
+                      {g.priority === 1 && (
+                        <View style={s.badge}>
+                          <Text style={s.badgeText}>1순위</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={s.memberRel}>{g.relation}</Text>
+                    <Text style={s.memberPhone}>{g.phoneNumber}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => handleDelete(g.id)} style={s.deleteBtn}>
+                    <Ionicons name="trash-outline" size={20} color={RED} />
+                  </TouchableOpacity>
+                </View>
 
-          {showHospForm ? (
-            <View style={s.hospForm}>
-              <TextInput style={s.hospInput} value={hospDate} onChangeText={setHospDate}
-                placeholder="날짜 (예: 2025-06-10)" placeholderTextColor="#bdbdbd" />
-              <TextInput style={s.hospInput} value={hospTime} onChangeText={setHospTime}
-                placeholder="시간 (예: 오전 10:30)" placeholderTextColor="#bdbdbd" />
-              <TextInput style={s.hospInput} value={hospName} onChangeText={setHospName}
-                placeholder="병원명 (예: 서울성모병원)" placeholderTextColor="#bdbdbd" />
-              <TextInput style={s.hospInput} value={hospDept} onChangeText={setHospDept}
-                placeholder="진료과 (예: 내과)" placeholderTextColor="#bdbdbd" />
-              <TextInput style={s.hospInput} value={hospNote} onChangeText={setHospNote}
-                placeholder="메모 (선택)" placeholderTextColor="#bdbdbd" />
-              <TouchableOpacity style={s.hospSaveBtn} onPress={saveHospSchedule} activeOpacity={0.85}>
-                <Text style={s.hospSaveTxt}>저장</Text>
-              </TouchableOpacity>
-            </View>
-          ) : hospSchedule ? (
-            <View style={s.hospRow}>
-              <Text style={s.hospDate}>{hospSchedule.date}{hospSchedule.time ? ` ${hospSchedule.time}` : ''}</Text>
-              <View style={s.hospInfo}>
-                <Text style={s.hospName}>{hospSchedule.hospital}</Text>
-                {hospSchedule.department ? <Text style={s.hospDept}>{hospSchedule.department}</Text> : null}
-                {hospSchedule.note ? <Text style={s.hospNote}>{hospSchedule.note}</Text> : null}
-              </View>
-            </View>
-          ) : (
-            <TouchableOpacity onPress={() => setShowHospForm(true)} activeOpacity={0.7}>
-              <Text style={s.emptyTxt}>병원 예약을 추가해 주세요 →</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* 동선 */}
-        <TouchableOpacity
-          style={s.card}
-          onPress={() => navigation.navigate('LocationMap', { logs: [], seniorName: name, totalDist: 0, userId })}
-          activeOpacity={0.85}
-        >
-          <Text style={s.cardTitle}>📍 오늘 동선</Text>
-          <Text style={s.linkTxt}>지도에서 확인하기 →</Text>
-        </TouchableOpacity>
-
-        {/* 가족 구성원 */}
-        {familyMembers.length > 0 && (
-          <View style={s.card}>
-            <Text style={s.cardTitle}>👥 가족 구성원</Text>
-            {familyMembers.map((m: any, i: number) => (
-              <View key={i} style={s.memberRow}>
-                <Text style={s.memberName}>{m.name}</Text>
-                <Text style={s.memberRelation}>{m.relation}</Text>
+                {/* Action buttons */}
+                <View style={s.actionRow}>
+                  <TouchableOpacity style={[s.btnAction, { backgroundColor: GREEN }]}
+                    onPress={() => handleCall(g)}>
+                    <Ionicons name="call" size={22} color="#fff" />
+                    <Text style={s.btnActionTxt}>전화하기</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[s.btnAction, s.btnOutline]}
+                    onPress={() => handleMessage(g)}>
+                    <Ionicons name="chatbubble-outline" size={22} color={BLUE} />
+                    <Text style={[s.btnActionTxt, { color: BLUE }]}>메시지</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
+
+            {/* Add more */}
+            <TouchableOpacity style={s.addMoreBtn} onPress={() => setModalOpen(true)}>
+              <Ionicons name="add-circle-outline" size={24} color={INK_SOFT} />
+              <Text style={s.addMoreTxt}>보호자 추가하기</Text>
+            </TouchableOpacity>
           </View>
         )}
-
-        {/* 가족 전달 카드 */}
-        <TouchableOpacity style={s.shareCard} onPress={() => handleShare(false)} activeOpacity={0.85}>
-          <View style={s.shareCardTop}>
-            <Text style={s.shareCardIcon}>📤</Text>
-            <View>
-              <Text style={s.shareCardTitle}>가족에게 전달하기</Text>
-              <Text style={s.shareCardSub}>카카오톡 · 문자 · 앱 알림</Text>
-            </View>
-          </View>
-          {lastSentDate && (
-            <Text style={s.shareCardLast}>마지막 발송: {fmtDate(lastSentDate)}</Text>
-          )}
-        </TouchableOpacity>
-
-        <View style={{ height: 20 }} />
       </ScrollView>
 
       <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={name} />
-    </KeyboardAvoidingView>
+
+      {/* ─── Add Guardian Modal ─── */}
+      <Modal visible={modalOpen} transparent animationType="slide">
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>보호자 추가</Text>
+              <TouchableOpacity onPress={() => setModalOpen(false)}>
+                <Ionicons name="close" size={26} color={INK} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={s.inputLabel}>이름</Text>
+            <TextInput
+              style={[s.input, { fontSize: 20 }]}
+              value={inputName}
+              onChangeText={setInputName}
+              placeholder="예: 김철수"
+              placeholderTextColor={INK_MUTE}
+            />
+
+            <Text style={s.inputLabel}>관계</Text>
+            <View style={s.relRow}>
+              {RELATIONS.map(r => (
+                <TouchableOpacity key={r}
+                  style={[s.relChip, inputRel === r && s.relChipActive]}
+                  onPress={() => setInputRel(r)}>
+                  <Text style={[s.relChipTxt, inputRel === r && s.relChipTxtActive]}>{r}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={s.inputLabel}>전화번호</Text>
+            <TextInput
+              style={[s.input, { fontSize: 20 }]}
+              value={inputPhone}
+              onChangeText={setInputPhone}
+              placeholder="010-0000-0000"
+              placeholderTextColor={INK_MUTE}
+              keyboardType="phone-pad"
+            />
+
+            <TouchableOpacity style={s.btnSave} onPress={handleAdd}>
+              <Text style={s.btnSaveTxt}>저장하기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </LinearGradient>
   );
 }
 
 const s = StyleSheet.create({
-  root:          { flex: 1, backgroundColor: '#fff' },
-  scroll:        { flex: 1 },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 16, gap: 0 },
+  root: { flex: 1 },
 
-  card:       { backgroundColor: '#fff', paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
-  cardTitle:  { fontSize: 15, fontWeight: '700', color: '#1a2a3a', marginBottom: 10 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  editSmall:  { fontSize: 14, fontWeight: '700', color: '#1a5fbc' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingBottom: 8,
+  },
+  backBtn:      { padding: 10 },
+  addHeaderBtn: { padding: 10 },
+  headerTitle: {
+    flex: 1,
+    fontSize: 26,
+    fontWeight: '900',
+    color: INK,
+    textAlign: 'center',
+  },
 
-  // 메모 아이템
-  memoItem:        { borderWidth: 1, borderColor: '#E8E8F0', borderRadius: 12, overflow: 'hidden' },
-  memoHeader:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-                     backgroundColor: '#F3F0FA', paddingHorizontal: 14, paddingVertical: 12 },
-  memoHeaderLeft:  { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  memoHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  memoNum:         { fontSize: 14, fontWeight: '800', color: '#7B5EA7' },
-  memoDate:        { fontSize: 13, color: '#6b7280' },
-  memoDelete:      { fontSize: 13, color: '#EF4444', fontWeight: '600' },
-  toggleTxt:       { fontSize: 12, color: '#90a4ae' },
+  lumiRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    gap: 12,
+  },
+  lumiImg: { width: 64, height: 64, borderRadius: 32 },
+  lumiBubble: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  lumiText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: INK,
+    lineHeight: 26,
+  },
 
-  memoBody:         { paddingHorizontal: 14, paddingVertical: 12, gap: 4 },
-  memoSectionLabel: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 4 },
-  memoAiBox:        { backgroundColor: '#F8F9FA', borderRadius: 8, padding: 10 },
-  memoAiTxt:        { fontSize: 13, color: '#374151', lineHeight: 20 },
-  memoInput:        { fontSize: 14, color: '#374151', lineHeight: 22, minHeight: 60,
-                      backgroundColor: '#F8F9FA', borderRadius: 8, padding: 10,
-                      textAlignVertical: 'top', borderWidth: 1, borderColor: '#E8E8E8' },
+  emptyCard: {
+    marginHorizontal: 18,
+    marginTop: 24,
+    backgroundColor: '#fff',
+    borderRadius: 22,
+    padding: 36,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 2,
+  },
+  emptyIcon:  { fontSize: 64, marginBottom: 16 },
+  emptyTitle: { fontSize: 24, fontWeight: '900', color: INK, marginBottom: 8 },
+  emptyDesc: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: INK_SOFT,
+    textAlign: 'center',
+    lineHeight: 26,
+    marginBottom: 32,
+  },
 
-  divider:       { height: 1, backgroundColor: '#F0F0F0', marginVertical: 14 },
-  lumiRefHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  lumiRefTitle:  { fontSize: 13, fontWeight: '700', color: '#7B5EA7' },
-  lumiRefBody:   { marginTop: 10, gap: 2 },
-  lumiRefTxt:    { fontSize: 13, color: '#374151', lineHeight: 20 },
+  listWrap: { paddingHorizontal: 18, gap: 16, marginTop: 8 },
 
-  hospForm:    { gap: 8 },
-  hospInput:   { backgroundColor: '#F8F9FA', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
-                 fontSize: 15, color: '#1a2a3a', borderWidth: 1, borderColor: '#E8E8E8' },
-  hospSaveBtn: { backgroundColor: '#1a5fbc', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 4 },
-  hospSaveTxt: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 22,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 2,
+  },
+  cardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 18,
+  },
+  avatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: { fontSize: 26, fontWeight: '900', color: '#fff' },
+  nameRow:    { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  memberName: { fontSize: 24, fontWeight: '900', color: INK },
+  badge: {
+    backgroundColor: '#FFF3D6',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  badgeText:   { fontSize: 12, fontWeight: '800', color: '#A8770F' },
+  memberRel:   { fontSize: 16, fontWeight: '600', color: INK_SOFT },
+  memberPhone: { fontSize: 15, fontWeight: '600', color: INK_MUTE, marginTop: 2 },
+  deleteBtn:   { padding: 8 },
 
-  hospRow:  { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
-  hospDate: { fontSize: 15, fontWeight: '700', color: '#1a5fbc', minWidth: 60 },
-  hospInfo: { flex: 1 },
-  hospName: { fontSize: 16, fontWeight: '700', color: '#1a2a3a' },
-  hospDept: { fontSize: 14, color: '#5c6bc0', marginTop: 2 },
-  hospNote: { fontSize: 13, color: '#90a4ae', marginTop: 4 },
+  actionRow: { flexDirection: 'row', gap: 10 },
+  btnAction: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    minHeight: 56,
+    borderRadius: 16,
+  },
+  btnOutline: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: BLUE,
+  },
+  btnActionTxt: { fontSize: 18, fontWeight: '800', color: '#fff' },
 
-  linkTxt:  { fontSize: 15, color: '#1a5fbc', fontWeight: '600' },
-  emptyTxt: { fontSize: 14, color: '#bdbdbd' },
+  addMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 20,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: 'rgba(15,27,45,0.15)',
+    borderStyle: 'dashed',
+  },
+  addMoreTxt: { fontSize: 18, fontWeight: '700', color: INK_SOFT },
 
-  memberRow:      { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  memberName:     { fontSize: 15, fontWeight: '600', color: '#1a2a3a' },
-  memberRelation: { fontSize: 14, color: '#90a4ae' },
+  btnPrimary: {
+    minHeight: 64,
+    borderRadius: 18,
+    backgroundColor: BLUE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  btnPrimaryText: { fontSize: 22, fontWeight: '800', color: '#fff' },
 
-  shareCard:     { backgroundColor: '#1a5fbc', borderRadius: 18, padding: 20, marginTop: 16 },
-  shareCardTop:  { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  shareCardIcon: { fontSize: 32 },
-  shareCardTitle:{ fontSize: 18, fontWeight: '800', color: '#fff' },
-  shareCardSub:  { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
-  shareCardLast: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 12, textAlign: 'right' },
+  /* Modal */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 28,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  modalTitle: { fontSize: 26, fontWeight: '900', color: INK },
+
+  inputLabel: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: INK_SOFT,
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  input: {
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    color: INK,
+    backgroundColor: '#FAFAFA',
+  },
+
+  relRow:         { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  relChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  relChipActive:    { backgroundColor: '#EFF6FF', borderColor: BLUE },
+  relChipTxt:       { fontSize: 17, fontWeight: '700', color: INK_SOFT },
+  relChipTxtActive: { color: BLUE },
+
+  btnSave: {
+    minHeight: 64,
+    borderRadius: 18,
+    backgroundColor: BLUE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 28,
+  },
+  btnSaveTxt: { fontSize: 22, fontWeight: '800', color: '#fff' },
 });
-
-class GuardianScreen extends React.Component<any, { hasError: boolean }> {
-  state = { hasError: false };
-  static getDerivedStateFromError() { return { hasError: true }; }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 20 }}>
-          <Text style={{ fontSize: 20, fontWeight: '700', color: '#1a2a3a', textAlign: 'center' }}>
-            화면을 불러오지 못했습니다{'\n'}잠시 후 다시 시도해 주세요
-          </Text>
-          <TouchableOpacity
-            style={{ backgroundColor: '#1a5fbc', borderRadius: 12, paddingHorizontal: 32, paddingVertical: 14 }}
-            onPress={() => { this.setState({ hasError: false }); this.props.navigation?.goBack(); }}
-          >
-            <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>홈으로 돌아가기</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-    return <GuardianScreenInner {...this.props} />;
-  }
-}
-
-export default GuardianScreen;

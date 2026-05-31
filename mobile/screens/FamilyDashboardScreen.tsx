@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Platform, ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView,
+  StatusBar, ActivityIndicator, Modal, Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import SeniorTabBar from '../components/SeniorTabBar';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -19,55 +20,41 @@ const RELATION_LABEL: Record<string, string> = {
   son: '아들', daughter: '딸', sibling: '형제/자매', other: '기타',
 };
 const RELATION_OPTIONS = [
-  { key: 'father',   label: '아버지',    emoji: '👴' },
-  { key: 'mother',   label: '어머니',    emoji: '👵' },
-  { key: 'spouse',   label: '배우자',    emoji: '💑' },
-  { key: 'son',      label: '아들',      emoji: '👦' },
-  { key: 'daughter', label: '딸',        emoji: '👧' },
+  { key: 'father', label: '아버지', emoji: '👴' },
+  { key: 'mother', label: '어머니', emoji: '👵' },
+  { key: 'spouse', label: '배우자', emoji: '💑' },
+  { key: 'son',    label: '아들',   emoji: '👦' },
+  { key: 'daughter', label: '딸',   emoji: '👧' },
   { key: 'sibling',  label: '형제/자매', emoji: '👫' },
-  { key: 'other',    label: '기타',      emoji: '👤' },
+  { key: 'other',    label: '기타', emoji: '👤' },
 ];
 
+type FeedItem = {
+  id: string;
+  type: 'message' | 'hospital' | 'memo' | 'connect' | 'health' | 'medication';
+  icon: string;
+  iconBg: string;
+  title: string;
+  desc: string;
+  time: string;
+  timestamp: number;
+  memberId?: string;
+  memberName?: string;
+  onPress?: () => void;
+};
 
 export default function FamilyDashboardScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
-  const [userId,   setUserId]   = useState<string>(route?.params?.userId || '');
-  const [name,     setName]     = useState<string>(route?.params?.name   || '');
-  const [members,  setMembers]  = useState<any[]>([]);
-  const [convs,    setConvs]    = useState<any[]>([]);
-  const [goals,    setGoals]    = useState<any[]>([]);
-  const [tab,      setTab]      = useState<'messages' | 'goals' | 'hosp'>(route?.params?.initialTab || 'messages');
-  const [loading,  setLoading]  = useState(true);
-  const [relModal, setRelModal] = useState(false);
-  const [relTarget,setRelTarget]= useState<any>(null);
-  const [hospSchedule,   setHospSchedule]   = useState<{date:string;time:string;clinic:string;memo:string}|null>(null);
-  const [doctorMemo,     setDoctorMemo]     = useState('');
-  const [doctorMemoDate, setDoctorMemoDate] = useState('');
-  const [editDoctorMemo, setEditDoctorMemo] = useState('');
-  const [editingMemo,    setEditingMemo]    = useState(false);
-
-  const unreadTotal = convs.reduce((sum, c) => sum + (c.unread_count || 0), 0);
-
-  const loadLocalData = async () => {
-    try {
-      const hs = await AsyncStorage.getItem('hospital_schedule');
-      setHospSchedule(hs ? JSON.parse(hs) : null);
-      const dm = await AsyncStorage.getItem('doctor_memo');
-      const dd = await AsyncStorage.getItem('doctor_memo_date');
-      const text = dm || '';
-      setDoctorMemo(text);
-      setEditDoctorMemo(text);
-      if (dd) {
-        const d = new Date(dd);
-        setDoctorMemoDate(`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`);
-      } else {
-        setDoctorMemoDate('');
-      }
-    } catch {}
-  };
+  const [userId,  setUserId]  = useState<string>(route?.params?.userId || '');
+  const [name,    setName]    = useState<string>(route?.params?.name   || '');
+  const [members, setMembers] = useState<any[]>([]);
+  const [feed,    setFeed]    = useState<FeedItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [relModal,   setRelModal]    = useState(false);
+  const [relTarget,  setRelTarget]   = useState<any>(null);
 
   useEffect(() => {
-    const init = async () => {
+    (async () => {
       const uid   = (await AsyncStorage.getItem('userId'))   || route?.params?.userId || '';
       const uname = (await AsyncStorage.getItem('userName')) || route?.params?.name   || '';
       if (uid)   setUserId(uid);
@@ -75,36 +62,111 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
 
       const stored = await AsyncStorage.getItem('family_members');
       const mems: any[] = stored ? JSON.parse(stored) : [];
-      setMembers(mems || []);
-      await Promise.all([fetchData(uid), loadLocalData()]);
-    };
-    init();
+      setMembers(mems);
+
+      await loadFeed(uid, mems);
+    })();
   }, []);
 
-  useEffect(() => {
-    if (tab === 'hosp') loadLocalData();
-  }, [tab]);
-
-  const fetchData = async (uid: string) => {
+  const loadFeed = async (uid: string, mems: any[]) => {
     setLoading(true);
+    const items: FeedItem[] = [];
+
     try {
-      const [cr, gr, mr] = await Promise.all([
-        fetch(`${API}/family/messages/${uid}`),
-        fetch(`${API}/family/goals/${uid}`),
-        fetch(`${API}/family/members/${uid}`),
-      ]);
+      // ── 가족 메시지 ──
+      const cr = await fetch(`${API}/family/messages/${uid}`);
       if (cr.ok) {
         const cd = await cr.json();
-        setConvs(cd.conversations || []);
-      } else {
-        setConvs([]);
+        const convs: any[] = cd.conversations || [];
+        convs.forEach((conv: any) => {
+          if (!conv.last_message) return;
+          const member = mems.find(m => m.id === conv.partner_id);
+          const relLabel = member?.relation ? RELATION_LABEL[member.relation] : (member?.name || '가족');
+          const ts = conv.last_at ? new Date(conv.last_at).getTime() : Date.now() - 3600000;
+          items.push({
+            id: `msg-${conv.partner_id}`,
+            type: 'message',
+            icon: '💬',
+            iconBg: '#EFF6FF',
+            title: `${relLabel}에서 메시지`,
+            desc: conv.last_message,
+            time: formatTime(ts),
+            timestamp: ts,
+            memberId: conv.partner_id,
+            memberName: member?.name,
+            onPress: () => navigation.navigate('FamilyChat', {
+              userId: uid, name,
+              partnerId: conv.partner_id,
+              partnerName: member?.name || '',
+              partnerRelation: member?.relation || '',
+            }),
+          });
+        });
       }
-      if (gr.ok) {
-        const gd = await gr.json();
-        setGoals(gd.goals || []);
-      } else {
-        setGoals([]);
+    } catch {}
+
+    // ── 병원 일정 ──
+    try {
+      const hs = await AsyncStorage.getItem('hospital_schedule');
+      if (hs) {
+        const sched = JSON.parse(hs);
+        const ts = sched.date ? new Date(sched.date).getTime() : Date.now() - 7200000;
+        items.push({
+          id: 'hospital',
+          type: 'hospital',
+          icon: '🏥',
+          iconBg: '#F5F3FF',
+          title: `${sched.clinic || '병원'} 예약`,
+          desc: `${sched.date || ''} ${sched.time || ''}${sched.memo ? ' · ' + sched.memo : ''}`.trim(),
+          time: formatTime(ts),
+          timestamp: ts,
+        });
       }
+    } catch {}
+
+    // ── 의사 메모 ──
+    try {
+      const dm   = await AsyncStorage.getItem('doctor_memo');
+      const dmd  = await AsyncStorage.getItem('doctor_memo_date');
+      if (dm) {
+        const ts = dmd ? new Date(dmd).getTime() : Date.now() - 86400000;
+        items.push({
+          id: 'memo',
+          type: 'memo',
+          icon: '📋',
+          iconBg: '#FFFBEB',
+          title: '의사 전달 메모 저장됨',
+          desc: dm.slice(0, 60) + (dm.length > 60 ? '...' : ''),
+          time: formatTime(ts),
+          timestamp: ts,
+        });
+      }
+    } catch {}
+
+    // ── 가족 연결 이벤트 ──
+    mems.forEach((m, idx) => {
+      items.push({
+        id: `connect-${m.id}`,
+        type: 'connect',
+        icon: '👨‍👩‍👧',
+        iconBg: '#ECFDF5',
+        title: `${m.relation ? RELATION_LABEL[m.relation] : m.name} 연결됨`,
+        desc: '가족과 건강 정보를 공유하고 있어요',
+        time: '연결 중',
+        timestamp: Date.now() - (idx + 1) * 86400000 * 3,
+        memberId: m.id,
+        memberName: m.name,
+      });
+    });
+
+    // 최신순 정렬
+    items.sort((a, b) => b.timestamp - a.timestamp);
+    setFeed(items);
+    setLoading(false);
+
+    // 서버에서 members 최신화
+    try {
+      const mr = await fetch(`${API}/family/members/${uid}`);
       if (mr.ok) {
         const md = await mr.json();
         const serverMembers: any[] = md.members || [];
@@ -119,11 +181,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
           await AsyncStorage.setItem('family_members', JSON.stringify(merged));
         }
       }
-    } catch {
-      setConvs([]);
-      setGoals([]);
-    }
-    setLoading(false);
+    } catch {}
   };
 
   const saveRelation = async (rel: { key: string; label: string }) => {
@@ -140,28 +198,35 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
     setRelModal(false);
   };
 
+  const FEED_TYPE_COLOR: Record<string, string> = {
+    message:    '#3B82F6',
+    hospital:   '#8B5CF6',
+    memo:       '#F59E0B',
+    connect:    '#10B981',
+    health:     '#EF4444',
+    medication: '#F59E0B',
+  };
 
   return (
-    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A4A8A" />
+    <View style={s.root}>
+      <LinearGradient colors={['#1A4A8A', '#2563EB']} style={[s.headerBg, { paddingTop: Math.max(insets.top + 14, 28) }]}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Header */}
-      <View style={[s.header, { paddingTop: Math.max(insets.top + 14, 28) }]}>
-        <View>
-          <Text style={s.headerTitle}>우리 가족</Text>
-          <Text style={s.headerSub}>{name ? `${name}님의 가족 공간` : '가족과 소통해요'}</Text>
+        <View style={s.headerRow}>
+          <View>
+            <Text style={s.headerTitle}>우리 가족</Text>
+            <Text style={s.headerSub}>{name ? `${name}님의 가족 공간` : '가족과 소통해요'}</Text>
+          </View>
+          <TouchableOpacity style={s.addBtn}
+            onPress={() => navigation.navigate('FamilyConnect', { userId, name, addMode: true })}>
+            <Ionicons name="person-add-outline" size={22} color="#1A4A8A" />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={s.addFamilyBtn}
-          onPress={() => navigation.navigate('FamilyConnect', { userId, name, addMode: true })}>
-          <Ionicons name="person-add-outline" size={22} color="#1A4A8A" />
-        </TouchableOpacity>
-      </View>
 
-      {/* Member chips */}
-      {members.length > 0 && (
-        <View style={s.chipBar}>
+        {/* 가족 멤버 chips */}
+        {members.length > 0 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false}
-            contentContainerStyle={s.chipScroll} keyboardShouldPersistTaps="handled">
+            contentContainerStyle={s.chipScroll}>
             {members.map(m => {
               const noRel = !m.relation;
               return (
@@ -170,239 +235,89 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
                   activeOpacity={noRel ? 0.6 : 1}>
                   <Text style={s.chipEmoji}>{RELATION_EMOJI[m.relation] || '👤'}</Text>
                   <Text style={s.chipName}>
-                    {m.relation ? `${RELATION_LABEL[m.relation]}` : m.name}
+                    {m.relation ? RELATION_LABEL[m.relation] : m.name}
                   </Text>
                   {noRel && <Text style={s.chipEdit}>설정</Text>}
                 </TouchableOpacity>
               );
             })}
           </ScrollView>
-        </View>
-      )}
+        )}
+      </LinearGradient>
 
-      {/* Tab toggle */}
-      <View style={s.tabRow}>
-        <TouchableOpacity style={[s.tabBtn, tab === 'messages' && s.tabBtnOn]}
-          onPress={() => setTab('messages')}>
-          <Text style={[s.tabTxt, tab === 'messages' && s.tabTxtOn]}>
-            메시지{unreadTotal > 0 ? `  ${unreadTotal}` : ''}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[s.tabBtn, tab === 'goals' && s.tabBtnOn]}
-          onPress={() => setTab('goals')}>
-          <Text style={[s.tabTxt, tab === 'goals' && s.tabTxtOn]}>건강 목표</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[s.tabBtn, tab === 'hosp' && s.tabBtnOn]}
-          onPress={() => setTab('hosp')}>
-          <Text style={[s.tabTxt, tab === 'hosp' && s.tabTxtOn]}>병원·메모</Text>
-        </TouchableOpacity>
-      </View>
-
+      {/* Activity Feed */}
       {loading ? (
         <View style={s.loadBox}>
           <ActivityIndicator size="large" color="#1A4A8A" />
           <Text style={s.loadTxt}>불러오는 중...</Text>
         </View>
+      ) : feed.length === 0 ? (
+        /* 빈 상태 */
+        <View style={s.emptyBox}>
+          <Text style={s.emptyIcon}>👨‍👩‍👧‍👦</Text>
+          <Text style={s.emptyTitle}>아직 활동 내역이 없어요</Text>
+          <Text style={s.emptyDesc}>가족과 연결하면 건강 정보와{'\n'}메시지를 공유할 수 있어요</Text>
+          <TouchableOpacity style={s.emptyBtn}
+            onPress={() => navigation.navigate('FamilyConnect', { userId, name, addMode: true })}>
+            <Text style={s.emptyBtnTxt}>가족 연결하기</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
-        <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={s.feedContent} showsVerticalScrollIndicator={false}>
+          <Text style={s.feedSectionLabel}>최근 활동</Text>
 
-          {tab === 'messages' ? (
-            members.length === 0 ? (
-              <View style={s.emptyBox}>
-                <Text style={s.emptyIcon}>👨‍👩‍👧‍👦</Text>
-                <Text style={s.emptyTxt}>연결된 가족이 없어요</Text>
-                <TouchableOpacity style={s.emptyBtn}
-                  onPress={() => navigation.navigate('FamilyConnect', { userId, name, addMode: true })}>
-                  <Text style={s.emptyBtnTxt}>가족 연결하기</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              members.map(m => {
-                const conv = convs.find(c => c.partner_id === m.id);
-                const unread   = conv?.unread_count || 0;
-                const lastMsg  = conv?.last_message || '첫 인사를 나눠보세요 💙';
-                const lastTime = conv?.last_at
-                  ? new Date(conv.last_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
-                  : '';
-                return (
-                  <TouchableOpacity key={m.id} style={s.convCard}
-                    onPress={() => navigation.navigate('FamilyChat', {
-                      userId, name,
-                      partnerId: m.id, partnerName: m.name, partnerRelation: m.relation,
-                    })}
-                    activeOpacity={0.85}>
-                    <View style={s.convAvatar}>
-                      <Text style={s.convAvatarTxt}>{RELATION_EMOJI[m.relation] || '👤'}</Text>
-                      {unread > 0 && (
-                        <View style={s.unreadDot}>
-                          <Text style={s.unreadDotTxt}>{unread}</Text>
-                        </View>
-                      )}
-                    </View>
-                    <View style={s.convBody}>
-                      <View style={s.convTopRow}>
-                        <Text style={s.convName}>
-                          {m.relation ? RELATION_LABEL[m.relation] : m.name} {m.relation ? m.name : ''}
-                        </Text>
-                        {lastTime ? <Text style={s.convTime}>{lastTime}</Text> : null}
-                      </View>
-                      <Text style={[s.convLast, unread > 0 && s.convLastUnread]}
-                        numberOfLines={1}>{lastMsg}</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={20} color="#C0C0C0" />
-                  </TouchableOpacity>
-                );
-              })
-            )
-          ) : tab === 'hosp' ? (
-            <>
-              {/* Hospital appointment */}
-              <Text style={s.hospSection}>🏥 병원 예약</Text>
-              {hospSchedule ? (
-                <View style={s.hospCard}>
-                  <View style={s.hospRow}><Text style={s.hospLabel}>날짜</Text><Text style={s.hospValue}>{hospSchedule.date}</Text></View>
-                  <View style={s.hospRow}><Text style={s.hospLabel}>시간</Text><Text style={s.hospValue}>{hospSchedule.time}</Text></View>
-                  <View style={s.hospRow}><Text style={s.hospLabel}>병원</Text><Text style={s.hospValue}>{hospSchedule.clinic}</Text></View>
-                  {!!hospSchedule.memo && (
-                    <View style={s.hospRow}><Text style={s.hospLabel}>메모</Text><Text style={s.hospValue}>{hospSchedule.memo}</Text></View>
-                  )}
-                  <View style={s.hospBtns}>
-                    <TouchableOpacity style={s.hospEditBtn}
-                      onPress={() => navigation.navigate('Health', { userId, name })}>
-                      <Text style={s.hospEditTxt}>✏️ 수정</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={s.hospDelBtn}
-                      onPress={() => Alert.alert('삭제', '병원 예약 정보를 삭제할까요?', [
-                        { text: '취소', style: 'cancel' },
-                        { text: '삭제', style: 'destructive', onPress: async () => {
-                          await AsyncStorage.removeItem('hospital_schedule');
-                          setHospSchedule(null);
-                        }},
-                      ])}>
-                      <Text style={s.hospDelTxt}>삭제</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : (
-                <View style={s.hospEmpty}>
-                  <Text style={s.hospEmptyTxt}>병원 예약 정보가 없어요</Text>
-                  <TouchableOpacity style={s.hospGoBtn}
-                    onPress={() => navigation.navigate('Health', { userId, name })}>
-                    <Text style={s.hospGoBtnTxt}>건강기록에서 입력하기</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
+          {feed.map((item, idx) => (
+            <TouchableOpacity
+              key={item.id}
+              style={s.feedCard}
+              onPress={item.onPress}
+              activeOpacity={item.onPress ? 0.75 : 1}
+            >
+              {/* 타임라인 선 */}
+              {idx < feed.length - 1 && <View style={s.timelineBar} />}
 
-              {/* Doctor memo */}
-              <Text style={[s.hospSection, { marginTop: 22 }]}>📋 의사 전달 메모</Text>
-              {doctorMemo ? (
-                <View style={s.hospCard}>
-                  {!!doctorMemoDate && <Text style={s.hospMemoDate}>{doctorMemoDate} 작성</Text>}
-                  {editingMemo ? (
-                    <>
-                      <TextInput
-                        style={s.hospMemoInput}
-                        value={editDoctorMemo}
-                        onChangeText={setEditDoctorMemo}
-                        multiline
-                        autoFocus
-                      />
-                      <View style={s.hospBtns}>
-                        <TouchableOpacity style={s.hospEditBtn}
-                          onPress={async () => {
-                            await AsyncStorage.setItem('doctor_memo', editDoctorMemo);
-                            setDoctorMemo(editDoctorMemo);
-                            setEditingMemo(false);
-                          }}>
-                          <Text style={s.hospEditTxt}>✅ 저장</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={s.hospDelBtn}
-                          onPress={() => { setEditingMemo(false); setEditDoctorMemo(doctorMemo); }}>
-                          <Text style={s.hospDelTxt}>취소</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </>
-                  ) : (
-                    <>
-                      <Text style={s.hospMemoText}>{doctorMemo}</Text>
-                      <View style={s.hospBtns}>
-                        <TouchableOpacity style={s.hospEditBtn}
-                          onPress={() => setEditingMemo(true)}>
-                          <Text style={s.hospEditTxt}>✏️ 수정</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={s.hospDelBtn}
-                          onPress={() => Alert.alert('삭제', '의사 메모를 삭제할까요?', [
-                            { text: '취소', style: 'cancel' },
-                            { text: '삭제', style: 'destructive', onPress: async () => {
-                              await AsyncStorage.multiRemove(['doctor_memo', 'doctor_memo_date']);
-                              setDoctorMemo(''); setEditDoctorMemo(''); setDoctorMemoDate('');
-                            }},
-                          ])}>
-                          <Text style={s.hospDelTxt}>삭제</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </>
-                  )}
-                </View>
-              ) : (
-                <View style={s.hospEmpty}>
-                  <Text style={s.hospEmptyTxt}>저장된 의사 메모가 없어요</Text>
-                  <TouchableOpacity style={s.hospGoBtn}
-                    onPress={() => navigation.navigate('AIChat', { userId, name })}>
-                    <Text style={s.hospGoBtnTxt}>AI 상담에서 메모 저장</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </>
-          ) : (
-            goals.length === 0 ? (
-              <View style={s.emptyBox}>
-                <Text style={s.emptyIcon}>🎯</Text>
-                <Text style={s.emptyTxt}>설정된 건강 목표가 없어요{'\n'}가족과 함께 목표를 정해보세요!</Text>
+              {/* 아이콘 */}
+              <View style={[s.feedIconWrap, { backgroundColor: item.iconBg }]}>
+                <Text style={s.feedIcon}>{item.icon}</Text>
               </View>
-            ) : (
-              goals.map((g: any) => {
-                const pct   = Math.min(100, Math.round(g.progress_pct || 0));
-                const color = pct >= 100 ? '#3DAB7B' : pct >= 60 ? '#F5A623' : '#2272B8';
-                const label = g.goal_type === 'steps' ? '걸음수 목표' : '건강 목표';
-                const icon  = g.goal_type === 'steps' ? '🚶' : '🎯';
-                return (
-                  <View key={g.id} style={s.goalCard}>
-                    <View style={s.goalTop}>
-                      <Text style={s.goalTitle}>{icon} {label}</Text>
-                      <View style={[s.goalPeriodBadge, { backgroundColor: color + '20' }]}>
-                        <Text style={[s.goalPeriodTxt, { color }]}>
-                          {g.period === 'daily' ? '오늘' : '이번 주'}
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={s.barBg}>
-                      <View style={[s.barFill, { width: `${pct}%` as any, backgroundColor: color }]} />
-                    </View>
-                    <View style={s.goalBottom}>
-                      <Text style={[s.goalPct, { color }]}>{pct}% 달성</Text>
-                      <Text style={s.goalTarget}>목표 {g.target?.toLocaleString()}보</Text>
-                    </View>
-                    {g.created_by && g.created_by !== userId && (
-                      <Text style={s.goalCheer}>가족이 응원하고 있어요 💙</Text>
-                    )}
+
+              {/* 내용 */}
+              <View style={s.feedBody}>
+                <View style={s.feedTitleRow}>
+                  <Text style={s.feedTitle} numberOfLines={1}>{item.title}</Text>
+                  <Text style={s.feedTime}>{item.time}</Text>
+                </View>
+                <Text style={s.feedDesc} numberOfLines={2}>{item.desc}</Text>
+
+                {item.type === 'message' && item.onPress && (
+                  <View style={s.feedAction}>
+                    <Text style={s.feedActionTxt}>답장하기</Text>
+                    <Ionicons name="chevron-forward" size={14} color="#3B82F6" />
                   </View>
-                );
-              })
-            )
-          )}
+                )}
+              </View>
+            </TouchableOpacity>
+          ))}
+
+          {/* 가족 연결하기 카드 */}
+          <TouchableOpacity style={s.addFamilyCard}
+            onPress={() => navigation.navigate('FamilyConnect', { userId, name, addMode: true })}>
+            <Ionicons name="add-circle-outline" size={24} color="#3B82F6" />
+            <Text style={s.addFamilyTxt}>가족 더 추가하기</Text>
+          </TouchableOpacity>
         </ScrollView>
       )}
 
-      {/* Relation modal */}
+      {/* 관계 설정 모달 */}
       <Modal visible={relModal} transparent animationType="slide">
         <View style={s.modalOverlay}>
           <View style={s.modalBox}>
             <Text style={s.modalTitle}>{relTarget?.name}님과의 관계</Text>
             <Text style={s.modalSub}>관계를 선택해 주세요</Text>
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <ScrollView showsVerticalScrollIndicator={false}>
               {RELATION_OPTIONS.map(opt => (
-                <TouchableOpacity key={opt.key} style={s.relOpt} onPress={() => saveRelation(opt)}>
+                <TouchableOpacity key={opt.key} style={s.relOpt}
+                  onPress={() => saveRelation(opt)}>
                   <Text style={s.relEmoji}>{opt.emoji}</Text>
                   <Text style={s.relLabel}>{opt.label}</Text>
                 </TouchableOpacity>
@@ -416,111 +331,120 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
       </Modal>
 
       <SeniorTabBar activeTab="" userId={userId} name={name} navigation={navigation} />
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
+function formatTime(ts: number): string {
+  const diff = Date.now() - ts;
+  const min  = Math.floor(diff / 60000);
+  const hr   = Math.floor(diff / 3600000);
+  const day  = Math.floor(diff / 86400000);
+  if (min < 1)   return '방금';
+  if (min < 60)  return `${min}분 전`;
+  if (hr < 24)   return `${hr}시간 전`;
+  if (day < 7)   return `${day}일 전`;
+  const d = new Date(ts);
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F0F5FB' },
+  root: { flex: 1, backgroundColor: '#F5F7FA' },
 
-  header:        { backgroundColor: '#1A4A8A', paddingHorizontal: 22, paddingBottom: 18,
-                   flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
-  headerTitle:   { fontSize: 30, fontWeight: '900', color: '#fff', marginBottom: 2 },
-  headerSub:     { fontSize: 18, color: 'rgba(255,255,255,0.82)' },
-  addFamilyBtn:  { backgroundColor: '#fff', borderRadius: 14, padding: 10 },
+  headerBg:   { paddingHorizontal: 20, paddingBottom: 16 },
+  headerRow:  { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 16 },
+  headerTitle:{ fontSize: 28, fontWeight: '900', color: '#fff' },
+  headerSub:  { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
+  addBtn:     { backgroundColor: '#fff', borderRadius: 14, padding: 10 },
 
-  chipBar:    { backgroundColor: '#1A4A8A', paddingBottom: 16 },
-  chipScroll: { paddingHorizontal: 16, gap: 10 },
-  chip:       { flexDirection: 'row', alignItems: 'center', gap: 8,
-                backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 30,
-                paddingHorizontal: 16, paddingVertical: 10,
-                borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.3)' },
-  chipEmoji: { fontSize: 24 },
+  chipScroll: { gap: 10, paddingBottom: 4 },
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 30, paddingHorizontal: 14, paddingVertical: 8,
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.3)',
+  },
+  chipEmoji: { fontSize: 22 },
   chipName:  { fontSize: 17, fontWeight: '700', color: '#fff' },
-  chipEdit:  { fontSize: 14, color: 'rgba(255,255,255,0.6)', fontWeight: '500' },
+  chipEdit:  { fontSize: 14, color: 'rgba(255,255,255,0.65)' },
 
-  tabRow:    { flexDirection: 'row', backgroundColor: '#fff',
-               borderBottomWidth: 1, borderBottomColor: '#E5E5EA' },
-  tabBtn:    { flex: 1, paddingVertical: 16, alignItems: 'center' },
-  tabBtnOn:  { borderBottomWidth: 3, borderBottomColor: '#1A4A8A' },
-  tabTxt:    { fontSize: 18, fontWeight: '600', color: '#90A4AE' },
-  tabTxtOn:  { color: '#1A4A8A', fontWeight: '800' },
+  loadBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
+  loadTxt: { fontSize: 18, color: '#90A4AE' },
 
-  loadBox:  { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, paddingTop: 60 },
-  loadTxt:  { fontSize: 18, color: '#90A4AE' },
-
-  content: { padding: 16, paddingBottom: 120 },
-
-  emptyBox:    { alignItems: 'center', paddingVertical: 60, gap: 16 },
-  emptyIcon:   { fontSize: 56 },
-  emptyTxt:    { fontSize: 20, color: '#90A4AE', textAlign: 'center', lineHeight: 32 },
-  emptyBtn:    { backgroundColor: '#1A4A8A', borderRadius: 18, paddingHorizontal: 28, paddingVertical: 16, marginTop: 8 },
+  emptyBox:  { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  emptyIcon: { fontSize: 64, marginBottom: 16 },
+  emptyTitle:{ fontSize: 24, fontWeight: '900', color: '#1E2D3D', marginBottom: 10 },
+  emptyDesc: { fontSize: 17, color: '#90A4AE', textAlign: 'center', lineHeight: 26, marginBottom: 28 },
+  emptyBtn:  {
+    backgroundColor: '#1A4A8A', borderRadius: 18,
+    paddingHorizontal: 28, paddingVertical: 18, minHeight: 64, justifyContent: 'center',
+  },
   emptyBtnTxt: { fontSize: 20, fontWeight: '800', color: '#fff' },
 
-  convCard:      { flexDirection: 'row', alignItems: 'center', gap: 16,
-                   backgroundColor: '#fff', borderRadius: 20, padding: 18, marginBottom: 12,
-                   shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
-  convAvatar:    { width: 58, height: 58, borderRadius: 29,
-                   backgroundColor: '#EBF3FB', alignItems: 'center', justifyContent: 'center',
-                   position: 'relative' },
-  convAvatarTxt: { fontSize: 28 },
-  unreadDot:     { position: 'absolute', top: -2, right: -2,
-                   backgroundColor: '#E53935', borderRadius: 10,
-                   minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center',
-                   paddingHorizontal: 5 },
-  unreadDotTxt:  { fontSize: 13, fontWeight: '900', color: '#fff' },
-  convBody:      { flex: 1 },
-  convTopRow:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 },
-  convName:      { fontSize: 20, fontWeight: '800', color: '#1E2D3D' },
-  convTime:      { fontSize: 15, color: '#B0BEC5' },
-  convLast:      { fontSize: 17, color: '#90A4AE', lineHeight: 24 },
-  convLastUnread:{ color: '#1E2D3D', fontWeight: '700' },
+  feedContent: { padding: 16, paddingBottom: 120 },
+  feedSectionLabel: {
+    fontSize: 13, fontWeight: '700', color: '#90A4AE',
+    textTransform: 'uppercase', letterSpacing: 0.5,
+    marginBottom: 16, marginLeft: 4,
+  },
 
-  goalCard:   { backgroundColor: '#fff', borderRadius: 20, padding: 22, marginBottom: 14,
-                shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
-  goalTop:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  goalTitle:  { fontSize: 22, fontWeight: '800', color: '#1E2D3D' },
-  goalPeriodBadge: { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 5 },
-  goalPeriodTxt:   { fontSize: 16, fontWeight: '700' },
-  barBg:      { height: 16, backgroundColor: '#EEF2F8', borderRadius: 8, overflow: 'hidden', marginBottom: 12 },
-  barFill:    { height: '100%', borderRadius: 8 },
-  goalBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  goalPct:    { fontSize: 24, fontWeight: '900' },
-  goalTarget: { fontSize: 17, color: '#90A4AE' },
-  goalCheer:  { fontSize: 17, color: '#2272B8', fontWeight: '600', marginTop: 10 },
+  feedCard: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 14,
+    backgroundColor: '#fff', borderRadius: 20,
+    padding: 18, marginBottom: 10,
+    shadowColor: '#000', shadowOpacity: 0.06,
+    shadowRadius: 8, elevation: 2,
+    position: 'relative',
+  },
+  timelineBar: {
+    position: 'absolute',
+    left: 33, top: 68,
+    width: 2, height: 18,
+    backgroundColor: '#E5E7EB',
+    zIndex: 0,
+  },
+  feedIconWrap: {
+    width: 48, height: 48, borderRadius: 24,
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  feedIcon: { fontSize: 22 },
+  feedBody: { flex: 1 },
+  feedTitleRow: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    justifyContent: 'space-between', gap: 8, marginBottom: 4,
+  },
+  feedTitle: { flex: 1, fontSize: 17, fontWeight: '800', color: '#1E2D3D' },
+  feedTime:  { fontSize: 13, fontWeight: '600', color: '#90A4AE', flexShrink: 0, marginTop: 1 },
+  feedDesc:  { fontSize: 15, color: '#6B7280', lineHeight: 22 },
+  feedAction: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    marginTop: 8,
+  },
+  feedActionTxt: { fontSize: 14, fontWeight: '700', color: '#3B82F6' },
 
-  hospSection:    { fontSize: 20, fontWeight: '800', color: '#1A4A8A', marginBottom: 10, marginTop: 4 },
-  hospCard:       { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 14,
-                    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
-  hospRow:        { flexDirection: 'row', gap: 12, marginBottom: 10, alignItems: 'flex-start' },
-  hospLabel:      { fontSize: 16, color: '#90A4AE', fontWeight: '600', width: 42 },
-  hospValue:      { fontSize: 18, color: '#1E2D3D', fontWeight: '700', flex: 1, lineHeight: 26 },
-  hospBtns:       { flexDirection: 'row', gap: 10, marginTop: 12 },
-  hospEditBtn:    { flex: 1, backgroundColor: '#1A4A8A', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
-  hospEditTxt:    { fontSize: 17, fontWeight: '800', color: '#fff' },
-  hospDelBtn:     { flex: 1, backgroundColor: '#FFEBEE', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
-  hospDelTxt:     { fontSize: 17, fontWeight: '800', color: '#C62828' },
-  hospEmpty:      { backgroundColor: '#fff', borderRadius: 20, padding: 28, alignItems: 'center', gap: 14,
-                    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
-  hospEmptyTxt:   { fontSize: 18, color: '#90A4AE', fontWeight: '600' },
-  hospGoBtn:      { backgroundColor: '#1A4A8A', borderRadius: 14, paddingHorizontal: 22, paddingVertical: 12 },
-  hospGoBtnTxt:   { fontSize: 16, fontWeight: '800', color: '#fff' },
-  hospMemoDate:   { fontSize: 15, color: '#90A4AE', marginBottom: 10, textAlign: 'center' },
-  hospMemoText:   { fontSize: 18, color: '#1E2D3D', lineHeight: 30, fontWeight: '500' },
-  hospMemoInput:  { fontSize: 18, color: '#1E2D3D', lineHeight: 30, backgroundColor: '#F5F5F5',
-                    borderRadius: 12, padding: 16, minHeight: 150, textAlignVertical: 'top',
-                    borderWidth: 2, borderColor: '#7B1FA2' },
+  addFamilyCard: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 10, padding: 20, marginTop: 8,
+    borderRadius: 18, borderWidth: 2,
+    borderColor: 'rgba(59,130,246,0.2)',
+    borderStyle: 'dashed', backgroundColor: '#F8FAFF',
+  },
+  addFamilyTxt: { fontSize: 18, fontWeight: '700', color: '#3B82F6' },
 
-  modalOverlay:   { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalBox:       { backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30,
-                    padding: 30, paddingBottom: 48, maxHeight: '80%' },
-  modalTitle:     { fontSize: 26, fontWeight: '900', color: '#1A4A8A', textAlign: 'center', marginBottom: 8 },
-  modalSub:       { fontSize: 18, color: '#90A4AE', textAlign: 'center', marginBottom: 22 },
-  relOpt:         { flexDirection: 'row', alignItems: 'center', gap: 18, backgroundColor: '#F5F8FF',
-                    borderRadius: 18, padding: 20, marginBottom: 10 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalBox: {
+    backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30,
+    padding: 30, paddingBottom: 48, maxHeight: '80%',
+  },
+  modalTitle:    { fontSize: 26, fontWeight: '900', color: '#1A4A8A', textAlign: 'center', marginBottom: 8 },
+  modalSub:      { fontSize: 18, color: '#90A4AE', textAlign: 'center', marginBottom: 22 },
+  relOpt: {
+    flexDirection: 'row', alignItems: 'center', gap: 18,
+    backgroundColor: '#F5F8FF', borderRadius: 18, padding: 20, marginBottom: 10,
+  },
   relEmoji:       { fontSize: 32 },
   relLabel:       { fontSize: 24, fontWeight: '700', color: '#2C2C2C' },
-  modalCancel:    { marginTop: 8, padding: 20, alignItems: 'center',
-                    backgroundColor: '#ECEFF1', borderRadius: 16 },
+  modalCancel:    { marginTop: 8, padding: 20, alignItems: 'center', backgroundColor: '#ECEFF1', borderRadius: 16 },
   modalCancelTxt: { fontSize: 22, color: '#546E7A', fontWeight: '700' },
 });
