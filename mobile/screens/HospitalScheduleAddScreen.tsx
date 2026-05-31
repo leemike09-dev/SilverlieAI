@@ -291,7 +291,7 @@ export default function HospitalScheduleAddScreen({ route, navigation }: any) {
         </View>
       </ScrollView>
 
-      <SeniorTabBar navigation={navigation} activeTab="schedule" userId={userId} name={name} />
+      <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={name} />
     </LinearGradient>
   );
 }

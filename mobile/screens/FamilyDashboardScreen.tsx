@@ -53,6 +53,13 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
   const [relModal,   setRelModal]    = useState(false);
   const [relTarget,  setRelTarget]   = useState<any>(null);
 
+  type StatusCard = { icon: string; iconBg: string; text: string; sub: string };
+  const [statusCards, setStatusCards] = useState<StatusCard[]>([
+    { icon: '📍', iconBg: '#E8F1FC', text: '위치 확인 중',   sub: '마지막 위치를 가져오는 중' },
+    { icon: '❤️', iconBg: '#FFE6DC', text: '혈압 정보 없음', sub: '아직 측정값이 없어요' },
+    { icon: '💊', iconBg: '#E6F4E2', text: '복약 정보 없음', sub: '약 목록을 추가해주세요' },
+  ]);
+
   useEffect(() => {
     (async () => {
       const uid   = (await AsyncStorage.getItem('userId'))   || route?.params?.userId || '';
@@ -64,9 +71,61 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
       const mems: any[] = stored ? JSON.parse(stored) : [];
       setMembers(mems);
 
-      await loadFeed(uid, mems);
+      await Promise.all([loadFeed(uid, mems), loadStatusCards(uid)]);
     })();
   }, []);
+
+  const loadStatusCards = async (uid: string) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const next = (prev: StatusCard[], idx: number, patch: Partial<StatusCard>) =>
+      prev.map((c, i) => i === idx ? { ...c, ...patch } : c);
+
+    // 혈압 — AsyncStorage health_records
+    try {
+      const raw = await AsyncStorage.getItem('health_records');
+      if (raw) {
+        const records: any[] = JSON.parse(raw);
+        const latest = records[0];
+        if (latest?.blood_pressure_systolic) {
+          const sys = latest.blood_pressure_systolic;
+          const dia = latest.blood_pressure_diastolic;
+          const isNormal = sys <= 130 && dia <= 85;
+          setStatusCards(prev => next(prev, 1, {
+            text: `혈압 ${sys}/${dia}${isNormal ? ', 모두 정상' : ''}`,
+            sub: latest.date === today ? '오늘 측정했어요' : '어제 측정했어요',
+          }));
+        }
+      }
+    } catch {}
+
+    // 약복용 — AsyncStorage medications (taken 플래그)
+    try {
+      const raw = await AsyncStorage.getItem('medications');
+      if (raw) {
+        const meds: any[] = JSON.parse(raw);
+        if (meds.length > 0) {
+          const taken = meds.filter(m => m.taken).length;
+          const total = meds.length;
+          setStatusCards(prev => next(prev, 2, {
+            text: taken === total ? '오늘 약 모두 복용 완료' : `오늘 약 ${taken}/${total}개 복용`,
+            sub: taken === total ? '잘 챙기고 계세요 💜' : `${total - taken}개 남았어요`,
+          }));
+        }
+      }
+    } catch {}
+
+    // 위치 — 서버 조회 (실패 시 무시)
+    try {
+      const res = await fetch(`${API}/location/current/${uid}`);
+      if (res.ok) {
+        const data = await res.json();
+        const locText = data?.address || (data?.lat ? '위치 공유 중' : null);
+        if (locText) {
+          setStatusCards(prev => next(prev, 0, { text: locText, sub: '방금 전 위치' }));
+        }
+      }
+    } catch {}
+  };
 
   const loadFeed = async (uid: string, mems: any[]) => {
     setLoading(true);
@@ -245,68 +304,80 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
         )}
       </LinearGradient>
 
-      {/* Activity Feed */}
-      {loading ? (
-        <View style={s.loadBox}>
-          <ActivityIndicator size="large" color="#1A4A8A" />
-          <Text style={s.loadTxt}>불러오는 중...</Text>
-        </View>
-      ) : feed.length === 0 ? (
-        /* 빈 상태 */
-        <View style={s.emptyBox}>
-          <Text style={s.emptyIcon}>👨‍👩‍👧‍👦</Text>
-          <Text style={s.emptyTitle}>아직 활동 내역이 없어요</Text>
-          <Text style={s.emptyDesc}>가족과 연결하면 건강 정보와{'\n'}메시지를 공유할 수 있어요</Text>
-          <TouchableOpacity style={s.emptyBtn}
-            onPress={() => navigation.navigate('FamilyConnect', { userId, name, addMode: true })}>
-            <Text style={s.emptyBtnTxt}>가족 연결하기</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <ScrollView contentContainerStyle={s.feedContent} showsVerticalScrollIndicator={false}>
-          <Text style={s.feedSectionLabel}>최근 활동</Text>
+      {/* 메인 스크롤 — 상태 요약 + 피드 통합 */}
+      <ScrollView contentContainerStyle={s.feedContent} showsVerticalScrollIndicator={false}>
 
-          {feed.map((item, idx) => (
-            <TouchableOpacity
-              key={item.id}
-              style={s.feedCard}
-              onPress={item.onPress}
-              activeOpacity={item.onPress ? 0.75 : 1}
-            >
-              {/* 타임라인 선 */}
-              {idx < feed.length - 1 && <View style={s.timelineBar} />}
-
-              {/* 아이콘 */}
-              <View style={[s.feedIconWrap, { backgroundColor: item.iconBg }]}>
-                <Text style={s.feedIcon}>{item.icon}</Text>
+        {/* ── 상태 요약 카드 3개 ── */}
+        <Text style={s.sectionLabel}>가족에게 보이는 내 상태</Text>
+        <View style={s.statusCardsWrap}>
+          {statusCards.map((card, idx) => (
+            <View key={idx} style={s.statusCard}>
+              <View style={[s.statusCardIcon, { backgroundColor: card.iconBg }]}>
+                <Text style={s.statusCardEmoji}>{card.icon}</Text>
               </View>
-
-              {/* 내용 */}
-              <View style={s.feedBody}>
-                <View style={s.feedTitleRow}>
-                  <Text style={s.feedTitle} numberOfLines={1}>{item.title}</Text>
-                  <Text style={s.feedTime}>{item.time}</Text>
-                </View>
-                <Text style={s.feedDesc} numberOfLines={2}>{item.desc}</Text>
-
-                {item.type === 'message' && item.onPress && (
-                  <View style={s.feedAction}>
-                    <Text style={s.feedActionTxt}>답장하기</Text>
-                    <Ionicons name="chevron-forward" size={14} color="#3B82F6" />
-                  </View>
-                )}
+              <View style={s.statusCardBody}>
+                <Text style={s.statusCardText} numberOfLines={1}>{card.text}</Text>
+                <Text style={s.statusCardSub}  numberOfLines={1}>{card.sub}</Text>
               </View>
-            </TouchableOpacity>
+            </View>
           ))}
+        </View>
 
-          {/* 가족 연결하기 카드 */}
-          <TouchableOpacity style={s.addFamilyCard}
-            onPress={() => navigation.navigate('FamilyConnect', { userId, name, addMode: true })}>
-            <Ionicons name="add-circle-outline" size={24} color="#3B82F6" />
-            <Text style={s.addFamilyTxt}>가족 더 추가하기</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      )}
+        {/* ── 활동 피드 ── */}
+        {loading ? (
+          <View style={s.loadBox}>
+            <ActivityIndicator size="large" color="#1A4A8A" />
+            <Text style={s.loadTxt}>불러오는 중...</Text>
+          </View>
+        ) : feed.length === 0 ? (
+          <View style={s.emptyBox}>
+            <Text style={s.emptyIcon}>👨‍👩‍👧‍👦</Text>
+            <Text style={s.emptyTitle}>아직 활동 내역이 없어요</Text>
+            <Text style={s.emptyDesc}>가족과 연결하면 건강 정보와{'\n'}메시지를 공유할 수 있어요</Text>
+            <TouchableOpacity style={s.emptyBtn}
+              onPress={() => navigation.navigate('FamilyConnect', { userId, name, addMode: true })}>
+              <Text style={s.emptyBtnTxt}>가족 연결하기</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <Text style={s.feedSectionLabel}>최근 활동</Text>
+
+            {feed.map((item, idx) => (
+              <TouchableOpacity
+                key={item.id}
+                style={s.feedCard}
+                onPress={item.onPress}
+                activeOpacity={item.onPress ? 0.75 : 1}
+              >
+                {idx < feed.length - 1 && <View style={s.timelineBar} />}
+                <View style={[s.feedIconWrap, { backgroundColor: item.iconBg }]}>
+                  <Text style={s.feedIcon}>{item.icon}</Text>
+                </View>
+                <View style={s.feedBody}>
+                  <View style={s.feedTitleRow}>
+                    <Text style={s.feedTitle} numberOfLines={1}>{item.title}</Text>
+                    <Text style={s.feedTime}>{item.time}</Text>
+                  </View>
+                  <Text style={s.feedDesc} numberOfLines={2}>{item.desc}</Text>
+                  {item.type === 'message' && item.onPress && (
+                    <View style={s.feedAction}>
+                      <Text style={s.feedActionTxt}>답장하기</Text>
+                      <Ionicons name="chevron-forward" size={14} color="#3B82F6" />
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity style={s.addFamilyCard}
+              onPress={() => navigation.navigate('FamilyConnect', { userId, name, addMode: true })}>
+              <Ionicons name="add-circle-outline" size={24} color="#3B82F6" />
+              <Text style={s.addFamilyTxt}>가족 더 추가하기</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </ScrollView>
 
       {/* 관계 설정 모달 */}
       <Modal visible={relModal} transparent animationType="slide">
@@ -368,10 +439,10 @@ const s = StyleSheet.create({
   chipName:  { fontSize: 17, fontWeight: '700', color: '#fff' },
   chipEdit:  { fontSize: 14, color: 'rgba(255,255,255,0.65)' },
 
-  loadBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
+  loadBox: { paddingVertical: 40, alignItems: 'center', justifyContent: 'center', gap: 16 },
   loadTxt: { fontSize: 18, color: '#90A4AE' },
 
-  emptyBox:  { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  emptyBox:  { paddingVertical: 40, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emptyIcon: { fontSize: 64, marginBottom: 16 },
   emptyTitle:{ fontSize: 24, fontWeight: '900', color: '#1E2D3D', marginBottom: 10 },
   emptyDesc: { fontSize: 17, color: '#90A4AE', textAlign: 'center', lineHeight: 26, marginBottom: 28 },
@@ -382,6 +453,30 @@ const s = StyleSheet.create({
   emptyBtnTxt: { fontSize: 20, fontWeight: '800', color: '#fff' },
 
   feedContent: { padding: 16, paddingBottom: 120 },
+
+  sectionLabel: {
+    fontSize: 13, fontWeight: '700', color: '#90A4AE',
+    textTransform: 'uppercase', letterSpacing: 0.5,
+    marginBottom: 10, marginLeft: 4,
+  },
+
+  // ── 상태 요약 카드 ──
+  statusCardsWrap: { gap: 10, marginBottom: 24 },
+  statusCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: '#fff', borderRadius: 18, padding: 16,
+    shadowColor: '#1C3C6E', shadowOpacity: 0.07,
+    shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 2,
+  },
+  statusCardIcon: {
+    width: 48, height: 48, borderRadius: 24,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  statusCardEmoji: { fontSize: 22 },
+  statusCardBody:  { flex: 1 },
+  statusCardText:  { fontSize: 17, fontWeight: '800', color: '#1E2D3D', marginBottom: 2 },
+  statusCardSub:   { fontSize: 14, fontWeight: '500', color: '#90A4AE' },
+
   feedSectionLabel: {
     fontSize: 13, fontWeight: '700', color: '#90A4AE',
     textTransform: 'uppercase', letterSpacing: 0.5,
