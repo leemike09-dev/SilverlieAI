@@ -445,6 +445,17 @@ gh run watch <run_id> --repo leemike09-dev/SilverlieAI
 빌드 → 배포까지 약 40~60초
 
 ---
+
+## 작업 규칙
+
+### Git 커밋 규칙
+- 화면 하나 완성할 때마다 자동으로 git commit
+- 커밋 메시지 형식: `feat: [화면명] 완료`
+- 예시: `feat: MedicationScreen 완료`
+- 커밋 전 반드시 빌드 에러 확인
+- 푸시는 명시적 지시 있을 때만
+
+---
 ---
 
 ## 미완성 / 추후작업 / 2차개발
