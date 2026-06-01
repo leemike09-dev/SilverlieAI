@@ -92,11 +92,13 @@ function TearEffect({ visible }: { visible: boolean }) {
 
 export default function MedicationScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
-  const [userId,   setUserId]   = useState('');
-  const [uname,    setUname]    = useState('');
-  const [meds,     setMeds]     = useState<any[]>([]);
-  const [addModal, setAddModal] = useState(false);
-  const [form,     setForm]     = useState<any>(EMPTY_FORM);
+  const [userId,    setUserId]   = useState('');
+  const [uname,     setUname]    = useState('');
+  const [meds,      setMeds]     = useState<any[]>([]);
+  const [addModal,  setAddModal] = useState(false);
+  const [form,      setForm]     = useState<any>(EMPTY_FORM);
+  const [editStrip, setEditStrip] = useState(false);
+  const [weekOverrides, setWeekOverrides] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const init = async () => {
@@ -124,6 +126,16 @@ export default function MedicationScreen({ navigation }: any) {
         } catch {}
       }
       await AsyncStorage.setItem('medications_date', today);
+
+      // 주간 override 로드
+      const overrideKeys = await AsyncStorage.getAllKeys().catch(() => [] as string[]);
+      const medOverrideKeys = overrideKeys.filter(k => k.startsWith(`medication-override.${uid}.`));
+      if (medOverrideKeys.length > 0) {
+        const pairs = await AsyncStorage.multiGet(medOverrideKeys);
+        const map: Record<string, string> = {};
+        pairs.forEach(([k, v]) => { if (v) map[k.split('.').pop()!] = v; });
+        setWeekOverrides(map);
+      }
 
       if (!isDemo(uid)) {
         try {
@@ -306,6 +318,73 @@ export default function MedicationScreen({ navigation }: any) {
               <View style={s.bubbleTail} />
             </View>
           </View>
+
+          {/* ── 주간 복용 스트립 ── */}
+          {total > 0 && (
+            <View style={s.stripCard}>
+              <View style={s.stripHeader}>
+                <Text style={s.stripTitle}>이번 주 복용 기록</Text>
+                <TouchableOpacity onPress={() => setEditStrip(e => !e)}>
+                  <Text style={s.stripEditBtn}>{editStrip ? '완료' : '편집'}</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={s.stripRow}>
+                {Array.from({ length: 7 }).map((_, i) => {
+                  const d = new Date();
+                  d.setDate(d.getDate() - 6 + i);
+                  const dateStr = d.toISOString().slice(0, 10);
+                  const today = new Date().toISOString().slice(0, 10);
+                  const isFuture = dateStr > today;
+                  const isToday = dateStr === today;
+                  const dayLabel = ['일', '월', '화', '수', '목', '금', '토'][d.getDay()];
+
+                  let status: 'all' | 'partial' | 'none' | 'future' = 'future';
+                  if (!isFuture) {
+                    if (weekOverrides[dateStr]) {
+                      status = weekOverrides[dateStr] as any;
+                    } else if (isToday) {
+                      if (total === 0) status = 'none';
+                      else if (takenCnt === total) status = 'all';
+                      else if (takenCnt > 0) status = 'partial';
+                      else status = 'none';
+                    } else {
+                      status = 'none';
+                    }
+                  }
+
+                  const dotColor = status === 'all' ? '#3BA559' : status === 'partial' ? '#F58A4D' : status === 'none' ? '#E5453C' : '#EAEDF2';
+                  const dotLabel = status === 'all' ? '✓' : status === 'partial' ? '!' : status === 'none' ? '✕' : '—';
+
+                  return (
+                    <TouchableOpacity
+                      key={dateStr}
+                      style={[s.stripDay, isToday && s.stripDayToday]}
+                      onPress={() => {
+                        if (!editStrip || isFuture) return;
+                        const cycle: Record<string, string> = { all: 'partial', partial: 'none', none: 'all' };
+                        const cur = weekOverrides[dateStr] || (isToday ? (takenCnt === total ? 'all' : takenCnt > 0 ? 'partial' : 'none') : 'none');
+                        const next = cycle[cur] || 'all';
+                        const updated = { ...weekOverrides, [dateStr]: next };
+                        setWeekOverrides(updated);
+                        AsyncStorage.setItem(`medication-override.${userId}.${dateStr}`, next).catch(() => {});
+                      }}
+                      activeOpacity={editStrip && !isFuture ? 0.6 : 1}
+                    >
+                      <Text style={s.stripDayLabel}>{dayLabel}</Text>
+                      <View style={[s.stripDot, { backgroundColor: dotColor }]}>
+                        <Text style={s.stripDotLabel}>{dotLabel}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <View style={s.stripLegend}>
+                <View style={s.legendItem}><View style={[s.legendDot, { backgroundColor: '#3BA559' }]} /><Text style={s.legendTxt}>모두 복용</Text></View>
+                <View style={s.legendItem}><View style={[s.legendDot, { backgroundColor: '#F58A4D' }]} /><Text style={s.legendTxt}>일부 누락</Text></View>
+                <View style={s.legendItem}><View style={[s.legendDot, { backgroundColor: '#E5453C' }]} /><Text style={s.legendTxt}>미복용</Text></View>
+              </View>
+            </View>
+          )}
 
           {/* ── 약 없을 때 ── */}
           {total === 0 && (
@@ -497,6 +576,23 @@ const s = StyleSheet.create({
   // 스크롤
   scroll:  { flex: 1 },
   content: { padding: 16, paddingBottom: 120 },
+
+  // 주간 스트립
+  stripCard: { backgroundColor: '#fff', borderRadius: 20, padding: 16, marginBottom: 16,
+               shadowColor: '#1C3C6E', shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width:0, height:3 }, elevation: 2 },
+  stripHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  stripTitle:  { fontSize: 17, fontWeight: '800', color: '#1E2D3D' },
+  stripEditBtn:{ fontSize: 15, fontWeight: '700', color: '#3B82F6' },
+  stripRow:    { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  stripDay:    { alignItems: 'center', gap: 6, flex: 1 },
+  stripDayToday: { },
+  stripDayLabel: { fontSize: 12, fontWeight: '700', color: '#7E8AA1' },
+  stripDot:    { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  stripDotLabel: { fontSize: 13, fontWeight: '900', color: '#fff' },
+  stripLegend: { flexDirection: 'row', gap: 14, justifyContent: 'center', borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 10 },
+  legendItem:  { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legendDot:   { width: 10, height: 10, borderRadius: 5 },
+  legendTxt:   { fontSize: 12, fontWeight: '600', color: '#7E8AA1' },
 
   // 루미 말풍선
   lumiRow:   { flexDirection: 'row', alignItems: 'center', marginBottom: 20, paddingHorizontal: 4 },
