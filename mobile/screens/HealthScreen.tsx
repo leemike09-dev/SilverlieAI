@@ -75,6 +75,8 @@ export default function HealthScreen({ route, navigation }: any) {
   const [todayRecord, setTodayRecord] = useState<HealthRecord | null>(null);
   const [modalType, setModalType] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState('');
+  const [bpSys, setBpSys] = useState('');
+  const [bpDia, setBpDia] = useState('');
 
   const todayKey = new Date().toISOString().slice(0, 10);
 
@@ -97,7 +99,18 @@ export default function HealthScreen({ route, navigation }: any) {
   };
 
   const handleSaveMeasurement = async () => {
-    if (!inputValue.trim()) {
+    if (modalType === 'bp') {
+      const sys = Number(bpSys);
+      const dia = Number(bpDia);
+      if (!bpSys || !bpDia || isNaN(sys) || isNaN(dia)) {
+        Alert.alert('', '수축기와 이완기를 모두 입력해주세요');
+        return;
+      }
+      if (sys < 60 || sys > 250 || dia < 40 || dia > 150) {
+        Alert.alert('', '혈압 범위를 확인해주세요\n수축기 60~250, 이완기 40~150');
+        return;
+      }
+    } else if (!inputValue.trim()) {
       Alert.alert('', '값을 입력해주세요');
       return;
     }
@@ -121,9 +134,8 @@ export default function HealthScreen({ route, navigation }: any) {
       }
 
       if (modalType === 'bp') {
-        const [sys, dia] = inputValue.split('/').map(Number);
-        updated.blood_pressure_systolic = sys;
-        updated.blood_pressure_diastolic = dia;
+        updated.blood_pressure_systolic = Number(bpSys);
+        updated.blood_pressure_diastolic = Number(bpDia);
       } else if (modalType === 'sg') {
         updated.blood_sugar = Number(inputValue);
       } else if (modalType === 'sl') {
@@ -150,6 +162,8 @@ export default function HealthScreen({ route, navigation }: any) {
       setTodayRecord(updated);
       setModalType(null);
       setInputValue('');
+      setBpSys('');
+      setBpDia('');
       Alert.alert('', '저장되었습니다');
     } catch (e) {
       Alert.alert('오류', '저장에 실패했습니다');
@@ -270,14 +284,19 @@ export default function HealthScreen({ route, navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        {/* Metrics - Steps (자동 측정, 버튼 없음) */}
+        {/* Metrics - Steps (자동 측정) */}
         <View style={s.metricCard}>
           <View style={s.metricTopRow}>
             <View style={[s.metricIconBox, { backgroundColor: ORANGE_BG }]}>
               <Text style={s.metricIcon}>🚶</Text>
             </View>
             <View style={s.metricContent}>
-              <Text style={s.metricLabel}>걸음수</Text>
+              <View style={s.stepsLabelRow}>
+                <Text style={s.metricLabel}>걸음수</Text>
+                <View style={s.autoBadge}>
+                  <Text style={s.autoBadgeText}>🟢 자동 측정 중</Text>
+                </View>
+              </View>
               {todayRecord?.steps ? (
                 <>
                   <Text style={s.metricValue}>
@@ -287,10 +306,10 @@ export default function HealthScreen({ route, navigation }: any) {
                   <View style={s.stepsProgress}>
                     <View style={[s.progressBar, { width: `${Math.min(todayRecord.steps / 8000 * 100, 100)}%` as any }]} />
                   </View>
-                  <Text style={s.progressText}>목표 8000보 · {Math.round(todayRecord.steps / 80)}%</Text>
+                  <Text style={s.progressText}>목표까지 {Math.max(0, 8000 - todayRecord.steps).toLocaleString()}보 남았어요</Text>
                 </>
               ) : (
-                <Text style={s.emptyValue}>자동 측정 중</Text>
+                <Text style={s.emptyValue}>걸을 때마다 자동으로 세어요</Text>
               )}
             </View>
           </View>
@@ -364,25 +383,62 @@ export default function HealthScreen({ route, navigation }: any) {
         <View style={s.modalOverlay}>
           <View style={s.modalContent}>
             <Text style={s.modalTitle}>
-              {modalType === 'bp' ? '혈압을 입력해주세요' :
-               modalType === 'sg' ? '혈당을 입력해주세요' :
-               '수면 시간을 입력해주세요'}
+              {modalType === 'bp' ? '혈압 측정값' :
+               modalType === 'sg' ? '혈당 측정값' : '수면 시간'}
             </Text>
-            <Text style={s.modalHint}>
-              {modalType === 'bp' ? '수축기/이완기 (예: 120/80)' :
-               modalType === 'sg' ? '혈당 수치 (예: 120)' :
-               '수면 시간 (예: 7.5)'}
-            </Text>
-            <TextInput
-              style={s.modalInput}
-              placeholder={modalType === 'bp' ? '120/80' : modalType === 'sg' ? '120' : '7.5'}
-              keyboardType="decimal-pad"
-              value={inputValue}
-              onChangeText={setInputValue}
-              autoFocus
-            />
+
+            {modalType === 'bp' ? (
+              <>
+                <Text style={s.modalHint}>수축기(위)와 이완기(아래)를 따로 입력해주세요</Text>
+                <View style={s.bpRow}>
+                  <View style={s.bpField}>
+                    <Text style={s.bpFieldLabel}>수축기</Text>
+                    <TextInput
+                      style={s.bpInput}
+                      placeholder="120"
+                      keyboardType="numeric"
+                      maxLength={3}
+                      value={bpSys}
+                      onChangeText={setBpSys}
+                      autoFocus
+                    />
+                    <Text style={s.bpFieldUnit}>mmHg</Text>
+                  </View>
+                  <Text style={s.bpSlash}>/</Text>
+                  <View style={s.bpField}>
+                    <Text style={s.bpFieldLabel}>이완기</Text>
+                    <TextInput
+                      style={s.bpInput}
+                      placeholder="80"
+                      keyboardType="numeric"
+                      maxLength={3}
+                      value={bpDia}
+                      onChangeText={setBpDia}
+                    />
+                    <Text style={s.bpFieldUnit}>mmHg</Text>
+                  </View>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={s.modalHint}>
+                  {modalType === 'sg' ? '혈당 수치 (예: 120)' : '수면 시간 (예: 7.5)'}
+                </Text>
+                <TextInput
+                  style={s.modalInput}
+                  placeholder={modalType === 'sg' ? '120' : '7.5'}
+                  keyboardType="decimal-pad"
+                  value={inputValue}
+                  onChangeText={setInputValue}
+                  autoFocus
+                />
+              </>
+            )}
+
             <View style={s.modalButtons}>
-              <TouchableOpacity style={s.btnCancel} onPress={() => { setModalType(null); setInputValue(''); }}>
+              <TouchableOpacity style={s.btnCancel} onPress={() => {
+                setModalType(null); setInputValue(''); setBpSys(''); setBpDia('');
+              }}>
                 <Text style={s.btnCancelText}>취소</Text>
               </TouchableOpacity>
               <TouchableOpacity style={s.btnSave} onPress={handleSaveMeasurement}>
@@ -554,6 +610,24 @@ const s = StyleSheet.create({
     fontWeight: '600',
     color: INK_MUTE,
   },
+
+  stepsLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  autoBadge: {
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
+    backgroundColor: '#E6F4E2',
+  },
+  autoBadgeText: { fontSize: 11, fontWeight: '700', color: '#1F7A3A' },
+
+  bpRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20, width: '100%' },
+  bpField: { flex: 1, alignItems: 'center' },
+  bpFieldLabel: { fontSize: 14, fontWeight: '700', color: INK_SOFT, marginBottom: 6 },
+  bpInput: {
+    width: '100%', paddingVertical: 12, paddingHorizontal: 8,
+    borderRadius: 10, borderWidth: 1.5, borderColor: '#d1d5db',
+    fontSize: 26, fontWeight: '800', color: INK, textAlign: 'center',
+  },
+  bpFieldUnit: { fontSize: 12, fontWeight: '600', color: INK_MUTE, marginTop: 4 },
+  bpSlash: { fontSize: 32, fontWeight: '300', color: INK_MUTE, marginTop: 8 },
 
   stepsProgress: {
     height: 6,
