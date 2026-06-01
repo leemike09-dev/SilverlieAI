@@ -134,7 +134,6 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   const handleMoodSelect = async (moodIndex: number) => {
     setTodayMood(moodIndex);
     await AsyncStorage.setItem(`mood.${userId}.${todayKey}`, String(moodIndex));
-    Alert.alert('', MOOD_LABEL[moodIndex] + '는 공감합니다 ❤️', [{ text: '닫기' }]);
   };
 
   const now = new Date();
@@ -170,16 +169,9 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
         {/* 기분 체크인 */}
         <View style={[s.card, { backgroundColor: '#fff' }]}>
-          <View style={s.moodHeader}>
-            <Text style={s.cardTitle}>💭 오늘 기분</Text>
-            {todayMood !== null && (
-              <View style={[s.moodSelected, { backgroundColor: MOOD_BG[todayMood] }]}>
-                <Text style={s.moodSelectedTxt}>{MOOD_LABEL[todayMood]}</Text>
-              </View>
-            )}
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}
-            contentContainerStyle={s.moodRow}>
+          <Text style={s.cardTitle}>💭 오늘 기분</Text>
+          <Text style={s.moodSubLabel}>오늘 마음은 어떠세요?</Text>
+          <View style={s.moodRow}>
             {MOOD_EMOJI.map((emoji, idx) => {
               const active = todayMood === idx;
               return (
@@ -196,7 +188,25 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
                 </TouchableOpacity>
               );
             })}
-          </ScrollView>
+          </View>
+
+          {/* 부정 기분 선택 시 AIChat 유도 */}
+          {todayMood !== null && todayMood >= 3 && (
+            <View style={s.moodChatBox}>
+              <Image source={require('../assets/lumi-worried.png')} style={s.moodLumi} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.moodChatText}>왜 그런 기분이 드는지{'\n'}말해 주실래요?</Text>
+                <TouchableOpacity
+                  style={s.moodChatBtn}
+                  onPress={() => navigation.navigate('AIChat', {
+                    userId, name,
+                    seedMood: MOOD_LABEL[todayMood],
+                  })}>
+                  <Text style={s.moodChatBtnText}>루미와 이야기하기</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* 병원 일정 카드 */}
@@ -407,35 +417,35 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
 
-  moodHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  moodSelected: {
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  moodSelectedTxt: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: INK,
+  moodSubLabel: {
+    fontSize: 16, fontWeight: '600', color: INK_MUTE, marginBottom: 14,
   },
   moodRow: {
-    gap: 10,
-    paddingRight: 4,
-    paddingBottom: 4,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
+  moodChatBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#F3EEF8', borderRadius: 16, padding: 14, marginTop: 16,
+  },
+  moodLumi:    { width: 52, height: 52, resizeMode: 'contain' },
+  moodChatText:{ fontSize: 15, fontWeight: '600', color: INK, lineHeight: 22, marginBottom: 10 },
+  moodChatBtn: {
+    backgroundColor: '#7C5BE3', borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 10, alignSelf: 'flex-start',
+  },
+  moodChatBtnText: { fontSize: 15, fontWeight: '800', color: '#fff' },
   moodBtn: {
-    width: 76,
-    height: 88,
-    borderRadius: 20,
+    flex: 1,
+    minWidth: 0,
+    height: 80,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
+    marginHorizontal: 2,
   },
   moodBtnActive: {
     borderColor: INK,
