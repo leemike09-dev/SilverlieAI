@@ -352,7 +352,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    minHeight: 56,
+    minHeight: 64,
     borderRadius: 16,
   },
   btnOutline: {

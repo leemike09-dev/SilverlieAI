@@ -570,7 +570,7 @@ const s = StyleSheet.create({
   headerTitle: { fontSize: 26, fontWeight: '900', color: '#fff' },
   addBtn:    { backgroundColor: '#fff', borderRadius: 16,
                paddingHorizontal: 20, paddingVertical: 12,
-               minHeight: 48, justifyContent: 'center' },
+               minHeight: 64, justifyContent: 'center' },
   addBtnTxt: { fontSize: 18, fontWeight: '800', color: GREEN },
 
   // 스크롤

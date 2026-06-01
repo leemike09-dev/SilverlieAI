@@ -186,7 +186,7 @@ async function readHealthRecords7d(): Promise<any[]> {
 export default function AIChatScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { language } = useLanguage();
-  const { name = '회원', userId = '' } = route?.params ?? {};
+  const { name = '회원', userId = '', seedMood = '' } = route?.params ?? {};
 
   const [messages,     setMessages]     = useState<Msg[]>([]);
   const [history,      setHistory]      = useState<HistoryItem[]>([]);
@@ -291,7 +291,18 @@ export default function AIChatScreen({ route, navigation }: Props) {
       }
     });
 
-    fetchProactiveGreeting();
+    // 기분 seed: 홈 기분 체크인에서 부정 기분 선택 후 진입
+    if (seedMood) {
+      setTimeout(() => {
+        addMsg({
+          role: 'ai',
+          text: `${name}님, ${seedMood}이라고 하셨군요. 마음이 좀 무거우시겠어요 💜\n어떤 일이 있으셨는지 편하게 말씀해 주세요. 제가 잘 들을게요.`,
+          riskLevel: 'low',
+        });
+      }, 400);
+    } else {
+      fetchProactiveGreeting();
+    }
 
     // 날씨 조회: getLastKnownPositionAsync로 즉시 반환 (GPS 대기 없음)
     (async () => {
