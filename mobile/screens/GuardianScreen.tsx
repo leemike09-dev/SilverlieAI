@@ -13,8 +13,8 @@ import * as Linking from 'expo-linking';
 const BLUE     = '#3B82F6';
 const GREEN    = '#22C55E';
 const RED      = '#EF4444';
-const SKY_FROM = '#CDE3F4';
-const SKY_TO   = '#F1F7FC';
+const APP_BG_TOP = '#F1ECE4';
+const APP_BG_BOT = '#FBF8F3';
 const INK      = '#0F1B2D';
 const INK_SOFT = '#3D4B62';
 const INK_MUTE = '#7E8AA1';
@@ -100,7 +100,7 @@ export default function GuardianScreen({ route, navigation }: any) {
   };
 
   return (
-    <LinearGradient colors={[SKY_FROM, SKY_TO]} style={s.root}>
+    <LinearGradient colors={[APP_BG_TOP, APP_BG_BOT]} style={s.root}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>

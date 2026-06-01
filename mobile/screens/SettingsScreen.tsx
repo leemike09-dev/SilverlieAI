@@ -15,8 +15,8 @@ const BLUE       = '#3B82F6';
 const ORANGE     = '#F58A4D';
 const PURPLE     = '#7C5BE3';
 const RED        = '#E5453C';
-const SKY_FROM   = '#CDE3F4';
-const SKY_TO     = '#F1F7FC';
+const APP_BG_TOP = '#F1ECE4';
+const APP_BG_BOT = '#FBF8F3';
 const INK        = '#0F1B2D';
 const INK_SOFT   = '#3D4B62';
 const INK_MUTE   = '#7E8AA1';
@@ -92,7 +92,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
   const currentSample = FONT_OPTIONS.find(f => f.key === fontSize)?.sample ?? 18;
 
   return (
-    <LinearGradient colors={[SKY_FROM, SKY_TO]} style={s.root}>
+    <LinearGradient colors={[APP_BG_TOP, APP_BG_BOT]} style={s.root}>
       <ScrollView showsVerticalScrollIndicator={false}
         contentContainerStyle={[s.scroll, { paddingTop: Math.max(insets.top + 8, 24) }]}>
 
