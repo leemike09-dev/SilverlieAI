@@ -3,7 +3,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-type TabKey = 'home' | 'health' | 'med' | 'settings' | '';
+type TabKey = 'home' | 'health' | 'sched' | 'med' | 'set' | '';
 
 type Props = {
   navigation: any;
@@ -13,10 +13,11 @@ type Props = {
 };
 
 const TABS: { icon: keyof typeof Ionicons.glyphMap; lbl: string; screen: string; key: TabKey }[] = [
-  { icon: 'home-outline',      lbl: '홈',    screen: 'SeniorHome', key: 'home'     },
-  { icon: 'bar-chart-outline', lbl: '건강',  screen: 'Health',     key: 'health'   },
-  { icon: 'medkit-outline',    lbl: '약관리', screen: 'Medication', key: 'med'      },
-  { icon: 'settings-outline',  lbl: '설정',  screen: 'Settings',   key: 'settings' },
+  { icon: 'home-outline',      lbl: '홈',   screen: 'SeniorHome',      key: 'home'  },
+  { icon: 'bar-chart-outline', lbl: '건강', screen: 'Health',           key: 'health'},
+  { icon: 'calendar-outline',  lbl: '일정', screen: 'HospitalSchedule', key: 'sched' },
+  { icon: 'medkit-outline',    lbl: '약',   screen: 'Medication',       key: 'med'   },
+  { icon: 'settings-outline',  lbl: '설정', screen: 'Settings',         key: 'set'   },
 ];
 
 export default function SeniorTabBar({ navigation, activeTab, userId, name }: Props) {

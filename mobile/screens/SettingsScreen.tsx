@@ -206,7 +206,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
         <Text style={s.version}>Silver Life AI v1.0.0</Text>
       </ScrollView>
 
-      <SeniorTabBar navigation={navigation} activeTab="settings" userId={userId} name={name} />
+      <SeniorTabBar navigation={navigation} activeTab="set" userId={userId} name={name} />
 
       {/* Modals */}
       <TextModal visible={termsModal} title="서비스 이용약관"

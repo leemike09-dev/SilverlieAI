@@ -153,7 +153,7 @@ export default function HospitalScheduleScreen({ route, navigation }: any) {
         </TouchableOpacity>
       </ScrollView>
 
-      <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={name} />
+      <SeniorTabBar navigation={navigation} activeTab="sched" userId={userId} name={name} />
     </LinearGradient>
   );
 }
@@ -204,7 +204,7 @@ function EmptyState({ userId, name, navigation, insets }: any) {
         </View>
       </ScrollView>
 
-      <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={name} />
+      <SeniorTabBar navigation={navigation} activeTab="sched" userId={userId} name={name} />
     </LinearGradient>
   );
 }
