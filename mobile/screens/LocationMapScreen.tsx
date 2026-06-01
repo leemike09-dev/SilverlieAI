@@ -1,26 +1,81 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import {
+  View, Text, TouchableOpacity, StyleSheet, ScrollView,
+  Alert, ActivityIndicator, StatusBar,
+} from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Linking from 'expo-linking';
 
-const BACKEND = 'https://silverlieai.onrender.com';
-
-const C = {
-  bg: '#FDFAF6', card: '#FFFFFF', sage: '#6BAE8F',
-  peach: '#F4956A', red: '#E05C5C', text: '#2C2C2C',
-  sub: '#6A6A6A', line: '#E8E4DF', sky: '#4A90C8', navy: '#1A4A8A',
-};
+const APP_BG_TOP = '#F1ECE4';
+const APP_BG_BOT = '#FBF8F3';
+const GREEN     = '#3BA559';
+const GREEN_DK  = '#1F7A3A';
+const GREEN_BG  = '#E6F4E2';
+const INK       = '#0F1B2D';
+const INK_SOFT  = '#3D4B62';
+const INK_MUTE  = '#7E8AA1';
+const BACKEND   = 'https://silverlieai.onrender.com';
 
 export default function LocationMapScreen({ route, navigation }: any) {
-  const insets      = useSafeAreaInsets();
-  const userId      = route?.params?.userId     || '';
-  const [fullscreen, setFullscreen] = useState(false);
-  const [liveData,  setLiveData]    = useState<{logs: any[], total_distance_m: number, point_count: number}>({ logs: [], total_distance_m: 0, point_count: 0 });
-  const [homeSet,   setHomeSet]     = useState(false);
+  const insets = useSafeAreaInsets();
+  const userId = route?.params?.userId || '';
+  const name   = route?.params?.name   || '';
+
+  const [address,    setAddress]    = useState('위치 확인 중...');
+  const [addrDetail, setAddrDetail] = useState('');
+  const [homeSet,    setHomeSet]    = useState(false);
   const [settingHome, setSettingHome] = useState(false);
-  const webViewRef  = useRef<WebView>(null);
+  const [sharingLoc,  setSharingLoc]  = useState(false);
+  const [liveData,   setLiveData]   = useState<{ logs: any[]; total_distance_m: number; point_count: number }>({
+    logs: [], total_distance_m: 0, point_count: 0,
+  });
+  const webViewRef = useRef<WebView>(null);
+
+  useEffect(() => {
+    if (!userId || userId === 'guest') return;
+    AsyncStorage.getItem('home_set').then(v => { if (v === '1') setHomeSet(true); });
+    fetchLocation();
+    fetchStats();
+  }, [userId]);
+
+  const fetchLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+
+      // 역지오코딩
+      const geo = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+      if (geo.length > 0) {
+        const g = geo[0];
+        const city   = g.city || g.subregion || '';
+        const dist   = g.district || g.subregion || '';
+        const street = g.street || '';
+        setAddress(`${city} ${dist}`.trim() || '위치 확인됨');
+        setAddrDetail(street || '');
+      }
+
+      // AsyncStorage 저장 (가족 대시보드가 읽는 키와 동일)
+      await AsyncStorage.setItem(
+        `location.${userId}.current`,
+        JSON.stringify({ lat, lng, address, updatedAt: new Date().toISOString() })
+      );
+
+      // 서버 업데이트
+      await fetch(`${BACKEND}/location/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, lat, lng, activity: 'unknown' }),
+      }).catch(() => {});
+      setTimeout(() => { webViewRef.current?.reload(); fetchStats(); }, 2000);
+    } catch {}
+  };
 
   const fetchStats = async () => {
     try {
@@ -30,238 +85,233 @@ export default function LocationMapScreen({ route, navigation }: any) {
     } catch {}
   };
 
-  useEffect(() => {
-    if (!userId || userId === 'guest') return;
-    // 집 설정 여부 확인
-    AsyncStorage.getItem('home_set').then(v => { if (v === '1') setHomeSet(true); });
-    fetchStats();
-    (async () => {
-      try {
-        const { status } = await Location.getForegroundPermissionsAsync();
-        if (status !== 'granted') return;
-        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        await fetch(`${BACKEND}/location/update`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: userId,
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            activity: 'unknown',
-          }),
-        });
-        setTimeout(() => { webViewRef.current?.reload(); fetchStats(); }, 2500);
-      } catch {}
-    })();
-  }, [userId]);
+  const handleShareLocation = async () => {
+    setSharingLoc(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') { Alert.alert('알림', '위치 권한이 필요합니다.'); return; }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const geo = await Location.reverseGeocodeAsync({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+      const addr = geo[0] ? `${geo[0].city || ''} ${geo[0].district || ''}`.trim() : '현재 위치';
 
-  const handleSetHome = async () => {
-    Alert.alert(
-      '🏡 집 위치 설정',
-      '지금 계신 곳을 집으로 등록할까요?\n앞으로 이 위치를 기준으로 외출을 판단합니다.',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '집으로 설정', onPress: async () => {
-            setSettingHome(true);
-            try {
-              const { status } = await Location.requestForegroundPermissionsAsync();
-              if (status !== 'granted') {
-                Alert.alert('알림', '위치 권한이 필요합니다.'); return;
-              }
-              const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-              const res = await fetch(`${BACKEND}/location/set-home`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  user_id: userId,
-                  lat: pos.coords.latitude,
-                  lng: pos.coords.longitude,
-                }),
-              });
-              if (res.ok) {
-                await AsyncStorage.setItem('home_set', '1');
-                setHomeSet(true);
-                // 집 설정 직후 위치를 즉시 재전송해서 home/outdoor 재평가
-                await fetch(`${BACKEND}/location/update`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    user_id: userId,
-                    lat: pos.coords.latitude,
-                    lng: pos.coords.longitude,
-                    activity: 'unknown',
-                    force: true,
-                  }),
-                });
-                setTimeout(() => { webViewRef.current?.reload(); fetchStats(); }, 1500);
-                Alert.alert('완료', '집 위치가 등록되었습니다!\n이제 외출/귀가가 정확하게 표시됩니다.');
-              } else {
-                Alert.alert('오류', '저장에 실패했습니다. 다시 시도해 주세요.');
-              }
-            } catch {
-              Alert.alert('오류', '위치를 가져오지 못했습니다.');
-            } finally {
-              setSettingHome(false);
-            }
-          },
-        },
-      ],
-    );
+      await AsyncStorage.setItem(
+        `location.${userId}.current`,
+        JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude, address: addr, updatedAt: new Date().toISOString() })
+      );
+      await fetch(`${BACKEND}/location/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, lat: pos.coords.latitude, lng: pos.coords.longitude, activity: 'unknown', share: true }),
+      }).catch(() => {});
+
+      setAddress(addr);
+      Alert.alert('완료', '가족에게 현재 위치를 알렸어요 📍');
+      webViewRef.current?.reload();
+      fetchStats();
+    } catch {
+      Alert.alert('오류', '위치를 가져오지 못했습니다.');
+    } finally {
+      setSharingLoc(false);
+    }
   };
 
-  const logs            = liveData.logs;
-  const totalDist       = liveData.total_distance_m;
-  const distStr         = totalDist >= 1000 ? `${(totalDist / 1000).toFixed(1)}km` : `${totalDist}m`;
-  const outdoorLogs     = logs.filter((l: any) => l.activity === 'outdoor');
-  const currentActivity = logs.length > 0 ? logs[logs.length - 1].activity : 'unknown';
-  const isOutdoor       = currentActivity === 'outdoor';
+  const handleDirectionsHome = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const url = `kakaomap://route?sp=${pos.coords.latitude},${pos.coords.longitude}&ep=home&by=CAR`;
+      const canOpen = await Linking.canOpenURL(url).catch(() => false);
+      if (canOpen) {
+        Linking.openURL(url);
+      } else {
+        Linking.openURL(`https://map.kakao.com/`).catch(() => {});
+      }
+    } catch {}
+  };
 
-  const mapUrl = `${BACKEND}/location/map/${userId}`;
+  const handleSetHome = async () => {
+    Alert.alert('🏡 집 위치 설정', '지금 계신 곳을 집으로 등록할까요?', [
+      { text: '취소', style: 'cancel' },
+      { text: '설정', onPress: async () => {
+        setSettingHome(true);
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status !== 'granted') return;
+          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+          const res = await fetch(`${BACKEND}/location/set-home`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          });
+          if (res.ok) {
+            await AsyncStorage.setItem('home_set', '1');
+            setHomeSet(true);
+            Alert.alert('완료', '집 위치가 등록되었습니다!');
+            webViewRef.current?.reload();
+          }
+        } catch {} finally { setSettingHome(false); }
+      }},
+    ]);
+  };
+
+  const logs     = liveData.logs;
+  const mapUrl   = `${BACKEND}/location/map/${userId}`;
+  const distStr  = liveData.total_distance_m >= 1000
+    ? `${(liveData.total_distance_m / 1000).toFixed(1)}km`
+    : `${liveData.total_distance_m}m`;
 
   return (
-    <View style={s.root}>
-      {/* 헤더 */}
-      {!fullscreen && (
-        <View style={[s.header, { paddingTop: Math.max(insets.top + 6, 20) }]}>
+    <LinearGradient colors={[APP_BG_TOP, APP_BG_BOT]} style={s.root}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+
+        {/* ── 헤더 ── */}
+        <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 24) }]}>
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
             <Text style={s.backTxt}>← 뒤로</Text>
           </TouchableOpacity>
-          <View style={s.headerCenter}>
-            <Text style={s.headerTitle} numberOfLines={1}>📍 오늘 동선</Text>
-            <Text style={s.headerSub}>
-              {distStr} 이동 · {liveData.point_count ?? outdoorLogs.length}개 지점
-            </Text>
-          </View>
-          <View style={[s.statusChip, { backgroundColor: isOutdoor ? '#FFF0E8' : '#EBF7F1' }]}>
-            <Text style={[s.statusTxt, { color: isOutdoor ? C.peach : C.sage }]}>
-              {isOutdoor ? '🚶 외출 중' : '🏡 귀가'}
-            </Text>
-          </View>
+          <Text style={s.headerTitle}>내 위치</Text>
+          <View style={{ width: 60 }} />
         </View>
-      )}
 
-      {/* 집 미설정 안내 배너 */}
-      {!homeSet && !fullscreen && (
-        <TouchableOpacity style={s.homeBanner} onPress={handleSetHome} activeOpacity={0.85}>
-          <Text style={s.homeBannerTxt}>🏡 집 위치를 먼저 설정해 주세요 — 외출/귀가를 정확히 표시합니다</Text>
-          <Text style={s.homeBannerBtn}>설정 →</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* 지도 */}
-      <View style={{ flex: 1 }}>
-        <WebView
-          ref={webViewRef}
-          source={{ uri: mapUrl }}
-          style={{ flex: 1 }}
-          javaScriptEnabled
-          domStorageEnabled
-          originWhitelist={['*']}
-        />
-        <TouchableOpacity
-          style={[s.fullBtn, fullscreen && { top: Math.max(insets.top + 10, 20), bottom: undefined }]}
-          onPress={() => setFullscreen(v => !v)}
-        >
-          <Text style={s.fullBtnTxt}>{fullscreen ? '✕' : '⛶'}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 통계바 */}
-      {!fullscreen && (
-        <>
-          <View style={s.statsBar}>
-            {[
-              { val: distStr,                                           lbl: '총 이동거리', color: C.navy },
-              { val: `${liveData.point_count ?? outdoorLogs.length}곳`, lbl: '방문 지점',  color: C.sage },
-              { val: `${isOutdoor ? '외출 중' : '귀가'}`,               lbl: '현재 상태',  color: isOutdoor ? C.peach : C.sage },
-            ].map((item, i, arr) => (
-              <React.Fragment key={item.lbl}>
-                <View style={s.statItem}>
-                  <Text style={[s.statVal, { color: item.color }]}>{item.val}</Text>
-                  <Text style={s.statLbl}>{item.lbl}</Text>
-                </View>
-                {i < arr.length - 1 && <View style={s.statDiv} />}
-              </React.Fragment>
-            ))}
+        {/* ── 지도 카드 (280px) ── */}
+        <View style={s.mapCard}>
+          <WebView
+            ref={webViewRef}
+            source={{ uri: mapUrl }}
+            style={s.mapView}
+            javaScriptEnabled
+            domStorageEnabled
+            originWhitelist={['*']}
+          />
+          <View style={s.mapPinBubble}>
+            <Text style={s.mapPinText}>지금 여기예요</Text>
           </View>
-
-          <View style={[s.legend, { paddingBottom: Math.max(insets.bottom + 4, 10) }]}>
-            <View style={s.legendRow}>
-              <Text style={s.legendTitle}>범례</Text>
-              {[
-                { color: C.sage,  label: '🏡 우리 집' },
-                { color: C.peach, label: '🚶 이동 경유지' },
-                { color: C.red,   label: '📍 현재 위치' },
-              ].map(item => (
-                <View key={item.label} style={s.legendItem}>
-                  <View style={[s.legendDot, { backgroundColor: item.color }]} />
-                  <Text style={s.legendTxt}>{item.label}</Text>
-                </View>
-              ))}
-            </View>
-            {/* 집 설정 버튼 */}
-            <TouchableOpacity style={s.setHomeBtn} onPress={handleSetHome} disabled={settingHome} activeOpacity={0.85}>
+          {!homeSet && (
+            <TouchableOpacity style={s.setHomeOverlay} onPress={handleSetHome} disabled={settingHome}>
               {settingHome
                 ? <ActivityIndicator size="small" color="#fff" />
-                : <Text style={s.setHomeBtnTxt}>{homeSet ? '🏡 집 위치 변경' : '🏡 집 위치 설정'}</Text>
-              }
+                : <Text style={s.setHomeOverlayTxt}>🏡 집 위치 설정하기</Text>}
             </TouchableOpacity>
+          )}
+        </View>
+
+        {/* ── 현재 위치 카드 ── */}
+        <View style={s.addressCard}>
+          <Text style={s.addressCaption}>현재 위치</Text>
+          <Text style={s.addressMain} numberOfLines={1}>{address}</Text>
+          {!!addrDetail && <Text style={s.addressDetail} numberOfLines={1}>{addrDetail}</Text>}
+        </View>
+
+        {/* ── 액션 버튼 2개 ── */}
+        <View style={s.btnGroup}>
+          <TouchableOpacity style={s.btnPrimary} onPress={handleShareLocation} disabled={sharingLoc}>
+            {sharingLoc
+              ? <ActivityIndicator color="#fff" />
+              : <><Text style={s.btnPrimaryIcon}>🏠</Text><Text style={s.btnPrimaryTxt}>가족에게 내 위치 알리기</Text></>}
+          </TouchableOpacity>
+          <TouchableOpacity style={s.btnOutline} onPress={handleDirectionsHome}>
+            <Text style={s.btnOutlineTxt}>집으로 가는 길 안내</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── 오늘의 동선 ── */}
+        {logs.length > 0 && (
+          <View style={s.timelineCard}>
+            <View style={s.timelineHeader}>
+              <Text style={s.timelineTitle}>오늘의 동선</Text>
+              <Text style={s.timelineSub}>{distStr} 이동 · {liveData.point_count}개 지점</Text>
+            </View>
+            {logs.slice(-6).reverse().map((log: any, idx: number) => {
+              const isLatest = idx === 0;
+              const t = new Date(log.recorded_at || log.timestamp || Date.now());
+              const timeLabel = `${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')}`;
+              return (
+                <View key={idx} style={s.timelineRow}>
+                  <View style={[s.timelineDot, isLatest && s.timelineDotCurrent]} />
+                  {idx < Math.min(logs.length, 6) - 1 && <View style={s.timelineLine} />}
+                  <View style={s.timelineBody}>
+                    <Text style={s.timelineTime}>{timeLabel}</Text>
+                    <Text style={s.timelineLoc} numberOfLines={1}>
+                      {log.activity === 'outdoor' ? '🚶 이동 중' : '🏡 집 근처'}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
           </View>
-        </>
-      )}
-    </View>
+        )}
+      </ScrollView>
+    </LinearGradient>
   );
 }
 
 const s = StyleSheet.create({
-  root:        { flex: 1, backgroundColor: '#000' },
+  root: { flex: 1 },
 
-  header:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12,
-                 paddingBottom: 10, backgroundColor: C.card, gap: 8,
-                 borderBottomWidth: 1.5, borderBottomColor: C.line },
-  backBtn:     { paddingVertical: 6, paddingHorizontal: 8 },
-  backTxt:     { fontSize: 17, color: C.sky, fontWeight: '700' },
-  headerCenter:{ flex: 1 },
-  headerTitle: { fontSize: 17, fontWeight: '900', color: C.text },
-  headerSub:   { fontSize: 13, color: C.sub, marginTop: 2 },
-  statusChip:  { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
-  statusTxt:   { fontSize: 14, fontWeight: '800' },
-
-  homeBanner: {
-    backgroundColor: '#FFF3CD', paddingHorizontal: 14, paddingVertical: 10,
+  header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderBottomWidth: 1, borderBottomColor: '#FFE082',
+    paddingHorizontal: 18, paddingBottom: 12,
   },
-  homeBannerTxt: { fontSize: 13, color: '#7A5800', fontWeight: '600', flex: 1 },
-  homeBannerBtn: { fontSize: 14, color: '#7A5800', fontWeight: '800', marginLeft: 8 },
+  backBtn:     { paddingVertical: 6, paddingHorizontal: 2 },
+  backTxt:     { fontSize: 18, fontWeight: '700', color: GREEN_DK },
+  headerTitle: { fontSize: 26, fontWeight: '900', color: INK },
 
-  fullBtn:     { position: 'absolute', bottom: 16, right: 14,
-                 width: 40, height: 40,
-                 backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20,
-                 alignItems: 'center', justifyContent: 'center' },
-  fullBtnTxt:  { color: '#fff', fontSize: 18, lineHeight: 22 },
-
-  statsBar:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around',
-                 backgroundColor: C.card, paddingVertical: 16,
-                 borderTopWidth: 1.5, borderTopColor: C.line },
-  statItem:    { alignItems: 'center', gap: 4, flex: 1 },
-  statVal:     { fontSize: 22, fontWeight: '900' },
-  statLbl:     { fontSize: 13, color: C.sub, fontWeight: '600' },
-  statDiv:     { width: 1.5, height: 44, backgroundColor: C.line },
-
-  legend:      { backgroundColor: C.card, paddingVertical: 8, paddingHorizontal: 12,
-                 borderTopWidth: 1, borderTopColor: C.line, gap: 8 },
-  legendRow:   { flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-                 gap: 14, flexWrap: 'wrap' },
-  legendTitle: { fontSize: 12, color: C.sub, fontWeight: '700' },
-  legendItem:  { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  legendDot:   { width: 11, height: 11, borderRadius: 6 },
-  legendTxt:   { fontSize: 12, color: C.sub, fontWeight: '600' },
-
-  setHomeBtn:  {
-    backgroundColor: C.sage, borderRadius: 10,
-    paddingVertical: 9, alignItems: 'center',
+  mapCard: {
+    marginHorizontal: 18, height: 280, borderRadius: 22, overflow: 'hidden',
+    marginBottom: 14,
+    shadowColor: '#1C3C6E', shadowOpacity: 0.1, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 4,
   },
-  setHomeBtnTxt: { fontSize: 14, fontWeight: '800', color: '#fff' },
+  mapView: { flex: 1 },
+  mapPinBubble: {
+    position: 'absolute', top: 14, alignSelf: 'center',
+    backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6,
+    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3,
+  },
+  mapPinText: { fontSize: 14, fontWeight: '800', color: GREEN_DK },
+  setHomeOverlay: {
+    position: 'absolute', bottom: 12, alignSelf: 'center',
+    backgroundColor: GREEN, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 10,
+  },
+  setHomeOverlayTxt: { fontSize: 15, fontWeight: '800', color: '#fff' },
+
+  addressCard: {
+    marginHorizontal: 18, backgroundColor: '#fff', borderRadius: 18, padding: 18,
+    marginBottom: 14,
+    shadowColor: '#1C3C6E', shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 2,
+  },
+  addressCaption: { fontSize: 13, fontWeight: '700', color: INK_MUTE, marginBottom: 6 },
+  addressMain:    { fontSize: 26, fontWeight: '900', color: INK, marginBottom: 4 },
+  addressDetail:  { fontSize: 16, fontWeight: '600', color: INK_SOFT },
+
+  btnGroup:  { marginHorizontal: 18, gap: 12, marginBottom: 20 },
+  btnPrimary: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    backgroundColor: GREEN, borderRadius: 18, minHeight: 64, paddingHorizontal: 20,
+  },
+  btnPrimaryIcon: { fontSize: 22 },
+  btnPrimaryTxt:  { fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
+  btnOutline: {
+    alignItems: 'center', justifyContent: 'center',
+    borderRadius: 18, minHeight: 64, borderWidth: 2, borderColor: GREEN, backgroundColor: '#fff',
+  },
+  btnOutlineTxt: { fontSize: 20, fontWeight: '800', color: GREEN_DK, letterSpacing: -0.3 },
+
+  timelineCard: {
+    marginHorizontal: 18, backgroundColor: '#fff', borderRadius: 20, padding: 18,
+    shadowColor: '#1C3C6E', shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 2,
+  },
+  timelineHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 16 },
+  timelineTitle:  { fontSize: 18, fontWeight: '900', color: INK },
+  timelineSub:    { fontSize: 13, fontWeight: '600', color: INK_MUTE },
+  timelineRow:    { flexDirection: 'row', alignItems: 'flex-start', gap: 14, marginBottom: 10, position: 'relative' },
+  timelineDot:    { width: 14, height: 14, borderRadius: 7, backgroundColor: INK_MUTE, marginTop: 4, flexShrink: 0 },
+  timelineDotCurrent: { backgroundColor: '#E5453C', width: 16, height: 16, borderRadius: 8 },
+  timelineLine: {
+    position: 'absolute', left: 6, top: 18, width: 2, height: 20, backgroundColor: '#E5E7EB',
+  },
+  timelineBody: { flex: 1 },
+  timelineTime: { fontSize: 14, fontWeight: '700', color: INK_MUTE, marginBottom: 2 },
+  timelineLoc:  { fontSize: 17, fontWeight: '700', color: INK },
 });
