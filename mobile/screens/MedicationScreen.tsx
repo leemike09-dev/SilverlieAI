@@ -565,13 +565,14 @@ const s = StyleSheet.create({
   root: { flex: 1 },
 
   // 헤더
-  header:    { backgroundColor: GREEN, flexDirection: 'row', alignItems: 'center',
-               justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 14 },
-  headerTitle: { fontSize: 26, fontWeight: '900', color: '#fff' },
-  addBtn:    { backgroundColor: '#fff', borderRadius: 16,
+  header:    { backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center',
+               justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 14,
+               borderBottomWidth: 1, borderBottomColor: 'rgba(15,27,45,0.06)' },
+  headerTitle: { fontSize: 26, fontWeight: '900', color: '#0F1B2D' },
+  addBtn:    { backgroundColor: '#EFF6FF', borderRadius: 16,
                paddingHorizontal: 20, paddingVertical: 12,
                minHeight: 64, justifyContent: 'center' },
-  addBtnTxt: { fontSize: 18, fontWeight: '800', color: GREEN },
+  addBtnTxt: { fontSize: 18, fontWeight: '800', color: '#3B82F6' },
 
   // 스크롤
   scroll:  { flex: 1 },
