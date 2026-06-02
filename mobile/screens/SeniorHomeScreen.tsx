@@ -22,15 +22,18 @@ const RED = '#E5453C';
 const PURPLE = '#7C5BE3';
 const WARN = '#F5A623';
 
-const MOOD_BG = ['#FFE9B8', '#D7EFE0', '#E5E5EA', '#FFD9E0', '#FFCFCF'];
+const MOOD_BG = ['#FCEACB', '#DCEFE2', '#EAE7E1', '#F7DECF', '#F6D2D2'];
 const MOOD_EMOJI = ['😊', '😌', '😐', '😟', '😢'];
-const MOOD_LABEL = ['좋아요', '평온해요', '그저 그래요', '걱정돼요', '힘들어요'];
+const MOOD_LABEL = ['좋아요', '평온해요', '그저그래요', '걱정돼요', '힘들어요'];
 
-const CARD_HOSPITAL = '#E8F1FC';
-const CARD_CHAT = '#ECE3FB';
-const CARD_HEALTH = '#FFE6DC';
-const CARD_LOCATION = '#E6F4E2';
-const CARD_SCHEDULE = '#FFF3D6';
+// 칩 파스텔 — 카드 배경은 모두 흰색, 칩에만 색 사용
+const CHIP_MOOD     = '#F1E3D4';
+const CHIP_HOSPITAL = '#E6EDF7';
+const CHIP_CHAT     = '#ECE6F6';
+const CHIP_FAMILY   = '#F5E3EA';
+const CHIP_HEALTH   = '#F6E5DD';
+const CHIP_MED      = '#F5EAD6';
+const CHIP_LOCATION = '#E6F4E2';
 
 const API = 'https://silverlieai.onrender.com';
 
@@ -41,8 +44,10 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   const [todayMood, setTodayMood] = useState<number | null>(null);
   const [todaySchedule, setTodaySchedule] = useState<any>(null);
   const [nextMedication, setNextMedication] = useState<any>(null);
+  const [nextMedTimeStr, setNextMedTimeStr] = useState<string>('');
   const [healthToday, setHealthToday] = useState<any>(null);
   const [familyMessage, setFamilyMessage] = useState<string>('');
+  const [locationAddr, setLocationAddr] = useState<string>('');
 
   const ttsDoneRef = useRef(false);
   const locationRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -114,12 +119,51 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         if (parsed.date >= todayKey) setTodaySchedule(parsed);
       }
 
-      // Load next medication
-      const meds = await AsyncStorage.getItem('medications');
-      if (meds) {
-        const medList = JSON.parse(meds);
-        if (medList.length > 0) setNextMedication(medList[0]);
-      }
+      // Load next medication — 현재 시각 기준 다음 복용 계산
+      try {
+        const medsRaw = await AsyncStorage.getItem('medications');
+        const logRaw  = await AsyncStorage.getItem(`medication-log.${uid}.${todayKey}`);
+        if (medsRaw) {
+          const medList: any[] = JSON.parse(medsRaw);
+          const log: Record<string, any> = logRaw ? JSON.parse(logRaw) : {};
+          const toMin = (t: string) => {
+            const [h, m] = t.split(':').map(Number); return h * 60 + m;
+          };
+          const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+          // 시간대 기본 시간 매핑
+          const SLOT_TIME: Record<string, string> = {
+            morning: '08:00', lunch: '12:00', evening: '18:00', bedtime: '21:00',
+          };
+          const candidates = medList.flatMap(med => {
+            const scheduleTime = med.time || SLOT_TIME[med.timeSlot] || '08:00';
+            const key = `${med.id}-${scheduleTime}`;
+            if (log[key]) return []; // 이미 복용
+            return [{ name: med.name, dosage: med.dosage || '1정', time: scheduleTime, timeMin: toMin(scheduleTime) }];
+          }).sort((a, b) => a.timeMin - b.timeMin);
+
+          const next = candidates.find(c => c.timeMin >= nowMin) || candidates[0] || null;
+          if (next) {
+            setNextMedication(next);
+            const diffMin = next.timeMin >= nowMin
+              ? next.timeMin - nowMin
+              : next.timeMin + 24 * 60 - nowMin;
+            const diffH = Math.floor(diffMin / 60);
+            const diffM = diffMin % 60;
+            setNextMedTimeStr(
+              diffH > 0 ? `${diffH}시간 ${diffM}분 후` : `${diffM}분 후`
+            );
+          }
+        }
+      } catch {}
+
+      // 위치 주소 로드
+      try {
+        const locRaw = await AsyncStorage.getItem(`location.${uid}.current`);
+        if (locRaw) {
+          const loc = JSON.parse(locRaw);
+          if (loc?.address) setLocationAddr(loc.address);
+        }
+      } catch {}
 
       // Load today's health
       const records = await AsyncStorage.getItem('health_records');
@@ -209,15 +253,17 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           )}
         </View>
 
-        {/* 병원 일정 카드 */}
+        {/* 병원 일정 카드 — 흰 카드 + 파스텔 칩 */}
         {todaySchedule && (
           <TouchableOpacity
-            style={[s.card, { backgroundColor: CARD_HOSPITAL }]}
+            style={[s.card, { backgroundColor: '#fff' }]}
             onPress={() => navigation.navigate('HospitalSchedule', { userId, name })}
             activeOpacity={0.85}
           >
             <View style={s.scheduleTop}>
-              <Text style={s.scheduleIcon}>🏥</Text>
+              <View style={[s.iconChip, { backgroundColor: CHIP_HOSPITAL }]}>
+                <Text style={s.iconChipEmoji}>🏥</Text>
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.scheduleBadge}>
                   {todaySchedule.date === todayKey ? '오늘 일정' : '다가오는 일정'}
@@ -236,73 +282,99 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
                 </View>
               ) : null}
             </View>
-            {todaySchedule.memo ? (
-              <Text style={s.scheduleMemo} numberOfLines={1}>{todaySchedule.memo}</Text>
-            ) : null}
           </TouchableOpacity>
         )}
 
-        {/* 루미 대화 */}
+        {/* 루미 대화 — 흰 카드 + 라벤더 칩 */}
         <TouchableOpacity
-          style={[s.card, { backgroundColor: CARD_CHAT }]}
+          style={[s.card, { backgroundColor: '#fff' }]}
           onPress={() => navigation.navigate('AIChat', { userId, name })}
         >
           <View style={s.chatCardTop}>
-            <Image source={lumiImage} style={s.lumiSmall} />
+            <View style={[s.iconChip, { backgroundColor: CHIP_CHAT }]}>
+              <Image source={lumiImage} style={s.lumiChip} />
+            </View>
             <Text style={s.cardTitle}>루미와 대화</Text>
           </View>
           <Text style={s.cardSubtitle}>오늘 컨디션 어떠세요?</Text>
-          <TouchableOpacity style={s.micButton}>
+          <View style={s.micButton}>
             <Text style={s.micIcon}>🎤</Text>
-          </TouchableOpacity>
+          </View>
         </TouchableOpacity>
 
-        {/* 건강 상태 */}
+        {/* 건강 상태 — 흰 카드 + 코랄 칩 */}
         {healthToday && (
           <TouchableOpacity
-            style={[s.card, { backgroundColor: CARD_HEALTH }]}
+            style={[s.card, { backgroundColor: '#fff' }]}
             onPress={() => navigation.navigate('Health', { userId, name })}
           >
-            <Text style={s.cardTitle}>❤️ 건강 상태</Text>
-            <Text style={s.healthValue}>혈압 {healthToday.blood_pressure_systolic}/{healthToday.blood_pressure_diastolic}</Text>
-            <Text style={s.cardSubtitle}>오늘도 모두 정상이에요</Text>
-            <View style={s.healthMetrics}>
-              <View style={s.metric}>
-                <Text style={s.metricValue}>{healthToday.blood_pressure_systolic}</Text>
-                <Text style={s.metricLabel}>혈압</Text>
+            <View style={s.scheduleTop}>
+              <View style={[s.iconChip, { backgroundColor: CHIP_HEALTH }]}>
+                <Text style={s.iconChipEmoji}>❤️</Text>
               </View>
-              <View style={s.metric}>
-                <Text style={s.metricValue}>{healthToday.blood_sugar}</Text>
-                <Text style={s.metricLabel}>혈당</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={s.cardTitle}>건강 상태</Text>
+                <Text style={s.healthValue}>
+                  혈압 {healthToday.blood_pressure_systolic}/{healthToday.blood_pressure_diastolic}
+                </Text>
               </View>
-              <View style={s.metric}>
-                <Text style={s.metricValue}>{healthToday.heart_rate}</Text>
-                <Text style={s.metricLabel}>심박</Text>
-              </View>
+              <Text style={s.scheduleArrow}>›</Text>
             </View>
           </TouchableOpacity>
         )}
 
-        {/* 약 알림 */}
+        {/* 약 알림 — 흰 카드 + 앰버 칩 + 실제 스케줄 */}
         {nextMedication && (
           <TouchableOpacity
-            style={[s.card, { backgroundColor: CARD_SCHEDULE }]}
+            style={[s.card, { backgroundColor: '#fff' }]}
             onPress={() => navigation.navigate('Medication', { userId, name })}
           >
-            <Text style={s.cardTitle}>💊 다음 약</Text>
-            <Text style={s.cardSubtitle}>2시간 후</Text>
-            <Text style={s.medicationText}>점심 12:30, {nextMedication.name} 1정</Text>
+            <View style={s.scheduleTop}>
+              <View style={[s.iconChip, { backgroundColor: CHIP_MED }]}>
+                <Text style={s.iconChipEmoji}>💊</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.cardTitle}>다음 약</Text>
+                <Text style={s.cardSubtitle}>{nextMedTimeStr}</Text>
+              </View>
+              <Text style={s.scheduleArrow}>›</Text>
+            </View>
+            <Text style={s.medicationText}>
+              {nextMedication.time} · {nextMedication.name} {nextMedication.dosage || '1정'}
+            </Text>
           </TouchableOpacity>
         )}
 
-        {/* 보호자 카드 */}
+        {/* 내 위치 — 흰 카드 + 초록 칩, 저장 주소 표시 */}
         <TouchableOpacity
-          style={[s.card, { backgroundColor: CARD_LOCATION }]}
+          style={[s.card, { backgroundColor: '#fff' }]}
+          onPress={() => navigation.navigate('LocationMap', { userId, name })}
+          activeOpacity={0.85}
+        >
+          <View style={s.guardianRow}>
+            <View style={[s.iconChip, { backgroundColor: CHIP_LOCATION }]}>
+              <Text style={s.iconChipEmoji}>📍</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.guardianTitle}>내 위치</Text>
+              <Text style={s.guardianSub} numberOfLines={1}>
+                {locationAddr || '가족에게 위치 알리기 · 집 가는 길'}
+              </Text>
+            </View>
+            <Text style={s.scheduleArrow}>›</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* 보호자 카드 — 흰 카드 + 로즈 칩 */}
+        <TouchableOpacity
+          style={[s.card, { backgroundColor: '#fff' }]}
           onPress={() => navigation.navigate('Guardian', { userId, name })}
           activeOpacity={0.85}
         >
           <View style={s.guardianRow}>
-            <Text style={s.guardianIcon}>👨‍👩‍👧</Text>
+            <View style={[s.iconChip, { backgroundColor: CHIP_FAMILY }]}>
+              <Text style={s.iconChipEmoji}>👨‍👩‍👧</Text>
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={s.guardianTitle}>보호자 연락처</Text>
               <Text style={s.guardianSub}>가족에게 바로 연락할 수 있어요</Text>
@@ -363,34 +435,35 @@ const s = StyleSheet.create({
   },
 
   heroSection: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 24,
+    marginVertical: 20,
     paddingHorizontal: 18,
+    gap: 14,
   },
   lumiHero: {
-    width: 210,
-    height: 210,
+    width: 180,
+    height: 180,
     resizeMode: 'contain',
-    marginBottom: 12,
+    flexShrink: 0,
   },
   heroBubble: {
+    flex: 1,
     backgroundColor: '#fff',
     borderRadius: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     paddingVertical: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#1C3C6E',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
     elevation: 3,
-    maxWidth: '90%',
   },
   heroBubbleText: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     color: INK,
-    textAlign: 'center',
-    lineHeight: 32,
+    lineHeight: 30,
   },
 
   card: {
@@ -440,34 +513,43 @@ const s = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     height: 80,
-    borderRadius: 16,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: 'transparent',
     marginHorizontal: 2,
   },
   moodBtnActive: {
-    borderColor: INK,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
+    borderColor: BLUE,
+    shadowColor: BLUE,
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
   moodBtnDim: {
     opacity: 0.35,
   },
   moodEmoji: {
-    fontSize: 34,
-    marginBottom: 6,
+    fontSize: 28,
+    marginBottom: 4,
   },
   moodText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: INK,
     textAlign: 'center',
+    letterSpacing: -0.5,
   },
+
+  // 아이콘 칩 (42×42 파스텔)
+  iconChip: {
+    width: 42, height: 42, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  iconChipEmoji: { fontSize: 22 },
+  lumiChip: { width: 30, height: 30, resizeMode: 'contain' },
 
   scheduleTop: {
     flexDirection: 'row',

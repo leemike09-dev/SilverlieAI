@@ -16,7 +16,7 @@ const isDemo  = (uid: string) => !uid || uid === 'demo-user' || uid === 'guest';
 
 const GREEN  = '#2E7D32';
 const SKY    = '#F1ECE4';
-const SKY2   = '#EAF4FC';
+const SKY2   = '#FBF8F3';
 const CARD   = '#FFFFFF';
 const INK    = '#0F1B2D';
 
