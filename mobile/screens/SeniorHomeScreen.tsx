@@ -485,12 +485,13 @@ const s = StyleSheet.create({
 
   heroSection: {
     alignItems: 'center',
-    marginVertical: 8,
+    marginTop: 0,
+    marginBottom: 4,
     paddingHorizontal: 18,
   },
   lumiHero: {
     width: 270,
-    height: 270,
+    height: 220,
     resizeMode: 'contain',
   },
   heroName: {
@@ -498,7 +499,7 @@ const s = StyleSheet.create({
     fontWeight: '900',
     color: INK,
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: -8,
     marginBottom: 4,
   },
   heroSub: {
