@@ -8,6 +8,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import SeniorTabBar from '../components/SeniorTabBar';
+import { useBob } from '../utils/useBob';
+
+function PillImage({ source, isPending }: { source: any; isPending: boolean }) {
+  const bobY = useBob();
+  if (isPending) {
+    return (
+      <Animated.Image source={source} style={{ width: 52, height: 52, marginRight: 12, transform: [{ translateY: bobY }] }} resizeMode="contain" />
+    );
+  }
+  return <Image source={source} style={{ width: 52, height: 52, marginRight: 12, opacity: 0.5 }} resizeMode="contain" />;
+}
 import { scheduleMedNotification } from '../utils/notifications';
 import { speak } from '../utils/speech';
 
@@ -443,8 +454,8 @@ export default function MedicationScreen({ navigation }: any) {
                       onLongPress={() => deleteMed(med.id)}
                       activeOpacity={0.85}
                     >
-                      {/* 약 캐릭터 이미지 */}
-                      <Image source={pillImg} style={s.pillImg} resizeMode="contain" />
+                      {/* 약 캐릭터 이미지 — pending 시 bob 애니메이션 */}
+                      <PillImage source={pillImg} isPending={!med.taken && !med.skipped} />
 
                       {/* 약 정보 */}
                       <View style={s.medInfo}>

@@ -24,6 +24,7 @@ import OnboardingScreen from './screens/OnboardingScreen';
 import SeniorHomeScreen from './screens/SeniorHomeScreen';
 import HospitalScheduleScreen from './screens/HospitalScheduleScreen';
 import HospitalScheduleAddScreen from './screens/HospitalScheduleAddScreen';
+import MonthCalendarScreen from './screens/MonthCalendarScreen';
 import MedicationScreen from './screens/MedicationScreen';
 import EmailAuthScreen    from './screens/EmailAuthScreen';
 import FamilyConnectScreen from './screens/FamilyConnectScreen';
@@ -330,6 +331,7 @@ export default function App() {
               <Stack.Screen name="SeniorHome"    component={SeniorHomeScreen} />
               <Stack.Screen name="HospitalSchedule"    component={HospitalScheduleScreen} />
               <Stack.Screen name="HospitalScheduleAdd" component={HospitalScheduleAddScreen} />
+              <Stack.Screen name="MonthCalendar"       component={MonthCalendarScreen} />
               <Stack.Screen name="Medication"    component={MedicationScreen} />
               <Stack.Screen name="EmailAuth"     component={EmailAuthScreen}       />
               <Stack.Screen name="FamilyConnect" component={FamilyConnectScreen} />

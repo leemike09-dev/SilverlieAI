@@ -17,6 +17,13 @@ const INK = '#0F1B2D';
 const INK_SOFT = '#3D4B62';
 const INK_MUTE = '#7E8AA1';
 const CARD_HOSPITAL = '#E8F1FC';
+const ORANGE = '#E0972B';
+const CARD_MEMO = '#FBEFD9';
+
+const TYPE_CONFIG: Record<string, { tint: string; ink: string; icon: string; label: string }> = {
+  hospital: { tint: CARD_HOSPITAL, ink: BLUE_DK, icon: '🏥', label: '병원' },
+  memo:     { tint: CARD_MEMO,     ink: ORANGE,  icon: '📝', label: '메모' },
+};
 
 export default function HospitalScheduleScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -46,11 +53,18 @@ export default function HospitalScheduleScreen({ route, navigation }: any) {
   };
 
   const today = new Date().toISOString().slice(0, 10);
-  const todayAppt = appointments.find(a => a.date === today);
+  const upcomingAppts = appointments.filter(a => a.date >= today);
+  const heroAppt = upcomingAppts[0] || null;
+  const isToday = heroAppt?.date === today;
 
   if (appointments.length === 0) {
     return <EmptyState userId={userId} name={name} navigation={navigation} insets={insets} />;
   }
+
+  const formatTimeKo = (time: string) => {
+    const [h, m] = (time || '00:00').split(':').map(Number);
+    return `${h >= 12 ? '오후' : '오전'} ${h > 12 ? h - 12 : h || 12}시${m > 0 ? ` ${m}분` : ''}`;
+  };
 
   return (
     <LinearGradient colors={[APP_BG_TOP, APP_BG_BOT]} style={s.root}>
@@ -59,116 +73,87 @@ export default function HospitalScheduleScreen({ route, navigation }: any) {
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Header */}
         <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 24) }]}>
-          <Text style={s.headerTitle}>병원 일정</Text>
-          <TouchableOpacity
-            style={s.addBtn}
-            onPress={() => navigation.navigate('HospitalScheduleAdd', { userId, name })}
-          >
+          <Text style={s.headerTitle}>내 일정</Text>
+          <TouchableOpacity style={s.addBtn} onPress={() => navigation.navigate('HospitalScheduleAdd', { userId, name })}>
             <Text style={s.addBtnText}>+</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Today's Hero Card */}
-        {todayAppt && (
+        {/* 동적 HERO 카드 */}
+        {heroAppt && (
           <TouchableOpacity
-            style={[s.heroCard, { backgroundColor: CARD_HOSPITAL }]}
-            onPress={() => navigation.navigate('HospitalScheduleAdd', { userId, name, appointmentId: todayAppt.id })}
+            style={[s.heroCard, { backgroundColor: TYPE_CONFIG[heroAppt.type || 'hospital'].tint }]}
+            onPress={() => navigation.navigate('HospitalScheduleAdd', { userId, name, appointmentId: heroAppt.id })}
           >
-            <Text style={s.heroTime}>{todayAppt.time}</Text>
-            <Text style={s.heroTimeKorean}>{(() => { const [h,m] = (todayAppt.time||'00:00').split(':').map(Number); return `${h>=12?'오후':'오전'} ${h>12?h-12:h||12}시 ${m>0?m+'분':''}`; })()}</Text>
-            <Text style={s.hospitalName}>{todayAppt.hospital}</Text>
-            <Text style={s.deptDoctor}>{todayAppt.dept} · {todayAppt.doctor}</Text>
-
-            <View style={s.addressRow}>
-              <Text style={s.addressIcon}>📍</Text>
-              <Text style={s.addressText}>{todayAppt.address}</Text>
-              <Text style={s.addressChevron}>›</Text>
+            <View style={s.heroBadgeRow}>
+              <View style={[s.typeBadge, { backgroundColor: TYPE_CONFIG[heroAppt.type || 'hospital'].ink }]}>
+                <Text style={s.typeBadgeTxt}>{isToday ? '오늘' : `${heroAppt.date.slice(5, 7)}월 ${heroAppt.date.slice(8, 10)}일`}</Text>
+              </View>
+              <Text style={s.typeIcon}>{TYPE_CONFIG[heroAppt.type || 'hospital'].icon}</Text>
             </View>
+            <Text style={s.heroTime}>{heroAppt.time}</Text>
+            <Text style={s.heroTimeKorean}>{formatTimeKo(heroAppt.time)}</Text>
+            <Text style={s.hospitalName}>{heroAppt.hospital || heroAppt.name}</Text>
+            {heroAppt.dept ? <Text style={s.deptDoctor}>{heroAppt.dept}{heroAppt.doctor ? ` · ${heroAppt.doctor}` : ''}</Text> : null}
 
-            <View style={s.ctaRow}>
-              <TouchableOpacity
-                style={[s.btn, s.btnPrimary]}
-                onPress={() => {
-                  const query = encodeURIComponent(todayAppt.address);
-                  Linking.openURL(`kakaomap://search?query=${query}`).catch(() => {});
-                }}
-              >
-                <Text style={s.btnPrimaryText}>길 찾기</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[s.btn, s.btnOutline]}>
-                <Text style={s.btnOutlineText}>알림 받기</Text>
-              </TouchableOpacity>
-            </View>
+            {heroAppt.address ? (
+              <View style={s.addressRow}>
+                <Text style={s.addressIcon}>📍</Text>
+                <Text style={s.addressText}>{heroAppt.address}</Text>
+                <Text style={s.addressChevron}>›</Text>
+              </View>
+            ) : null}
+
+            {heroAppt.type !== 'memo' && heroAppt.address ? (
+              <View style={s.ctaRow}>
+                <TouchableOpacity style={[s.btn, s.btnPrimary]} onPress={() => {
+                  Linking.openURL(`kakaomap://search?query=${encodeURIComponent(heroAppt.address)}`).catch(() => {});
+                }}>
+                  <Text style={s.btnPrimaryText}>길 찾기</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[s.btn, s.btnOutline]}>
+                  <Text style={s.btnOutlineText}>알림 받기</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
           </TouchableOpacity>
         )}
 
-        {/* Calendar Strip (week view) */}
-        <View style={s.calendarStrip}>
-          {Array.from({ length: 7 }).map((_, i) => {
-            const date = new Date();
-            date.setDate(date.getDate() + i);
-            const dateStr = date.toISOString().slice(0, 10);
-            const isToday = dateStr === today;
-            const hasAppt = appointments.some(a => a.date === dateStr);
-            const dayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
-            const dayNum = date.getDate();
+        {/* 다음 일정 목록 */}
+        {upcomingAppts.length > 1 && (
+          <>
+            <Text style={s.nextTitle}>다음 일정</Text>
+            {upcomingAppts.slice(1).map(apt => {
+              const tc = TYPE_CONFIG[apt.type || 'hospital'];
+              return (
+                <TouchableOpacity key={apt.id} style={s.apptCard}
+                  onPress={() => navigation.navigate('HospitalScheduleAdd', { userId, name, appointmentId: apt.id })}>
+                  <View style={[s.dateBox, { backgroundColor: tc.tint }]}>
+                    <Text style={[s.dateMonth, { color: tc.ink }]}>{apt.date.slice(5, 7)}</Text>
+                    <Text style={[s.dateDay, { color: tc.ink }]}>{apt.date.slice(8, 10)}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.apptHospital}>{apt.hospital || apt.name}</Text>
+                    <Text style={s.apptTime}>{apt.time}{apt.dept ? ` · ${apt.dept}` : ''}</Text>
+                  </View>
+                  <Text style={s.typeIcon}>{tc.icon}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </>
+        )}
 
-            return (
-              <View key={i} style={[s.calendarDay, isToday && s.calendarDayActive]}>
-                <Text style={[s.dayName, isToday && s.dayNameActive]}>{dayName}</Text>
-                <Text style={[s.dayNum, isToday && s.dayNumActive]}>{dayNum}</Text>
-                {hasAppt && <View style={s.apptDot} />}
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Next Appointments */}
-        <Text style={s.nextTitle}>다음 일정</Text>
-        {appointments.slice(1).map((apt) => (
-          <TouchableOpacity
-            key={apt.id}
-            style={s.apptCard}
-            onPress={() => navigation.navigate('HospitalScheduleAdd', { userId, name, appointmentId: apt.id })}
-          >
-            <View style={[s.dateBox, { backgroundColor: CARD_HOSPITAL }]}>
-              <Text style={s.dateMonth}>{apt.date.slice(5, 7)}</Text>
-              <Text style={s.dateDay}>{apt.date.slice(8, 10)}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.apptHospital}>{apt.hospital}</Text>
-              <Text style={s.apptTime}>{apt.time} · {apt.dept}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-
-        {/* Add New */}
-        <TouchableOpacity
-          style={s.addCard}
-          onPress={() => navigation.navigate('HospitalScheduleAdd', { userId, name })}
-        >
-          <Text style={s.addCardText}>+ 일정 추가하기</Text>
+        {/* 일정 추가 */}
+        <TouchableOpacity style={s.addCard} onPress={() => navigation.navigate('HospitalScheduleAdd', { userId, name })}>
+          <Text style={s.addCardText}>+ 일정·메모 추가하기</Text>
         </TouchableOpacity>
 
-        {/* ── 월간 달력 ── */}
-        <MonthlyCalendar
-          year={calMonth.year}
-          month={calMonth.month}
-          appointments={appointments}
-          selectedDate={selectedDate}
-          onSelectDate={setSelectedDate}
-          onPrevMonth={() => setCalMonth(m => {
-            const d = new Date(m.year, m.month - 1);
-            return { year: d.getFullYear(), month: d.getMonth() };
-          })}
-          onNextMonth={() => setCalMonth(m => {
-            const d = new Date(m.year, m.month + 1);
-            return { year: d.getFullYear(), month: d.getMonth() };
-          })}
-          navigation={navigation}
-          userId={userId}
-          name={name}
-        />
+        {/* 월간 일정표 버튼 */}
+        <TouchableOpacity style={s.monthCalBtn} onPress={() => navigation.navigate('MonthCalendar', { userId, name })}>
+          <Text style={s.monthCalIcon}>🗓️</Text>
+          <Text style={s.monthCalTxt}>월간 일정표 보기</Text>
+          <Text style={s.monthCalArrow}>›</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       <SeniorTabBar navigation={navigation} activeTab="sched" userId={userId} name={name} />
@@ -455,6 +440,22 @@ const s = StyleSheet.create({
     color: INK_SOFT,
     marginTop: 4,
   },
+
+  heroBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  typeBadge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+  typeBadgeTxt: { fontSize: 13, fontWeight: '800', color: '#fff' },
+  typeIcon: { fontSize: 20 },
+
+  monthCalBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginHorizontal: 18, marginTop: 16, marginBottom: 8,
+    backgroundColor: '#fff', borderRadius: 18, padding: 18,
+    shadowColor: '#1C3C6E', shadowOpacity: 0.07, shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 }, elevation: 2,
+  },
+  monthCalIcon: { fontSize: 24 },
+  monthCalTxt:  { flex: 1, fontSize: 20, fontWeight: '800', color: INK },
+  monthCalArrow:{ fontSize: 24, color: INK_MUTE },
 
   addCard: {
     marginHorizontal: 18,

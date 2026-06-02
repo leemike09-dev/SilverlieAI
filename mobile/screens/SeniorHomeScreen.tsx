@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Alert, Platform, Image, useWindowDimensions,
+  StatusBar, Alert, Platform, Animated, Image, useWindowDimensions,
 } from 'react-native';
+import { useBob } from '../utils/useBob';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -209,6 +210,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   const timeStr = `${hour < 12 ? '오전' : '오후'} ${h12}:${String(now.getMinutes()).padStart(2, '0')}`;
   const lumiImage = require('../assets/lumi-happy.png');
   const isGuest = !userId || userId === 'guest';
+  const bobY = useBob();
 
   return (
     <LinearGradient colors={[APP_BG_TOP, APP_BG_BOT]} style={s.root}>
@@ -218,7 +220,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         {/* TOP BAR */}
         {/* HERO — 루미 크게 + 인사 텍스트 */}
         <View style={[s.heroSection, { paddingTop: Math.max(insets.top + 4, 16) }]}>
-          <Image source={lumiImage} style={s.lumiHero} />
+          <Animated.Image source={lumiImage} style={[s.lumiHero, { transform: [{ translateY: bobY }] }]} />
           <Text style={s.heroName}>
             {hour < 12 ? '좋은 아침이에요' : hour < 18 ? '안녕하세요' : '좋은 저녁이에요'}, {name}님!
           </Text>
