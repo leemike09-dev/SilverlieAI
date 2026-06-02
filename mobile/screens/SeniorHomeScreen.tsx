@@ -160,15 +160,29 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       // 위치 주소 + 날씨 로드
       try {
         const locRaw = await AsyncStorage.getItem(`location.${uid}.current`);
+        let lat: number | null = null;
+        let lng: number | null = null;
         if (locRaw) {
           const loc = JSON.parse(locRaw);
           if (loc?.address) setLocationAddr(loc.address);
-          if (loc?.lat && loc?.lng) {
-            fetch(`${API}/weather?lat=${loc.lat}&lon=${loc.lng}`)
-              .then(r => r.ok ? r.json() : null)
-              .then(d => { if (d) setWeather(d); })
-              .catch(() => {});
-          }
+          lat = loc?.lat ?? null;
+          lng = loc?.lng ?? null;
+        }
+        // 저장된 위치 없으면 현재 위치로 날씨 조회
+        if (!lat || !lng) {
+          try {
+            const { status } = await Location.getForegroundPermissionsAsync();
+            if (status === 'granted') {
+              const pos = await Location.getLastKnownPositionAsync();
+              if (pos) { lat = pos.coords.latitude; lng = pos.coords.longitude; }
+            }
+          } catch {}
+        }
+        if (lat && lng) {
+          fetch(`${API}/weather?lat=${lat}&lon=${lng}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(d => { if (d) setWeather(d); })
+            .catch(() => {});
         }
       } catch {}
 
@@ -210,16 +224,13 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           </View>
         </View>
 
-        {/* HERO — 루미 + 인사 텍스트 (말풍선 없음) */}
+        {/* HERO — 루미 크게 + 인사 텍스트 (말풍선 없음, 세로 배치) */}
         <View style={s.heroSection}>
           <Image source={lumiImage} style={s.lumiHero} />
-          <View style={{ flex: 1 }}>
-            <Text style={s.heroGreet}>
-              {hour < 12 ? '좋은 아침이에요' : hour < 18 ? '안녕하세요' : '좋은 저녁이에요'}
-            </Text>
-            <Text style={s.heroName}>{name}님!</Text>
-            <Text style={s.heroSub}>오늘도 함께해요 ☀️</Text>
-          </View>
+          <Text style={s.heroName}>
+            {hour < 12 ? '좋은 아침이에요' : hour < 18 ? '안녕하세요' : '좋은 저녁이에요'}, {name}님!
+          </Text>
+          <Text style={s.heroSub}>오늘도 함께해요 ☀️</Text>
         </View>
 
         {/* 기분 체크인 */}
@@ -473,35 +484,29 @@ const s = StyleSheet.create({
   },
 
   heroSection: {
-    flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 16,
+    marginVertical: 8,
     paddingHorizontal: 18,
-    gap: 16,
   },
   lumiHero: {
     width: 270,
     height: 270,
     resizeMode: 'contain',
-    flexShrink: 0,
-    marginLeft: -20,
-  },
-  heroGreet: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: INK_SOFT,
-    marginBottom: 4,
   },
   heroName: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '900',
     color: INK,
-    marginBottom: 6,
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 4,
   },
   heroSub: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: INK_SOFT,
+    textAlign: 'center',
+    marginBottom: 8,
   },
   weatherAdvice: {
     fontSize: 16,

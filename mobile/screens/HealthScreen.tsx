@@ -91,8 +91,22 @@ export default function HealthScreen({ route, navigation }: any) {
       const sorted = list.sort((a: any, b: any) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
       );
-      setRecords(sorted);
 
+      // Android 걸음수 병합 (App.tsx에서 steps_today_android로 저장)
+      const stepsRaw = await AsyncStorage.getItem('steps_today_android');
+      const todaySteps = stepsRaw ? parseInt(stepsRaw) : 0;
+      if (todaySteps > 0) {
+        const idx = sorted.findIndex((r: any) => r.date === todayKey);
+        if (idx >= 0) {
+          sorted[idx] = { ...sorted[idx], steps: todaySteps };
+        } else {
+          sorted.unshift({ date: todayKey, steps: todaySteps,
+            blood_pressure_systolic: 0, blood_pressure_diastolic: 0,
+            blood_sugar: 0, heart_rate: 0, weight: 0, sleep_hours: 0 });
+        }
+      }
+
+      setRecords(sorted);
       const today = sorted.find((r: any) => r.date === todayKey);
       setTodayRecord(today || null);
     } catch {}
