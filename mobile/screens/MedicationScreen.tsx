@@ -146,7 +146,19 @@ export default function MedicationScreen({ navigation }: any) {
             const localData: any[] = localRaw ? JSON.parse(localRaw) : [];
             const serverIds = new Set(serverData.map((m: any) => m.id));
             const localOnly = localData.filter((m: any) => !serverIds.has(m.id));
-            const merged = [...serverData, ...localOnly];
+            // 새날이면 서버의 taken/skipped 무시하고 false로 리셋
+            const todayCheck = new Date().toISOString().slice(0, 10);
+            const storedDateCheck = await AsyncStorage.getItem('medications_date');
+            const isNewDayNow = storedDateCheck !== todayCheck;
+            const merged = [
+              ...serverData.map((m: any) => ({
+                ...m,
+                taken: isNewDayNow ? false : (localData.find((l: any) => l.id === m.id)?.taken ?? false),
+                skipped: isNewDayNow ? false : (localData.find((l: any) => l.id === m.id)?.skipped ?? false),
+                takenDate: isNewDayNow ? null : (localData.find((l: any) => l.id === m.id)?.takenDate ?? null),
+              })),
+              ...localOnly,
+            ];
             setMeds(merged);
             await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
             announceMeds(merged);

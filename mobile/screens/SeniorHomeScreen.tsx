@@ -216,16 +216,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* TOP BAR */}
-        <View style={[s.topBar, { paddingTop: Math.max(insets.top + 8, 24) }]}>
-          <Text style={s.wordmark}>Lumi ♥</Text>
-          <View>
-            <Text style={s.topDate}>{dateStr}</Text>
-            <Text style={s.topTime}>{timeStr}</Text>
-          </View>
-        </View>
-
-        {/* HERO — 루미 크게 + 인사 텍스트 (말풍선 없음, 세로 배치) */}
-        <View style={s.heroSection}>
+        {/* HERO — 루미 크게 + 인사 텍스트 */}
+        <View style={[s.heroSection, { paddingTop: Math.max(insets.top + 4, 16) }]}>
           <Image source={lumiImage} style={s.lumiHero} />
           <Text style={s.heroName}>
             {hour < 12 ? '좋은 아침이에요' : hour < 18 ? '안녕하세요' : '좋은 저녁이에요'}, {name}님!
@@ -333,8 +325,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           </TouchableOpacity>
         )}
 
-        {/* 4. 날씨 카드 */}
-        {weather && (
+        {/* 4. 날씨 카드 — summary 있을 때만 표시 */}
+        {weather?.summary && (
           <View style={[s.card, { backgroundColor: '#fff' }]}>
             <View style={s.scheduleTop}>
               <View style={[s.iconChip, { backgroundColor: '#E8F4FC' }]}>
@@ -490,16 +482,16 @@ const s = StyleSheet.create({
     paddingHorizontal: 18,
   },
   lumiHero: {
-    width: 270,
-    height: 220,
+    width: 300,
+    height: 240,
     resizeMode: 'contain',
   },
   heroName: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '900',
     color: INK,
     textAlign: 'center',
-    marginTop: -8,
+    marginTop: -12,
     marginBottom: 4,
   },
   heroSub: {

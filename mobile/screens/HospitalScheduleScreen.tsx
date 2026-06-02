@@ -68,20 +68,14 @@ export default function HospitalScheduleScreen({ route, navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        {/* Lumi Greeting */}
-        <View style={s.lumiGreeting}>
-          <Image source={require('../assets/lumi-happy.png')} style={s.lumiSmall} />
-          <Text style={s.greetingText}>오늘 오후 2시 반,{'\n'}같이 병원 다녀와요</Text>
-        </View>
-
         {/* Today's Hero Card */}
         {todayAppt && (
           <TouchableOpacity
             style={[s.heroCard, { backgroundColor: CARD_HOSPITAL }]}
             onPress={() => navigation.navigate('HospitalScheduleAdd', { userId, name, appointmentId: todayAppt.id })}
           >
-            <Text style={s.heroTime}>14:30</Text>
-            <Text style={s.heroTimeKorean}>오후 2시 30분</Text>
+            <Text style={s.heroTime}>{todayAppt.time}</Text>
+            <Text style={s.heroTimeKorean}>{(() => { const [h,m] = (todayAppt.time||'00:00').split(':').map(Number); return `${h>=12?'오후':'오전'} ${h>12?h-12:h||12}시 ${m>0?m+'분':''}`; })()}</Text>
             <Text style={s.hospitalName}>{todayAppt.hospital}</Text>
             <Text style={s.deptDoctor}>{todayAppt.dept} · {todayAppt.doctor}</Text>
 
@@ -197,12 +191,6 @@ function EmptyState({ userId, name, navigation, insets }: any) {
           >
             <Text style={s.addBtnText}>+</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Lumi Greeting */}
-        <View style={s.lumiGreeting}>
-          <Image source={require('../assets/lumi-happy.png')} style={s.lumiSmall} />
-          <Text style={s.greetingText}>아직 일정이 없어요.{'\n'}같이 등록해볼까요?</Text>
         </View>
 
         {/* Empty Hero */}
