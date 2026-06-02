@@ -955,9 +955,16 @@ export default function AIChatScreen({ route, navigation }: Props) {
             <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 8, alignItems: 'center' }}>
 
-              {/* 루미 크게 */}
+              {/* 루미 크게 196px */}
               <Image source={lumiAvatar()} style={s.lumiWelcome} />
               <Text style={s.lumiWelcomeName}>루미</Text>
+
+              {/* 컨텍스트 pill */}
+              <View style={s.contextPill}>
+                <View style={s.contextPillDot} />
+                <Text style={s.contextPillTxt}>건강 · 약 · 일정 · 위치 기록을 모두 참고해요</Text>
+              </View>
+
               <View style={s.lumiGreetBubble}>
                 <Text style={s.lumiGreetTxt}>{getGreeting(name)}</Text>
               </View>
@@ -1230,14 +1237,25 @@ const s = StyleSheet.create({
 
   // 루미 웰컴
   lumiWelcome: {
-    width: 140, height: 140,
-    borderRadius: 70, resizeMode: 'contain',
+    width: 196, height: 196,
+    borderRadius: 98, resizeMode: 'contain',
     marginTop: 16, marginBottom: 8,
     shadowColor: '#7B1FA2', shadowOpacity: 0.2,
     shadowRadius: 16, shadowOffset: { width: 0, height: 6 },
   },
   lumiWelcomeName: {
-    fontSize: 20, fontWeight: '900', color: C.purple1, marginBottom: 12,
+    fontSize: 20, fontWeight: '900', color: C.purple1, marginBottom: 10,
+  },
+  contextPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#E6F4E2', borderRadius: 999,
+    paddingHorizontal: 14, paddingVertical: 7, marginBottom: 14,
+  },
+  contextPillDot: {
+    width: 8, height: 8, borderRadius: 4, backgroundColor: '#3BA559',
+  },
+  contextPillTxt: {
+    fontSize: 13, fontWeight: '700', color: '#1F7A3A',
   },
   lumiGreetBubble: {
     backgroundColor: '#fff', borderRadius: 20,
