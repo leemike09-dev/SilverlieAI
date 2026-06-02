@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   StatusBar, Image, Alert,
@@ -23,6 +23,10 @@ export default function HospitalScheduleScreen({ route, navigation }: any) {
   const { userId, name } = route.params;
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [calMonth, setCalMonth] = useState(() => {
+    const n = new Date(); return { year: n.getFullYear(), month: n.getMonth() };
+  });
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   useEffect(() => {
     loadAppointments();
@@ -151,6 +155,26 @@ export default function HospitalScheduleScreen({ route, navigation }: any) {
         >
           <Text style={s.addCardText}>+ 일정 추가하기</Text>
         </TouchableOpacity>
+
+        {/* ── 월간 달력 ── */}
+        <MonthlyCalendar
+          year={calMonth.year}
+          month={calMonth.month}
+          appointments={appointments}
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+          onPrevMonth={() => setCalMonth(m => {
+            const d = new Date(m.year, m.month - 1);
+            return { year: d.getFullYear(), month: d.getMonth() };
+          })}
+          onNextMonth={() => setCalMonth(m => {
+            const d = new Date(m.year, m.month + 1);
+            return { year: d.getFullYear(), month: d.getMonth() };
+          })}
+          navigation={navigation}
+          userId={userId}
+          name={name}
+        />
       </ScrollView>
 
       <SeniorTabBar navigation={navigation} activeTab="sched" userId={userId} name={name} />
@@ -529,4 +553,128 @@ const s = StyleSheet.create({
     color: INK_SOFT,
     lineHeight: 20,
   },
+
+  // 월간 달력
+  calCard: {
+    marginHorizontal: 18, marginBottom: 24,
+    backgroundColor: '#fff', borderRadius: 20, padding: 16,
+    shadowColor: '#1C3C6E', shadowOpacity: 0.07, shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 }, elevation: 2,
+  },
+  calHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  calTitle:  { fontSize: 18, fontWeight: '900', color: INK },
+  calArrow:  { fontSize: 22, color: BLUE, paddingHorizontal: 10, paddingVertical: 4 },
+  calWeekRow:{ flexDirection: 'row', marginBottom: 6 },
+  calWeekDay:{ flex: 1, textAlign: 'center', fontSize: 13, fontWeight: '700', color: INK_MUTE },
+  calGrid:   { },
+  calRow:    { flexDirection: 'row', marginBottom: 4 },
+  calCell:   { flex: 1, alignItems: 'center', paddingVertical: 6, borderRadius: 10 },
+  calCellToday:   { borderWidth: 2, borderColor: BLUE },
+  calCellSelected:{ backgroundColor: BLUE },
+  calDayNum: { fontSize: 16, fontWeight: '700', color: INK },
+  calDayNumSelected: { color: '#fff' },
+  calDayNumToday: { color: BLUE, fontWeight: '900' },
+  calDayNumOther: { color: INK_MUTE },
+  calDot:    { width: 6, height: 6, borderRadius: 3, backgroundColor: BLUE, marginTop: 2 },
+  calSelectedInfo: { marginTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(15,27,45,0.06)', paddingTop: 12 },
+  calSelectedDate: { fontSize: 15, fontWeight: '800', color: INK, marginBottom: 8 },
+  calApptRow:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+               backgroundColor: '#F0F6FF', borderRadius: 12, padding: 12, marginBottom: 8 },
+  calApptInfo: { flex: 1 },
+  calApptHospital: { fontSize: 16, fontWeight: '800', color: INK },
+  calApptTime: { fontSize: 14, fontWeight: '600', color: INK_MUTE, marginTop: 2 },
+  calEditBtn:{ backgroundColor: BLUE, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
+  calEditTxt:{ fontSize: 14, fontWeight: '800', color: '#fff' },
+  calNoAppt: { fontSize: 15, fontWeight: '600', color: INK_MUTE, textAlign: 'center', paddingVertical: 8 },
 });
+
+// ── 월간 달력 컴포넌트 ──
+function MonthlyCalendar({ year, month, appointments, selectedDate, onSelectDate,
+  onPrevMonth, onNextMonth, navigation, userId, name }: any) {
+  const today = new Date().toISOString().slice(0, 10);
+  const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // 날짜→일정 맵
+  const apptMap: Record<string, any[]> = {};
+  appointments.forEach((a: any) => {
+    if (!apptMap[a.date]) apptMap[a.date] = [];
+    apptMap[a.date].push(a);
+  });
+
+  // 그리드 생성
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const rows: (number | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
+
+  const selectedAppts = selectedDate ? (apptMap[selectedDate] || []) : [];
+
+  return (
+    <View style={s.calCard}>
+      <View style={s.calHeader}>
+        <TouchableOpacity onPress={onPrevMonth}><Text style={s.calArrow}>‹</Text></TouchableOpacity>
+        <Text style={s.calTitle}>{year}년 {month + 1}월</Text>
+        <TouchableOpacity onPress={onNextMonth}><Text style={s.calArrow}>›</Text></TouchableOpacity>
+      </View>
+
+      <View style={s.calWeekRow}>
+        {DAYS.map((d, i) => (
+          <Text key={d} style={[s.calWeekDay, i === 0 && { color: '#E5453C' }, i === 6 && { color: BLUE }]}>{d}</Text>
+        ))}
+      </View>
+
+      <View style={s.calGrid}>
+        {rows.map((row, ri) => (
+          <View key={ri} style={s.calRow}>
+            {row.map((day, ci) => {
+              if (!day) return <View key={ci} style={s.calCell} />;
+              const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+              const isToday = dateStr === today;
+              const isSelected = dateStr === selectedDate;
+              const hasAppt = !!apptMap[dateStr];
+              return (
+                <TouchableOpacity key={ci} style={[s.calCell, isToday && s.calCellToday, isSelected && s.calCellSelected]}
+                  onPress={() => onSelectDate(isSelected ? null : dateStr)}>
+                  <Text style={[s.calDayNum,
+                    isSelected && s.calDayNumSelected,
+                    isToday && !isSelected && s.calDayNumToday,
+                    ci === 0 && !isSelected && { color: '#E5453C' },
+                  ]}>{day}</Text>
+                  {hasAppt && !isSelected && <View style={s.calDot} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ))}
+      </View>
+
+      {selectedDate && (
+        <View style={s.calSelectedInfo}>
+          <Text style={s.calSelectedDate}>{selectedDate}</Text>
+          {selectedAppts.length === 0 ? (
+            <Text style={s.calNoAppt}>이날 일정이 없어요</Text>
+          ) : (
+            selectedAppts.map((apt: any) => (
+              <View key={apt.id} style={s.calApptRow}>
+                <View style={s.calApptInfo}>
+                  <Text style={s.calApptHospital}>{apt.hospital}</Text>
+                  <Text style={s.calApptTime}>{apt.time}{apt.dept ? ` · ${apt.dept}` : ''}</Text>
+                </View>
+                <TouchableOpacity style={s.calEditBtn}
+                  onPress={() => navigation.navigate('HospitalScheduleAdd', { userId, name, appointmentId: apt.id })}>
+                  <Text style={s.calEditTxt}>수정</Text>
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
