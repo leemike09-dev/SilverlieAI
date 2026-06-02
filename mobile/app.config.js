@@ -1,108 +1,65 @@
+const IS_DEV = process.env.APP_VARIANT === 'development';
+
 module.exports = {
   expo: {
-    name: "Silver Life AI",
-    slug: "silver-life-ai",
-    version: "1.0.0",
-    orientation: "portrait",
-    icon: "./assets/icon.png",
-    userInterfaceStyle: "light",
+    name: IS_DEV ? '실버라이프 (Dev)' : '실버 라이프 AI',
+    slug: 'silver-life-ai',
+    version: '1.0.0',
+    scheme: IS_DEV ? 'silverlifeai-dev' : 'silverlifeai',
+    orientation: 'portrait',
+    icon: './assets/icon.png',
+    userInterfaceStyle: 'light',
     splash: {
-      image: "./assets/splash-icon.png",
-      resizeMode: "contain",
-      backgroundColor: "#1A4A8A",
-    },
-    ios: {
-      supportsTablet: false,
-      bundleIdentifier: "com.silverlifeai.app",
-      entitlements: {
-        "com.apple.developer.applesignin": ["Default"],
-      },
+      image: './assets/splash-icon.png',
+      resizeMode: 'contain',
+      backgroundColor: '#ffffff',
     },
     android: {
-      package: "com.silverlifeai.app",
+      package: IS_DEV ? 'com.silverlifeai.app.dev' : 'com.silverlifeai.app',
       adaptiveIcon: {
-        backgroundColor: "#1A4A8A",
-        foregroundImage: "./assets/android-icon-foreground.png",
-        backgroundImage: "./assets/android-icon-background.png",
-        monochromeImage: "./assets/android-icon-monochrome.png",
+        foregroundImage: './assets/adaptive-icon.png',
+        backgroundColor: '#ffffff',
       },
       permissions: [
-        "android.permission.ACTIVITY_RECOGNITION",
-        "android.permission.INTERNET",
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.VIBRATE",
-        "android.permission.POST_NOTIFICATIONS",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        'android.permission.ACTIVITY_RECOGNITION',
+        'android.permission.INTERNET',
+        'android.permission.CAMERA',
+        'android.permission.RECORD_AUDIO',
+        'android.permission.RECEIVE_BOOT_COMPLETED',
+        'android.permission.VIBRATE',
+        'android.permission.POST_NOTIFICATIONS',
       ],
       intentFilters: [
         {
-          action: "VIEW",
+          action: 'VIEW',
           autoVerify: true,
-          data: [{ scheme: "silverlifeai", host: "oauth" }],
-          category: ["BROWSABLE", "DEFAULT"],
+          data: [{ scheme: IS_DEV ? 'silverlifeai-dev' : 'silverlifeai', host: 'oauth' }],
+          category: ['BROWSABLE', 'DEFAULT'],
         },
       ],
     },
-    web: {
-      favicon: "./assets/favicon.png",
-      bundler: "metro",
-    },
-    extra: {
-      eas: {
-        projectId: "2220b18b-fc03-4ccd-9e62-49dda3b0793f",
+    ios: {
+      bundleIdentifier: IS_DEV ? 'com.silverlifeai.app.dev' : 'com.silverlifeai.app',
+      infoPlist: {
+        NSMotionUsageDescription: '걸음수를 자동으로 측정하기 위해 신체 활동 접근 권한이 필요합니다.',
+        NSMicrophoneUsageDescription: '음성 입력을 위해 마이크 접근 권한이 필요합니다.',
+        NSSpeechRecognitionUsageDescription: '음성 입력을 위해 음성 인식 권한이 필요합니다.',
+        NSCameraUsageDescription: '프로필 사진 촬영을 위해 카메라 접근 권한이 필요합니다.',
       },
     },
-    owner: "gigas4",
+    plugins: [
+      ['expo-sensors', { motionPermission: '걸음수 자동 측정을 위해 신체 활동 접근 권한이 필요합니다.' }],
+      'expo-notifications',
+      ['@react-native-seoul/kakao-login', { kakaoAppKey: '8f40217a9768056a44ce78516d2f5858' }],
+    ],
     runtimeVersion: {
-      policy: "sdkVersion",
+      policy: 'sdkVersion',
     },
     updates: {
-      url: "https://u.expo.dev/2220b18b-fc03-4ccd-9e62-49dda3b0793f",
+      url: 'https://u.expo.dev/2220b18b-fc03-4ccd-9e62-49dda3b0793f',
     },
-    plugins: [
-      [
-        "expo-build-properties",
-        {
-          android: { newArchEnabled: false },
-          ios: { newArchEnabled: false },
-        },
-      ],
-      "expo-font",
-      "expo-web-browser",
-      "expo-apple-authentication",
-      [
-        "expo-sensors",
-        {
-          motionPermission: "걸음수 자동 측정을 위해 신체 활동 접근 권한이 필요합니다.",
-        },
-      ],
-      [
-        "expo-location",
-        {
-          locationAlwaysAndWhenInUsePermission: "어르신의 실시간 위치를 확인하고 안전을 지키기 위해 위치 접근 권한이 필요합니다.",
-          locationAlwaysPermission: "어르신의 위치를 지속적으로 기록하기 위해 백그라운드 위치 접근 권한이 필요합니다.",
-          locationWhenInUsePermission: "어르신의 현재 위치를 확인하기 위해 위치 접근 권한이 필요합니다.",
-        },
-      ],
-      [
-        "expo-notifications",
-        {
-          icon: "./assets/android-icon-monochrome.png",
-          color: "#5C6BC0",
-          sounds: [],
-          iosDisplayInForeground: true,
-        },
-      ],
-      "expo-video",
-      "./plugins/withKakaoAndroid",
-    ],
-    scheme: "silverlifeai",
-    experiments: {
-      baseUrl: "/SilverlieAI",
+    extra: {
+      eas: { projectId: '2220b18b-fc03-4ccd-9e62-49dda3b0793f' },
     },
   },
 };
