@@ -5,13 +5,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-let VideoView: any = null;
-let useVideoPlayer: any = null;
-try {
-  const expoVideo = require('expo-video');
-  VideoView = expoVideo.VideoView;
-  useVideoPlayer = expoVideo.useVideoPlayer;
-} catch {}
+import { VideoView, useVideoPlayer } from 'expo-video';
 
 const { width, height } = Dimensions.get('window');
 const isNative = Platform.OS !== 'web';
@@ -20,9 +14,10 @@ export default function IntroScreen({ navigation }: any) {
   const insets   = useSafeAreaInsets();
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const player1 = useVideoPlayer
-    ? useVideoPlayer(require('../assets/lumi3.mp4'), (p: any) => { p.muted = true; p.loop = true; })
-    : null;
+  const player1 = useVideoPlayer(require('../assets/lumi3.mp4'), (p: any) => {
+    p.muted = true;
+    p.loop  = true;
+  });
 
   const handleLogin = async () => {
     await AsyncStorage.setItem('onboarding_seen', '1');
@@ -35,7 +30,7 @@ export default function IntroScreen({ navigation }: any) {
     Animated.timing(fadeAnim, {
       toValue: 1, duration: 900, useNativeDriver: isNative,
     }).start();
-    player1?.play();
+    player1.play();
     // 인트로에서 미리 백엔드 웨이크업 (Render.com 콜드스타트 대응)
     fetch('https://silverlieai.onrender.com/').catch(() => {});
   }, []);
@@ -43,20 +38,13 @@ export default function IntroScreen({ navigation }: any) {
   return (
     <View style={s.root}>
 
-      {/* ── 배경 영상 (expo-video 없으면 정지 이미지) ── */}
-      {VideoView && player1 ? (
-        <VideoView
-          player={player1}
-          style={[StyleSheet.absoluteFill, s.video]}
-          contentFit="cover"
-          nativeControls={false}
-        />
-      ) : (
-        <Image
-          source={require('../assets/lumi10.png')}
-          style={[StyleSheet.absoluteFill, { width, height, resizeMode: 'cover' }]}
-        />
-      )}
+      {/* ── 배경 영상 ── */}
+      <VideoView
+        player={player1}
+        style={[StyleSheet.absoluteFill, s.video]}
+        contentFit="cover"
+        nativeControls={false}
+      />
 
       {/* 어두운 오버레이 */}
       <View style={s.overlay} />
