@@ -85,7 +85,14 @@ export default function SettingsScreen({ route, navigation }: Props) {
       ])
     );
     if (!confirmed) return;
-    await AsyncStorage.clear();
+    // 기기 설정은 유지, 사용자 데이터만 제거
+    const DEVICE_KEYS = [
+      'pedometer_asked', 'notification_init', 'home_set',
+      'step_baseline_android', 'steps_today_android',
+    ];
+    const allKeys = await AsyncStorage.getAllKeys();
+    const userKeys = allKeys.filter(k => !DEVICE_KEYS.includes(k));
+    await AsyncStorage.multiRemove(userKeys);
     navigation.reset({ index: 0, routes: [{ name: 'Intro' }] });
   };
 

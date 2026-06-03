@@ -11,7 +11,7 @@ type Props = { navigation: any; route: any };
 
 const SLIDES: { icon: string | null; lumi?: boolean; title: string; desc: string; color: string }[] = [
   {
-    icon: null,
+    icon: '👪',
     title: '자녀가 부모님 건강을\n걱정하고 있지 않나요?',
     desc: '가족이 언제든 건강 상태와\n동선을 확인할 수 있어요',
     color: '#1A4A8A',
