@@ -1,23 +1,16 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Animated, Platform, Dimensions, Image,
+  Animated, Platform, Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { VideoView, useVideoPlayer } from 'expo-video';
 
-const { width, height } = Dimensions.get('window');
 const isNative = Platform.OS !== 'web';
 
 export default function IntroScreen({ navigation }: any) {
   const insets   = useSafeAreaInsets();
   const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  const player1 = useVideoPlayer(require('../assets/lumi3.mp4'), (p: any) => {
-    p.muted = true;
-    p.loop  = true;
-  });
 
   const handleLogin = async () => {
     await AsyncStorage.setItem('onboarding_seen', '1');
@@ -30,20 +23,16 @@ export default function IntroScreen({ navigation }: any) {
     Animated.timing(fadeAnim, {
       toValue: 1, duration: 900, useNativeDriver: isNative,
     }).start();
-    player1.play();
-    // 인트로에서 미리 백엔드 웨이크업 (Render.com 콜드스타트 대응)
     fetch('https://silverlieai.onrender.com/').catch(() => {});
   }, []);
 
   return (
     <View style={s.root}>
 
-      {/* ── 배경 영상 ── */}
-      <VideoView
-        player={player1}
-        style={[StyleSheet.absoluteFill, s.video]}
-        contentFit="cover"
-        nativeControls={false}
+      {/* ── 배경 이미지 (lumi15.png — 기존 LoginScreen과 동일 파일) ── */}
+      <Image
+        source={require('../assets/lumi15.png')}
+        style={[StyleSheet.absoluteFill, s.bgImage]}
       />
 
       {/* 어두운 오버레이 */}
@@ -91,7 +80,7 @@ export default function IntroScreen({ navigation }: any) {
 
 const s = StyleSheet.create({
   root:    { flex: 1, backgroundColor: '#000' },
-  video:   { width, height },
+  bgImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.42)',
