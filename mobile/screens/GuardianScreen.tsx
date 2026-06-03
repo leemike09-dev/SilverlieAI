@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Alert, Modal, TextInput, Image,
+  StatusBar, Alert, Modal, TextInput,
 } from 'react-native';
+import Lumi from '../components/Lumi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -117,7 +118,7 @@ export default function GuardianScreen({ route, navigation }: any) {
 
         {/* Lumi greeting */}
         <View style={s.lumiRow}>
-          <Image source={require('../assets/lumi-happy.png')} style={s.lumiImg} />
+          <Lumi mood="happy" size={80} bob />
           <View style={s.lumiBubble}>
             <Text style={s.lumiText}>
               {name}님 가족이{'\n'}항상 곁에 있어요 💜

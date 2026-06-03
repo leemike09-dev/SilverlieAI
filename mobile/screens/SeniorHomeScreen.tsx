@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Alert, Platform, Animated, Image, useWindowDimensions,
+  StatusBar, Alert, Platform, useWindowDimensions,
 } from 'react-native';
-import { useBob } from '../utils/useBob';
+import Lumi from '../components/Lumi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -208,9 +208,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   const dateStr = `${now.getMonth() + 1}월 ${now.getDate()}일 ${days[now.getDay()]}요일`;
   const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
   const timeStr = `${hour < 12 ? '오전' : '오후'} ${h12}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const lumiImage = require('../assets/lumi-happy.png');
   const isGuest = !userId || userId === 'guest';
-  const bobY = useBob();
 
   return (
     <LinearGradient colors={[APP_BG_TOP, APP_BG_BOT]} style={s.root}>
@@ -220,7 +218,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         {/* TOP BAR */}
         {/* HERO — 루미 크게 + 인사 텍스트 */}
         <View style={[s.heroSection, { paddingTop: Math.max(insets.top + 4, 16) }]}>
-          <Animated.Image source={lumiImage} style={[s.lumiHero, { transform: [{ translateY: bobY }] }]} />
+          <Lumi mood="happy" size={300} bob style={s.lumiHero} />
           <Text style={s.heroName}>
             {hour < 12 ? '좋은 아침이에요' : hour < 18 ? '안녕하세요' : '좋은 저녁이에요'}, {name}님!
           </Text>
@@ -253,7 +251,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           {/* 부정 기분 선택 시 AIChat 유도 */}
           {todayMood !== null && todayMood >= 3 && (
             <View style={s.moodChatBox}>
-              <Image source={require('../assets/lumi-worried.png')} style={s.moodLumi} />
+              <Lumi mood="worried" size={52} bob={false} />
               <View style={{ flex: 1 }}>
                 <Text style={s.moodChatText}>왜 그런 기분이 드는지{'\n'}말해 주실래요?</Text>
                 <TouchableOpacity
@@ -378,7 +376,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         >
           <View style={s.chatCardTop}>
             <View style={[s.iconChip, { backgroundColor: CHIP_CHAT }]}>
-              <Image source={lumiImage} style={s.lumiChip} />
+              <Lumi mood="happy" size={30} bob={false} />
             </View>
             <Text style={s.cardTitle}>루미와 대화</Text>
           </View>

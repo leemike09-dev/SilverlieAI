@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import SeniorTabBar from '../components/SeniorTabBar';
 import { useBob } from '../utils/useBob';
+import Lumi from '../components/Lumi';
 
 function PillImage({ source, isPending }: { source: any; isPending: boolean }) {
   const bobY = useBob();
@@ -329,7 +330,7 @@ export default function MedicationScreen({ navigation }: any) {
 
           {/* ── 루미 말풍선 ── */}
           <View style={s.lumiRow}>
-            <Image source={require('../assets/lumi-happy.png')} style={s.lumiImg} resizeMode="contain" />
+            <Lumi mood={remaining === 0 ? 'content' : 'happy'} size={72} bob />
             <View style={s.bubble}>
               <Text style={s.bubbleTxt}>
                 {total === 0

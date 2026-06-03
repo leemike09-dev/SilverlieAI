@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Alert, Clipboard, Image,
+  StatusBar, Alert, Clipboard,
 } from 'react-native';
+import Lumi from '../components/Lumi';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -100,7 +101,7 @@ export default function FamilyConnectScreen({ route, navigation }: any) {
 
         {/* Lumi */}
         <View style={s.lumiRow}>
-          <Image source={require('../assets/lumi-happy.png')} style={s.lumiImg} />
+          <Lumi mood="happy" size={60} bob />
           <View style={s.lumiBubble}>
             <Text style={s.lumiText}>가족과 연결하면{'\n'}더 안심이 돼요 💜</Text>
           </View>

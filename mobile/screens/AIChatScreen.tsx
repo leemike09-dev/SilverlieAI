@@ -2,8 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   TextInput, KeyboardAvoidingView, Platform, Keyboard,
-  Animated, Modal, Linking, Alert, Image,
+  Animated, Modal, Linking, Alert,
 } from 'react-native';
+import Lumi, { LumiMood } from '../components/Lumi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -227,12 +228,12 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const isWelcome = messages.length === 0 && !loading;
   const lastAiMsg = [...messages].reverse().find(m => m.role === 'ai');
 
-  const lumiAvatar = () => {
-    if (loading) return require('../assets/lumi-focused.png');
-    if (!lastAiMsg) return require('../assets/lumi-happy.png');
+  const lumiMood = (): LumiMood => {
+    if (loading) return 'focused';
+    if (!lastAiMsg) return 'happy';
     const r = lastAiMsg.riskLevel;
-    if (r === 'critical' || r === 'high') return require('../assets/lumi-worried.png');
-    return require('../assets/lumi-happy.png');
+    if (r === 'critical' || r === 'high') return 'worried';
+    return 'happy';
   };
 
   // 초기 로드: 건강프로필 + 건강기록 + 약 목록 + TTS + 세션 복원
@@ -876,7 +877,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
                 return (
                   <View key={i} style={msg.role === 'ai' ? s.aiRow : s.userRow}>
                     {msg.role === 'ai' && (
-                      <Image source={lumiAvatar()} style={s.lumiAvatar} />
+                      <Lumi mood={lumiMood()} size={52} bob={false} />
                     )}
                     <View style={msg.role === 'ai' ? s.aiBubble : s.userBubble}>
                     {msg.role === 'ai' && <Text style={s.bubbleName}>루미</Text>}
@@ -956,7 +957,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
               contentContainerStyle={{ paddingBottom: 8, alignItems: 'center' }}>
 
               {/* 루미 크게 196px */}
-              <Image source={lumiAvatar()} style={s.lumiWelcome} />
+              <Lumi mood={lumiMood()} size={196} bob />
               <Text style={s.lumiWelcomeName}>루미</Text>
 
               {/* 컨텍스트 pill */}

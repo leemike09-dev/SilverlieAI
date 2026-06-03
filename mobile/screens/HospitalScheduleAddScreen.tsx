@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Image, TextInput, Alert, Switch,
+  StatusBar, TextInput, Alert, Switch,
 } from 'react-native';
+import Lumi from '../components/Lumi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -117,7 +118,7 @@ export default function HospitalScheduleAddScreen({ route, navigation }: any) {
 
         {/* Lumi Greeting */}
         <View style={s.lumiGreeting}>
-          <Image source={require('../assets/lumi-happy.png')} style={s.lumiSmall} />
+          <Lumi mood="happy" size={72} bob />
           <Text style={s.greetingText}>새 일정을 알려주세요.{'\n'}제가 기억할게요 💜</Text>
         </View>
 

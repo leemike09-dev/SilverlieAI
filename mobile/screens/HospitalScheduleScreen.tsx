@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Image, Alert,
+  StatusBar, Alert,
 } from 'react-native';
+import Lumi from '../components/Lumi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -77,6 +78,14 @@ export default function HospitalScheduleScreen({ route, navigation }: any) {
           <TouchableOpacity style={s.addBtn} onPress={() => navigation.navigate('HospitalScheduleAdd', { userId, name })}>
             <Text style={s.addBtnText}>+</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* 루미 인사 */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, marginBottom: 12, gap: 12 }}>
+          <Lumi mood="happy" size={72} bob />
+          <Text style={{ fontSize: 20, fontWeight: '700', color: '#3D4B62', flex: 1 }}>
+            {isToday ? '오늘 병원 가는 날이에요!\n같이 다녀와요 💜' : '다음 일정을 확인해요'}
+          </Text>
         </View>
 
         {/* 동적 HERO 카드 */}

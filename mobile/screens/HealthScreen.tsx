@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Image, Alert, Modal, TextInput, FlatList,
+  StatusBar, Alert, Modal, TextInput, FlatList,
 } from 'react-native';
+import Lumi from '../components/Lumi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -192,7 +193,6 @@ export default function HealthScreen({ route, navigation }: any) {
       sleepStatus(todayRecord.sleep_hours),
     ].some(s => s !== 'normal') : false;
 
-  const lumiImage = hasWarning ? require('../assets/lumi-worried.png') : require('../assets/lumi-content.png');
 
   return (
     <LinearGradient colors={[APP_BG_TOP, APP_BG_BOT]} style={s.root}>
@@ -206,7 +206,7 @@ export default function HealthScreen({ route, navigation }: any) {
 
         {/* Lumi Greeting */}
         <View style={s.lumiGreeting}>
-          <Image source={lumiImage} style={s.lumiImage} />
+          <Lumi mood={hasWarning ? 'worried' : 'content'} size={90} bob />
           <View>
             <View style={s.statusBadge}>
               <Text style={s.statusBadgeText}>{hasWarning ? '주의' : '좋음'}</Text>
