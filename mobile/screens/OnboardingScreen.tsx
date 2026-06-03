@@ -5,6 +5,7 @@ import {
   ScrollView, Dimensions, Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Lumi from '../components/Lumi';
 
 const { width } = Dimensions.get('window');
 type Props = { navigation: any; route: any };
@@ -80,7 +81,7 @@ export default function OnboardingScreen({ navigation, route }: Props) {
           <View key={i} style={[s.slide, { width }, sl.lumi && s.lumiSlide]}>
             {sl.lumi ? (
               <View style={s.lumiFrame}>
-                <Image source={require('../assets/lumi10.png')} style={s.lumiImg} resizeMode="contain" />
+                <Lumi mood="happy" size={240} bob style={s.lumiImg} />
                 <View style={s.lumiCaption}>
                   <Text style={[s.title, { color: sl.color, marginBottom: 0 }]}>{sl.title}</Text>
                 </View>
