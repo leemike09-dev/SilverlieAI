@@ -10,6 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import SeniorTabBar from '../components/SeniorTabBar';
 import * as Location from 'expo-location';
 import * as Linking from 'expo-linking';
+import { useFocusEffect } from '@react-navigation/native';
 
 const BLUE = '#3B82F6';
 const APP_BG_TOP = '#F1ECE4';
@@ -56,6 +57,12 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   const locationRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const moodCardY = useRef<number>(0);
+  const shouldScrollToMood = useRef<boolean>(false);
+
+  // 화면 포커스될 때마다 맨 위로
+  useFocusEffect(useCallback(() => {
+    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+  }, []));
   const todayKey = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   const sendLocation = async (uid: string) => {
@@ -202,6 +209,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   };
 
   const handleMoodSelect = async (moodIndex: number) => {
+    shouldScrollToMood.current = true;
     setTodayMood(moodIndex);
     await AsyncStorage.setItem(`mood.${userId}.${todayKey}`, String(moodIndex));
     // mood_log 누적 저장 (하루 1개 갱신)
@@ -279,6 +287,8 @@ const MOOD_REACTIONS = [
           {todayMood !== null && (
             <View style={s.moodChatBox}
               onLayout={e => {
+                if (!shouldScrollToMood.current) return;
+                shouldScrollToMood.current = false;
                 const absY = moodCardY.current + e.nativeEvent.layout.y;
                 scrollViewRef.current?.scrollTo({ y: Math.max(0, absY - 80), animated: true });
               }}>
