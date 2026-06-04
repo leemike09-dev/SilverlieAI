@@ -15,10 +15,10 @@ function PillImage({ source, isPending }: { source: any; isPending: boolean }) {
   const bobY = useBob();
   if (isPending) {
     return (
-      <Animated.Image source={source} style={{ width: 52, height: 52, marginRight: 12, transform: [{ translateY: bobY }] }} resizeMode="contain" />
+      <Animated.Image source={source} style={{ width: 92, height: 92, marginRight: 14, transform: [{ translateY: bobY }] }} resizeMode="contain" />
     );
   }
-  return <Image source={source} style={{ width: 52, height: 52, marginRight: 12, opacity: 0.5 }} resizeMode="contain" />;
+  return <Image source={source} style={{ width: 92, height: 92, marginRight: 14, opacity: 0.5 }} resizeMode="contain" />;
 }
 import { scheduleMedNotification } from '../utils/notifications';
 import { speak } from '../utils/speech';
@@ -26,7 +26,8 @@ import { speak } from '../utils/speech';
 const API_URL = 'https://silverlieai.onrender.com';
 const isDemo  = (uid: string) => !uid || uid === 'demo-user' || uid === 'guest';
 
-const GREEN  = '#2E7D32';
+const BLUE   = '#3B82F6';
+const GREEN  = '#3BA559';  // 완료 상태 전용 (초록 의미색 유지)
 const SKY    = '#F1ECE4';
 const SKY2   = '#FBF8F3';
 const CARD   = '#FFFFFF';
@@ -39,7 +40,6 @@ const TIME_SLOTS = [
   { key: 'bedtime',  label: '취침전', icon: '🌛',  defaultTime: '21:00' },
 ];
 
-const STORAGE_KEY = 'medications';
 const EMPTY_FORM  = { name: '', dosage: '', method: '', timeSlot: 'morning', stock: '' };
 
 // 약 이름 키워드 → 캐릭터 이미지 매핑
@@ -120,7 +120,8 @@ export default function MedicationScreen({ navigation }: any) {
       setUname(name);
 
       const today = new Date().toISOString().slice(0, 10);
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+      const medKey = `medications.${uid}`;
+      const stored = await AsyncStorage.getItem(medKey);
       if (stored) {
         try {
           const loaded: any[] = JSON.parse(stored);
@@ -130,7 +131,7 @@ export default function MedicationScreen({ navigation }: any) {
             ? loaded.map(m => ({ ...m, taken: false, skipped: false, takenDate: null }))
             : loaded;
           if (isNewDay) {
-            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(displayed));
+            await AsyncStorage.setItem(medKey, JSON.stringify(displayed));
             await AsyncStorage.setItem('medications_date', today);
           }
           setMeds(displayed);
@@ -154,7 +155,7 @@ export default function MedicationScreen({ navigation }: any) {
           const res = await fetch(`${API_URL}/medications/today/${uid}`);
           if (res.ok) {
             const serverData: any[] = await res.json();
-            const localRaw = await AsyncStorage.getItem(STORAGE_KEY).catch(() => null);
+            const localRaw = await AsyncStorage.getItem(medKey).catch(() => null);
             const localData: any[] = localRaw ? JSON.parse(localRaw) : [];
             const serverIds = new Set(serverData.map((m: any) => m.id));
             const localOnly = localData.filter((m: any) => !serverIds.has(m.id));
@@ -172,7 +173,7 @@ export default function MedicationScreen({ navigation }: any) {
               ...localOnly,
             ];
             setMeds(merged);
-            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+            await AsyncStorage.setItem(medKey, JSON.stringify(merged));
             announceMeds(merged);
           }
         } catch {}
@@ -199,7 +200,7 @@ export default function MedicationScreen({ navigation }: any) {
 
   const saveMeds = async (updated: any[]) => {
     setMeds(updated);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    await AsyncStorage.setItem(`medications.${userId}`, JSON.stringify(updated));
   };
 
   const apiToggle = (uid: string, medId: string, field: string, value: boolean) => {
@@ -272,7 +273,7 @@ export default function MedicationScreen({ navigation }: any) {
     setMeds(updatedMeds);
     setForm(EMPTY_FORM);
     setAddModal(false);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedMeds)).catch(() => {});
+    await AsyncStorage.setItem(`medications.${userId}`, JSON.stringify(updatedMeds)).catch(() => {});
     scheduleMedNotification(tempId, newMed.name, newMed.timeSlot);
     if (!isDemo(userId)) {
       try {
@@ -291,7 +292,7 @@ export default function MedicationScreen({ navigation }: any) {
               m.id === tempId ? { ...m, id: result.id } : m
             );
             setMeds(finalMeds);
-            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(finalMeds)).catch(() => {});
+            await AsyncStorage.setItem(`medications.${userId}`, JSON.stringify(finalMeds)).catch(() => {});
           }
         }
       } catch {}
@@ -589,9 +590,8 @@ const s = StyleSheet.create({
   root: { flex: 1 },
 
   // 헤더
-  header:    { backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center',
-               justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 14,
-               borderBottomWidth: 1, borderBottomColor: 'rgba(15,27,45,0.06)' },
+  header:    { backgroundColor: 'transparent', flexDirection: 'row', alignItems: 'center',
+               justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 14 },
   headerTitle: { fontSize: 26, fontWeight: '900', color: '#0F1B2D' },
   addBtn:    { backgroundColor: '#EFF6FF', borderRadius: 16,
                paddingHorizontal: 20, paddingVertical: 12,
@@ -637,7 +637,7 @@ const s = StyleSheet.create({
   emptyIcon:  { fontSize: 64 },
   emptyTitle: { fontSize: 24, fontWeight: '800', color: INK },
   emptySub:   { fontSize: 20, color: '#90A4AE', textAlign: 'center', lineHeight: 30 },
-  emptyBtn:   { backgroundColor: GREEN, borderRadius: 18, paddingHorizontal: 32, paddingVertical: 20, marginTop: 8 },
+  emptyBtn:   { backgroundColor: BLUE, borderRadius: 18, paddingHorizontal: 32, paddingVertical: 20, marginTop: 8 },
   emptyBtnTxt:{ fontSize: 22, fontWeight: '900', color: '#fff' },
 
   // 섹션
@@ -672,7 +672,7 @@ const s = StyleSheet.create({
 
   // 버튼
   medBtns:    { flexDirection: 'column', gap: 8, marginLeft: 10 },
-  btnTake:    { backgroundColor: GREEN, borderRadius: 14,
+  btnTake:    { backgroundColor: BLUE, borderRadius: 14,
                 paddingHorizontal: 18, paddingVertical: 18,
                 minHeight: 64, justifyContent: 'center', alignItems: 'center' },
   btnTakeTxt: { fontSize: 18, fontWeight: '800', color: '#fff' },
@@ -691,7 +691,7 @@ const s = StyleSheet.create({
   modalScroll:  { justifyContent: 'flex-end', flexGrow: 1 },
   modalBox:     { backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30,
                   padding: 28, paddingBottom: 50 },
-  modalTitle:   { fontSize: 28, fontWeight: '900', color: GREEN, textAlign: 'center', marginBottom: 22 },
+  modalTitle:   { fontSize: 28, fontWeight: '900', color: BLUE, textAlign: 'center', marginBottom: 22 },
 
   fLabel:   { fontSize: 20, fontWeight: '700', color: '#546E7A', marginBottom: 8, marginTop: 14 },
   fInputLg: { backgroundColor: '#F4F7FC', borderRadius: 14, borderWidth: 1.5, borderColor: '#90CAF9',
@@ -704,12 +704,12 @@ const s = StyleSheet.create({
   timeRow:      { flexDirection: 'row', gap: 8, marginBottom: 4 },
   timeBtn:      { flex: 1, alignItems: 'center', backgroundColor: '#F4F7FC',
                   borderRadius: 14, paddingVertical: 14, borderWidth: 1.5, borderColor: '#E0E0E0' },
-  timeBtnOn:    { backgroundColor: '#E8F5E9', borderColor: GREEN },
+  timeBtnOn:    { backgroundColor: '#EFF6FF', borderColor: BLUE },
   timeBtnIcon:  { fontSize: 22, marginBottom: 4 },
   timeBtnTxt:   { fontSize: 16, fontWeight: '700', color: '#78909C' },
-  timeBtnTxtOn: { color: GREEN },
+  timeBtnTxtOn: { color: BLUE },
 
-  saveBtn:     { backgroundColor: GREEN, borderRadius: 18, paddingVertical: 22,
+  saveBtn:     { backgroundColor: BLUE, borderRadius: 18, paddingVertical: 22,
                  alignItems: 'center', marginTop: 22, minHeight: 64, justifyContent: 'center' },
   saveBtnTxt:  { fontSize: 22, fontWeight: '900', color: '#fff' },
   cancelBtn:   { padding: 18, alignItems: 'center' },

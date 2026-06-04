@@ -115,7 +115,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       if (mood) setTodayMood(parseInt(mood));
 
       // Load next hospital schedule (show any upcoming, not just today)
-      const schedule = await AsyncStorage.getItem('hospital_schedule');
+      const schedule = await AsyncStorage.getItem(`hospital_schedule.${uid}`);
       if (schedule) {
         const parsed = JSON.parse(schedule);
         if (parsed.date >= todayKey) setTodaySchedule(parsed);
@@ -123,7 +123,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
       // Load next medication — 현재 시각 기준 다음 복용 계산
       try {
-        const medsRaw = await AsyncStorage.getItem('medications');
+        const medsRaw = await AsyncStorage.getItem(`medications.${uid}`);
         const logRaw  = await AsyncStorage.getItem(`medication-log.${uid}.${todayKey}`);
         if (medsRaw) {
           const medList: any[] = JSON.parse(medsRaw);
@@ -179,16 +179,15 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             }
           } catch {}
         }
-        if (lat && lng) {
-          fetch(`${API}/weather?lat=${lat}&lon=${lng}`)
-            .then(r => r.ok ? r.json() : null)
-            .then(d => { if (d) setWeather(d); })
-            .catch(() => {});
-        }
+        if (!lat || !lng) { lat = 37.5665; lng = 126.9780; }  // 서울 폴백
+        fetch(`${API}/weather?lat=${lat}&lon=${lng}`)
+          .then(r => r.ok ? r.json() : null)
+          .then(d => { if (d) setWeather(d); })
+          .catch(() => {});
       } catch {}
 
       // Load today's health
-      const records = await AsyncStorage.getItem('health_records');
+      const records = await AsyncStorage.getItem(`health_records.${uid}`);
       if (records) {
         const recList = JSON.parse(records);
         const todayRec = recList.find((r: any) => r.date === todayKey);
@@ -216,8 +215,15 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* TOP BAR */}
+        <View style={[s.topBar, { paddingTop: Math.max(insets.top + 4, 16) }]}>
+          <Text style={s.wordmark}>Lumi <Text style={{ color: '#E9A23B' }}>♥</Text></Text>
+          <View>
+            <Text style={s.topDate}>{dateStr}</Text>
+            <Text style={s.topTime}>{timeStr}</Text>
+          </View>
+        </View>
         {/* HERO — 루미 크게 + 인사 텍스트 */}
-        <View style={[s.heroSection, { paddingTop: Math.max(insets.top + 4, 16) }]}>
+        <View style={[s.heroSection, { paddingTop: 16 }]}>
           <Lumi mood="happy" size={300} bob style={s.lumiHero} />
           <Text style={s.heroName}>
             {hour < 12 ? '좋은 아침이에요' : hour < 18 ? '안녕하세요' : '좋은 저녁이에요'}, {name}님!
@@ -325,28 +331,28 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           </TouchableOpacity>
         )}
 
-        {/* 4. 날씨 카드 — summary 있을 때만 표시 */}
-        {weather?.summary && (
-          <View style={[s.card, { backgroundColor: '#fff' }]}>
-            <View style={s.scheduleTop}>
-              <View style={[s.iconChip, { backgroundColor: '#E8F4FC' }]}>
-                <Text style={s.iconChipEmoji}>
-                  {weather.summary?.includes('비') ? '🌧️' :
-                   weather.summary?.includes('눈') ? '❄️' :
-                   weather.summary?.includes('흐') ? '☁️' :
-                   weather.summary?.includes('구름') ? '⛅' : '☀️'}
-                </Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.cardTitle}>오늘 날씨</Text>
-                <Text style={s.cardSubtitle} numberOfLines={2}>{weather.summary || '날씨 정보 로딩 중'}</Text>
-              </View>
+        {/* 4. 날씨 카드 — 항상 표시 (서울 폴백으로 데이터 보장) */}
+        <View style={[s.card, { backgroundColor: '#fff' }]}>
+          <View style={s.scheduleTop}>
+            <View style={[s.iconChip, { backgroundColor: '#E8F4FC' }]}>
+              <Text style={s.iconChipEmoji}>
+                {weather?.summary?.includes('비') ? '🌧️' :
+                 weather?.summary?.includes('눈') ? '❄️' :
+                 weather?.summary?.includes('흐') ? '☁️' :
+                 weather?.summary?.includes('구름') ? '⛅' : '☀️'}
+              </Text>
             </View>
-            {weather.advice && (
-              <Text style={s.weatherAdvice}>💬 {weather.advice}</Text>
-            )}
+            <View style={{ flex: 1 }}>
+              <Text style={s.cardTitle}>오늘 날씨</Text>
+              <Text style={s.cardSubtitle} numberOfLines={2}>
+                {weather?.summary || '날씨 정보를 불러오는 중이에요'}
+              </Text>
+            </View>
           </View>
-        )}
+          {weather?.advice && (
+            <Text style={s.weatherAdvice}>💬 {weather.advice}</Text>
+          )}
+        </View>
 
         {/* 5. 건강 상태 — 흰 카드 + 코랄 칩 */}
         {healthToday && (
@@ -555,13 +561,14 @@ const s = StyleSheet.create({
   moodBtn: {
     flex: 1,
     minWidth: 0,
-    height: 80,
+    height: 88,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
     borderColor: 'transparent',
     marginHorizontal: 2,
+    overflow: 'hidden',
   },
   moodBtnActive: {
     borderColor: BLUE,
@@ -576,6 +583,7 @@ const s = StyleSheet.create({
   },
   moodEmoji: {
     fontSize: 28,
+    lineHeight: 32,
     marginBottom: 4,
   },
   moodText: {
@@ -584,14 +592,17 @@ const s = StyleSheet.create({
     color: INK,
     textAlign: 'center',
     letterSpacing: -0.5,
+    lineHeight: 13,
   },
 
-  // 아이콘 칩 (42×42 파스텔)
+  // 아이콘 칩 (48×48 파스텔 + 옅은 그림자)
   iconChip: {
-    width: 42, height: 42, borderRadius: 12,
+    width: 48, height: 48, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    shadowColor: '#1C2846', shadowOpacity: 0.10, shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 }, elevation: 2,
   },
-  iconChipEmoji: { fontSize: 22 },
+  iconChipEmoji: { fontSize: 26 },
   lumiChip: { width: 30, height: 30, resizeMode: 'contain' },
 
   scheduleTop: {

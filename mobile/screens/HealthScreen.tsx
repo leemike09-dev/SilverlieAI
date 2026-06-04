@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Alert, Modal, TextInput, FlatList,
+  StatusBar, Alert, Modal, TextInput, FlatList, Platform,
 } from 'react-native';
 import Lumi from '../components/Lumi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -78,6 +78,7 @@ export default function HealthScreen({ route, navigation }: any) {
   const [inputValue, setInputValue] = useState('');
   const [bpSys, setBpSys] = useState('');
   const [bpDia, setBpDia] = useState('');
+  const [liveSteps, setLiveSteps] = useState<number | null>(null);
 
   const todayKey = new Date().toISOString().slice(0, 10);
 
@@ -85,9 +86,31 @@ export default function HealthScreen({ route, navigation }: any) {
     loadRecords();
   }, []);
 
+  // Pedometer: 오늘 0시부터 누적 걸음수 실시간 구독
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    let sub: any;
+    (async () => {
+      try {
+        const { Pedometer } = await import('expo-sensors');
+        const ok = await Pedometer.isAvailableAsync().catch(() => false);
+        if (!ok) return;
+        const start = new Date(); start.setHours(0, 0, 0, 0);
+        try {
+          const past = await Pedometer.getStepCountAsync(start, new Date());
+          if (past?.steps) setLiveSteps(past.steps);
+        } catch {}
+        sub = Pedometer.watchStepCount(r => {
+          setLiveSteps(prev => (prev ?? 0) + r.steps);
+        });
+      } catch {}
+    })();
+    return () => { if (sub) sub.remove(); };
+  }, []);
+
   const loadRecords = async () => {
     try {
-      const raw = await AsyncStorage.getItem('health_records');
+      const raw = await AsyncStorage.getItem(`health_records.${userId}`);
       const list = raw ? JSON.parse(raw) : [];
       const sorted = list.sort((a: any, b: any) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -167,7 +190,7 @@ export default function HealthScreen({ route, navigation }: any) {
         list.push(updated);
       }
 
-      await AsyncStorage.setItem('health_records', JSON.stringify(list));
+      await AsyncStorage.setItem(`health_records.${userId}`, JSON.stringify(list));
       await fetch(`${API}/health/records/${userId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -311,20 +334,24 @@ export default function HealthScreen({ route, navigation }: any) {
                   <Text style={s.autoBadgeText}>🟢 자동 측정 중</Text>
                 </View>
               </View>
-              {todayRecord?.steps ? (
-                <>
-                  <Text style={s.metricValue}>
-                    {todayRecord.steps.toLocaleString()}
-                    <Text style={s.metricUnit}> 보</Text>
-                  </Text>
-                  <View style={s.stepsProgress}>
-                    <View style={[s.progressBar, { width: `${Math.min(todayRecord.steps / 8000 * 100, 100)}%` as any }]} />
-                  </View>
-                  <Text style={s.progressText}>목표까지 {Math.max(0, 8000 - todayRecord.steps).toLocaleString()}보 남았어요</Text>
-                </>
-              ) : (
-                <Text style={s.emptyValue}>걸을 때마다 자동으로 세어요</Text>
-              )}
+              {(() => {
+                const displaySteps = liveSteps ?? todayRecord?.steps ?? null;
+                if (displaySteps != null && displaySteps > 0) {
+                  return (
+                    <>
+                      <Text style={s.metricValue}>
+                        {displaySteps.toLocaleString()}
+                        <Text style={s.metricUnit}> 보</Text>
+                      </Text>
+                      <View style={s.stepsProgress}>
+                        <View style={[s.progressBar, { width: `${Math.min(displaySteps / 8000 * 100, 100)}%` as any }]} />
+                      </View>
+                      <Text style={s.progressText}>목표까지 {Math.max(0, 8000 - displaySteps).toLocaleString()}보 남았어요</Text>
+                    </>
+                  );
+                }
+                return <Text style={s.emptyValue}>👟 걸을 때마다 자동으로 세고 있어요</Text>;
+              })()}
             </View>
           </View>
         </View>

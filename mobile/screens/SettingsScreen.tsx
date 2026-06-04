@@ -85,14 +85,9 @@ export default function SettingsScreen({ route, navigation }: Props) {
       ])
     );
     if (!confirmed) return;
-    // 기기 설정은 유지, 사용자 데이터만 제거
-    const DEVICE_KEYS = [
-      'pedometer_asked', 'notification_init', 'home_set',
-      'step_baseline_android', 'steps_today_android',
-    ];
-    const allKeys = await AsyncStorage.getAllKeys();
-    const userKeys = allKeys.filter(k => !DEVICE_KEYS.includes(k));
-    await AsyncStorage.multiRemove(userKeys);
+    // 세션 토큰만 제거 — userId 네임스페이스 데이터(medications.uid, health_records.uid 등)는 유지
+    // (재로그인 시 서버에서 복원 + 같은 userId면 로컬 캐시 재사용)
+    await AsyncStorage.multiRemove(['userId', 'userName']);
     navigation.reset({ index: 0, routes: [{ name: 'Intro' }] });
   };
 
@@ -111,13 +106,13 @@ export default function SettingsScreen({ route, navigation }: Props) {
         {/* Profile Card */}
         {!isGuest && (
           <View style={[s.card, s.profileCard]}>
-            <View style={s.profileAvatar}>
-              <Text style={s.profileAvatarTxt}>{name.slice(0, 1)}</Text>
-            </View>
+            <LinearGradient colors={['#3BA559', '#1F7A3A']} style={s.profileAvatar}>
+              <Text style={s.profileAvatarTxt}>🌿</Text>
+            </LinearGradient>
             <Text style={s.profileName}>{name}</Text>
             <TouchableOpacity style={s.profileEditBtn}
               onPress={() => navigation.navigate('HealthProfile', { userId })}>
-              <Text style={s.profileEditTxt}>프로필 수정</Text>
+              <Text style={s.profileEditTxt}>✏️ 내 정보 수정</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -191,9 +186,6 @@ export default function SettingsScreen({ route, navigation }: Props) {
         <View style={s.card}>
           <MenuRow icon="👨‍👩‍👧" label="보호자 관리"
             onPress={() => navigation.navigate('Guardian', { userId, name })} />
-          <View style={s.divider} />
-          <MenuRow icon="👤" label="내 정보 수정"
-            onPress={() => navigation.navigate('HealthProfile', { userId })} />
           <View style={s.divider} />
           <MenuRow icon="🛡️" label="개인정보 보호"
             onPress={() => setPrivacyModal(true)} />
@@ -286,10 +278,10 @@ const s = StyleSheet.create({
   profileCard:      { alignItems: 'center', paddingVertical: 28 },
   profileAvatar:    {
     width: 80, height: 80, borderRadius: 40,
-    backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
     marginBottom: 12,
   },
-  profileAvatarTxt: { fontSize: 32, fontWeight: '900', color: '#fff' },
+  profileAvatarTxt: { fontSize: 36 },
   profileName:      { fontSize: 26, fontWeight: '900', color: INK, marginBottom: 16 },
   profileEditBtn:   {
     paddingHorizontal: 24, paddingVertical: 10,
