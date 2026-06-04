@@ -789,7 +789,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   };
 
   return (
-    <LinearGradient colors={['#F7F4FF', '#EDE7F6', '#E1BEE7']} locations={[0, 0.55, 1]} style={s.root}>
+    <LinearGradient colors={['#F1ECE4', '#FBF8F3']} style={s.root}>
       {/* ── 탑바 ── */}
       <View style={[s.topBar, { paddingTop: Math.max(insets.top + 4, 14) }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
@@ -970,24 +970,22 @@ export default function AIChatScreen({ route, navigation }: Props) {
                 <Text style={s.lumiGreetTxt}>{getGreeting(name)}</Text>
               </View>
 
-              {/* 빠른 질문 카드 2열 */}
-              <View style={s.quickGrid}>
-                {Array.from({ length: Math.ceil(QUICK_CARDS.length / 2) }, (_, ri) => (
-                  <View key={ri} style={s.cardRow}>
-                    {QUICK_CARDS.slice(ri * 2, ri * 2 + 2).map(q => (
-                      <TouchableOpacity
-                        key={q.label}
-                        style={[s.cardItem, { backgroundColor: q.bg, borderColor: q.color + '44' }]}
-                        onPress={() => send(q.label.replace(/\n/g, ' '))}
-                        activeOpacity={0.75}
-                      >
-                        <Text style={s.cardEmoji}>{q.emoji}</Text>
-                        <Text style={[s.cardLabel, { color: q.color }]}>{q.label}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+              {/* 예시 질문 리스트 */}
+              <View style={s.exampleList}>
+                <Text style={s.exampleTitle}>이렇게 질문하세요</Text>
+                {QUICK_CARDS.map(q => (
+                  <TouchableOpacity
+                    key={q.label}
+                    style={s.exampleItem}
+                    onPress={() => send(q.label.replace(/\n/g, ' '))}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={s.exampleEmoji}>{q.emoji}</Text>
+                    <Text style={s.exampleText}>{q.label.replace(/\n/g, ' ')}</Text>
+                  </TouchableOpacity>
                 ))}
               </View>
+
             </ScrollView>
           )}
         </View>
@@ -1062,8 +1060,7 @@ const s = StyleSheet.create({
   // 탑바
   topBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#fff', paddingHorizontal: 12, paddingBottom: 10,
-    borderBottomWidth: 1, borderBottomColor: '#F3E5F5',
+    backgroundColor: 'transparent', paddingHorizontal: 12, paddingBottom: 10,
   },
   backBtn:    { padding: 8 },
   backBtnTxt: { fontSize: 28, color: C.purple1, fontWeight: '700', lineHeight: 30 },
@@ -1141,6 +1138,15 @@ const s = StyleSheet.create({
   },
   cardEmoji: { fontSize: 28 },
   cardLabel: { fontSize: 20, fontWeight: '800', lineHeight: 28 },
+
+  // 예시 질문 리스트
+  exampleList:  { width: '100%', paddingHorizontal: 18, marginTop: 16, marginBottom: 8 },
+  exampleTitle: { fontSize: 16, fontWeight: '800', color: '#7E8AA1', marginBottom: 12,
+    textAlign: 'center', letterSpacing: 0.3 },
+  exampleItem:  { flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(15,27,45,0.06)' },
+  exampleEmoji: { fontSize: 24 },
+  exampleText:  { fontSize: 20, fontWeight: '600', color: '#3D4B62', flex: 1 },
 
   // 입력
   inputWrap: { backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#E1BEE7',

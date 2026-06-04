@@ -31,6 +31,7 @@ export default function HospitalScheduleScreen({ route, navigation }: any) {
   const { userId, name } = route.params;
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterType, setFilterType] = useState<'all' | 'hospital' | 'memo'>('all');
   const [calMonth, setCalMonth] = useState(() => {
     const n = new Date(); return { year: n.getFullYear(), month: n.getMonth() };
   });
@@ -54,7 +55,9 @@ export default function HospitalScheduleScreen({ route, navigation }: any) {
   };
 
   const today = new Date().toISOString().slice(0, 10);
-  const upcomingAppts = appointments.filter(a => a.date >= today);
+  const upcomingAll = appointments.filter(a => a.date >= today);
+  const upcomingAppts = filterType === 'all' ? upcomingAll
+    : upcomingAll.filter(a => (a.type || 'hospital') === filterType);
   const heroAppt = upcomingAppts[0] || null;
   const isToday = heroAppt?.date === today;
 
@@ -74,10 +77,21 @@ export default function HospitalScheduleScreen({ route, navigation }: any) {
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Header */}
         <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 24) }]}>
-          <Text style={s.headerTitle}>내 일정</Text>
+          <Text style={s.headerTitle}>내 일정 / 병원 일정</Text>
           <TouchableOpacity style={s.addBtn} onPress={() => navigation.navigate('HospitalScheduleAdd', { userId, name })}>
             <Text style={s.addBtnText}>+</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* 필터 세그먼트 */}
+        <View style={s.filterRow}>
+          {([['all','전체'],['hospital','🏥 병원'],['memo','📝 메모']] as const).map(([key,label]) => (
+            <TouchableOpacity key={key}
+              style={[s.filterBtn, filterType === key && s.filterBtnActive]}
+              onPress={() => setFilterType(key)} activeOpacity={0.8}>
+              <Text style={[s.filterBtnTxt, filterType === key && s.filterBtnTxtActive]}>{label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* 루미 인사 */}
@@ -87,6 +101,15 @@ export default function HospitalScheduleScreen({ route, navigation }: any) {
             {isToday ? '오늘 병원 가는 날이에요!\n같이 다녀와요 💜' : '다음 일정을 확인해요'}
           </Text>
         </View>
+
+        {/* 필터 결과 없음 */}
+        {!heroAppt && filterType !== 'all' && (
+          <View style={s.filterEmpty}>
+            <Text style={s.filterEmptyTxt}>
+              {filterType === 'hospital' ? '예정된 병원 일정이 없어요' : '예정된 메모가 없어요'}
+            </Text>
+          </View>
+        )}
 
         {/* 동적 HERO 카드 */}
         {heroAppt && (
@@ -178,13 +201,21 @@ function EmptyState({ userId, name, navigation, insets }: any) {
       <ScrollView contentContainerStyle={{ paddingBottom: 120, flexGrow: 1 }}>
         {/* Header */}
         <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 24) }]}>
-          <Text style={s.headerTitle}>병원 일정</Text>
+          <Text style={s.headerTitle}>내 일정 / 병원 일정</Text>
           <TouchableOpacity
             style={s.addBtn}
             onPress={() => navigation.navigate('HospitalScheduleAdd', { userId, name })}
           >
             <Text style={s.addBtnText}>+</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* 루미 인사 */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, marginBottom: 12, gap: 12 }}>
+          <Lumi mood="happy" size={72} bob />
+          <Text style={{ fontSize: 20, fontWeight: '700', color: '#3D4B62', flex: 1, lineHeight: 30 }}>
+            {'아직 일정이 없어요.\n같이 등록해볼까요?'}
+          </Text>
         </View>
 
         {/* Empty Hero */}
@@ -217,6 +248,21 @@ function EmptyState({ userId, name, navigation, insets }: any) {
 
 const s = StyleSheet.create({
   root: { flex: 1 },
+
+  filterRow: {
+    flexDirection: 'row', marginHorizontal: 18, marginBottom: 16, gap: 8,
+  },
+  filterBtn: {
+    flex: 1, minHeight: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#fff', borderWidth: 1.5, borderColor: 'rgba(15,27,45,0.08)',
+  },
+  filterBtnActive: { backgroundColor: BLUE, borderColor: BLUE },
+  filterBtnTxt:    { fontSize: 18, fontWeight: '700', color: '#7E8AA1' },
+  filterBtnTxtActive: { color: '#fff' },
+  filterEmpty: {
+    marginHorizontal: 18, marginVertical: 24, alignItems: 'center',
+  },
+  filterEmptyTxt: { fontSize: 20, fontWeight: '600', color: '#7E8AA1' },
 
   header: {
     flexDirection: 'row',

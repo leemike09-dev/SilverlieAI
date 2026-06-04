@@ -46,6 +46,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   const [todaySchedule, setTodaySchedule] = useState<any>(null);
   const [nextMedication, setNextMedication] = useState<any>(null);
   const [nextMedTimeStr, setNextMedTimeStr] = useState<string>('');
+  const [medsEmpty, setMedsEmpty] = useState<boolean>(false);
   const [healthToday, setHealthToday] = useState<any>(null);
   const [familyMessage, setFamilyMessage] = useState<string>('');
   const [locationAddr, setLocationAddr] = useState<string>('');
@@ -125,7 +126,9 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
       try {
         const medsRaw = await AsyncStorage.getItem(`medications.${uid}`);
         const logRaw  = await AsyncStorage.getItem(`medication-log.${uid}.${todayKey}`);
-        if (medsRaw) {
+        if (!medsRaw || JSON.parse(medsRaw).length === 0) {
+          setMedsEmpty(true);
+        } else if (medsRaw) {
           const medList: any[] = JSON.parse(medsRaw);
           const log: Record<string, any> = logRaw ? JSON.parse(logRaw) : {};
           const toMin = (t: string) => {
@@ -199,7 +202,22 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   const handleMoodSelect = async (moodIndex: number) => {
     setTodayMood(moodIndex);
     await AsyncStorage.setItem(`mood.${userId}.${todayKey}`, String(moodIndex));
+    // mood_log 누적 저장 (하루 1개 갱신)
+    const logRaw = await AsyncStorage.getItem(`mood_log.${userId}`).catch(() => null);
+    const log: any[] = logRaw ? JSON.parse(logRaw) : [];
+    const idx = log.findIndex((e: any) => e.date === todayKey);
+    if (idx >= 0) log[idx] = { date: todayKey, moodIndex };
+    else log.push({ date: todayKey, moodIndex });
+    await AsyncStorage.setItem(`mood_log.${userId}`, JSON.stringify(log));
   };
+
+const MOOD_REACTIONS = [
+  { lumiMood: 'happy'   as const, msg: '좋네요! 이 기운으로\n가볍게 한 바퀴 어때요?',      btnLabel: '산책하고 걸음 수 보기', btnColor: GREEN,   screen: 'Health' },
+  { lumiMood: 'content' as const, msg: '평온한 하루 되시길.\n오늘 일정 함께 볼까요?',        btnLabel: '오늘 일정 확인하기',    btnColor: BLUE,    screen: 'HospitalSchedule' },
+  { lumiMood: 'content' as const, msg: '그런 날도 있죠.\n가족 목소리 한번 들어볼까요?',      btnLabel: '가족에게 안부 전하기',  btnColor: PURPLE,  screen: 'Guardian' },
+  { lumiMood: 'worried' as const, msg: '왜 그런 기분이 드는지\n말해 주실래요?',             btnLabel: '루미와 이야기하기',     btnColor: PURPLE,  screen: 'AIChat' },
+  { lumiMood: 'worried' as const, msg: '함께 이야기해요.\n루미가 들을게요.',                btnLabel: '루미와 이야기하기',     btnColor: PURPLE,  screen: 'AIChat' },
+];
 
   const now = new Date();
   const hour = now.getHours();
@@ -254,19 +272,16 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             })}
           </View>
 
-          {/* 부정 기분 선택 시 AIChat 유도 */}
-          {todayMood !== null && todayMood >= 3 && (
+          {/* 기분 선택 시 루미 반응 (5개 모두) */}
+          {todayMood !== null && (
             <View style={s.moodChatBox}>
-              <Lumi mood="worried" size={52} bob={false} />
+              <Lumi mood={MOOD_REACTIONS[todayMood].lumiMood} size={56} bob={false} />
               <View style={{ flex: 1 }}>
-                <Text style={s.moodChatText}>왜 그런 기분이 드는지{'\n'}말해 주실래요?</Text>
+                <Text style={s.moodChatText}>{MOOD_REACTIONS[todayMood].msg}</Text>
                 <TouchableOpacity
-                  style={s.moodChatBtn}
-                  onPress={() => navigation.navigate('AIChat', {
-                    userId, name,
-                    seedMood: MOOD_LABEL[todayMood],
-                  })}>
-                  <Text style={s.moodChatBtnText}>루미와 이야기하기</Text>
+                  style={[s.moodChatBtn, { backgroundColor: MOOD_REACTIONS[todayMood].btnColor }]}
+                  onPress={() => navigation.navigate(MOOD_REACTIONS[todayMood].screen, { userId, name })}>
+                  <Text style={s.moodChatBtnText}>{MOOD_REACTIONS[todayMood].btnLabel}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -275,9 +290,11 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
         {/* 2. 약 알림 — 흰 카드 + 앰버 칩 */}
         <TouchableOpacity
-          style={[s.card, { backgroundColor: '#fff' }]}
+          style={[s.card, { backgroundColor: '#fff', overflow: 'hidden' }]}
           onPress={() => navigation.navigate('Medication', { userId, name })}
         >
+          {/* 워터마크 */}
+          <Text style={s.medWatermark}>💊</Text>
           <View style={s.scheduleTop}>
             <View style={[s.iconChip, { backgroundColor: CHIP_MED }]}>
               <Text style={s.iconChipEmoji}>💊</Text>
@@ -285,12 +302,14 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             <View style={{ flex: 1 }}>
               <Text style={s.cardTitle}>다음 약</Text>
               <Text style={s.cardSubtitle}>
-                {nextMedication ? nextMedTimeStr : '오늘 약 모두 완료'}
+                {medsEmpty ? '약을 등록해보세요' : nextMedication ? nextMedTimeStr : '오늘 약 모두 완료'}
               </Text>
             </View>
             <Text style={s.scheduleArrow}>›</Text>
           </View>
-          {nextMedication ? (
+          {medsEmpty ? (
+            <Text style={s.medicationText}>복용 중인 약을 등록하면 알려드려요 💊</Text>
+          ) : nextMedication ? (
             <Text style={s.medicationText}>
               {nextMedication.time} · {nextMedication.name} {nextMedication.dosage || '1정'}
             </Text>
@@ -331,28 +350,44 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
           </TouchableOpacity>
         )}
 
-        {/* 4. 날씨 카드 — 항상 표시 (서울 폴백으로 데이터 보장) */}
-        <View style={[s.card, { backgroundColor: '#fff' }]}>
-          <View style={s.scheduleTop}>
-            <View style={[s.iconChip, { backgroundColor: '#E8F4FC' }]}>
-              <Text style={s.iconChipEmoji}>
-                {weather?.summary?.includes('비') ? '🌧️' :
-                 weather?.summary?.includes('눈') ? '❄️' :
-                 weather?.summary?.includes('흐') ? '☁️' :
-                 weather?.summary?.includes('구름') ? '⛅' : '☀️'}
-              </Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.cardTitle}>오늘 날씨</Text>
-              <Text style={s.cardSubtitle} numberOfLines={2}>
+        {/* 4. 날씨 카드 — 조언 중심 + 워터마크 */}
+        {(() => {
+          const hasRain = weather?.summary?.includes('비');
+          const hasCloudy = weather?.summary?.includes('흐') || weather?.summary?.includes('구름');
+          const weatherIcon = hasRain ? '🌧️' : hasCloudy ? '☁️' : '☀️';
+          const adviceColor = hasRain ? BLUE : hasCloudy ? INK_MUTE : GREEN;
+          const adviceAction = hasRain ? '우산 꼭 챙기세요 ☔' : hasCloudy ? '나들이 무난한 날이에요' : '산책하기 좋은 날이에요 🚶';
+          return (
+            <View style={[s.card, { backgroundColor: '#fff', overflow: 'hidden' }]}>
+              {/* 날씨 워터마크 */}
+              <Text style={s.weatherWatermark}>{weatherIcon}</Text>
+              <View style={s.scheduleTop}>
+                <View style={[s.iconChip, { backgroundColor: '#E8F4FC' }]}>
+                  <Text style={s.iconChipEmoji}>{weatherIcon}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.cardTitle}>오늘 날씨</Text>
+                  {weather?.high != null ? (
+                    <Text style={{ fontSize: 16, color: INK_SOFT, fontWeight: '600' }}>
+                      최고 {weather.high}° / 최저 {weather.low ?? '--'}°
+                    </Text>
+                  ) : null}
+                </View>
+                <Text style={{ fontSize: 34, fontWeight: '900', color: INK }}>
+                  {weather?.temp != null ? `${weather.temp}°` : '--'}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: INK, marginTop: 4 }}>
                 {weather?.summary || '날씨 정보를 불러오는 중이에요'}
               </Text>
+              {weather?.summary ? (
+                <Text style={{ fontSize: 18, fontWeight: '700', color: adviceColor, marginTop: 6 }}>
+                  {adviceAction}
+                </Text>
+              ) : null}
             </View>
-          </View>
-          {weather?.advice && (
-            <Text style={s.weatherAdvice}>💬 {weather.advice}</Text>
-          )}
-        </View>
+          );
+        })()}
 
         {/* 5. 건강 상태 — 흰 카드 + 코랄 칩 */}
         {healthToday && (
@@ -377,16 +412,19 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
         {/* 6. 루미 대화 — 흰 카드 + 라벤더 칩 */}
         <TouchableOpacity
-          style={[s.card, { backgroundColor: '#fff' }]}
+          style={[s.card, { backgroundColor: '#fff', overflow: 'hidden' }]}
           onPress={() => navigation.navigate('AIChat', { userId, name })}
         >
+          {/* 워터마크 */}
+          <Lumi mood="happy" size={150} bob={false}
+            style={{ position: 'absolute', right: -20, bottom: -20, opacity: 0.12 }} />
           <View style={s.chatCardTop}>
             <View style={[s.iconChip, { backgroundColor: CHIP_CHAT }]}>
               <Lumi mood="happy" size={30} bob={false} />
             </View>
             <Text style={s.cardTitle}>루미와 대화</Text>
           </View>
-          <Text style={s.cardSubtitle}>오늘 컨디션 어떠세요?</Text>
+          <Text style={s.cardSubtitle}>무엇이든 물어보세요</Text>
           <View style={s.micButton}>
             <Text style={s.micIcon}>🎤</Text>
           </View>
@@ -507,6 +545,12 @@ const s = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 8,
   },
+  weatherWatermark: {
+    position: 'absolute', right: -8, top: -10,
+    fontSize: 120, opacity: 0.10,
+    pointerEvents: 'none',
+  },
+
   weatherAdvice: {
     fontSize: 16,
     fontWeight: '600',
@@ -693,6 +737,13 @@ const s = StyleSheet.create({
     fontWeight: '700',
     color: INK_MUTE,
     marginTop: 4,
+  },
+
+  medWatermark: {
+    position: 'absolute', right: -10, bottom: -20,
+    fontSize: 150, opacity: 0.07,
+    transform: [{ rotate: '-12deg' }],
+    pointerEvents: 'none',
   },
 
   medicationText: {
