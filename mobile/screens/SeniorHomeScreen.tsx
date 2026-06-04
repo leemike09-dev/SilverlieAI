@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   StatusBar, Alert, Platform, useWindowDimensions,
@@ -54,6 +54,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
   const ttsDoneRef = useRef(false);
   const locationRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const moodCardY = useRef<number>(0);
   const todayKey = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   const sendLocation = async (uid: string) => {
@@ -231,7 +233,7 @@ const MOOD_REACTIONS = [
     <LinearGradient colors={[APP_BG_TOP, APP_BG_BOT]} style={s.root}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView ref={scrollViewRef} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* TOP BAR */}
         <View style={[s.topBar, { paddingTop: Math.max(insets.top + 4, 16) }]}>
           <Text style={s.wordmark}>Lumi <Text style={{ color: '#E9A23B' }}>♥</Text></Text>
@@ -250,7 +252,8 @@ const MOOD_REACTIONS = [
         </View>
 
         {/* 기분 체크인 */}
-        <View style={[s.card, { backgroundColor: '#fff' }]}>
+        <View style={[s.card, { backgroundColor: '#fff' }]}
+          onLayout={e => { moodCardY.current = e.nativeEvent.layout.y; }}>
           <Text style={s.cardTitle}>💭 오늘 기분</Text>
           <Text style={s.moodSubLabel}>오늘 마음은 어떠세요?</Text>
           <View style={s.moodRow}>
@@ -274,7 +277,11 @@ const MOOD_REACTIONS = [
 
           {/* 기분 선택 시 루미 반응 (5개 모두) */}
           {todayMood !== null && (
-            <View style={s.moodChatBox}>
+            <View style={s.moodChatBox}
+              onLayout={e => {
+                const absY = moodCardY.current + e.nativeEvent.layout.y;
+                scrollViewRef.current?.scrollTo({ y: Math.max(0, absY - 80), animated: true });
+              }}>
               <Lumi mood={MOOD_REACTIONS[todayMood].lumiMood} size={56} bob={false} />
               <View style={{ flex: 1 }}>
                 <Text style={s.moodChatText}>{MOOD_REACTIONS[todayMood].msg}</Text>
@@ -416,8 +423,8 @@ const MOOD_REACTIONS = [
           onPress={() => navigation.navigate('AIChat', { userId, name })}
         >
           {/* 워터마크 */}
-          <Lumi mood="happy" size={150} bob={false}
-            style={{ position: 'absolute', right: -20, bottom: -20, opacity: 0.12 }} />
+          <Lumi mood="happy" size={200} bob={false}
+            style={{ position: 'absolute', right: -30, bottom: -30, opacity: 0.28 }} />
           <View style={s.chatCardTop}>
             <View style={[s.iconChip, { backgroundColor: CHIP_CHAT }]}>
               <Lumi mood="happy" size={30} bob={false} />
@@ -547,7 +554,7 @@ const s = StyleSheet.create({
   },
   weatherWatermark: {
     position: 'absolute', right: -8, top: -10,
-    fontSize: 120, opacity: 0.10,
+    fontSize: 120, opacity: 0.18,
     pointerEvents: 'none',
   },
 
@@ -741,7 +748,7 @@ const s = StyleSheet.create({
 
   medWatermark: {
     position: 'absolute', right: -10, bottom: -20,
-    fontSize: 150, opacity: 0.07,
+    fontSize: 150, opacity: 0.13,
     transform: [{ rotate: '-12deg' }],
     pointerEvents: 'none',
   },

@@ -57,11 +57,37 @@ const sleepStatus = (hours: number) => {
 
 const API = 'https://silverlieai.onrender.com';
 
+const tempStatus = (v: number) => {
+  if (v >= 36.0 && v <= 37.5) return 'normal';
+  if (v > 38.5) return 'danger';
+  return 'caution';
+};
+
+const lumiInterpretBp = (sys: number, dia: number): string => {
+  const st = bpStatus(sys, dia);
+  if (st === 'normal')  return '혈압이 정상이에요. 안심하세요 😊';
+  if (st === 'danger')  return '혈압이 높아요. 병원에 가보시는 게 좋아요';
+  return '혈압이 조금 높네요. 오늘은 편히 쉬세요';
+};
+const lumiInterpretSg = (v: number): string => {
+  const st = glucoseStatus(v);
+  if (st === 'normal')  return '혈당이 정상 범위예요. 잘 챙기고 계세요 💙';
+  if (st === 'danger')  return '혈당이 높아요. 병원에 꼭 가보세요';
+  return '혈당이 조금 높네요. 식사에 신경 써보세요';
+};
+const lumiInterpretTemp = (v: number): string => {
+  const st = tempStatus(v);
+  if (st === 'normal')  return '체온이 정상이에요. 건강하시네요 😊';
+  if (st === 'danger')  return '열이 많이 나요. 병원에 가보세요';
+  return '체온이 조금 높아요. 충분히 쉬세요';
+};
+
 interface HealthRecord {
   date: string;
   blood_pressure_systolic: number;
   blood_pressure_diastolic: number;
   blood_sugar: number;
+  temperature?: number;
   heart_rate: number;
   weight: number;
   steps: number;
@@ -178,6 +204,8 @@ export default function HealthScreen({ route, navigation }: any) {
         updated.blood_sugar = Number(inputValue);
       } else if (modalType === 'sl') {
         updated.sleep_hours = Number(inputValue);
+      } else if (modalType === 'temp') {
+        (updated as any).temperature = Number(inputValue);
       }
 
       const raw = await AsyncStorage.getItem('health_records');
@@ -255,7 +283,73 @@ export default function HealthScreen({ route, navigation }: any) {
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* Metrics - BP */}
+        {/* ── 그룹 1: 📱 자동으로 기록돼요 ── */}
+        <View style={s.groupHeader}>
+          <Text style={s.groupHeaderEmoji}>📱</Text>
+          <Text style={s.groupHeaderTitle}>자동으로 기록돼요</Text>
+        </View>
+
+        {/* 걸음수 카드 (Pedometer 작동) */}
+        <View style={s.metricCard}>
+          <View style={s.metricTopRow}>
+            <View style={[s.metricIconBox, { backgroundColor: GREEN_BG }]}>
+              <Text style={s.metricIcon}>🚶</Text>
+            </View>
+            <View style={s.metricContent}>
+              <View style={s.stepsLabelRow}>
+                <Text style={s.metricLabel}>걸음수</Text>
+                <View style={s.autoBadge}>
+                  <Text style={s.autoBadgeText}>🟢 자동 측정 중</Text>
+                </View>
+              </View>
+              {(() => {
+                const displaySteps = liveSteps ?? todayRecord?.steps ?? null;
+                if (displaySteps != null && displaySteps > 0) {
+                  const st = stepsStatus(displaySteps);
+                  return (
+                    <>
+                      <Text style={s.metricValue}>
+                        {displaySteps.toLocaleString()}
+                        <Text style={s.metricUnit}> 보</Text>
+                      </Text>
+                      <View style={s.stepsProgress}>
+                        <View style={[s.progressBar, { width: `${Math.min(displaySteps / 8000 * 100, 100)}%` as any }]} />
+                      </View>
+                      <Text style={s.progressText}>목표까지 {Math.max(0, 8000 - displaySteps).toLocaleString()}보 남았어요</Text>
+                      <Text style={s.lumiHint}>
+                        {st === 'normal' ? '오늘 목표 달성! 대단해요 🎉' :
+                         st === 'caution' ? '조금만 더 걸으면 목표예요!' :
+                         '오늘 걸음을 늘려보세요. 응원해요 💙'}
+                      </Text>
+                    </>
+                  );
+                }
+                return <Text style={s.emptyValue}>👟 걸을 때마다 자동으로 세고 있어요</Text>;
+              })()}
+            </View>
+          </View>
+        </View>
+
+        {/* 심박수·수면 — 연결 안 됨 안내 */}
+        <View style={s.autoNotConnected}>
+          <View style={s.autoNotConnectedIcons}>
+            <Text style={s.autoIcon}>❤️ 심박수</Text>
+            <Text style={s.autoIcon}>😴 수면</Text>
+          </View>
+          <Text style={s.autoNotConnectedTitle}>폰을 연결하면 저절로 쌓여요</Text>
+          <Text style={s.autoNotConnectedDesc}>연결 안 해도 아래에서 직접 기록 가능해요</Text>
+          <TouchableOpacity style={s.connectBtn} activeOpacity={0.8}>
+            <Text style={s.connectBtnTxt}>폰 건강 연결하기 (준비 중)</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── 그룹 2: ✍️ 직접 재서 기록해요 ── */}
+        <View style={[s.groupHeader, { marginTop: 8 }]}>
+          <Text style={s.groupHeaderEmoji}>✍️</Text>
+          <Text style={s.groupHeaderTitle}>직접 재서 기록해요</Text>
+        </View>
+
+        {/* 혈압 */}
         <View style={s.metricCard}>
           <View style={s.metricTopRow}>
             <View style={[s.metricIconBox, { backgroundColor: ORANGE_BG }]}>
@@ -275,8 +369,8 @@ export default function HealthScreen({ route, navigation }: any) {
                         {STATUS[bpStatus(todayRecord.blood_pressure_systolic, todayRecord.blood_pressure_diastolic)].label}
                       </Text>
                     </View>
-                    <Text style={s.statusTime}>방금 전</Text>
                   </View>
+                  <Text style={s.lumiHint}>{lumiInterpretBp(todayRecord.blood_pressure_systolic, todayRecord.blood_pressure_diastolic)}</Text>
                 </>
               ) : (
                 <Text style={s.emptyValue}>측정 안 함</Text>
@@ -288,10 +382,10 @@ export default function HealthScreen({ route, navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        {/* Metrics - Blood Sugar */}
+        {/* 혈당 */}
         <View style={s.metricCard}>
           <View style={s.metricTopRow}>
-            <View style={[s.metricIconBox, { backgroundColor: ORANGE_BG }]}>
+            <View style={[s.metricIconBox, { backgroundColor: RED_BG }]}>
               <Text style={s.metricIcon}>🩸</Text>
             </View>
             <View style={s.metricContent}>
@@ -308,8 +402,8 @@ export default function HealthScreen({ route, navigation }: any) {
                         {STATUS[glucoseStatus(todayRecord.blood_sugar)].label}
                       </Text>
                     </View>
-                    <Text style={s.statusTime}>방금 전</Text>
                   </View>
+                  <Text style={s.lumiHint}>{lumiInterpretSg(todayRecord.blood_sugar)}</Text>
                 </>
               ) : (
                 <Text style={s.emptyValue}>측정 안 함</Text>
@@ -321,70 +415,35 @@ export default function HealthScreen({ route, navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        {/* Metrics - Steps (자동 측정) */}
+        {/* 체온 */}
         <View style={s.metricCard}>
           <View style={s.metricTopRow}>
-            <View style={[s.metricIconBox, { backgroundColor: ORANGE_BG }]}>
-              <Text style={s.metricIcon}>🚶</Text>
+            <View style={[s.metricIconBox, { backgroundColor: WARN_BG }]}>
+              <Text style={s.metricIcon}>🌡️</Text>
             </View>
             <View style={s.metricContent}>
-              <View style={s.stepsLabelRow}>
-                <Text style={s.metricLabel}>걸음수</Text>
-                <View style={s.autoBadge}>
-                  <Text style={s.autoBadgeText}>🟢 자동 측정 중</Text>
-                </View>
-              </View>
-              {(() => {
-                const displaySteps = liveSteps ?? todayRecord?.steps ?? null;
-                if (displaySteps != null && displaySteps > 0) {
-                  return (
-                    <>
-                      <Text style={s.metricValue}>
-                        {displaySteps.toLocaleString()}
-                        <Text style={s.metricUnit}> 보</Text>
-                      </Text>
-                      <View style={s.stepsProgress}>
-                        <View style={[s.progressBar, { width: `${Math.min(displaySteps / 8000 * 100, 100)}%` as any }]} />
-                      </View>
-                      <Text style={s.progressText}>목표까지 {Math.max(0, 8000 - displaySteps).toLocaleString()}보 남았어요</Text>
-                    </>
-                  );
-                }
-                return <Text style={s.emptyValue}>👟 걸을 때마다 자동으로 세고 있어요</Text>;
-              })()}
-            </View>
-          </View>
-        </View>
-
-        {/* Metrics - Sleep */}
-        <View style={s.metricCard}>
-          <View style={s.metricTopRow}>
-            <View style={[s.metricIconBox, { backgroundColor: ORANGE_BG }]}>
-              <Text style={s.metricIcon}>😴</Text>
-            </View>
-            <View style={s.metricContent}>
-              <Text style={s.metricLabel}>수면</Text>
-              {todayRecord?.sleep_hours ? (
+              <Text style={s.metricLabel}>체온</Text>
+              {todayRecord?.temperature ? (
                 <>
                   <Text style={s.metricValue}>
-                    {todayRecord.sleep_hours}
-                    <Text style={s.metricUnit}> 시간</Text>
+                    {todayRecord.temperature.toFixed(1)}
+                    <Text style={s.metricUnit}> °C</Text>
                   </Text>
                   <View style={s.statusRow}>
-                    <View style={[s.statusBadgeSmall, { backgroundColor: STATUS[sleepStatus(todayRecord.sleep_hours)].bg }]}>
-                      <Text style={[s.statusBadgeSmallText, { color: STATUS[sleepStatus(todayRecord.sleep_hours)].fg }]}>
-                        {STATUS[sleepStatus(todayRecord.sleep_hours)].label}
+                    <View style={[s.statusBadgeSmall, { backgroundColor: STATUS[tempStatus(todayRecord.temperature)].bg }]}>
+                      <Text style={[s.statusBadgeSmallText, { color: STATUS[tempStatus(todayRecord.temperature)].fg }]}>
+                        {STATUS[tempStatus(todayRecord.temperature)].label}
                       </Text>
                     </View>
-                    <Text style={s.statusTime}>어제</Text>
                   </View>
+                  <Text style={s.lumiHint}>{lumiInterpretTemp(todayRecord.temperature)}</Text>
                 </>
               ) : (
                 <Text style={s.emptyValue}>측정 안 함</Text>
               )}
             </View>
           </View>
-          <TouchableOpacity style={s.measureBtn} onPress={() => setModalType('sl')}>
+          <TouchableOpacity style={s.measureBtn} onPress={() => setModalType('temp')}>
             <Text style={s.measureBtnText}>지금 측정하기</Text>
           </TouchableOpacity>
         </View>
@@ -425,7 +484,8 @@ export default function HealthScreen({ route, navigation }: any) {
           <View style={s.modalContent}>
             <Text style={s.modalTitle}>
               {modalType === 'bp' ? '혈압 측정값' :
-               modalType === 'sg' ? '혈당 측정값' : '수면 시간'}
+               modalType === 'sg' ? '혈당 측정값' :
+               modalType === 'temp' ? '체온 측정값' : '수면 시간'}
             </Text>
 
             {modalType === 'bp' ? (
@@ -463,11 +523,12 @@ export default function HealthScreen({ route, navigation }: any) {
             ) : (
               <>
                 <Text style={s.modalHint}>
-                  {modalType === 'sg' ? '혈당 수치 (예: 120)' : '수면 시간 (예: 7.5)'}
+                  {modalType === 'sg' ? '혈당 수치 (예: 120)' :
+                   modalType === 'temp' ? '체온 (예: 36.5)' : '수면 시간 (예: 7.5)'}
                 </Text>
                 <TextInput
                   style={s.modalInput}
-                  placeholder={modalType === 'sg' ? '120' : '7.5'}
+                  placeholder={modalType === 'sg' ? '120' : modalType === 'temp' ? '36.5' : '7.5'}
                   keyboardType="decimal-pad"
                   value={inputValue}
                   onChangeText={setInputValue}
@@ -651,6 +712,36 @@ const s = StyleSheet.create({
     fontWeight: '600',
     color: INK_MUTE,
   },
+
+  groupHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginHorizontal: 18, marginBottom: 12, marginTop: 4,
+  },
+  groupHeaderEmoji: { fontSize: 22 },
+  groupHeaderTitle: { fontSize: 20, fontWeight: '900', color: INK },
+
+  lumiHint: {
+    fontSize: 14, fontWeight: '600', color: INK_SOFT,
+    marginTop: 6, lineHeight: 20,
+  },
+
+  autoNotConnected: {
+    marginHorizontal: 18, marginBottom: 12, padding: 20,
+    borderRadius: 20, backgroundColor: '#fff',
+    borderWidth: 1.5, borderColor: 'rgba(15,27,45,0.06)',
+    alignItems: 'center',
+    shadowColor: '#1C3C6E', shadowOpacity: 0.06, shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 }, elevation: 1,
+  },
+  autoNotConnectedIcons: { flexDirection: 'row', gap: 20, marginBottom: 12 },
+  autoIcon: { fontSize: 16, fontWeight: '700', color: INK_SOFT },
+  autoNotConnectedTitle: { fontSize: 18, fontWeight: '800', color: INK, marginBottom: 6 },
+  autoNotConnectedDesc:  { fontSize: 14, fontWeight: '600', color: INK_MUTE, marginBottom: 14, textAlign: 'center' },
+  connectBtn: {
+    paddingHorizontal: 20, paddingVertical: 10, borderRadius: 99,
+    backgroundColor: '#EFF6FF', borderWidth: 1.5, borderColor: BLUE,
+  },
+  connectBtnTxt: { fontSize: 14, fontWeight: '800', color: BLUE },
 
   stepsLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
   autoBadge: {
