@@ -18,68 +18,8 @@
   - 배포 URL: `https://leemike09-dev.github.io/SilverlieAI/`
 - **알림**: expo-notifications (native only, 웹 미지원)
 - **상태 저장**: AsyncStorage
-
----
-
-## ⚠️ 파일 경로 주의사항
-
-프로젝트 경로에 **논브레이킹 스페이스(\xa0)** 포함:
-```
-/Users/mikelee/Documents/문서 - Mike의 MacBook Pro/SilverLifeAI
-                                              ↑ \xa0 (U+00A0)
-```
-
-**파일 작업은 반드시 Python으로**:
-```python
-repo = '/Users/mikelee/Documents/\ubb38\uc11c - Mike\uc758 MacBook\xa0Pro/SilverLifeAI'
-with open(repo + '/mobile/screens/XXX.tsx', 'r', encoding='utf-8') as f:
-    ...
-```
-
-**git 작업도 Python subprocess**:
-```python
-import subprocess
-subprocess.run(['git', 'add', ...], cwd=repo)
-subprocess.run(['git', 'commit', '-m', msg], cwd=repo)
-subprocess.run(['git', 'push', 'origin', 'main'], cwd=repo)
-```
-
----
-
-## ⚠️ Python 코드 작성 주의사항
-
-### TSX 문자열 \n 처리
-```python
-# ❌ 실제 개행문자 → SyntaxError: Unterminated string constant
-"return '좋은 아침\n오늘도'"   # Python \n = 실제 개행 → TSX 빌드 에러
-
-# ✅ 리터럴 \n을 TSX에 쓰려면 Python에서 \\n 사용
-"return '좋은 아침\\n오늘도'"  # Python \\n → TSX 파일에 \n (백슬래시+n)
-```
-
-### JSX 표현식 내 줄바꿈
-```tsx
-// ❌ Python {'\n'} 작성 시 실제 개행 주입
-// ✅ 백틱 템플릿 리터럴 사용
-{`첫 줄\n둘째 줄`}
-```
-
-### macOS vs Linux 파일명 대소문자
-- macOS: 대소문자 무관 / Linux CI: 대소문자 구분
-- git 등록 실제 파일명과 코드의 require() 경로 반드시 일치
-- 예: `Kkulbi_1.png` (git) ↔ `'../assets/Kkulbi_1.png'` (code)
-
-### 이모지 Python 인코딩
-```python
-# ❌ 서로게이트 쌍 → UnicodeEncodeError
-'\ud83e\ude78'
-# ✅ 4바이트 표기
-'\U0001FA78'
-```
-
-### TSX 파일 생성
-- 단일 변수(`-c`) 대신 스크립트 파일(`/tmp/fix.py`) 작성 후 실행
-- 긴 파일: 줄 단위 리스트 `'\n'.join(lines)` 활용
+- **음력 변환**: `korean-lunar-calendar` (v0.3.6)
+- **EAS**: eas.json 설정 완료, projectId: `2220b18b-fc03-4ccd-9e62-49dda3b0793f`
 
 ---
 
@@ -88,8 +28,8 @@ subprocess.run(['git', 'push', 'origin', 'main'], cwd=repo)
 ```
 AsyncStorage 확인
 ├── userId 있음     → SeniorHome (기존 로그인 사용자)
-├── onboarding_seen → Intro (온보딩 완료, 미로그인)
-└── 없음            → Onboarding (최초 실행)
+├── onboarding_seen → Login (온보딩 완료, 미로그인)
+└── 없음            → Intro (최초 실행)
 ```
 
 App.tsx에서 `initNotificationHandler()` 호출 → 알림 핸들러 초기화
@@ -98,282 +38,231 @@ App.tsx에서 `initNotificationHandler()` 호출 → 알림 핸들러 초기화
 
 ## 화면 구조
 
-### 메인 탭 (SeniorTabBar)
+### 메인 탭 (SeniorTabBar — 5탭)
 ```
-[홈] [건강기록] [약관리] [가족]
-  ↓      ↓        ↓       ↓
-SeniorHome  Health  Medication  FamilyConnect
-                               (→ FamilyDashboard if connected)
+[홈] [건강] [일정] [약] [설정]
+  ↓    ↓      ↓     ↓     ↓
+SeniorHome  Health  HospitalSchedule  Medication  Settings
 ```
+탭 key: `home` | `health` | `sched` | `med` | `set`
 
 ### Stack 화면 전체 목록
 
 | 화면 | 접근 경로 | 주요 기능 |
 |------|----------|----------|
 | OnboardingScreen | 최초 실행 | 4슬라이드 앱 소개 |
-| IntroScreen | 온보딩 완료 후 | 로그인/시작 선택 |
-| LoginScreen | Intro → 시작 | 소셜·이메일 로그인 |
+| IntroScreen | 최초 실행 후 | 로그인/시작 선택 — ⚠️ 디자인 협업 중 |
+| LoginScreen | Intro → 시작 | 카카오·이메일 로그인 |
 | EmailAuthScreen | Login → 이메일 | 이메일 로그인/회원가입 |
-| SettingsScreen | 헤더 ⚙️ 버튼 | 프로필·설정·로그아웃 |
-| HealthProfileScreen | Settings → 건강 프로필 | 5단계 건강 정보 입력 |
-| DoctorMemoScreen | Settings → 의사 전달 메모 | 메모 조회·편집·공유 |
-| FAQScreen | Settings → 도움말 | 카테고리별 FAQ |
-| AIChatScreen | 홈 AI버튼 | AI 건강 상담 (꿀비) |
-| SOSScreen | 홈 SOS버튼 | 긴급 호출 |
-| LocationMapScreen | 홈 동선확인 | Leaflet 지도 |
-| NotificationsScreen | (알림 탭 등) | 알림 목록 조회 |
-| FamilyDashboardScreen | FamilyConnect → 연결됨 | 가족 건강 대시보드 |
-| ImportantContacts | SOS 화면 등 | 중요 연락처 |
+| SeniorHomeScreen | 탭 홈 | 메인 피드 (기분·약·일정·날씨·건강·대화·가족·위치·SOS) |
+| HealthScreen | 탭 건강 | 2그룹 건강 기록 (자동/직접) + 루미 해석 |
+| HospitalScheduleScreen | 탭 일정 | 병원 일정·메모 목록 + 전체/병원/메모 필터 |
+| HospitalScheduleAddScreen | 일정 "+" | 병원/일반 타입 토글 + 양력/음력 + 알림 설정 |
+| MonthCalendarScreen | 일정 → 월간 | 월간 캘린더 |
+| MedicationScreen | 탭 약 | 시간대별 복약 + 주간 스트립 |
+| SettingsScreen | 탭 설정 | 글자크기·알림·계정 (🌿 아바타) |
+| AIChatScreen | 홈 대화 카드 | AI 건강 상담, warm ivory 배경, 예시 질문 리스트 |
+| SOSScreen | 홈 SOS 버튼 | 긴급 호출 |
+| LocationMapScreen | 홈 내 위치 카드 | Leaflet 지도 |
+| GuardianScreen | 홈 보호자 카드 | 보호자 연락처 |
+| WeeklyReportScreen | 건강 AI 리포트 | AI 주간 건강 분석 |
+| FamilyConnectScreen | 첫 로그인 등 | 가족 연결 코드 |
+| FamilyDashboardScreen | FamilyConnect 완료 | 가족 건강 대시보드 |
+| HealthProfileScreen | 설정 → 내 정보 | 5단계 건강 정보 입력 |
+| DoctorMemoScreen | 설정 → 의사 메모 | 메모 조회·편집·공유 |
+| FAQScreen | 설정 → 도움말 | 카테고리별 FAQ |
+| NotificationsScreen | (진입 경로 미완성) | 알림 목록 |
+| ImportantContactsScreen | SOS 등 | 중요 연락처 |
 
 ---
 
-## 색상 체계 (헤더 기준)
+## 디자인 시스템 (handoff 6 기준)
 
-| 화면 | 색상명 | 색상값 |
-|------|--------|--------|
-| 홈 (SeniorHome) | 파랑 | `#1A4A8A` |
-| 건강기록 (Health) | 파랑 | `#1A4A8A` |
-| 약복용 (Medication) | 녹색 | `#2E7D32` |
-| 가족 연결/대시보드 | 파랑 | `#1A4A8A` |
-| **설정 (Settings)** | **인디고** | **`#5C6BC0`** |
-| **건강프로필** | **인디고** | **`#5C6BC0`** |
-| **FAQ** | **인디고** | **`#5C6BC0`** |
-| **AI 상담 (AIChat)** | **보라** | **`#7B1FA2`** |
-| **의사메모 (DoctorMemo)** | **보라** | **`#7B1FA2`** |
-| SOS | 빨강 | `#B71C1C` |
-| 동선지도 (LocationMap) | 흰색 | `#FFFFFF` |
-| 인트로 (Intro) | 짙은 파랑 | `#0D3470` |
+### 공통 배경 — 전 화면 통일
+```tsx
+<LinearGradient colors={['#F1ECE4', '#FBF8F3']} style={s.root}>
+```
+SOS 화면만 예외: `['#F2655A', '#E5453C', '#B81F18']`
+
+### 색상 상수 (파일 상단 인라인 선언)
+```ts
+const BLUE        = '#3B82F6';   // primary action
+const BLUE_DK     = '#1E40AF';
+const APP_BG_TOP  = '#F1ECE4';   // warm ivory 상단
+const APP_BG_BOT  = '#FBF8F3';   // warm ivory 하단
+const INK         = '#0F1B2D';   // body text
+const INK_SOFT    = '#3D4B62';
+const INK_MUTE    = '#7E8AA1';
+const GREEN       = '#3BA559';   // 완료/정상
+const GREEN_DK    = '#1F7A3A';
+const ORANGE      = '#F58A4D';   // 측정 버튼
+const RED         = '#E5453C';   // 위험/SOS
+const PURPLE      = '#7C5BE3';
+// 칩 파스텔 (카드는 흰색, 칩에만 색 사용)
+const CHIP_MOOD     = '#F1E3D4';
+const CHIP_HOSPITAL = '#E6EDF7';
+const CHIP_CHAT     = '#ECE6F6';
+const CHIP_FAMILY   = '#F5E3EA';
+const CHIP_HEALTH   = '#F6E5DD';
+const CHIP_MED      = '#F5EAD6';
+```
+
+### 시니어 UI 원칙
+- **본문 최소**: 22px
+- **버튼 최소 높이**: 64px
+- **터치 영역**: 44×44px 이상
+- **카드**: 흰색 배경 + 파스텔 칩 아이콘
+- **스타일**: 파일 끝 `const s = StyleSheet.create({...})`
+- **theme.ts 전역 파일 금지**
 
 ---
 
-## 시니어 UI 원칙
+## 루미 캐릭터 시스템
 
-- **최소 폰트**: 18px (일반), 22px (입력/버튼), 26~28px (헤더/강조)
-- **버튼 최소 높이**: 64~72px
-- **카드 borderRadius**: 18~22px
-- **탭바 아이콘**: 28px
+### 이미지 파일 (mobile/assets/) — 타이트 크롭 버전
+| 파일명 | 치수 | 용도 |
+|--------|------|------|
+| `lumi-happy.png` | 520×520px | 기본/인사 (홈 히어로, 병원, 대화 등) |
+| `lumi-content.png` | 520×520px | 응원/안심 (건강 정상, 약 완료 등) |
+| `lumi-worried.png` | 520×520px | 걱정/공감 (건강 이상, SOS) |
+| `lumi-focused.png` | 520×520px | 집중 (AI 분석 중, 로딩) |
+| `pill-bp.png` | 612×612px | 혈압약 |
+| `pill-dm.png` | 728×728px | 당뇨약 |
+| `pill-joint.png` | 620×620px | 관절약 |
+| `pill-vit.png` | 620×620px | 비타민 |
+| `pill-sleep.png` | 612×612px | 수면제 |
+| `pill-heart.png` | 660×660px | 심장약 |
+| `pill-dementia.png` | 660×660px | 치매 예방약 |
+
+### Lumi 컴포넌트
+```tsx
+import Lumi from '../components/Lumi';
+// mood: 'happy' | 'content' | 'worried' | 'focused'
+// bob: true = useBob() 부유 애니메이션
+<Lumi mood="happy" size={90} bob />
+```
+
+### useBob 훅 (±6px, 1750ms 루프)
+```tsx
+import { useBob } from '../utils/useBob';
+const bobY = useBob();
+<Animated.Image style={{ transform: [{ translateY: bobY }] }} />
+```
+적용 대상: 홈 히어로 루미, 각 화면 인사 루미, 약 pending 캐릭터
 
 ---
 
 ## 화면별 상세
 
-### OnboardingScreen
-4슬라이드, 마지막에서 `AsyncStorage.setItem('onboarding_seen', '1')` → Login:
+### SeniorHomeScreen (홈)
+- warm ivory 배경
+- **TopBar**: "Lumi ♥" 워드마크 (좌) + 날짜/시간 (우)
+- **HERO**: 루미 300px bob + 인사 텍스트
+- **카드 순서**: 기분 체크인 → 약 알림 → 일정 → 날씨 → 건강 → 루미 대화 → 보호자 → 내 위치 → SOS
+- **기분 체크인**: 5개 모두 루미 반응 + 다음 행동 버튼 + `mood_log.${uid}` 저장
+  - 좋아요→Health, 평온→HospitalSchedule, 그저→Guardian, 걱정·힘듦→AIChat
+  - 기분 선택 시 반응 카드로 자동 스크롤 (shouldScrollToMood ref)
+  - 화면 복귀 시 맨 위로 자동 스크롤 (useFocusEffect)
+- **약 카드**: 💊 워터마크 (opacity 0.13, rotate -12deg)
+- **날씨 카드**: 기온 + 최고/최저 + 조언 한 줄 + 날씨 워터마크 (opacity 0.18)
+- **루미 대화 카드**: 루미 이미지 워터마크 (opacity 0.28, size 200) + "무엇이든 물어보세요"
+- **미등록 약**: "약을 등록해보세요" 메시지 (`medsEmpty` state)
 
-| # | 아이콘 | 제목 | 설명 | 색상 |
-|---|--------|------|------|------|
-| 1 | 👪 | 자녀가 부모님 건강을 걱정하고 있지 않나요? | 가족이 언제든 건강 상태와 동선 확인 | `#1A4A8A` |
-| 2 | 🚨 | 혼자 있을 때 갑자기 아프면 어떡하죠? | SOS 한 번으로 119와 가족에게 즉시 연락 | `#D32F2F` |
-| 3 | 💊 | 약 먹는 시간 자주 잊으시나요? | 복약 시간 알림 + 가족에게 전달 | `#2E7D32` |
-| 4 | 꿀비 | 이제 걱정 마세요 Silver Life AI가 함께합니다 | 꿀비가 매일 건강을 지켜드릴게요 | `#7B1FA2` |
+### HealthScreen (건강 기록)
+- warm ivory 배경
+- **2그룹 구조**:
+  - 📱 자동으로 기록돼요: 걸음수(Pedometer 작동) + 심박수·수면 "연결 안 됨" 안내
+  - ✍️ 직접 재서 기록해요: 혈압 · 혈당 · 체온 (수동 입력 모달)
+- **루미 해석**: 각 지표 카드에 정상/주의/위험 한 줄 문구
+- **체온**: `tempStatus` (36~37.5 정상, >38.5 위험), decimal-pad 입력
+- **Pedometer**: `liveSteps` state, `getStepCountAsync` + `watchStepCount`
+- **⑭-B 건강 기기 연동**: HealthKit/Health Connect — 별도 세션 예정
 
----
+### HospitalScheduleScreen (일정)
+- 헤더: "내 일정 / 병원 일정" (빈 상태·채워진 상태 통일)
+- **필터 세그먼트**: 전체 / 🏥 병원 / 📝 일반
+- 빈 필터 결과 시 안내 메시지
+- 루미 인사: 오늘 일정 유무에 따라 동적 텍스트
 
-### IntroScreen
-- 헤더 색상: `#0D3470`
-- 꿀비 이미지: `Kkulbi_1.png` (require + GitHub raw URL 병용)
-- 버튼: "시작하기" / "로그인" → LoginScreen
+### HospitalScheduleAddScreen (일정 추가)
+- **타입 토글**: 🏥 병원 / 📝 일반 (상단 세그먼트)
+  - 병원: 병원명(필수)·진료과·의사·주소·이번방문메모·병원메모·알림3개
+  - 일반: 제목(필수)·날짜·시간·메모·알림3개
+- **양력/음력 토글**: `korean-lunar-calendar` 변환, 양력 canonical 저장
+- **저장**: `type: 'hospital' | 'memo'` 구분, `appointments.${userId}` 키
 
----
+### MedicationScreen (약 관리)
+- warm ivory 배경, 헤더 transparent (흰 밴드 제거)
+- **PillImage**: 92px, `useBob()` (pending만), `resizeMode:'contain'`
+- 복용 버튼: BLUE (#3B82F6), 저장 버튼: BLUE
+- **주간 복용 스트립**: 초록(모두)/주황(일부)/빨강(미복용) + 편집 기능
+- **저장 키**: `medications.${userId}`
 
-### LoginScreen
-```
-[기존 회원 로그인] → 카카오/네이버/Apple/Google → SeniorHome
-[신규 회원가입]    → 카카오/네이버/Apple/Google → Settings
-[📧 이메일]        → EmailAuthScreen
-```
+### SettingsScreen (설정)
+- warm ivory 배경
+- **프로필 카드**: 🌿 그린 그라데이션 아바타 + "✏️ 내 정보 수정" (중복 제거)
+- **글자 크기**: 3단계 (보통22/크게26/아주크게30)
+- **로그아웃**: `userId`, `userName` 세션 키만 제거 (데이터 키 유지)
+- **탭**: `activeTab="set"`
 
-```typescript
-const KAKAO_CLIENT_ID  = 'c102ef257f29dfc4ca9f2062a0c1442d';
-const NAVER_CLIENT_ID  = 'YOUR_NAVER_CLIENT_ID';   // 미설정
-const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID';  // 미설정
-const REDIRECT_BASE    = 'https://leemike09-dev.github.io/SilverlieAI/';
-```
-
----
-
-### HealthProfileScreen
-- 헤더 색상: `#5C6BC0` (인디고)
-- AsyncStorage 키: `health_profile`
-- 총 5단계 (진행바 표시)
-
-| 단계 | 내용 |
-|------|------|
-| 1 | 기본 정보: 나이·키·체중·성별·혈액형(ABO + Rh) |
-| 2 | 만성질환 다중선택: 고혈압·당뇨·고지혈증·심장질환·뇌졸중·관절염·신장질환·갑상선·골다공증·치매·암·기타 |
-| 3 | 수술 경력: 수술명 + 연도 (여러 건 추가 가능) |
-| 4 | 알레르기: 약물(페니실린·아스피린·설파제·조영제·기타) + 식품 알레르기 직접 입력 |
-| 5 | 생활습관: 흡연·음주·운동·식사 선택형 |
-
-**AI 연동**: health_profile → 백엔드 system prompt → AI 개인 맞춤 조언
-
----
-
-### AIChatScreen
-- 헤더 색상: `#7B1FA2` (보라)
-- 보라 테마: `purple1 #7B1FA2` / `purple2 #9C27B0` / `purpleCard #F3E5F5` / `purpleLine #E1BEE7`
-- **건강프로필 연동**: AsyncStorage `health_profile` → 백엔드 전달 → AI 개인 맞춤 답변
-- **장기 컨텍스트**: 오늘 대화(최대 40턴) + 지난 7일 요약 → system prompt
-- **맨 위 인사말**: `getGreeting()` 시간대별 메시지 + 건강 안내
-- **빠른 질문 칩**: 약 부작용·혈압·수면·무릎·어지러움·속스글픔
-- **AI 답변**: "더 알고 싶으시면" 후속 질문 섹션 제거됨
-- **의사 메모 버튼**: AI 병원 방문 권유 시 녹색 버튼 자동 표시
-- **꿀비 아바타**: 답변 내용에 따라 자동 전환
-
-```typescript
-const KKULBI_IMAGES = {
-  default: require('../assets/Kkulbi_1.png'),
-  happy:   require('../assets/Kkulbi_1.png'),
-  worry:   require('../assets/Kkulbi_worry.png'),
-  cheer:   require('../assets/Kkulbi_Cheer.png'),
-  sleep:   require('../assets/Kkulbi_sleep.png'),
-  sos:     require('../assets/Kkulbi_1.png'),  // SOS 전용 미제작
-};
-// critical → sos, high/medium → worry
-// 수면 키워드 → sleep, 응원 키워드 → cheer
-```
+### AIChatScreen (루미와 대화)
+- warm ivory 배경, 헤더 transparent
+- **HERO**: 루미 196px bob + 컨텍스트 pill ("건강·약·일정·위치 기록을 모두 참고해요")
+- **예시 질문 리스트**: "이렇게 질문하세요" + 텍스트 항목 8개 (카드 없음, 탭 시 전송)
+- 퀵카드 그리드 제거됨
 
 ---
 
-### FAQScreen
-- 헤더 색상: `#5C6BC0` (인디고)
-- 실시간 검색 기능 (TextInput 필터링)
-- 카테고리 5개:
+## AsyncStorage 키 목록
 
-| 아이콘 | 카테고리 | 주요 Q&A |
-|--------|----------|----------|
-| 🚀 | 시작하기 | 회원가입·로그인·비밀번호 찾기 |
-| 📊 | 건강 기록 | 혈압 정상 수치·걸음수 자동측정·기록 조회 |
-| 💊 | 약 관리 | 약 추가방법·알림 미수신·재고 부족 알림 |
-| 👨‍👩‍👧 | 가족 연결 | 코드 공유·데이터 권한(본인만 수정)·최대 5명 |
-| 🐝 | AI 상담 꿀비 | 의사 대체 아님·건강프로필 활용 방식 |
+| 키 | 내용 | 비고 |
+|----|------|------|
+| `userId` | 로그인 사용자 ID | 세션, 로그아웃 시 제거 |
+| `userName` | 사용자 이름 | 세션, 로그아웃 시 제거 |
+| `onboarding_seen` | 온보딩 완료 여부 | 유지 |
+| `health_profile` | 건강 프로파일 JSON | 유지 |
+| `medications.${uid}` | 복약 목록 | userId 네임스페이스 |
+| `medications_date` | 복약 날짜 추적 | 날짜 변경 시 taken 초기화 |
+| `medication-log.${uid}.${date}` | 일별 복용 기록 | userId 네임스페이스 |
+| `medication-override.${uid}.${date}` | 주간 스트립 수동 편집 | userId 네임스페이스 |
+| `health_records.${uid}` | 건강 수치 기록 | userId 네임스페이스 |
+| `appointments.${uid}` | 병원 일정·메모 | userId 네임스페이스 |
+| `mood.${uid}.${date}` | 오늘 기분 (단일값) | userId 네임스페이스 |
+| `mood_log.${uid}` | 기분 누적 로그 [{date,moodIndex}] | userId 네임스페이스, 유지 |
+| `hospital_schedule.${uid}` | 다음 일정 캐시 | userId 네임스페이스 |
+| `doctor_memo` | 의사 메모 텍스트 | 유지 |
+| `doctor_memo_date` | 메모 저장 일시 | 유지 |
+| `family_push_tokens` | 가족 Push Token 캐시 | SOS 오프라인 대비 |
+| `location.${uid}.current` | 현재 위치 좌표 | 날씨 조회용 |
 
----
-
-### SOSScreen
-- 헤더 색상: `#B71C1C` (빨강)
-- **SOS 큰 버튼**: 맥박 애니메이션 (scale 1.0 ↔ 1.06, 800ms 루프)
-- **5초 카운트다운** → `Linking.openURL('tel:119')` 자동 연결
-- **가족 연락 버튼**: 딸(👧), 아들(👦) → 개별 전화 연결
-- **취소 버튼**: 카운트다운 중단 + goBack()
-- ⚠️ FAMILY 배열 phone 값 현재 빈 문자열 → 실제 연락처 연동 필요
-
----
-
-### DoctorMemoScreen
-- 헤더 색상: `#7B1FA2` (보라)
-- **접근**: Settings → "📋 의사 전달 메모"
-- **AsyncStorage 키**: `doctor_memo`, `doctor_memo_date`
-- **기능**: 메모 표시·편집·공유·인쇄·삭제
-- **하단 버튼**: 📱공유(보라) / 🖨️인쇄(파랑) / ✏️편집(주황)
-- **AI 자동 생성**: AIChatScreen에서 병원 권유 감지 시 저장 버튼 제공
-
----
-
-### SettingsScreen
-- 헤더 색상: `#5C6BC0` (인디고, ⚠️ 파랑 #1A4A8A 아님)
-- 메뉴:
-  1. 건강 프로필 → HealthProfileScreen
-  2. 📋 의사 전달 메모 → DoctorMemoScreen
-  3. ❓ 도움말/FAQ → FAQScreen
-  4. 기타 설정들
-  - 로그아웃 → AsyncStorage 초기화 → Intro
-
----
-
-### SeniorHomeScreen
-- 헤더 색상: `#1A4A8A` (linear-gradient 웹)
-- `{name}님` 표시 (⚠️ "어르신" 절대 붙이지 말 것)
-- 우상단 ⚙️ 설정 버튼 (꿀비 이미지 아님)
-- 카드 4개: 혈압/혈당/심박수/체중 — **실데이터** (`fetchLatest` → `GET /health/records/{uid}`)
-- userId: **AsyncStorage 우선** (`await AsyncStorage.getItem('userId')`) — route.params 보조
-- demo-user는 fetchLatest 건너뜀
-- 걸음수: 최근 기록 steps 표시 (없으면 '--')
-- SOS 버튼 → SOSScreen
-- 동선 확인 → FamilyConnect(실사용자) / FamilyDashboard(DEMO)
+⚠️ **로그아웃 시 제거**: `userId`, `userName` 만. 나머지 데이터 키는 유지.
 
 ---
 
 ## 알림 시스템 (expo-notifications)
 
-### 구조
-- **`mobile/utils/notifications.ts`**: 네이티브 전용 알림 함수들
-- **`mobile/utils/notifications.web.ts`**: 웹용 stub (빈 함수들) — 빌드 에러 방지
-- **웹에서는 동작하지 않음**: Platform.OS === 'web' 시 early return
-
-### 주요 함수
-
 | 함수 | 설명 |
 |------|------|
-| `requestNotificationPermission()` | 알림 권한 요청 |
-| `initNotificationHandler()` | App.tsx 시작 시 호출, shouldShowAlert/Sound 설정 |
-| `scheduleMedNotification(medId, name, timeSlot)` | 복약 알림 등록 (30분 전, 매일 반복) |
-| `cancelMedNotification(medId)` | 특정 복약 알림 취소 |
-| `scheduleHealthDailyReminder()` | 매일 오전 8시 건강 기록 알림 |
-| `registerPushToken(userId)` | Expo Push Token 발급 → 서버 저장 |
-| `cacheFamilyPushTokens(userId)` | 가족 Push Token을 AsyncStorage에 캐시 (SOS 오프라인 대비) |
-| `sendSOSPushDirect(senderName)` | 캐시된 토큰으로 Expo API에 직접 SOS 푸시 (백엔드 무관) |
-| `sendSOSPushToFamily(userId, name)` | SOS 발생 시 백엔드 경유 가족 푸시 알림 전송 |
-
-### 알림 시간 슬롯
-```typescript
-const TIME_SLOT_HOURS = {
-  morning: 8,   // 알림: 7:30
-  lunch:   12,  // 알림: 11:30
-  evening: 18,  // 알림: 17:30
-  bedtime: 21,  // 알림: 20:30
-};
-// 알림은 복약 시간 30분 전에 발송
-```
-
-### Expo Push Token
-```
-projectId: '2220b18b-fc03-4ccd-9e62-49dda3b0793f'
-저장 API: POST /users/{userId}/push-token
-SOS 푸시: POST /sos/push
-```
+| `initNotificationHandler()` | App.tsx 시작 시 호출 |
+| `scheduleMedNotification(medId, name, timeSlot)` | 복약 알림 (30분 전) |
+| `cancelMedNotification(medId)` | 복약 알림 취소 |
+| `scheduleHealthDailyReminder()` | 매일 오전 8시 건강 알림 |
+| `registerPushToken(userId)` | Expo Push Token → 서버 저장 |
+| `cacheFamilyPushTokens(userId)` | 가족 토큰 캐시 (SOS 오프라인) |
+| `sendSOSPushDirect(senderName)` | 캐시 토큰으로 직접 발송 |
 
 ---
 
 ## AI 백엔드 (backend/app/routers/ai.py)
 
-### 장기 대화 컨텍스트
 ```python
-# 시스템 프롬프트에 포함:
-# 1. 지난 7일 요약 (ai_chat_summaries 테이블)
-# 2. 오늘 대화 최대 40턴 (ai_chat_logs 테이블)
-
-load_chat_context(user_id, db)
+# 시스템 프롬프트 구성
+load_chat_context(user_id, db)      # 오늘 대화 40턴 + 7일 요약
 build_system_prompt(user, health_ctx, chat_ctx)
 _save_chat_turn(user_id, role, content, db)
-```
 
-### 의사 메모 기능
-```python
 DOCTOR_KEYWORDS = ['병원', '진료', '의사', '내원', '검사받']
-# /chat 응답 추가 필드:
-# doctor_memo_needed: bool
-# doctor_memo: str | None  (사용자 정보 기반 자동 작성)
-```
-
-### AI 채팅 컨텍스트 구조 (2026-04-20 완성)
-`/ai/chat` 호출 시 시스템 프롬프트에 자동 포함되는 데이터:
-
-| 데이터 | 소스 | 내용 |
-|--------|------|------|
-| 사용자 프로필 | `users` 테이블 | 이름/나이/성별/만성질환/알레르기 |
-| 복용약 목록 | `medications` 테이블 | 이름/용량/종류/복용시간 |
-| 오늘 복용 여부 | `medication_logs` 테이블 | 시간대별 ✅복용/❌미복용/⬜미기록 |
-| 최근 건강 기록 | `health_records` 최근 7일 | 혈압/혈당/심박수/체중/걸음수 |
-| 최근 4일 트렌드 | `health_records` 계산 | 혈압·혈당·체중 변화 흐름 |
-| 오늘 대화 기록 | `ai_chat_logs` | 최대 40턴 문맥 유지 |
-| 최근 7일 요약 | `ai_chat_summaries` | 지난 상담 내용 참고 |
-
-```python
-# load_health_context() — 올바른 컬럼명 (2026-04-20 수정)
-# medications: name, dosage, times, med_type  (time_slot/active 아님)
-# health_records: date 기준 정렬  (recorded_at 아님)
-# medication_logs: date + user_id 필터
+# 응답 추가 필드: doctor_memo_needed: bool, doctor_memo: str|None
 ```
 
 ### Supabase 테이블
@@ -381,213 +270,85 @@ DOCTOR_KEYWORDS = ['병원', '진료', '의사', '내원', '검사받']
 |--------|------|
 | `ai_chat_logs` | 대화 로그 (오늘) |
 | `ai_chat_summaries` | 주별 요약 |
-| `medications` | 복약 목록 (times: List[str], med_type) |
-| `medication_logs` | 일별 복용 여부 (taken: bool, status, scheduled_time) |
-| `health_records` | 건강 수치 (date, blood_pressure_systolic/diastolic, blood_sugar, heart_rate, weight, steps) |
-| `family_links` | 가족 연결 (senior_id, family_id, link_code, status) |
-| `push_tokens` | Expo Push Token (user_id, token, platform, updated_at) — SOS 가족 알림용 |
-
----
-
-## 꿀비 마스코트 이미지 (mobile/assets/)
-
-| 파일명 | 내용 | 사용 |
-|--------|------|------|
-| `Kkulbi_1.png` | 기본/기쁨 (lavender 원 + 보라 하트) | IntroScreen, AIChatScreen |
-| `Kkulbi_worry.png` | 걱정 (노란 원 + 😟) | AI 위험 답변 |
-| `Kkulbi_Cheer.png` | 환기 (녹색 원 + 👍) | 응원 답변 |
-| `Kkulbi_sleep.png` | 수면 (파란 원 + ZZZ) | 수면 관련 답변 |
-| `kkulbi_intro.png` | 인트로 전용 | IntroScreen |
-| `kkulbi.png` | 기존 기본 이미지 | 백업 |
-
-**⚠️ 대소문자**: git 파일명 = code require() 경로 (Linux CI 대소문자 구분)
-
----
-
-## AsyncStorage 키 목록
-
-| 키 | 내용 |
-|----|------|
-| `userId` | 로그인 사용자 ID |
-| `userName` | 사용자 이름 |
-| `onboarding_seen` | 온보딩 완료 여부 |
-| `health_profile` | 건강 프로파일 JSON (5단계) |
-| `health_records` | 건강 수치 기록 |
 | `medications` | 복약 목록 |
-| `medications_date` | 복약 날짜 추적 (날짜 변경 시 taken 초기화용) |
-| `doctor_memo` | 의사 메모 텍스트 |
-| `doctor_memo_date` | 메모 저장 일시 |
-| `family_push_tokens` | 가족 Expo Push Token 로컬 캐시 (SOS 오프라인 대비) |
-
----
-
-## 설정(⚙️) 버튼 공통 패턴
-
-```tsx
-// 헤더 style: flexDirection: 'row', alignItems: 'flex-start'
-<TouchableOpacity
-  style={{ alignItems: 'center', paddingHorizontal: 10, marginTop: 4 }}
-  onPress={() => navigation.navigate('Settings', { userId, name })}>
-  <Text style={{ fontSize: 32 }}>⚙️</Text>
-  <Text style={{ fontSize: 26, color: 'rgba(255,255,255,0.95)', fontWeight: '700' }}>설정</Text>
-</TouchableOpacity>
-```
-
----
-
-## GitHub Actions 빌드 확인
-
-```bash
-gh run list --repo leemike09-dev/SilverlieAI --limit 3
-gh run view <run_id> --repo leemike09-dev/SilverlieAI --log-failed
-gh run watch <run_id> --repo leemike09-dev/SilverlieAI
-```
-빌드 → 배포까지 약 40~60초
+| `medication_logs` | 일별 복용 여부 |
+| `health_records` | 건강 수치 |
+| `family_links` | 가족 연결 |
+| `push_tokens` | Expo Push Token |
 
 ---
 
 ## 작업 규칙
 
-### Git 커밋 규칙
-- 화면 하나 완성할 때마다 자동으로 git commit
-- 커밋 메시지 형식: `feat: [화면명] 완료`
-- 예시: `feat: MedicationScreen 완료`
-- 커밋 전 반드시 빌드 에러 확인
+- 커밋 메시지: `feat: [내용]` / `fix: [내용]`
+- 커밋 전 `npx tsc --noEmit` 확인
 - 푸시는 명시적 지시 있을 때만
-
----
----
-
-## 미완성 / 추후작업 / 2차개발
-
-> ⚠️ 이 섹션은 대화 중 언급된 모든 미완성·추후 작업·2차 개발 항목을 자동으로 누적합니다.
-
-### ✅ 2026-05-19 버그 수정 및 안정화 완료
-
-- [x] **루미 "7일 기록 없다" 수정** — `/ai/chat` non-streaming 엔드포인트에 `client_records_7d` 주입 누락 → 추가 완료 (Android fallback 경로 동일 처리)
-- [x] **Supabase 동기화 재시도 강화** — HealthScreen `loadRecords()`: 8초 1회 → 10초 × 5회(50초 총) retry 루프 (Render cold start 대응)
-- [x] **Supabase RLS 활성화** — 7개 테이블에 Row Level Security 활성화 완료 (`users`, `medications`, `health_records`, `ai_chat_logs`, `ai_chat_summaries`, `medication_logs`, `push_tokens`)
-- [x] **push_tokens 테이블 생성** — `user_id`, `token`, `platform`, UNIQUE(user_id, token)
-- [x] **SOS 서버 독립** — `cacheFamilyPushTokens()` + `sendSOSPushDirect()` 추가: 백엔드 다운 시 로컬 캐시 토큰으로 Expo API 직접 발송
-- [x] **SeniorHomeScreen 폴더블/회전 대응** — `Dimensions` → `useWindowDimensions()` 훅 전환, 동적 카드 크기 적용
-- [x] **MedicationScreen 날짜 리셋 버그** — `medications_date` 키로 날짜 비교, 새 날 자동 taken/skipped 초기화
-- [x] **MedicationScreen 재고 복원 버그** — `takenDate` 추적으로 당일 취소 시에만 재고 +1 (전날 취소 시 재고 복원 차단)
-- [x] **MedicationScreen 터치타겟** — 복용/건너뜀/취소 버튼 `minHeight: 60` 이상 확보
-- [x] **HealthScreen 입력 유효성 검사** — 수축기(60~250), 이완기(40~150), 혈당(20~600), 걸음수(0~99,999) 범위 초과 시 Alert 차단
-- [x] **asyncio 블로킹 수정** — `extract_user_conditions_sync` → `asyncio.to_thread()` 래핑 (FastAPI 이벤트루프 블로킹 방지)
-
-### ✅ 2026-04-28 UI 리디자인 완료 (헤더 제거 + 그라디언트 통일)
-- [x] SeniorHomeScreen — 파란 그라디언트 배경, 구름 장식, 루미 scale 확대, 카드 그라디언트, ⚙️설정 pill
-- [x] HealthScreen — 파란 헤더 제거, 핑크 그라디언트 배경, topBar 패턴 적용
-- [x] WeeklyReportScreen — 헤더 제거, 핑크 그라디언트, topBar 패턴 적용
-- [x] LocationMapScreen — 시니어 기준 텍스트 크기 전면 확대
-- [x] AIChatScreen — 보라 헤더+SVG웨이브 제거, topBar 적용, QUICK_CARDS 내용 교체, 루미 아바타 추가
-- [x] MedicationScreen — 초록 헤더+SVG웨이브 제거, 민트 그라디언트, topBar + 약추가 버튼 좌측 배치
-
-### ✅ 2025-04-27 완료 항목
-- [x] AIChatScreen 버블 채팅 히스토리 (messages[] 배열)
-- [x] AIChatScreen SSE 스트리밍 응답 + keep-alive ping
-- [x] AIChatScreen STT 중복 입력 수정 (resultIndex 방식)
-- [x] AIChatScreen 답변 TTS 제거 (STT 입력 + 긴급 한 줄 멘트만 유지)
-- [x] AIChatScreen 인사말 버블 제거 (TTS 음성만, 퀵카드 유지)
-- [x] AIChatScreen 게스트 5회 제한
-- [x] AIChatScreen 크래시 수정 (fadeInMsg→addMsg, displayMsg→lastAiMsg)
-- [x] MedicationScreen 백엔드 동기화 완료
-- [x] FamilyConnectScreen 백엔드 엔드포인트 매칭 (mycode/connect/relation)
-- [x] FamilyDashboardScreen 서버 멤버 로드
-- [x] ProfileScreen 단순화 (이름+전화 2항목, 대글자)
-- [x] HealthProfileScreen 단순화 (나이/성별/만성질환/알레르기/흡연/음주 6항목)
-- [x] LoginScreen Naver/Apple/Google 제거 (카카오+이메일만)
-- [x] IntroScreen 게스트 훑어보기 버튼 추가
-- [x] SOSScreen 게스트 119 차단
-- [x] SettingsScreen activeTab 수정, isGuest 버그, 알림저장, 약관모달, 비밀번호 안내
-- [x] SeniorHomeScreen 게스트 주황 배너
-- [x] Supabase 마이그레이션 002 (family_messages, family_goals) 실행 완료
-- [x] Supabase 마이그레이션 003 (family_links.relation 컬럼) 실행 완료
+- theme.ts 전역 파일 금지 — 색상은 파일 상단 인라인 상수
+- 다국어 금지 — 한글 하드코딩
+- SeniorTabBar 재사용 (새 BottomNav 만들지 마)
 
 ---
 
-### 🔴 출시 전 필수
+## ✅ 2026-06-04 완료 (handoff 4~6)
 
-- [ ] **SOSScreen 가족 전화번호 실제 연동** — ImportantContacts에서 번호 읽어서 자동 연결
-- [ ] **NotificationsScreen 완성** — 화면·API 모두 존재하나 진입 경로 없음. 홈 화면에 🔔 버튼 추가 + 백엔드에서 복약/건강/SOS 알림 자동 저장 연결 필요
-- [ ] **WeeklyReport 나이 하드코딩** — `userAge = 70` → 건강프로필 `age` 필드에서 로드
-- [x] **카카오 로그인 연동 완료** — 실사용자 카카오 로그인 정상 작동 확인 (2026-04-28)
+- [x] **SeniorTabBar 5탭** — 홈/건강/일정/약/설정
+- [x] **전 화면 warm ivory 배경** — `#F1ECE4→#FBF8F3`
+- [x] **홈 TopBar** — "Lumi ♥" + 날짜 + 시간
+- [x] **날씨 카드** — 서울 폴백 + 항상 렌더 + 조언 중심 + 워터마크
+- [x] **AsyncStorage 키 네임스페이스** — `medications.uid` 등
+- [x] **로그아웃** — 세션 키만 제거 (데이터 유지)
+- [x] **Pedometer** — `getStepCountAsync` + `watchStepCount` 실시간
+- [x] **MedicationScreen** — 헤더 transparent, PillImage 92px, GREEN→BLUE
+- [x] **SettingsScreen** — 중복 제거, 🌿 아바타
+- [x] **홈 칩** — 48px, 이모지 26px, 그림자
+- [x] **기분 타일** — height 88, overflow:hidden, lineHeight
+- [x] **일정 화면 제목 통일** — "내 일정 / 병원 일정"
+- [x] **일정 필터** — 전체/병원/메모 세그먼트
+- [x] **기분 5개 반응** — 루미 반응 + 다음 행동 버튼 + mood_log 저장
+- [x] **기분 자동 스크롤** — shouldScrollToMood ref
+- [x] **홈 복귀 시 맨 위** — useFocusEffect scrollTo(0)
+- [x] **홈 카드 워터마크** — 약 💊 + 루미 대화 이미지
+- [x] **AIChatScreen** — warm ivory 배경, 헤더 transparent, 예시 질문 리스트
+- [x] **HospitalScheduleAddScreen** — 병원/일반 타입 토글 + 양력/음력 토글
+- [x] **HealthScreen ⑭-A** — 2그룹 + 체온 + 루미 해석 + 연결 안 됨 카드
+- [x] **korean-lunar-calendar** 설치 (v0.3.6)
 
-### 🔒 보안 강화 (앱스토어 이후)
-- [ ] JWT 토큰 기반 인증 도입 (현재: userId 직접 전달)
-- [ ] Supabase RLS 적용 (JWT 도입 후)
-- [ ] CORS 도메인 제한 (현재 `*` 허용)
+---
+
+## 🔴 남은 작업
+
+### 스토어 출시 전 필수
+- [ ] **인트로 화면** — 디자인과 협업 중
+- [ ] **건강 기기 연동 (⑭-B)** — HealthKit(iOS) / Health Connect(Android), 별도 세션
+- [ ] **SOSScreen 가족 전화번호 실제 연동**
+- [ ] **NotificationsScreen** — 진입 경로 없음, 홈 🔔 버튼 추가 필요
+- [ ] **WeeklyReport 나이 하드코딩** — `userAge = 70` → 건강프로필 연동
+- [ ] **Play Store 제출** — Google Play Console ($25 일회성)
+- [ ] **App Store 제출** — Apple Developer ($99/년) + Apple 로그인 필수
+
+### 보안 (스토어 이후)
+- [ ] JWT 토큰 인증 (현재 userId 직접 전달)
+- [ ] CORS 도메인 제한
 - [ ] API Rate limiting
 
-### 🤖 AI 고도화
-- [ ] 벡터 검색 기반 장기 대화 맥락 유지
+### AI 고도화
+- [ ] 벡터 검색 기반 장기 컨텍스트
 - [ ] 일일 대화 요약 자동 생성
-- [ ] 모델 동적 선택 고도화 (CRITICAL→Opus / 일반→Sonnet / 요약→Haiku)
-- [ ] 실사용자 대화 데이터 파이프라인
+- [ ] 모델 동적 선택 (CRITICAL→Opus / 일반→Sonnet)
 
-### 🔊 루미 TTS 음성 개선 (귀국 후 즉시)
-- [ ] **자연스러운 한국어 TTS 연동** — 현재 expo-speech(기기 내장 TTS, 기계음)를 AI 음성으로 교체
-  - 추천: Google Cloud TTS Neural2 `ko-KR-Neural2-A` (월 100만자 무료) 또는 Azure TTS `ko-KR-SunHiNeural` (월 50만자 무료, 신용카드 불필요)
-  - 구현 방식: 모바일 → 백엔드 `/tts` 엔드포인트 → TTS API 호출 → MP3 반환 → expo-av 재생
-  - API 키는 Render.com 환경변수에 저장 (중국 포함 전 세계 작동)
-  - ⚠️ 현재 중국 체류 중이라 API 계정 생성 불가 → 한국 귀국 후 진행
-
-### 🏥 헬스케어 API / 웨어러블 연동 (2차 개발)
-- [ ] **Android 만보계 Google Health Connect 전환** — 현재 `TYPE_STEP_COUNTER`(부팅 이후 누적값) 기반이라 앱 실행 전 걸음은 누락됨. `react-native-health-connect` 패키지 + 새 EAS 빌드 필요. Health Connect는 시간 범위 기반 걸음수 조회 가능 → iOS `getStepCountAsync`처럼 정확한 오늘 걸음수 제공 가능.
-- [ ] 삼성헬스 SDK / Apple HealthKit 연동 → 걸음수/심박수 자동 수집
-- [ ] 갤럭시 워치 / 애플 워치 / 핏빗 웨어러블 연동 → 위치: 설정 화면 "기기 연동" 항목 + 건강 화면 데이터 표시
-- [ ] 마이헬스웨이 API 연동
-
-### 👨‍👩‍👧 가족 기능
-- [ ] SOS 발생 시 가족 위치 자동 공유
-- [ ] sendSOSPushToFamily 완전 구현
-
-### 📍 위치 / 지도
-- [ ] LocationMapScreen 카카오맵 전환 (현재 OpenStreetMap)
-- [ ] 백그라운드 위치 추적 (산책 동선 자동 기록)
-
-### 💊 약 관리 고도화
-- [ ] **처방전·약 봉지 OCR 스캔** — 카메라로 사진 촬영 → Google Cloud Vision API로 텍스트 추출 → Claude API로 약 이름 파싱 → 약 이름 입력창 자동 완성 (삼성 갤럭시 헬스 유사 기능)
-
-### 📋 미완성 화면
+### 기능 확장
+- [ ] 처방전 OCR 스캔 (약 관리)
 - [ ] DoctorMemoScreen 인쇄 기능
-- [ ] HealthProfileScreen 작성 중요성 팝업 안내
-- [ ] **의사 전달 메모 Supabase 마이그레이션 (B안)** — 현재 AsyncStorage 배열(`doctor_memos`)에 저장 중. 추후 `doctor_memos` Supabase 테이블로 마이그레이션 시 기기간 동기화·가족 공유 가능. 스키마: `id, user_id, created_at, memo TEXT, opinion TEXT`
+- [ ] LocationMapScreen 카카오맵 전환
+- [ ] 가족 SOS 위치 자동 공유
+- [ ] 이번 주 마음 그래프 (HealthScreen)
 
-### 📱 건강앱 연동 (1차 — EAS Build 시점에 함께 구현)
-- [ ] **iOS HealthKit** — `react-native-health` 라이브러리, 걸음수/심박수/혈압/혈당/체중/수면 읽기
-- [ ] **Android Health Connect** — `react-native-health-connect` 라이브러리, 삼성 갤럭시 헬스 포함
-- [ ] HealthScreen 자동 입력 연동 (수동 입력 병행 유지)
-- [ ] 백엔드 source 필드 확장: `'manual' | 'healthkit' | 'healthconnect' | 'ble'`
-- [ ] iOS HealthKit entitlement 추가 (앱스토어 심사 시 건강 데이터 접근 사유 명시 필요)
-- [ ] 최소 Android 9+ (Health Connect 조건)
-- **설계 원칙**: 웨어러블(갤럭시워치/애플워치) 데이터는 각 건강앱에 집약되므로 별도 웨어러블 연동 불필요
+### 빌드 / 배포
+- [ ] EAS Production Build (AAB/IPA)
+- [ ] TestFlight 베타 (iOS)
 
-### 🔵 BLE 의료기기 직접 연결 (2차)
-- [ ] `react-native-ble-plx` — 혈압계(오므론 등)/혈당계/스마트체중계/산소포화도계 BLE 직접 연결
-- [ ] 기기별 GATT 프로파일 파싱
-- [ ] 측정값 실시간 수신 → 백엔드 저장 (source: 'ble')
-
-### 🏗️ 빌드 / 배포
-- [ ] EAS Build 설정 (앱스토어/플레이스토어 제출용)
-- [ ] iOS App Store 제출 (Apple 로그인 추가 필요)
-- [ ] Android Play Store 제출
-
-### 🌙 낮/밤 자동 테마 (출시 직전)
-- [ ] ThemeContext — 오전 7시~오후 8시 낮 테마, 그 외 야간 테마
-
-### 🌏 글로벌 확장 (2차)
-- [ ] Google / Apple 로그인 (글로벌 출시 시)
-- [ ] 네이버 로그인 (한국 추가 커버)
-- [ ] 일본·동남아 현지화
-
-### 🇨🇳 중국 진출 계획 (별도 트랙)
-- [ ] **언어 현지화** — 한국어 → 중국어 간체(zh-CN) 전환, i18n 라이브러리 도입 (`i18next` 또는 `expo-localization`)
-- [ ] **로그인 현지화** — 카카오/네이버 → WeChat(微信) / Alipay(支付宝) 로그인
-- [ ] **지도 현지화** — OpenStreetMap/카카오맵 → 高德地图(Amap) / 百度地图 (중국 내 Google/Apple 지도 차단)
-- [ ] **AI 모델 현지화** — Anthropic Claude → 중국 내 접근 가능한 모델 검토 (Baidu ERNIE, Alibaba Qwen 등)
-- [ ] **앱스토어** — 중국은 Google Play 없음 → 화웨이 앱갤러리 / 샤오미 앱스토어 등 서드파티 마켓 제출
-- [ ] **서버 현지화** — 중국 내 데이터 규정(PIPL) 준수 위해 중국 내 서버 필요 (Alibaba Cloud / Tencent Cloud)
-- [ ] **결제** — 위챗페이 / 알리페이 연동
-- [ ] **규정 준수** — ICP 비안(备案) 등록 필요 (중국 내 앱/웹서비스 운영 허가)
+### 2차 개발
+- [ ] BLE 의료기기 직접 연결 (혈압계·혈당계)
+- [ ] 낮/밤 자동 테마
+- [ ] Google / Apple / 네이버 로그인
+- [ ] 중국 진출 (WeChat 로그인, Amap, PIPL 준수)
