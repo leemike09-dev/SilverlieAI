@@ -276,7 +276,7 @@ def load_health_context(user_id: str, db) -> dict:
 
 
 def load_chat_context(user_id: str, db) -> dict:
-    """오늘 대화 전체 + 최근 7일 요약을 로드해 맥락 구성."""
+    """오늘 대화 전체 + 최근 30일 요약을 로드해 맥락 구성."""
     ctx: dict = {'today_messages': [], 'weekly_summaries': []}
     today_str = date.today().isoformat()
     # 오늘 대화 (최대 20턴 — 앱 재시작 시 문맥 복원용)
@@ -287,9 +287,9 @@ def load_chat_context(user_id: str, db) -> dict:
         print(f"[chat_context/today] {e}")
     # 최근 7일 요약 (오늘 제외)
     try:
-        week_ago = (date.today() - timedelta(days=7)).isoformat()
+        month_ago = (date.today() - timedelta(days=30)).isoformat()
         yesterday = (date.today() - timedelta(days=1)).isoformat()
-        r = db.table("ai_chat_summaries").select("date,summary,has_risk").eq("user_id", user_id).gte("date", week_ago).lte("date", yesterday).order("date", desc=True).execute()
+        r = db.table("ai_chat_summaries").select("date,summary,has_risk").eq("user_id", user_id).gte("date", month_ago).lte("date", yesterday).order("date", desc=True).execute()
         ctx['weekly_summaries'] = r.data or []
     except Exception as e:
         print(f"[chat_context/summaries] {e}")
@@ -474,7 +474,7 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         today_msgs = chat_ctx.get('today_messages', [])
 
         if weekly:
-            prompt += "\n\n=== 최근 7일 대화 요약 ==="
+            prompt += "\n\n=== 최근 30일 대화 요약 ==="
             for s in reversed(weekly):  # 오래된 것부터
                 risk_flag = " ⚠️위험" if s.get('has_risk') else ""
                 prompt += f"\n[{s.get('date','')}]{risk_flag} {s.get('summary','')}"
