@@ -63,7 +63,7 @@ def get_weather(lat: float, lon: float):
                 "forecast_days": 6,
                 "timezone": "auto",
             },
-            timeout=8,
+            timeout=20,
         )
         r.raise_for_status()
         d   = r.json()
