@@ -50,9 +50,18 @@ def _cond_type(code: int) -> str:
     if code in (2, 3, 45, 48): return "cloud"
     return "rain"
 
+# 날씨 캐시 (10분)
+_weather_cache: dict = {}
+_WEATHER_TTL = 600  # seconds
+
 @app.get("/weather")
 def get_weather(lat: float, lon: float):
     """Open-Meteo 날씨 — API 키 불필요, 전 세계 지원 (중국 포함)"""
+    import time as _time
+    cache_key = f"{round(lat,2)},{round(lon,2)}"
+    cached = _weather_cache.get(cache_key)
+    if cached and _time.time() - cached['ts'] < _WEATHER_TTL:
+        return cached['data']
     try:
         r = httpx.get(
             "https://api.open-meteo.com/v1/forecast",
@@ -98,7 +107,7 @@ def get_weather(lat: float, lon: float):
                 "rain_prob": rain_prob[i] if i < len(rain_prob) else None,
             })
 
-        return {
+        result = {
             "summary": " / ".join(parts),
             "timezone": tz,
             "temp": temp,
@@ -107,9 +116,11 @@ def get_weather(lat: float, lon: float):
             "cond_type": _cond_type(code),
             "forecast": forecast,
         }
+        _weather_cache[cache_key] = {"ts": _time.time(), "data": result}
+        return result
     except Exception as e:
         print(f"[weather] error: {type(e).__name__}: {e}")
-        return {"summary": None, "error": str(e)}
+        return {"summary": None}
 
 
 @app.get("/kakao/callback")
