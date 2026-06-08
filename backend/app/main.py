@@ -43,6 +43,11 @@ _WMO_KO = {
     95: "뇌우", 99: "우박 동반 뇌우",
 }
 
+def _cond_type(code: int) -> str:
+    if code in (0, 1): return "clear"
+    if code in (2, 3, 45, 48): return "cloud"
+    return "rain"
+
 @app.get("/weather")
 def get_weather(lat: float, lon: float):
     """Open-Meteo 날씨 — API 키 불필요, 전 세계 지원 (중국 포함)"""
@@ -52,6 +57,8 @@ def get_weather(lat: float, lon: float):
             params={
                 "latitude": lat, "longitude": lon,
                 "current": "temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m",
+                "daily": "temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max",
+                "forecast_days": 6,
                 "timezone": "auto",
             },
             timeout=8,
@@ -59,6 +66,7 @@ def get_weather(lat: float, lon: float):
         r.raise_for_status()
         d   = r.json()
         cur = d.get("current", {})
+        daily = d.get("daily", {})
         temp  = cur.get("temperature_2m")
         code  = cur.get("weather_code", 0)
         humid = cur.get("relative_humidity_2m")
@@ -68,7 +76,35 @@ def get_weather(lat: float, lon: float):
         parts = [f"{temp}°C {condition}"]
         if humid is not None: parts.append(f"습도 {humid}%")
         if wind  is not None: parts.append(f"풍속 {wind:.1f}km/h")
-        return {"summary": " / ".join(parts), "timezone": tz}
+
+        # 일별 예보 (오늘 포함 3일)
+        dates    = daily.get("time", [])
+        max_temps = daily.get("temperature_2m_max", [])
+        min_temps = daily.get("temperature_2m_min", [])
+        day_codes = daily.get("weather_code", [])
+        rain_prob = daily.get("precipitation_probability_max", [])
+        forecast = []
+        for i, dt in enumerate(dates[:3]):
+            c = day_codes[i] if i < len(day_codes) else 0
+            forecast.append({
+                "date": dt,
+                "temp_max": round(max_temps[i]) if i < len(max_temps) else None,
+                "temp_min": round(min_temps[i]) if i < len(min_temps) else None,
+                "code": c,
+                "condition": _WMO_KO.get(c, "알 수 없음"),
+                "cond_type": _cond_type(c),
+                "rain_prob": rain_prob[i] if i < len(rain_prob) else None,
+            })
+
+        return {
+            "summary": " / ".join(parts),
+            "timezone": tz,
+            "temp": temp,
+            "code": code,
+            "condition": condition,
+            "cond_type": _cond_type(code),
+            "forecast": forecast,
+        }
     except Exception:
         return {"summary": None}
 
