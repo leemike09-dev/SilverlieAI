@@ -107,8 +107,9 @@ def get_weather(lat: float, lon: float):
             "cond_type": _cond_type(code),
             "forecast": forecast,
         }
-    except Exception:
-        return {"summary": None}
+    except Exception as e:
+        print(f"[weather] error: {type(e).__name__}: {e}")
+        return {"summary": None, "error": str(e)}
 
 
 @app.get("/kakao/callback")
