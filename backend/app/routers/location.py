@@ -156,10 +156,10 @@ def get_map_page(user_id: str):
   <script>
     var markers = [], polyline = null;
     var last = LOGS.length > 0 ? LOGS[LOGS.length - 1] : null;
-    var initCenter = HOME
-      ? new kakao.maps.LatLng(HOME.lat, HOME.lng)
-      : last
-        ? new kakao.maps.LatLng(last.lat, last.lng)
+    var initCenter = last
+      ? new kakao.maps.LatLng(last.lat, last.lng)
+      : HOME
+        ? new kakao.maps.LatLng(HOME.lat, HOME.lng)
         : new kakao.maps.LatLng(37.5665, 126.9780);
     var map = new kakao.maps.Map(document.getElementById('map'), {{center: initCenter, level: 3}});
 
@@ -184,6 +184,16 @@ def get_map_page(user_id: str):
         markers.push(homeMarker);
         var homeIw = new kakao.maps.InfoWindow({{content: '<div style="padding:6px 10px;font-size:14px">🏡 우리 집</div>'}});
         kakao.maps.event.addListener(homeMarker, 'click', function() {{ homeIw.open(map, homeMarker); }});
+      }}
+
+      // 현재 위치 마커 (최신 기록, 빨간 점)
+      if (logs && logs.length > 0) {{
+        var cur = logs[logs.length - 1];
+        var curPos = new kakao.maps.LatLng(parseFloat(cur.lat), parseFloat(cur.lng));
+        var curMarker = new kakao.maps.Marker({{position: curPos, map: map, image: makeIcon('#E5453C')}});
+        markers.push(curMarker);
+        var curIw = new kakao.maps.InfoWindow({{content: '<div style="padding:6px 10px;font-size:14px">📍 지금 여기</div>'}});
+        kakao.maps.event.addListener(curMarker, 'click', function() {{ curIw.open(map, curMarker); }});
       }}
 
       if (!logs || logs.length === 0) return;
