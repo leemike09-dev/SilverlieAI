@@ -17,8 +17,9 @@ module.exports = {
     android: {
       package: IS_DEV ? 'com.silverlifeai.app.dev' : 'com.silverlifeai.app',
       adaptiveIcon: {
-        foregroundImage: './assets/adaptive-icon.png',
-        backgroundColor: '#ffffff',
+        foregroundImage: './assets/android-icon-foreground.png',
+        backgroundImage: './assets/android-icon-background.png',
+        monochromeImage: './assets/android-icon-monochrome.png',
       },
       permissions: [
         'android.permission.ACTIVITY_RECOGNITION',
