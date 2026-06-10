@@ -129,10 +129,12 @@ async function readiOSData(): Promise<HealthNativeData> {
 }
 
 // ─── Android Health Connect ───────────────────────────────────────────────────
+// react-native-health-connect 패키지 미설치 시 graceful fallback
+// TODO: 패키지 호환 버전 확정 후 재설치
 
 async function requestAndroidPermissions(): Promise<boolean> {
   try {
-    const HC = await import('react-native-health-connect');
+    const HC = await import('react-native-health-connect' as any);
     const ok = await HC.initialize();
     if (!ok) return false;
     const granted = await HC.requestPermission([
@@ -154,7 +156,7 @@ async function readAndroidData(): Promise<HealthNativeData> {
     heartRateMax: null, sleepHours: null, spo2: null, hrv: null,
   };
   try {
-    const HC = await import('react-native-health-connect');
+    const HC = await import('react-native-health-connect' as any);
     const ok = await HC.initialize();
     if (!ok) return empty;
 
