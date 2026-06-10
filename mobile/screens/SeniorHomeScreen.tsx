@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+
+const localDate = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   StatusBar, Alert, Platform, useWindowDimensions,
@@ -39,19 +42,94 @@ const CHIP_LOCATION = '#E6F4E2';
 
 const API = 'https://silverlieai.onrender.com';
 
-export default function SeniorHomeScreen({ route, navigation }: any) {
+// ── 타입 정의 ──────────────────────────────────────────────────
+type AppointmentType = 'hospital' | 'memo' | 'travel';
+
+interface Appointment {
+  id: string;
+  type: AppointmentType;
+  date: string;
+  time: string;
+  hospital?: string;
+  clinic?: string;
+  title?: string;
+  name?: string;
+  dept?: string;
+  address?: string;
+  memo?: string;
+}
+
+interface NextMed {
+  name: string;
+  dosage: string;
+  time: string;
+  timeMin: number;
+}
+
+interface Medication {
+  id: string;
+  name: string;
+  dosage?: string;
+  timeSlot?: string;
+  time?: string;
+  taken?: boolean;
+  skipped?: boolean;
+}
+
+interface HealthRecord {
+  date: string;
+  blood_pressure_systolic?: number | null;
+  blood_pressure_diastolic?: number | null;
+  blood_sugar?: number | null;
+  steps?: number | null;
+  sleep_hours?: number | null;
+  heart_rate?: number | null;
+  weight?: number | null;
+  temperature?: number | null;
+}
+
+interface WeatherData {
+  summary?: string;
+  temp?: number;
+  high?: number;
+  low?: number;
+  code?: number;
+  condition?: string;
+  cond_type?: string;
+  forecast?: Array<{
+    date: string;
+    temp_max: number;
+    temp_min: number;
+    condition: string;
+    cond_type: string;
+    rain_prob?: number;
+  }>;
+}
+
+interface MoodLogEntry {
+  date: string;
+  moodIndex: number;
+}
+
+interface ScreenProps {
+  route: { params?: { userId?: string; name?: string } };
+  navigation: any;
+}
+
+export default function SeniorHomeScreen({ route, navigation }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const [userId, setUserId] = useState<string>(route?.params?.userId || '');
   const [name, setName] = useState<string>(route?.params?.name || '');
   const [todayMood, setTodayMood] = useState<number | null>(null);
-  const [todaySchedule, setTodaySchedule] = useState<any>(null);
-  const [nextMedication, setNextMedication] = useState<any>(null);
+  const [todaySchedule, setTodaySchedule] = useState<Appointment | null>(null);
+  const [nextMedication, setNextMedication] = useState<NextMed | null>(null);
   const [nextMedTimeStr, setNextMedTimeStr] = useState<string>('');
   const [medsEmpty, setMedsEmpty] = useState<boolean>(false);
-  const [healthToday, setHealthToday] = useState<any>(null);
+  const [healthToday, setHealthToday] = useState<HealthRecord | null>(null);
   const [familyMessage, setFamilyMessage] = useState<string>('');
   const [locationAddr, setLocationAddr] = useState<string>('');
-  const [weather, setWeather] = useState<any>(null);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [nowTime, setNowTime] = useState(new Date());
 
   const ttsDoneRef = useRef(false);
   const locationRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -59,11 +137,17 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
   const moodCardY = useRef<number>(0);
   const shouldScrollToMood = useRef<boolean>(false);
 
+  // 시계 1분마다 업데이트
+  useEffect(() => {
+    const id = setInterval(() => setNowTime(new Date()), 60000);
+    return () => clearInterval(id);
+  }, []);
+
   // 화면 포커스될 때마다 맨 위로
   useFocusEffect(useCallback(() => {
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
   }, []));
-  const todayKey = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayKey = useMemo(() => localDate(), []);
 
   const sendLocation = async (uid: string) => {
     try {
@@ -73,7 +157,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: uid, lat: pos.coords.latitude, lng: pos.coords.longitude, activity: 'unknown' }),
       });
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
   };
 
   const startLocationTracking = async (uid: string) => {
@@ -107,7 +191,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             '스마트폰으로 오늘 걸음수를 자동으로 측정할 수 있어요.',
             [{ text: '나중에', style: 'cancel' },
              { text: '허용하기', onPress: async () => {
-               try { const { Pedometer } = await import('expo-sensors'); await Pedometer.requestPermissionsAsync(); } catch {}
+               try { const { Pedometer } = await import('expo-sensors'); await Pedometer.requestPermissionsAsync(); } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
              }}]), 1500);
         }
       }
@@ -120,9 +204,26 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
 
   const loadTodayData = async (uid: string) => {
     try {
-      // Load mood
+      // Load mood (로컬 우선, 서버에서 병합)
       const mood = await AsyncStorage.getItem(`mood.${uid}.${todayKey}`);
       if (mood) setTodayMood(parseInt(mood));
+      // 서버 기분 로그 동기화 (백그라운드)
+      fetch(`${API}/moods/${uid}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(async (serverLogs: Array<{ date: string; mood_index: number }> | null) => {
+          if (!serverLogs || serverLogs.length === 0) return;
+          const localRaw = await AsyncStorage.getItem(`mood_log.${uid}`).catch(() => null);
+          const local: MoodLogEntry[] = localRaw ? JSON.parse(localRaw) : [];
+          const localDates = new Set(local.map(e => e.date));
+          const merged = [...local, ...serverLogs.filter(s => !localDates.has(s.date)).map(s => ({ date: s.date, moodIndex: s.mood_index }))];
+          await AsyncStorage.setItem(`mood_log.${uid}`, JSON.stringify(merged));
+          // 오늘 기분 서버에서 복원
+          const todayServer = serverLogs.find(s => s.date === todayKey);
+          if (todayServer && !mood) {
+            setTodayMood(todayServer.mood_index);
+            await AsyncStorage.setItem(`mood.${uid}.${todayKey}`, String(todayServer.mood_index));
+          }
+        }).catch(() => {});
 
       // Load next hospital schedule (show any upcoming, not just today)
       const schedule = await AsyncStorage.getItem(`hospital_schedule.${uid}`);
@@ -138,8 +239,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
         if (!medsRaw || JSON.parse(medsRaw).length === 0) {
           setMedsEmpty(true);
         } else if (medsRaw) {
-          const medList: any[] = JSON.parse(medsRaw);
-          const log: Record<string, any> = logRaw ? JSON.parse(logRaw) : {};
+          const medList: Medication[] = JSON.parse(medsRaw);
+          const log: Record<string, boolean> = logRaw ? JSON.parse(logRaw) : {};
           const toMin = (t: string) => {
             const [h, m] = t.split(':').map(Number); return h * 60 + m;
           };
@@ -149,8 +250,8 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             morning: '08:00', lunch: '12:00', evening: '18:00', bedtime: '21:00',
           };
           const candidates = medList.flatMap(med => {
-            const scheduleTime = med.time || SLOT_TIME[med.timeSlot] || '08:00';
-            const key = `${med.id}-${scheduleTime}`;
+            const scheduleTime = med.time || SLOT_TIME[med.timeSlot ?? ''] || '08:00';
+            const key = `${med.id ?? ''}-${scheduleTime}`;
             if (log[key]) return []; // 이미 복용
             return [{ name: med.name, dosage: med.dosage || '1정', time: scheduleTime, timeMin: toMin(scheduleTime) }];
           }).sort((a, b) => a.timeMin - b.timeMin);
@@ -168,7 +269,7 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
             );
           }
         }
-      } catch {}
+      } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
 
       // 위치 주소 + 날씨 로드
       try {
@@ -189,23 +290,57 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
               const pos = await Location.getLastKnownPositionAsync();
               if (pos) { lat = pos.coords.latitude; lng = pos.coords.longitude; }
             }
-          } catch {}
+          } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
         }
         if (!lat || !lng) { lat = 37.5665; lng = 126.9780; }  // 서울 폴백
-        fetch(`${API}/weather?lat=${lat}&lon=${lng}`)
-          .then(r => r.ok ? r.json() : null)
-          .then(d => { if (d) setWeather(d); })
-          .catch(() => {});
-      } catch {}
+        // Open-Meteo 직접 호출 (Render.com IP rate limit 우회)
+        const fetchWeather = async () => {
+          try {
+            const WMO_KO: Record<number,string> = {
+              0:'맑음',1:'대체로 맑음',2:'구름 조금',3:'흐림',
+              45:'안개',51:'가벼운 이슬비',61:'약한 비',63:'비',65:'강한 비',
+              71:'약한 눈',73:'눈',80:'소나기',95:'뇌우',
+            };
+            const condType = (c:number) => c<=1?'clear':c<=3||c===45?'cloud':'rain';
+            const res = await fetch(
+              `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
+              `&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m` +
+              `&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max` +
+              `&forecast_days=6&timezone=auto`
+            );
+            if (!res.ok) return;
+            const d = await res.json();
+            const cur = d.current ?? {};
+            const daily = d.daily ?? {};
+            const temp = cur.temperature_2m;
+            const code = cur.weather_code ?? 0;
+            const condition = WMO_KO[code] ?? '알 수 없음';
+            const dates: string[] = daily.time ?? [];
+            const forecast = dates.slice(0,6).map((date:string, i:number) => {
+              const c = (daily.weather_code?.[i] ?? 0) as number;
+              return {
+                date, condition: WMO_KO[c]??'알 수 없음', cond_type: condType(c),
+                temp_max: daily.temperature_2m_max?.[i] != null ? Math.round(daily.temperature_2m_max[i]) : 0,
+                temp_min: daily.temperature_2m_min?.[i] != null ? Math.round(daily.temperature_2m_min[i]) : 0,
+                rain_prob: daily.precipitation_probability_max?.[i] ?? null,
+              };
+            });
+            setWeather({ temp, code, condition, cond_type: condType(code),
+              summary: `${temp}°C ${condition}`, forecast });
+          } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
+        };
+        fetchWeather();
+      } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
 
       // Load today's health
       const records = await AsyncStorage.getItem(`health_records.${uid}`);
       if (records) {
-        const recList = JSON.parse(records);
-        const todayRec = recList.find((r: any) => r.date === todayKey);
-        if (todayRec) setHealthToday(todayRec);
+        const recList = (JSON.parse(records) as HealthRecord[])
+          .filter(r => (r.blood_pressure_systolic ?? 0) > 0 || (r.blood_sugar ?? 0) > 0)
+          .sort((a, b) => b.date.localeCompare(a.date));
+        if (recList.length > 0) setHealthToday(recList[0]);
       }
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
   };
 
   const handleMoodSelect = async (moodIndex: number) => {
@@ -214,11 +349,17 @@ export default function SeniorHomeScreen({ route, navigation }: any) {
     await AsyncStorage.setItem(`mood.${userId}.${todayKey}`, String(moodIndex));
     // mood_log 누적 저장 (하루 1개 갱신)
     const logRaw = await AsyncStorage.getItem(`mood_log.${userId}`).catch(() => null);
-    const log: any[] = logRaw ? JSON.parse(logRaw) : [];
-    const idx = log.findIndex((e: any) => e.date === todayKey);
+    const log: MoodLogEntry[] = logRaw ? JSON.parse(logRaw) : [];
+    const idx = log.findIndex(e => e.date === todayKey);
     if (idx >= 0) log[idx] = { date: todayKey, moodIndex };
     else log.push({ date: todayKey, moodIndex });
     await AsyncStorage.setItem(`mood_log.${userId}`, JSON.stringify(log));
+    // 서버 동기화
+    fetch(`${API}/moods/sync/${userId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ logs: log }),
+    }).catch(() => {});
   };
 
 const MOOD_REACTIONS = [
@@ -229,12 +370,11 @@ const MOOD_REACTIONS = [
   { lumiMood: 'worried' as const, msg: '함께 이야기해요.\n루미가 들을게요.',                btnLabel: '루미와 이야기하기',     btnColor: PURPLE,  screen: 'AIChat' },
 ];
 
-  const now = new Date();
-  const hour = now.getHours();
+  const hour = nowTime.getHours();
   const days = ['일', '월', '화', '수', '목', '금', '토'];
-  const dateStr = `${now.getMonth() + 1}월 ${now.getDate()}일 ${days[now.getDay()]}요일`;
+  const dateStr = `${nowTime.getMonth() + 1}월 ${nowTime.getDate()}일 ${days[nowTime.getDay()]}요일`;
   const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-  const timeStr = `${hour < 12 ? '오전' : '오후'} ${h12}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const timeStr = `${hour < 12 ? '오전' : '오후'} ${h12}:${String(nowTime.getMinutes()).padStart(2, '0')}`;
   const isGuest = !userId || userId === 'guest';
 
   return (
@@ -402,6 +542,13 @@ const MOOD_REACTIONS = [
                   {adviceAction}
                 </Text>
               ) : null}
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Weather', { userId, name })}
+                style={{ marginTop: 12, alignSelf: 'flex-start' }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: INK_MUTE }}>
+                  내일·모레 예보 보기 ›
+                </Text>
+              </TouchableOpacity>
             </View>
           );
         })()}

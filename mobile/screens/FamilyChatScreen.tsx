@@ -77,7 +77,7 @@ export default function FamilyChatScreen({ route, navigation }: any) {
       });
       // Refresh to get server timestamps
       await fetchMessages();
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
     setSending(false);
   };
 

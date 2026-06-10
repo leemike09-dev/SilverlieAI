@@ -35,7 +35,7 @@ export default function NotificationsScreen({ navigation, route }: any) {
           const data = await r.json();
           if (Array.isArray(data)) setNotifications(data);
         }
-      } catch {}
+      } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
       setLoading(false);
     };
     init();

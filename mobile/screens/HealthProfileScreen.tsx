@@ -46,7 +46,7 @@ export default function HealthProfileScreen({ navigation, route }: any) {
             smoking:  p.smoking  || '',
             drinking: p.drinking || '',
           });
-        } catch {}
+        } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
       }
     });
   }, []);
@@ -75,7 +75,7 @@ export default function HealthProfileScreen({ navigation, route }: any) {
           navigation.goBack();
         }
       }, 800);
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
     setSaving(false);
   };
 

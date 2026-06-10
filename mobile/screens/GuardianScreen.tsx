@@ -49,7 +49,7 @@ export default function GuardianScreen({ route, navigation }: any) {
     try {
       const raw = await AsyncStorage.getItem(`guardians.${userId}`);
       if (raw) setGuardians(JSON.parse(raw));
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
   }, [userId]);
 
   useEffect(() => { load(); }, [load]);

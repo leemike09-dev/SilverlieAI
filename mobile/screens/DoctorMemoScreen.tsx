@@ -48,7 +48,7 @@ export default function DoctorMemoScreen({ route, navigation }: Props) {
         const d = new Date(savedDate);
         setMemoDate(`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`);
       }
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
   }, []);
 
   useEffect(() => { loadMemo(); }, [loadMemo]);
@@ -77,7 +77,7 @@ export default function DoctorMemoScreen({ route, navigation }: Props) {
       } else {
         await Share.share({ message: memo, title: '의사 전달 메모' });
       }
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
   };
 
   const handlePrint = () => {

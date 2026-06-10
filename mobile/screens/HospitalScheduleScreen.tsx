@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
+
+const localDate = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Alert,
+  StatusBar, Alert, Modal, TextInput,
 } from 'react-native';
 import Lumi from '../components/Lumi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,7 +27,53 @@ const CARD_MEMO = '#FBEFD9';
 const TYPE_CONFIG: Record<string, { tint: string; ink: string; icon: string; label: string }> = {
   hospital: { tint: CARD_HOSPITAL, ink: BLUE_DK, icon: '🏥', label: '병원' },
   memo:     { tint: CARD_MEMO,     ink: ORANGE,  icon: '📝', label: '메모' },
+  travel:   { tint: '#E8F4FD',     ink: '#1565C0', icon: '✈️', label: '여행' },
 };
+
+function condGlyph(type: string) {
+  if (type === 'clear') return '☀️';
+  if (type === 'cloud') return '☁️';
+  return '🌧️';
+}
+function packAdvice(condType: string, isTravel: boolean): string {
+  if (condType === 'rain') return isTravel ? '🧳 우산과 비옷 꼭 챙기세요' : '☂️ 우산 꼭 챙기세요';
+  if (condType === 'cloud') return isTravel ? '🧳 가벼운 겉옷 챙기세요' : '🌥️ 가벼운 겉옷 추천';
+  return isTravel ? '🧳 햇볕 가릴 모자 챙기세요' : '🌤️ 나들이하기 좋아요';
+}
+function WeatherStrip({ appt, forecast }: { appt: any; forecast: any[] }) {
+  const today = new Date();
+  const apptDate = new Date(appt.date);
+  const diffDays = Math.floor((apptDate.getTime() - today.getTime()) / 86400000);
+  const isTravel = !!appt.travel;
+  const dest = appt.dest || appt.hospital || '목적지';
+
+  if (diffDays > 5) {
+    if (!isTravel) return null;
+    return (
+      <View style={ws.strip}>
+        <Text style={ws.stripTxt}>✈️ 여행이 가까워지면 {dest} 날씨를 알려드릴게요</Text>
+      </View>
+    );
+  }
+  const dayForecast = forecast.find(f => f.date === appt.date);
+  if (!dayForecast) return null;
+  const ct = dayForecast.cond_type;
+  return (
+    <View style={[ws.strip, { backgroundColor: ct === 'rain' ? '#EBF4FF' : '#EDFAF3' }]}>
+      <Text style={ws.stripLine1}>
+        {condGlyph(ct)} {dest}은 {dayForecast.condition} {dayForecast.temp_max}°/{dayForecast.temp_min}°
+      </Text>
+      <Text style={ws.stripLine2}>{packAdvice(ct, isTravel)}</Text>
+    </View>
+  );
+}
+import { StyleSheet as WS } from 'react-native';
+const ws = WS.create({
+  strip:     { backgroundColor: '#EBF4FF', borderRadius: 10, padding: 10, marginTop: 10 },
+  stripTxt:  { fontSize: 15, fontWeight: '600', color: '#1565C0' },
+  stripLine1:{ fontSize: 15, fontWeight: '700', color: '#0F1B2D', marginBottom: 3 },
+  stripLine2:{ fontSize: 14, fontWeight: '600', color: '#3D4B62' },
+});
 
 export default function HospitalScheduleScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -36,25 +85,72 @@ export default function HospitalScheduleScreen({ route, navigation }: any) {
     const n = new Date(); return { year: n.getFullYear(), month: n.getMonth() };
   });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [doctorMemos, setDoctorMemos] = useState<any[]>([]);
+  const [memoModal, setMemoModal] = useState<any | null>(null);
+  const [editingMemo, setEditingMemo] = useState('');
+  const [weatherForecast, setWeatherForecast] = useState<any[]>([]);
 
   useEffect(() => {
     loadAppointments();
+    loadDoctorMemos();
+    loadWeather();
   }, []);
+
+  const loadWeather = async () => {
+    try {
+      let lat = 37.5665, lng = 126.9780;
+      const cached = await AsyncStorage.getItem(`location.${userId}.current`);
+      if (cached) { const p = JSON.parse(cached); if (p.lat) { lat = p.lat; lng = p.lng; } }
+      const res = await fetch(`https://silverlieai.onrender.com/weather?lat=${lat}&lon=${lng}`);
+      if (res.ok) {
+        const d = await res.json();
+        setWeatherForecast(d.forecast || []);
+      }
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
+  };
+
+  const loadDoctorMemos = async () => {
+    try {
+      const raw = await AsyncStorage.getItem('doctor_memos');
+      setDoctorMemos(raw ? JSON.parse(raw) : []);
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
+  };
+
+  const BACKEND = 'https://silverlieai.onrender.com';
+
+  const sortAppts = (list: any[]) => list.sort((a, b) =>
+    new Date(a.date + ' ' + (a.time || '00:00')).getTime() -
+    new Date(b.date + ' ' + (b.time || '00:00')).getTime()
+  );
 
   const loadAppointments = async () => {
     try {
       const raw = await AsyncStorage.getItem(`appointments.${userId}`);
-      const list = raw ? JSON.parse(raw) : [];
-      setAppointments(list.sort((a: any, b: any) => {
-        const dateA = new Date(a.date + ' ' + a.time);
-        const dateB = new Date(b.date + ' ' + b.time);
-        return dateA.getTime() - dateB.getTime();
-      }));
-    } catch {}
+      const local: any[] = raw ? JSON.parse(raw) : [];
+      setAppointments(sortAppts(local));
+
+      // 서버에서 최신 목록 병합
+      if (userId && userId !== 'guest') {
+        try {
+          const res = await fetch(`${BACKEND}/appointments/${userId}`);
+          if (res.ok) {
+            const server: any[] = await res.json();
+            if (server.length > 0) {
+              // 서버 기준으로 병합 (로컬에만 있는 것 유지)
+              const serverIds = new Set(server.map(a => a.id));
+              const localOnly = local.filter(a => !serverIds.has(a.id));
+              const merged = sortAppts([...server, ...localOnly]);
+              setAppointments(merged);
+              await AsyncStorage.setItem(`appointments.${userId}`, JSON.stringify(merged));
+            }
+          }
+        } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
+      }
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
     setLoading(false);
   };
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate();
   const upcomingAll = appointments.filter(a => a.date >= today);
   const upcomingAppts = filterType === 'all' ? upcomingAll
     : upcomingAll.filter(a => (a.type || 'hospital') === filterType);
@@ -148,6 +244,7 @@ export default function HospitalScheduleScreen({ route, navigation }: any) {
                 </TouchableOpacity>
               </View>
             ) : null}
+            <WeatherStrip appt={heroAppt} forecast={weatherForecast} />
           </TouchableOpacity>
         )}
 
@@ -165,8 +262,9 @@ export default function HospitalScheduleScreen({ route, navigation }: any) {
                     <Text style={[s.dateDay, { color: tc.ink }]}>{apt.date.slice(8, 10)}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.apptHospital}>{apt.hospital || apt.name}</Text>
+                    <Text style={s.apptHospital}>{apt.hospital || apt.title || apt.name}</Text>
                     <Text style={s.apptTime}>{apt.time}{apt.dept ? ` · ${apt.dept}` : ''}</Text>
+                    <WeatherStrip appt={apt} forecast={weatherForecast} />
                   </View>
                   <Text style={s.typeIcon}>{tc.icon}</Text>
                 </TouchableOpacity>
@@ -186,9 +284,96 @@ export default function HospitalScheduleScreen({ route, navigation }: any) {
           <Text style={s.monthCalTxt}>월간 일정표 보기</Text>
           <Text style={s.monthCalArrow}>›</Text>
         </TouchableOpacity>
+
+        {/* 병원전달 메모 카드 — 전체·병원 필터에서만 표시 */}
+        {doctorMemos.length > 0 && filterType !== 'memo' && (
+          <View style={s.doctorMemoCard}>
+            <View style={s.doctorMemoHeader}>
+              <View style={s.doctorMemoChip}>
+                <Text style={s.doctorMemoChipTxt}>🩺 병원전달 메모</Text>
+              </View>
+              <Text style={s.doctorMemoCount}>{doctorMemos.length}개</Text>
+            </View>
+            {doctorMemos.slice(0, 3).map((item: any, idx: number) => {
+              const dateLabel = item.localDate
+                ? `${parseInt(item.localDate.split('-')[1])}월 ${parseInt(item.localDate.split('-')[2])}일`
+                : (() => { const d = new Date(item.createdAt); return `${d.getMonth()+1}월 ${d.getDate()}일`; })();
+              return (
+                <TouchableOpacity key={item.id} activeOpacity={0.7}
+                  style={[s.doctorMemoItem, idx < Math.min(doctorMemos.length,3)-1 && s.doctorMemoItemBorder]}
+                  onPress={() => { setMemoModal(item); setEditingMemo(item.memo); }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text style={s.doctorMemoDate}>{dateLabel}</Text>
+                    <Text style={{ fontSize: 12, color: INK_MUTE }}>눌러서 전체보기</Text>
+                  </View>
+                  <Text style={s.doctorMemoText} numberOfLines={3}>{item.memo}</Text>
+                </TouchableOpacity>
+              );
+            })}
+            {doctorMemos.length > 3 && (
+              <Text style={s.doctorMemoMore}>+ {doctorMemos.length - 3}개 더 있어요</Text>
+            )}
+          </View>
+        )}
       </ScrollView>
 
       <SeniorTabBar navigation={navigation} activeTab="sched" userId={userId} name={name} />
+
+      {/* 병원전달 메모 전체보기 모달 */}
+      <Modal visible={!!memoModal} transparent animationType="fade" onRequestClose={() => setMemoModal(null)}>
+        <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setMemoModal(null)}>
+          <TouchableOpacity activeOpacity={1} style={s.modalBox} onPress={() => {}}>
+            <View style={s.modalHeader}>
+              <View style={s.doctorMemoChip}>
+                <Text style={s.doctorMemoChipTxt}>🩺 병원전달 메모</Text>
+              </View>
+              <Text style={s.modalDate}>
+                {memoModal ? (memoModal.localDate
+                ? `${parseInt(memoModal.localDate.split('-')[1])}월 ${parseInt(memoModal.localDate.split('-')[2])}일`
+                : (() => { const d = new Date(memoModal.createdAt); return `${d.getMonth()+1}월 ${d.getDate()}일`; })()
+              ) : ''}
+              </Text>
+            </View>
+            <TextInput
+              style={s.modalTextInput}
+              value={editingMemo}
+              onChangeText={setEditingMemo}
+              multiline
+              textAlignVertical="top"
+            />
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+              <TouchableOpacity style={[s.modalCloseBtn, { flex: 1, backgroundColor: '#F0F0F0' }]} onPress={() => setMemoModal(null)}>
+                <Text style={[s.modalCloseTxt, { color: INK_MUTE }]}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.modalCloseBtn, { flex: 1, backgroundColor: '#FDECEA' }]} onPress={() => {
+                Alert.alert('메모 삭제', '이 메모를 삭제할까요?', [
+                  { text: '취소', style: 'cancel' },
+                  { text: '삭제', style: 'destructive', onPress: async () => {
+                    try {
+                      const updated = doctorMemos.filter(m => m.id !== memoModal.id);
+                      await AsyncStorage.setItem('doctor_memos', JSON.stringify(updated));
+                      setDoctorMemos(updated);
+                      setMemoModal(null);
+                    } catch { Alert.alert('오류', '삭제에 실패했습니다.'); }
+                  }},
+                ]);
+              }}>
+                <Text style={[s.modalCloseTxt, { color: '#E5453C' }]}>삭제</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.modalCloseBtn, { flex: 1 }]} onPress={async () => {
+                try {
+                  const updated = doctorMemos.map(m => m.id === memoModal.id ? { ...m, memo: editingMemo } : m);
+                  await AsyncStorage.setItem('doctor_memos', JSON.stringify(updated));
+                  setDoctorMemos(updated);
+                  setMemoModal(null);
+                } catch { Alert.alert('오류', '저장에 실패했습니다.'); }
+              }}>
+                <Text style={s.modalCloseTxt}>저장</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -512,6 +697,35 @@ const s = StyleSheet.create({
   monthCalTxt:  { flex: 1, fontSize: 20, fontWeight: '800', color: INK },
   monthCalArrow:{ fontSize: 24, color: INK_MUTE },
 
+  doctorMemoCard: {
+    marginHorizontal: 18, marginTop: 14,
+    backgroundColor: '#fff', borderRadius: 20, padding: 18,
+    shadowColor: '#1C3C6E', shadowOpacity: 0.07, shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 }, elevation: 2,
+  },
+  doctorMemoHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  doctorMemoChip: { backgroundColor: '#EEE8F8', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6 },
+  doctorMemoChipTxt: { fontSize: 15, fontWeight: '800', color: '#5B3DB5' },
+  doctorMemoCount: { fontSize: 14, fontWeight: '700', color: INK_MUTE },
+  doctorMemoItem: { paddingVertical: 12 },
+  doctorMemoItemBorder: { borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  doctorMemoDate: { fontSize: 13, fontWeight: '700', color: INK_MUTE, marginBottom: 4 },
+  doctorMemoText: { fontSize: 17, fontWeight: '500', color: INK_SOFT, lineHeight: 24 },
+  doctorMemoMore: { fontSize: 14, fontWeight: '700', color: '#7C5BE3', textAlign: 'center', marginTop: 10 },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', paddingHorizontal: 24 },
+  modalBox: { backgroundColor: '#fff', borderRadius: 24, padding: 24 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  modalDate: { fontSize: 15, fontWeight: '700', color: INK_MUTE },
+  modalMemoText: { fontSize: 19, color: INK_SOFT, lineHeight: 30, fontWeight: '500' },
+  modalTextInput: {
+    fontSize: 18, color: INK_SOFT, lineHeight: 28, fontWeight: '500',
+    borderWidth: 1.5, borderColor: '#E0E0E0', borderRadius: 14,
+    padding: 14, minHeight: 180, maxHeight: 340,
+  },
+  modalCloseBtn: { backgroundColor: '#EEE8F8', borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
+  modalCloseTxt: { fontSize: 20, fontWeight: '800', color: '#5B3DB5' },
+
   addCard: {
     marginHorizontal: 18,
     marginTop: 12,
@@ -635,7 +849,7 @@ const s = StyleSheet.create({
 // ── 월간 달력 컴포넌트 ──
 function MonthlyCalendar({ year, month, appointments, selectedDate, onSelectDate,
   onPrevMonth, onNextMonth, navigation, userId, name }: any) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate();
   const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
   const firstDay = new Date(year, month, 1).getDay();

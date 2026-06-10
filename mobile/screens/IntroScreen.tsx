@@ -6,6 +6,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import { useFocusEffect } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('window');
 const isNative = Platform.OS !== 'web';
@@ -17,6 +18,7 @@ export default function IntroScreen({ navigation }: any) {
   const player1 = useVideoPlayer(require('../assets/lumi3.mp4'), (p: any) => {
     p.muted = true;
     p.loop  = true;
+    p.play();
   });
 
   const handleLogin = async () => {
@@ -30,9 +32,15 @@ export default function IntroScreen({ navigation }: any) {
     Animated.timing(fadeAnim, {
       toValue: 1, duration: 900, useNativeDriver: isNative,
     }).start();
-    player1.play();
     fetch('https://silverlieai.onrender.com/').catch(() => {});
   }, []);
+
+  // 화면 포커스 시 재생 보장 (로그아웃 후 복귀 등)
+  useFocusEffect(
+    React.useCallback(() => {
+      player1.play();
+    }, [player1])
+  );
 
   return (
     <View style={s.root}>

@@ -11,6 +11,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const BACKEND = 'https://silverlieai.onrender.com';
 const bgImage = require('../assets/lumi15.png');
 
+async function fetchWithTimeout(url: string, options: RequestInit, ms = 25000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...options, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export default function LoginScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
   const [mode,    setMode]    = useState<'login' | 'register'>('login');
@@ -67,20 +77,31 @@ export default function LoginScreen({ navigation }: any) {
       });
       const fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
         .filter(Boolean).join(' ') || undefined;
-      const res = await fetch(`${BACKEND}/users/apple-login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          identity_token: credential.identityToken,
-          name: fullName,
-          email: credential.email ?? undefined,
-        }),
-      });
-      if (!res.ok) throw new Error('서버 오류');
-      const data = await res.json();
-      await AsyncStorage.setItem('userId',   String(data.id));
-      await AsyncStorage.setItem('userName', data.name || 'Apple 사용자');
-      navigation.replace('SeniorHome', { userId: String(data.id), name: data.name });
+
+      let lastError: any = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          if (attempt > 0) await new Promise(r => setTimeout(r, 5000 * attempt));
+          const res = await fetchWithTimeout(`${BACKEND}/users/apple-login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              identity_token: credential.identityToken,
+              name: fullName,
+              email: credential.email ?? undefined,
+            }),
+          });
+          if (!res.ok) throw new Error('서버 오류');
+          const data = await res.json();
+          await AsyncStorage.setItem('userId',   String(data.id));
+          await AsyncStorage.setItem('userName', data.name || 'Apple 사용자');
+          navigation.replace('SeniorHome', { userId: String(data.id), name: data.name });
+          return;
+        } catch (e: any) {
+          lastError = e;
+        }
+      }
+      Alert.alert('오류', '서버 연결이 지연되고 있습니다.\n잠시 후 다시 시도해주세요.');
     } catch (e: any) {
       if (e?.code !== 'ERR_REQUEST_CANCELED') {
         Alert.alert('오류', 'Apple 로그인에 실패했습니다. 다시 시도해주세요.');

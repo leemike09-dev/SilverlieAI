@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
+
+const localDate = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   StatusBar, ActivityIndicator, Modal, Alert,
@@ -76,7 +79,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
   }, []);
 
   const loadStatusCards = async (uid: string) => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDate();
     const next = (prev: StatusCard[], idx: number, patch: Partial<StatusCard>) =>
       prev.map((c, i) => i === idx ? { ...c, ...patch } : c);
 
@@ -96,7 +99,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
           }));
         }
       }
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
 
     // 약복용 — AsyncStorage medications (taken 플래그)
     try {
@@ -112,7 +115,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
           }));
         }
       }
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
 
     // 위치 — 서버 조회 (실패 시 무시)
     try {
@@ -124,7 +127,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
           setStatusCards(prev => next(prev, 0, { text: locText, sub: '방금 전 위치' }));
         }
       }
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
   };
 
   const loadFeed = async (uid: string, mems: any[]) => {
@@ -162,7 +165,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
           });
         });
       }
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
 
     // ── 병원 일정 ──
     try {
@@ -181,7 +184,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
           timestamp: ts,
         });
       }
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
 
     // ── 의사 메모 ──
     try {
@@ -200,7 +203,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
           timestamp: ts,
         });
       }
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
 
     // ── 가족 연결 이벤트 ──
     mems.forEach((m, idx) => {
@@ -240,7 +243,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
           await AsyncStorage.setItem('family_members', JSON.stringify(merged));
         }
       }
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
   };
 
   const saveRelation = async (rel: { key: string; label: string }) => {
@@ -253,7 +256,7 @@ export default function FamilyDashboardScreen({ route, navigation }: any) {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, targetUserId: relTarget.id, relation: rel.key }),
       });
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
     setRelModal(false);
   };
 

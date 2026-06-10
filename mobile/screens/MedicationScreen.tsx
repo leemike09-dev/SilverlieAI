@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+
+const localDate = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   TextInput, Modal, Alert, KeyboardAvoidingView, Platform,
-  Image, Animated,
+  Image, Animated, ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -104,13 +107,17 @@ function TearEffect({ visible }: { visible: boolean }) {
 
 export default function MedicationScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
-  const [userId,    setUserId]   = useState('');
-  const [uname,     setUname]    = useState('');
-  const [meds,      setMeds]     = useState<any[]>([]);
-  const [addModal,  setAddModal] = useState(false);
+  const [userId,      setUserId]    = useState('');
+  const [uname,       setUname]     = useState('');
+  const [meds,        setMeds]      = useState<any[]>([]);
+  const [serverLoading, setServerLoading] = useState(false);
+  const [addModal,    setAddModal]  = useState(false);
   const [form,      setForm]     = useState<any>(EMPTY_FORM);
   const [editStrip, setEditStrip] = useState(false);
   const [weekOverrides, setWeekOverrides] = useState<Record<string, string>>({});
+  // 날별 복용 기록: { '2026-06-10': { medId: { name, taken, skipped, dosage } } }
+  const [weekLogs, setWeekLogs] = useState<Record<string, Record<string, any>>>({});
+  const [dayDetail, setDayDetail] = useState<{ date: string; logs: Record<string, any> } | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -119,7 +126,7 @@ export default function MedicationScreen({ navigation }: any) {
       setUserId(uid);
       setUname(name);
 
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localDate();
       const medKey = `medications.${uid}`;
       const stored = await AsyncStorage.getItem(medKey);
       if (stored) {
@@ -136,7 +143,7 @@ export default function MedicationScreen({ navigation }: any) {
           }
           setMeds(displayed);
           announceMeds(displayed);
-        } catch {}
+        } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
       }
       await AsyncStorage.setItem('medications_date', today);
 
@@ -150,33 +157,52 @@ export default function MedicationScreen({ navigation }: any) {
         setWeekOverrides(map);
       }
 
+      // 최근 7일 복용 기록 로드
+      const logs: Record<string, Record<string, any>> = {};
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        const dateStr = localDate(d);
+        const raw = await AsyncStorage.getItem(`medication-log.${uid}.${dateStr}`).catch(() => null);
+        if (raw) logs[dateStr] = JSON.parse(raw);
+      }
+      setWeekLogs(logs);
+
       if (!isDemo(uid)) {
-        try {
-          const res = await fetch(`${API_URL}/medications/today/${uid}`);
-          if (res.ok) {
-            const serverData: any[] = await res.json();
-            const localRaw = await AsyncStorage.getItem(medKey).catch(() => null);
-            const localData: any[] = localRaw ? JSON.parse(localRaw) : [];
-            const serverIds = new Set(serverData.map((m: any) => m.id));
-            const localOnly = localData.filter((m: any) => !serverIds.has(m.id));
-            // 새날이면 서버의 taken/skipped 무시하고 false로 리셋
-            const todayCheck = new Date().toISOString().slice(0, 10);
-            const storedDateCheck = await AsyncStorage.getItem('medications_date');
-            const isNewDayNow = storedDateCheck !== todayCheck;
-            const merged = [
-              ...serverData.map((m: any) => ({
-                ...m,
-                taken: isNewDayNow ? false : (localData.find((l: any) => l.id === m.id)?.taken ?? false),
-                skipped: isNewDayNow ? false : (localData.find((l: any) => l.id === m.id)?.skipped ?? false),
-                takenDate: isNewDayNow ? null : (localData.find((l: any) => l.id === m.id)?.takenDate ?? null),
-              })),
-              ...localOnly,
-            ];
-            setMeds(merged);
-            await AsyncStorage.setItem(medKey, JSON.stringify(merged));
-            announceMeds(merged);
-          }
-        } catch {}
+        setServerLoading(true);
+        let synced = false;
+        for (let attempt = 0; attempt < 3 && !synced; attempt++) {
+          try {
+            if (attempt > 0) await new Promise(r => setTimeout(r, 4000 * attempt));
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), 20000);
+            const res = await fetch(`${API_URL}/medications/today/${uid}`, { signal: ctrl.signal });
+            clearTimeout(timer);
+            if (res.ok) {
+              const serverData: any[] = await res.json();
+              const localRaw = await AsyncStorage.getItem(medKey).catch(() => null);
+              const localData: any[] = localRaw ? JSON.parse(localRaw) : [];
+              const serverIds = new Set(serverData.map((m: any) => m.id));
+              const localOnly = localData.filter((m: any) => !serverIds.has(m.id));
+              const todayCheck = localDate();
+              const storedDateCheck = await AsyncStorage.getItem('medications_date');
+              const isNewDayNow = storedDateCheck !== todayCheck;
+              const merged = [
+                ...serverData.map((m: any) => ({
+                  ...m,
+                  taken: isNewDayNow ? false : (localData.find((l: any) => l.id === m.id)?.taken ?? false),
+                  skipped: isNewDayNow ? false : (localData.find((l: any) => l.id === m.id)?.skipped ?? false),
+                  takenDate: isNewDayNow ? null : (localData.find((l: any) => l.id === m.id)?.takenDate ?? null),
+                })),
+                ...localOnly,
+              ];
+              setMeds(merged);
+              await AsyncStorage.setItem(medKey, JSON.stringify(merged));
+              announceMeds(merged);
+              synced = true;
+            }
+          } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
+        }
+        setServerLoading(false);
       }
     };
     init();
@@ -212,11 +238,11 @@ export default function MedicationScreen({ navigation }: any) {
     }).catch(() => {});
   };
 
-  const toggleTaken = (id: string) => {
+  const toggleTaken = async (id: string) => {
     const med = meds.find(m => m.id === id);
     if (!med) return;
     const nowTaking = !med.taken;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDate();
     if (nowTaking) speak(`${med.name} 복용 완료예요. 건강 챙기셨네요!`, 0.85);
 
     const curStock = med.stock ?? 0;
@@ -234,6 +260,14 @@ export default function MedicationScreen({ navigation }: any) {
     apiToggle(userId, id, 'taken', nowTaking);
     if (!nowTaking) apiToggle(userId, id, 'skipped', false);
 
+    // 날별 복용 기록 저장
+    const logKey = `medication-log.${userId}.${today}`;
+    const logRaw = await AsyncStorage.getItem(logKey).catch(() => null);
+    const dayLog: Record<string, any> = logRaw ? JSON.parse(logRaw) : {};
+    dayLog[id] = { name: med.name, dosage: med.dosage || '1정', timeSlot: med.timeSlot, taken: nowTaking, skipped: false };
+    await AsyncStorage.setItem(logKey, JSON.stringify(dayLog)).catch(() => {});
+    setWeekLogs(prev => ({ ...prev, [today]: dayLog }));
+
     if (!isDemo(userId)) {
       fetch(`${API_URL}/medications/update-stock/${userId}/${id}`, {
         method: 'PUT',
@@ -243,7 +277,7 @@ export default function MedicationScreen({ navigation }: any) {
     }
   };
 
-  const toggleSkipped = (id: string) => {
+  const toggleSkipped = async (id: string) => {
     const med = meds.find(m => m.id === id);
     if (!med) return;
     const nowSkipping = !med.skipped;
@@ -251,6 +285,15 @@ export default function MedicationScreen({ navigation }: any) {
     saveMeds(updated);
     apiToggle(userId, id, 'skipped', nowSkipping);
     if (!nowSkipping) apiToggle(userId, id, 'taken', false);
+
+    // 날별 복용 기록 저장
+    const today = localDate();
+    const logKey = `medication-log.${userId}.${today}`;
+    const logRaw = await AsyncStorage.getItem(logKey).catch(() => null);
+    const dayLog: Record<string, any> = logRaw ? JSON.parse(logRaw) : {};
+    dayLog[id] = { name: med.name, dosage: med.dosage || '1정', timeSlot: med.timeSlot, taken: false, skipped: nowSkipping };
+    await AsyncStorage.setItem(logKey, JSON.stringify(dayLog)).catch(() => {});
+    setWeekLogs(prev => ({ ...prev, [today]: dayLog }));
   };
 
   const addMed = async () => {
@@ -295,7 +338,7 @@ export default function MedicationScreen({ navigation }: any) {
             await AsyncStorage.setItem(`medications.${userId}`, JSON.stringify(finalMeds)).catch(() => {});
           }
         }
-      } catch {}
+      } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
     }
   };
 
@@ -357,12 +400,13 @@ export default function MedicationScreen({ navigation }: any) {
                 {Array.from({ length: 7 }).map((_, i) => {
                   const d = new Date();
                   d.setDate(d.getDate() - 6 + i);
-                  const dateStr = d.toISOString().slice(0, 10);
-                  const today = new Date().toISOString().slice(0, 10);
+                  const dateStr = localDate(d);
+                  const today = localDate();
                   const isFuture = dateStr > today;
                   const isToday = dateStr === today;
                   const dayLabel = ['일', '월', '화', '수', '목', '금', '토'][d.getDay()];
 
+                  // 복용 기록에서 상태 계산
                   let status: 'all' | 'partial' | 'none' | 'future' = 'future';
                   if (!isFuture) {
                     if (weekOverrides[dateStr]) {
@@ -371,6 +415,13 @@ export default function MedicationScreen({ navigation }: any) {
                       if (total === 0) status = 'none';
                       else if (takenCnt === total) status = 'all';
                       else if (takenCnt > 0) status = 'partial';
+                      else status = 'none';
+                    } else if (weekLogs[dateStr]) {
+                      const log = weekLogs[dateStr];
+                      const entries = Object.values(log);
+                      const takenN = entries.filter((e: any) => e.taken).length;
+                      if (takenN === entries.length && entries.length > 0) status = 'all';
+                      else if (takenN > 0) status = 'partial';
                       else status = 'none';
                     } else {
                       status = 'none';
@@ -385,15 +436,24 @@ export default function MedicationScreen({ navigation }: any) {
                       key={dateStr}
                       style={[s.stripDay, isToday && s.stripDayToday]}
                       onPress={() => {
-                        if (!editStrip || isFuture) return;
-                        const cycle: Record<string, string> = { all: 'partial', partial: 'none', none: 'all' };
-                        const cur = weekOverrides[dateStr] || (isToday ? (takenCnt === total ? 'all' : takenCnt > 0 ? 'partial' : 'none') : 'none');
-                        const next = cycle[cur] || 'all';
-                        const updated = { ...weekOverrides, [dateStr]: next };
-                        setWeekOverrides(updated);
-                        AsyncStorage.setItem(`medication-override.${userId}.${dateStr}`, next).catch(() => {});
+                        if (isFuture) return;
+                        if (editStrip) {
+                          // 편집 모드: 상태 순환
+                          const cycle: Record<string, string> = { all: 'partial', partial: 'none', none: 'all' };
+                          const cur = weekOverrides[dateStr] || status;
+                          const next = cycle[cur] || 'all';
+                          const updated = { ...weekOverrides, [dateStr]: next };
+                          setWeekOverrides(updated);
+                          AsyncStorage.setItem(`medication-override.${userId}.${dateStr}`, next).catch(() => {});
+                        } else {
+                          // 일반 모드: 그날 복용 내역 팝업
+                          const logs = isToday
+                            ? meds.reduce((acc: any, m: any) => { acc[m.id] = { name: m.name, dosage: m.dosage || '1정', timeSlot: m.timeSlot, taken: m.taken, skipped: m.skipped }; return acc; }, {})
+                            : weekLogs[dateStr] || {};
+                          setDayDetail({ date: dateStr, logs });
+                        }
                       }}
-                      activeOpacity={editStrip && !isFuture ? 0.6 : 1}
+                      activeOpacity={0.7}
                     >
                       <Text style={s.stripDayLabel}>{dayLabel}</Text>
                       <View style={[s.stripDot, { backgroundColor: dotColor }]}>
@@ -403,6 +463,9 @@ export default function MedicationScreen({ navigation }: any) {
                   );
                 })}
               </View>
+              {editStrip && (
+                <Text style={s.editHint}>날짜를 눌러 기록을 수정하세요</Text>
+              )}
               <View style={s.stripLegend}>
                 <View style={s.legendItem}><View style={[s.legendDot, { backgroundColor: '#3BA559' }]} /><Text style={s.legendTxt}>모두 복용</Text></View>
                 <View style={s.legendItem}><View style={[s.legendDot, { backgroundColor: '#F58A4D' }]} /><Text style={s.legendTxt}>일부 누락</Text></View>
@@ -414,12 +477,21 @@ export default function MedicationScreen({ navigation }: any) {
           {/* ── 약 없을 때 ── */}
           {total === 0 && (
             <View style={s.emptyBox}>
-              <Text style={s.emptyIcon}>💊</Text>
-              <Text style={s.emptyTitle}>아직 등록된 약이 없어요</Text>
-              <Text style={s.emptySub}>복용하는 약을 등록하면{'\n'}복용 현황을 관리할 수 있어요</Text>
-              <TouchableOpacity style={s.emptyBtn} onPress={() => setAddModal(true)}>
-                <Text style={s.emptyBtnTxt}>+ 약 추가하기</Text>
-              </TouchableOpacity>
+              {serverLoading ? (
+                <>
+                  <ActivityIndicator size="large" color="#3B82F6" />
+                  <Text style={s.emptySub}>서버에서 약 목록을 불러오는 중...{'\n'}(최대 30초 소요)</Text>
+                </>
+              ) : (
+                <>
+                  <Text style={s.emptyIcon}>💊</Text>
+                  <Text style={s.emptyTitle}>아직 등록된 약이 없어요</Text>
+                  <Text style={s.emptySub}>복용하는 약을 등록하면{'\n'}복용 현황을 관리할 수 있어요</Text>
+                  <TouchableOpacity style={s.emptyBtn} onPress={() => setAddModal(true)}>
+                    <Text style={s.emptyBtnTxt}>+ 약 추가하기</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           )}
 
@@ -580,6 +652,43 @@ export default function MedicationScreen({ navigation }: any) {
           </View>
         </Modal>
 
+        {/* ── 날짜별 복용 상세 모달 ── */}
+        <Modal visible={!!dayDetail} transparent animationType="fade">
+          <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setDayDetail(null)}>
+            <View style={s.dayDetailBox}>
+              <Text style={s.dayDetailTitle}>
+                {dayDetail ? `${dayDetail.date.slice(5).replace('-', '월 ')}일 복용 기록` : ''}
+              </Text>
+              {dayDetail && Object.values(dayDetail.logs).length === 0 && (
+                <Text style={s.dayDetailEmpty}>기록된 복용 내역이 없어요</Text>
+              )}
+              {dayDetail && Object.values(dayDetail.logs).map((entry: any, idx: number) => {
+                const slot = TIME_SLOTS.find(t => t.key === entry.timeSlot);
+                return (
+                  <View key={idx} style={s.dayDetailRow}>
+                    <Text style={s.dayDetailSlot}>{slot?.icon || '💊'} {slot?.label || ''}</Text>
+                    <View style={s.dayDetailInfo}>
+                      <Text style={s.dayDetailName}>{entry.name}</Text>
+                      <Text style={s.dayDetailDose}>{entry.dosage}</Text>
+                    </View>
+                    <Text style={[
+                      s.dayDetailStatus,
+                      entry.taken && { color: '#3BA559' },
+                      entry.skipped && { color: '#9E9E9E' },
+                      !entry.taken && !entry.skipped && { color: '#E5453C' },
+                    ]}>
+                      {entry.taken ? '✓ 복용' : entry.skipped ? '건너뜀' : '미복용'}
+                    </Text>
+                  </View>
+                );
+              })}
+              <TouchableOpacity style={s.dayDetailClose} onPress={() => setDayDetail(null)}>
+                <Text style={s.dayDetailCloseTxt}>닫기</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
         <SeniorTabBar activeTab="med" userId={userId} name={uname} navigation={navigation} />
       </KeyboardAvoidingView>
     </LinearGradient>
@@ -714,4 +823,27 @@ const s = StyleSheet.create({
   saveBtnTxt:  { fontSize: 22, fontWeight: '900', color: '#fff' },
   cancelBtn:   { padding: 18, alignItems: 'center' },
   cancelBtnTxt:{ fontSize: 20, color: '#90A4AE', fontWeight: '700' },
+
+  editHint: { fontSize: 14, fontWeight: '600', color: BLUE, textAlign: 'center', marginBottom: 8 },
+
+  dayDetailBox: {
+    backgroundColor: '#fff', borderRadius: 24, margin: 24, padding: 24,
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 20, elevation: 10,
+  },
+  dayDetailTitle:  { fontSize: 22, fontWeight: '900', color: INK, marginBottom: 16, textAlign: 'center' },
+  dayDetailEmpty:  { fontSize: 18, color: '#90A4AE', textAlign: 'center', paddingVertical: 20 },
+  dayDetailRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
+  },
+  dayDetailSlot:   { fontSize: 16, color: INK, width: 52 },
+  dayDetailInfo:   { flex: 1 },
+  dayDetailName:   { fontSize: 20, fontWeight: '800', color: INK },
+  dayDetailDose:   { fontSize: 15, color: '#78909C', marginTop: 2 },
+  dayDetailStatus: { fontSize: 18, fontWeight: '800', minWidth: 52, textAlign: 'right' },
+  dayDetailClose: {
+    marginTop: 18, backgroundColor: '#F4F7FC', borderRadius: 14,
+    paddingVertical: 16, alignItems: 'center',
+  },
+  dayDetailCloseTxt: { fontSize: 18, fontWeight: '800', color: INK },
 });

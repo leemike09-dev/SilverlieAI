@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Platform, View, Text, TextInput, ActivityIndicator, StyleSheet, AppState } from 'react-native';
+
+// TODO: 출시 빌드(EAS Build) 시 Sentry 활성화
+// import * as Sentry from '@sentry/react-native';
+// Sentry.init({ dsn: '...', tracesSampleRate: 0.2 });
 import * as Updates from 'expo-updates';
 
 // Android 시스템 폰트 크기 설정이 앱에 중복 적용되지 않도록 전역 차단
@@ -18,6 +22,7 @@ import HealthScreen from './screens/HealthScreen';
 import DashboardScreen from './screens/DashboardScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import WeeklyReportScreen from './screens/WeeklyReportScreen';
+import WeatherScreen from './screens/WeatherScreen';
 import AIChatScreen from './screens/AIChatScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
@@ -59,7 +64,7 @@ if (typeof window !== 'undefined' && window.location?.search) {
     // 네이티브 앱이 설치된 경우 앱이 열리고 딥링크로 처리됨
     try {
       window.location.href = `silverlifeai://oauth?code=${_c}`;
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
   }
 }
 const navigationRef = createNavigationContainerRef<any>();
@@ -98,7 +103,7 @@ export default function App() {
             await Updates.fetchUpdateAsync();
             await Updates.reloadAsync();
           }
-        } catch {}
+        } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
       })();
     }
 
@@ -114,8 +119,11 @@ export default function App() {
     initNotifications();
     // Android 걸음수: 앱 전체에서 구독 유지 → 걸음 발생 시마다 오늘 걸음수 저장
     let stepSub: any = null;
+    let stepTrackingInProgress = false;
     const startStepTracking = async () => {
       if (Platform.OS !== 'android') return;
+      if (stepTrackingInProgress) return;
+      stepTrackingInProgress = true;
       try {
         const { Pedometer } = await import('expo-sensors');
         const { status } = await Pedometer.getPermissionsAsync();
@@ -138,7 +146,8 @@ export default function App() {
             await AsyncStorage.setItem('steps_today_android', String(todaySteps));
           }
         });
-      } catch {}
+      } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
+      finally { stepTrackingInProgress = false; }
     };
     startStepTracking();
 
@@ -187,45 +196,10 @@ export default function App() {
   const [initialRoute, setInitialRoute] = useState<string>('Intro');
   const [routeReady,   setRouteReady]   = useState(false);
 
-  // 로그인 유지 사용자 — SeniorHome에 실제 userId/name 전달용
-  const [loggedInUser, setLoggedInUser] = useState<{ userId: string; name: string } | null>(null);
-
-  // 초기 라우트 결정
+  // 초기 라우트 결정 — 항상 Intro부터 시작
   useEffect(() => {
-    (async () => {
-      try {
-        const hasPendingKakao =
-          !!KAKAO_PENDING_CODE ||
-          (typeof sessionStorage !== 'undefined' && !!sessionStorage.getItem('kakao_auth_code'));
-
-        const uid   = await AsyncStorage.getItem('userId');
-        const uname = await AsyncStorage.getItem('userName');
-
-        if (uid) {
-          // 로그인 유지 — 실제 params 저장 후 SeniorHome
-          setLoggedInUser({ userId: uid, name: uname || '회원' });
-          setInitialRoute('SeniorHome');
-          setRouteReady(true);
-          return;
-        }
-        if (hasPendingKakao) {
-          setInitialRoute('Login');
-          setRouteReady(true);
-          return;
-        }
-        const onboardingSeen = await AsyncStorage.getItem('onboarding_seen');
-        if (onboardingSeen) {
-          setInitialRoute('Login');
-          setRouteReady(true);
-          return;
-        }
-        setInitialRoute('Intro');
-        setRouteReady(true);
-      } catch {
-        setInitialRoute('Intro');
-        setRouteReady(true);
-      }
-    })();
+    setInitialRoute('Intro');
+    setRouteReady(true);
   }, []);
 
   // 웹 카카오 인가 코드 감지
@@ -249,12 +223,6 @@ export default function App() {
       setKakaoCode(code);
     }
   }, []);
-
-  // 로그인 유지 사용자 → navReady 후 실제 params로 navigate
-  useEffect(() => {
-    if (!navReady || !loggedInUser) return;
-    navigationRef.navigate('SeniorHome', loggedInUser);
-  }, [navReady, loggedInUser]);
 
   // 카카오 코드 + navReady → 로그인 처리 (최대 3회 재시도, 25초 타임아웃)
   useEffect(() => {
@@ -327,8 +295,9 @@ export default function App() {
               <Stack.Screen name="Notifications" component={NotificationsScreen} />
               <Stack.Screen name="Settings"      component={SettingsScreen} />
               <Stack.Screen name="WeeklyReport"  component={WeeklyReportScreen} />
+              <Stack.Screen name="Weather"       component={WeatherScreen} />
               <Stack.Screen name="Onboarding"    component={OnboardingScreen}      />
-              <Stack.Screen name="SeniorHome"    component={SeniorHomeScreen} />
+              <Stack.Screen name="SeniorHome"    component={SeniorHomeScreen as any} />
               <Stack.Screen name="HospitalSchedule"    component={HospitalScheduleScreen} />
               <Stack.Screen name="HospitalScheduleAdd" component={HospitalScheduleAddScreen} />
               <Stack.Screen name="MonthCalendar"       component={MonthCalendarScreen} />

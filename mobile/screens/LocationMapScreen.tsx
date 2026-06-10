@@ -9,6 +9,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
+import {
+  startBackgroundLocation, stopBackgroundLocation,
+  isBackgroundLocationRunning, requestBackgroundPermission,
+} from '../utils/locationTask';
 
 const APP_BG_TOP = '#F1ECE4';
 const APP_BG_BOT = '#FBF8F3';
@@ -33,14 +37,57 @@ export default function LocationMapScreen({ route, navigation }: any) {
   const [liveData,   setLiveData]   = useState<{ logs: any[]; total_distance_m: number; point_count: number }>({
     logs: [], total_distance_m: 0, point_count: 0,
   });
-  const webViewRef = useRef<WebView>(null);
+  const [fullMap, setFullMap] = useState(false);
+  const [bgTracking, setBgTracking] = useState(false);
+  const [bgLoading,  setBgLoading]  = useState(false);
+  const webViewRef  = useRef<WebView>(null);
+  const watchRef    = useRef<any>(null);
+  const refreshTimer = useRef<any>(null);
 
   useEffect(() => {
     if (!userId || userId === 'guest') return;
     AsyncStorage.getItem('home_set').then(v => { if (v === '1') setHomeSet(true); });
+    isBackgroundLocationRunning().then(v => setBgTracking(v));
     fetchLocation();
     fetchStats();
+    startWatching();
+
+    // 30초마다 지도·통계 자동 갱신
+    refreshTimer.current = setInterval(() => {
+      webViewRef.current?.reload();
+      fetchStats();
+    }, 30000);
+
+    return () => {
+      watchRef.current?.remove();
+      clearInterval(refreshTimer.current);
+    };
   }, [userId]);
+
+  const startWatching = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      watchRef.current = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.Balanced, distanceInterval: 30, timeInterval: 30000 },
+        async (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          await fetch(`${BACKEND}/location/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, lat, lng, activity: 'unknown' }),
+          }).catch(() => {});
+          await AsyncStorage.setItem(
+            `location.${userId}.current`,
+            JSON.stringify({ lat, lng, updatedAt: new Date().toISOString() })
+          );
+          webViewRef.current?.reload();
+          fetchStats();
+        }
+      );
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
+  };
 
   const fetchLocation = async () => {
     try {
@@ -74,7 +121,7 @@ export default function LocationMapScreen({ route, navigation }: any) {
         body: JSON.stringify({ user_id: userId, lat, lng, activity: 'unknown' }),
       }).catch(() => {});
       setTimeout(() => { webViewRef.current?.reload(); fetchStats(); }, 2000);
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
   };
 
   const fetchStats = async () => {
@@ -82,7 +129,7 @@ export default function LocationMapScreen({ route, navigation }: any) {
       const r = await fetch(`${BACKEND}/location/today/${userId}`);
       const d = await r.json();
       if (d.logs) setLiveData(d);
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
   };
 
   const handleShareLocation = async () => {
@@ -127,7 +174,31 @@ export default function LocationMapScreen({ route, navigation }: any) {
       } else {
         Linking.openURL(`https://map.kakao.com/`).catch(() => {});
       }
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
+  };
+
+  const handleToggleBgTracking = async () => {
+    setBgLoading(true);
+    try {
+      if (bgTracking) {
+        await stopBackgroundLocation();
+        setBgTracking(false);
+      } else {
+        const granted = await requestBackgroundPermission();
+        if (!granted) {
+          Alert.alert(
+            '위치 권한 필요',
+            '동선 기록을 위해 설정 → 위치 → "항상 허용"으로 변경해주세요.',
+            [{ text: '확인' }]
+          );
+          return;
+        }
+        const started = await startBackgroundLocation();
+        setBgTracking(started);
+        if (!started) Alert.alert('알림', '동선 기록을 시작하지 못했습니다.');
+      }
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
+    finally { setBgLoading(false); }
   };
 
   const handleSetHome = async () => {
@@ -150,7 +221,7 @@ export default function LocationMapScreen({ route, navigation }: any) {
             Alert.alert('완료', '집 위치가 등록되었습니다!');
             webViewRef.current?.reload();
           }
-        } catch {} finally { setSettingHome(false); }
+        } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } } finally { setSettingHome(false); }
       }},
     ]);
   };
@@ -175,8 +246,8 @@ export default function LocationMapScreen({ route, navigation }: any) {
           <View style={{ width: 60 }} />
         </View>
 
-        {/* ── 지도 카드 (280px) ── */}
-        <View style={s.mapCard}>
+        {/* ── 지도 카드 ── */}
+        <View style={[s.mapCard, fullMap && s.mapCardFull]}>
           <WebView
             ref={webViewRef}
             source={{ uri: mapUrl }}
@@ -184,10 +255,16 @@ export default function LocationMapScreen({ route, navigation }: any) {
             javaScriptEnabled
             domStorageEnabled
             originWhitelist={['*']}
+            nestedScrollEnabled
+            scalesPageToFit={false}
+            scrollEnabled={false}
           />
           <View style={s.mapPinBubble}>
             <Text style={s.mapPinText}>지금 여기예요</Text>
           </View>
+          <TouchableOpacity style={s.fullMapBtn} onPress={() => setFullMap(v => !v)}>
+            <Text style={s.fullMapBtnTxt}>{fullMap ? '⊠' : '⊞'}</Text>
+          </TouchableOpacity>
           {!homeSet && (
             <TouchableOpacity style={s.setHomeOverlay} onPress={handleSetHome} disabled={settingHome}>
               {settingHome
@@ -204,7 +281,7 @@ export default function LocationMapScreen({ route, navigation }: any) {
           {!!addrDetail && <Text style={s.addressDetail} numberOfLines={1}>{addrDetail}</Text>}
         </View>
 
-        {/* ── 액션 버튼 2개 ── */}
+        {/* ── 액션 버튼 3개 ── */}
         <View style={s.btnGroup}>
           <TouchableOpacity style={s.btnPrimary} onPress={handleShareLocation} disabled={sharingLoc}>
             {sharingLoc
@@ -213,6 +290,20 @@ export default function LocationMapScreen({ route, navigation }: any) {
           </TouchableOpacity>
           <TouchableOpacity style={s.btnOutline} onPress={handleDirectionsHome}>
             <Text style={s.btnOutlineTxt}>집으로 가는 길 안내</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.btnTrack, bgTracking && s.btnTrackOn]}
+            onPress={handleToggleBgTracking}
+            disabled={bgLoading}
+          >
+            {bgLoading
+              ? <ActivityIndicator color={bgTracking ? '#fff' : GREEN} />
+              : <>
+                  <Text style={[s.btnTrackIcon]}>{bgTracking ? '⏹' : '▶'}</Text>
+                  <Text style={[s.btnTrackTxt, bgTracking && { color: '#fff' }]}>
+                    {bgTracking ? '동선 기록 중 (탭하여 중지)' : '동선 기록 시작'}
+                  </Text>
+                </>}
           </TouchableOpacity>
         </View>
 
@@ -263,7 +354,17 @@ const s = StyleSheet.create({
     marginBottom: 14,
     shadowColor: '#1C3C6E', shadowOpacity: 0.1, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 4,
   },
+  mapCardFull: {
+    marginHorizontal: 0, height: 520, borderRadius: 0,
+  },
   mapView: { flex: 1 },
+  fullMapBtn: {
+    position: 'absolute', bottom: 12, right: 12,
+    backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 10,
+    width: 40, height: 40, alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 3,
+  },
+  fullMapBtnTxt: { fontSize: 20, color: GREEN_DK },
   mapPinBubble: {
     position: 'absolute', top: 14, alignSelf: 'center',
     backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6,
@@ -297,6 +398,14 @@ const s = StyleSheet.create({
     borderRadius: 18, minHeight: 64, borderWidth: 2, borderColor: GREEN, backgroundColor: '#fff',
   },
   btnOutlineTxt: { fontSize: 20, fontWeight: '800', color: GREEN_DK, letterSpacing: -0.3 },
+  btnTrack: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    borderRadius: 18, minHeight: 64, borderWidth: 2, borderColor: GREEN, backgroundColor: '#fff',
+    paddingHorizontal: 20,
+  },
+  btnTrackOn: { backgroundColor: GREEN, borderColor: GREEN },
+  btnTrackIcon: { fontSize: 20 },
+  btnTrackTxt: { fontSize: 19, fontWeight: '800', color: GREEN_DK, letterSpacing: -0.3 },
 
   timelineCard: {
     marginHorizontal: 18, backgroundColor: '#fff', borderRadius: 20, padding: 18,

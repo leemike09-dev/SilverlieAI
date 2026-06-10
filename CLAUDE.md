@@ -119,6 +119,13 @@ const CHIP_MED      = '#F5EAD6';
 
 ## 루미 캐릭터 시스템
 
+### ⚠️ 자산 교체 규칙 — 반드시 준수
+- **올바른 소스**: `~/Downloads/cropped-assets/` (520×520px, 273,174 bytes)
+- **잘못된 소스**: `handoff */assets/` 폴더 (1024×1024px, 238,780 bytes) — 구버전
+- 핸드오프 패키지의 `assets/` 폴더에는 **구버전 1024px 파일**이 들어있어 절대 `cp` 하면 안 됨
+- 자산 교체 시 항상: `cp ~/Downloads/cropped-assets/*.png mobile/assets/`
+- 교체 후 반드시 `npx expo start --go --clear` + 기기 앱 재설치
+
 ### 이미지 파일 (mobile/assets/) — 타이트 크롭 버전
 | 파일명 | 치수 | 용도 |
 |--------|------|------|
@@ -346,6 +353,18 @@ DOCTOR_KEYWORDS = ['병원', '진료', '의사', '내원', '검사받']
 ### 빌드 / 배포
 - [ ] EAS Production Build (AAB/IPA)
 - [ ] TestFlight 베타 (iOS)
+- [ ] **EAS 빌드 후 반드시 실행** — 동선 기록 기능 테스트
+  - `eas build --profile preview --platform android` 로 APK 빌드
+  - 갤럭시에 설치 후 LocationMapScreen → "동선 기록 시작" 버튼 ON
+  - 위치 권한 → "항상 허용" 선택 확인
+  - 외출 후 돌아와서 동선 타임라인 표시 여부 확인
+- [ ] **EAS 빌드 후 반드시 실행** — Sentry 활성화
+  - sentry.io 에서 프로젝트 생성 → DSN 키 발급
+  - `App.tsx` 상단 Sentry 주석 3줄 해제 + DSN 입력
+  - `npx @sentry/wizard@latest -i reactNative` 실행
+- [ ] **EAS 빌드 후 반드시 실행** — EAS Update 첫 배포 테스트
+  - `cd mobile && eas update --branch production --message "첫 배포"` 실행
+  - 앱에서 자동 업데이트 수신 확인
 
 ### 2차 개발
 - [ ] BLE 의료기기 직접 연결 (혈압계·혈당계)

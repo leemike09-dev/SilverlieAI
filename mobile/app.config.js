@@ -28,6 +28,14 @@ module.exports = {
         'android.permission.RECEIVE_BOOT_COMPLETED',
         'android.permission.VIBRATE',
         'android.permission.POST_NOTIFICATIONS',
+        'android.permission.ACCESS_BACKGROUND_LOCATION',
+        'android.permission.FOREGROUND_SERVICE',
+        'android.permission.FOREGROUND_SERVICE_LOCATION',
+        'android.permission.health.READ_HEART_RATE',
+        'android.permission.health.READ_STEPS',
+        'android.permission.health.READ_SLEEP',
+        'android.permission.health.READ_OXYGEN_SATURATION',
+        'android.permission.health.READ_HEART_RATE_VARIABILITY',
       ],
       intentFilters: [
         {
@@ -35,6 +43,11 @@ module.exports = {
           autoVerify: true,
           data: [{ scheme: IS_DEV ? 'silverlifeai-dev' : 'silverlifeai', host: 'oauth' }],
           category: ['BROWSABLE', 'DEFAULT'],
+        },
+        {
+          action: 'ACTION_VIEW_HEALTH_DATA',
+          category: ['DEFAULT'],
+          data: [{ scheme: 'https', host: 'www.googleapis.com', pathPrefix: '/auth/health' }],
         },
       ],
     },
@@ -45,12 +58,26 @@ module.exports = {
         NSMicrophoneUsageDescription: '음성 입력을 위해 마이크 접근 권한이 필요합니다.',
         NSSpeechRecognitionUsageDescription: '음성 입력을 위해 음성 인식 권한이 필요합니다.',
         NSCameraUsageDescription: '프로필 사진 촬영을 위해 카메라 접근 권한이 필요합니다.',
+        NSLocationWhenInUseUsageDescription: '현재 위치와 동선 기록을 위해 위치 권한이 필요합니다.',
+        NSLocationAlwaysAndWhenInUseUsageDescription: '앱이 백그라운드에 있을 때도 동선을 기록하기 위해 항상 위치 접근 권한이 필요합니다.',
+        NSLocationAlwaysUsageDescription: '앱이 백그라운드에 있을 때도 동선을 기록하기 위해 항상 위치 접근 권한이 필요합니다.',
+        NSHealthShareUsageDescription: '심박수, 수면, 산소포화도 등 건강 데이터를 읽어 루미가 건강 상태를 분석합니다.',
+        NSHealthUpdateUsageDescription: '건강 기록을 저장합니다.',
+      },
+      entitlements: {
+        'com.apple.developer.healthkit': true,
+        'com.apple.developer.healthkit.background-delivery': true,
       },
     },
     plugins: [
       ['expo-sensors', { motionPermission: '걸음수 자동 측정을 위해 신체 활동 접근 권한이 필요합니다.' }],
       'expo-notifications',
       ['@react-native-seoul/kakao-login', { kakaoAppKey: '8f40217a9768056a44ce78516d2f5858' }],
+      ['expo-location', {
+        locationAlwaysAndWhenInUsePermission: '앱이 백그라운드에 있을 때도 동선을 기록하기 위해 항상 위치 접근 권한이 필요합니다.',
+        isAndroidBackgroundLocationEnabled: true,
+        isAndroidForegroundServiceEnabled: true,
+      }],
     ],
     runtimeVersion: {
       policy: 'sdkVersion',

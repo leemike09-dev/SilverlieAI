@@ -62,7 +62,7 @@ export default function ImportantContactsScreen({ navigation, route }: any) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ important_contacts: updated }),
       });
-    } catch {} finally { setSaving(false); }
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } } finally { setSaving(false); }
   };
 
   const handleAdd = () => {

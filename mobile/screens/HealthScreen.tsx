@@ -1,4 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+
+const localDate = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   StatusBar, Alert, Modal, TextInput, FlatList, Platform,
@@ -105,8 +109,17 @@ export default function HealthScreen({ route, navigation }: any) {
   const [bpSys, setBpSys] = useState('');
   const [bpDia, setBpDia] = useState('');
   const [liveSteps, setLiveSteps] = useState<number | null>(null);
+  const stepsSaveTimer = useRef<any>(null);
 
-  const todayKey = new Date().toISOString().slice(0, 10);
+  // 기기 건강 연동 상태
+  const [healthConnected, setHealthConnected] = useState(false);
+  const [heartRate, setHeartRate] = useState<number | null>(null);
+  const [heartRateMin, setHeartRateMin] = useState<number | null>(null);
+  const [heartRateMax, setHeartRateMax] = useState<number | null>(null);
+  const [sleepHoursAuto, setSleepHoursAuto] = useState<number | null>(null);
+  const [spo2, setSpo2] = useState<number | null>(null);
+
+  const todayKey = localDate();
 
   useEffect(() => {
     loadRecords();
@@ -119,17 +132,32 @@ export default function HealthScreen({ route, navigation }: any) {
     (async () => {
       try {
         const { Pedometer } = await import('expo-sensors');
+        const { status } = await Pedometer.requestPermissionsAsync();
+        if (status !== 'granted') return;
         const ok = await Pedometer.isAvailableAsync().catch(() => false);
         if (!ok) return;
-        const start = new Date(); start.setHours(0, 0, 0, 0);
-        try {
-          const past = await Pedometer.getStepCountAsync(start, new Date());
-          if (past?.steps) setLiveSteps(past.steps);
-        } catch {}
-        sub = Pedometer.watchStepCount(r => {
-          setLiveSteps(prev => (prev ?? 0) + r.steps);
-        });
-      } catch {}
+        if (Platform.OS === 'ios') {
+          // iOS: 자정부터 현재까지 누적 걸음수
+          const start = new Date(); start.setHours(0, 0, 0, 0);
+          try {
+            const past = await Pedometer.getStepCountAsync(start, new Date());
+            if (past?.steps) setLiveSteps(past.steps);
+          } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
+          sub = Pedometer.watchStepCount(r => {
+            setLiveSteps(prev => (prev ?? 0) + r.steps);
+          });
+        } else {
+          // Android: App.tsx가 steps_today_android를 누적 관리
+          // watchStepCount의 r.steps는 부팅 이후 누적값이라 직접 사용 불가
+          // → 이벤트 발생 시 App.tsx가 업데이트한 steps_today_android를 다시 읽음
+          const readSteps = async () => {
+            const raw = await AsyncStorage.getItem('steps_today_android');
+            setLiveSteps(raw ? parseInt(raw) : 0);
+          };
+          await readSteps();
+          sub = Pedometer.watchStepCount(async () => { await readSteps(); });
+        }
+      } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
     })();
     return () => { if (sub) sub.remove(); };
   }, []);
@@ -159,8 +187,67 @@ export default function HealthScreen({ route, navigation }: any) {
       setRecords(sorted);
       const today = sorted.find((r: any) => r.date === todayKey);
       setTodayRecord(today || null);
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
   };
+
+  const loadHealthNative = useCallback(async () => {
+    if (Platform.OS === 'web') return;
+    try {
+      const { readHealthData } = await import('../utils/healthNative');
+      const data = await readHealthData();
+      setHealthConnected(data.connected);
+      if (data.heartRate) setHeartRate(data.heartRate);
+      if (data.heartRateMin) setHeartRateMin(data.heartRateMin);
+      if (data.heartRateMax) setHeartRateMax(data.heartRateMax);
+      if (data.sleepHours) setSleepHoursAuto(data.sleepHours);
+      if (data.spo2) setSpo2(data.spo2);
+      // HRV는 화면 미표시 — 백엔드 전송 (추후 AI 컨텍스트 반영)
+      if (data.hrv && userId) {
+        fetch(`${API}/health/hrv`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, hrv: data.hrv, date: todayKey }),
+        }).catch(() => {});
+      }
+    } catch (e: any) { if (__DEV__) console.warn('[healthNative]', e); }
+  }, [userId, todayKey]);
+
+  const handleConnectHealth = async () => {
+    if (Platform.OS === 'web') return;
+    try {
+      const { requestHealthPermissions } = await import('../utils/healthNative');
+      const granted = await requestHealthPermissions();
+      if (granted) await loadHealthNative();
+    } catch (e: any) { if (__DEV__) console.warn('[healthConnect]', e); }
+  };
+
+  useEffect(() => { loadHealthNative(); }, []);
+
+  const saveStepsToRecord = useCallback(async (steps: number) => {
+    if (!userId || steps <= 0) return;
+    try {
+      const raw = await AsyncStorage.getItem(`health_records.${userId}`);
+      const list = raw ? JSON.parse(raw) : [];
+      const idx = list.findIndex((r: any) => r.date === todayKey);
+      if (idx >= 0) {
+        list[idx] = { ...list[idx], steps };
+      } else {
+        list.push({ date: todayKey, steps,
+          blood_pressure_systolic: 0, blood_pressure_diastolic: 0,
+          blood_sugar: 0, heart_rate: 0, weight: 0, sleep_hours: 0 });
+      }
+      await AsyncStorage.setItem(`health_records.${userId}`, JSON.stringify(list));
+      loadRecords();
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
+  }, [userId, todayKey]);
+
+  // liveSteps 변경 시 3초 후 자동 저장
+  useEffect(() => {
+    if (!liveSteps || liveSteps <= 0) return;
+    if (stepsSaveTimer.current) clearTimeout(stepsSaveTimer.current);
+    stepsSaveTimer.current = setTimeout(() => saveStepsToRecord(liveSteps), 3000);
+    return () => { if (stepsSaveTimer.current) clearTimeout(stepsSaveTimer.current); };
+  }, [liveSteps]);
 
   const handleSaveMeasurement = async () => {
     if (modalType === 'bp') {
@@ -172,6 +259,12 @@ export default function HealthScreen({ route, navigation }: any) {
       }
       if (sys < 60 || sys > 250 || dia < 40 || dia > 150) {
         Alert.alert('', '혈압 범위를 확인해주세요\n수축기 60~250, 이완기 40~150');
+        return;
+      }
+    } else if (modalType === 'steps') {
+      const v = Number(inputValue);
+      if (!inputValue.trim() || isNaN(v) || v < 0) {
+        Alert.alert('', '걸음수를 입력해주세요');
         return;
       }
     } else if (!inputValue.trim()) {
@@ -206,9 +299,12 @@ export default function HealthScreen({ route, navigation }: any) {
         updated.sleep_hours = Number(inputValue);
       } else if (modalType === 'temp') {
         (updated as any).temperature = Number(inputValue);
+      } else if (modalType === 'steps') {
+        updated.steps = Number(inputValue);
+        // liveSteps는 건드리지 않음 — 만보기가 항상 실제값으로 덮어씀
       }
 
-      const raw = await AsyncStorage.getItem('health_records');
+      const raw = await AsyncStorage.getItem(`health_records.${userId}`);
       const list = raw ? JSON.parse(raw) : [];
       const idx = list.findIndex((r: any) => r.date === todayKey);
 
@@ -328,20 +424,157 @@ export default function HealthScreen({ route, navigation }: any) {
               })()}
             </View>
           </View>
-        </View>
-
-        {/* 심박수·수면 — 연결 안 됨 안내 */}
-        <View style={s.autoNotConnected}>
-          <View style={s.autoNotConnectedIcons}>
-            <Text style={s.autoIcon}>❤️ 심박수</Text>
-            <Text style={s.autoIcon}>😴 수면</Text>
-          </View>
-          <Text style={s.autoNotConnectedTitle}>폰을 연결하면 저절로 쌓여요</Text>
-          <Text style={s.autoNotConnectedDesc}>연결 안 해도 아래에서 직접 기록 가능해요</Text>
-          <TouchableOpacity style={s.connectBtn} activeOpacity={0.8}>
-            <Text style={s.connectBtnTxt}>폰 건강 연결하기 (준비 중)</Text>
+          <TouchableOpacity style={s.measureBtn} onPress={() => {
+            setInputValue(liveSteps != null ? String(liveSteps) : '');
+            setModalType('steps');
+          }}>
+            <Text style={s.measureBtnText}>수동 입력</Text>
           </TouchableOpacity>
         </View>
+
+        {healthConnected ? (
+          <>
+            {/* 연결 상태 바 */}
+            <View style={s.connectedBar}>
+              <Text style={s.connectedBarText}>
+                🟢 {Platform.OS === 'ios' ? '애플 건강' : '삼성 헬스'}과 연결됨 · 자동 기록 중
+              </Text>
+            </View>
+
+            {/* 심박수 카드 */}
+            {heartRate != null && (
+              <View style={s.metricCard}>
+                <View style={s.metricTopRow}>
+                  <View style={[s.metricIconBox, { backgroundColor: '#FFE4E4' }]}>
+                    <Text style={s.metricIcon}>💓</Text>
+                  </View>
+                  <View style={s.metricContent}>
+                    <View style={s.stepsLabelRow}>
+                      <Text style={s.metricLabel}>심박수</Text>
+                      <View style={s.autoBadge}>
+                        <Text style={s.autoBadgeText}>🟢 자동 측정 중</Text>
+                      </View>
+                    </View>
+                    <Text style={s.metricValue}>
+                      {heartRate}<Text style={s.metricUnit}> bpm</Text>
+                    </Text>
+                    {heartRateMin != null && heartRateMax != null && (
+                      <Text style={s.metricSubValue}>
+                        오늘 최저 {heartRateMin} / 최고 {heartRateMax} bpm
+                      </Text>
+                    )}
+                    <Text style={s.lumiHint}>
+                      {heartRate >= 60 && heartRate <= 100
+                        ? '심박수가 정상이에요. 심장이 건강해요 💙'
+                        : heartRate > 100
+                        ? '심박수가 높아요. 잠시 쉬어보세요'
+                        : '심박수가 낮아요. 이상하면 병원에 가보세요'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* 수면 카드 */}
+            {sleepHoursAuto != null && (
+              <View style={s.metricCard}>
+                <View style={s.metricTopRow}>
+                  <View style={[s.metricIconBox, { backgroundColor: '#EAE4F6' }]}>
+                    <Text style={s.metricIcon}>😴</Text>
+                  </View>
+                  <View style={s.metricContent}>
+                    <View style={s.stepsLabelRow}>
+                      <Text style={s.metricLabel}>수면</Text>
+                      <View style={s.autoBadge}>
+                        <Text style={s.autoBadgeText}>🟢 자동 측정 중</Text>
+                      </View>
+                    </View>
+                    <Text style={s.metricValue}>
+                      {sleepHoursAuto}<Text style={s.metricUnit}> 시간</Text>
+                    </Text>
+                    <View style={s.statusRow}>
+                      <View style={[s.statusBadgeSmall, { backgroundColor: STATUS[sleepStatus(sleepHoursAuto)].bg }]}>
+                        <Text style={[s.statusBadgeSmallText, { color: STATUS[sleepStatus(sleepHoursAuto)].fg }]}>
+                          {STATUS[sleepStatus(sleepHoursAuto)].label}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={s.lumiHint}>
+                      {sleepStatus(sleepHoursAuto) === 'normal'
+                        ? '충분히 주무셨어요. 오늘도 활기차게! 🌟'
+                        : sleepStatus(sleepHoursAuto) === 'caution'
+                        ? '조금 더 주무시면 좋겠어요'
+                        : '수면이 부족해요. 오늘 일찍 주무세요'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* SpO2 산소포화도 카드 */}
+            {spo2 != null && (
+              <View style={s.metricCard}>
+                <View style={s.metricTopRow}>
+                  <View style={[s.metricIconBox, { backgroundColor: '#E4F0FF' }]}>
+                    <Text style={s.metricIcon}>🫁</Text>
+                  </View>
+                  <View style={s.metricContent}>
+                    <View style={s.stepsLabelRow}>
+                      <Text style={s.metricLabel}>산소포화도</Text>
+                      <View style={s.autoBadge}>
+                        <Text style={s.autoBadgeText}>🟢 자동 측정 중</Text>
+                      </View>
+                    </View>
+                    {/* 게이지 */}
+                    <View style={s.spo2GaugeRow}>
+                      <Text style={s.metricValue}>
+                        {spo2}<Text style={s.metricUnit}> %</Text>
+                      </Text>
+                      <View style={s.spo2GaugeBar}>
+                        <View style={[s.spo2GaugeFill, {
+                          width: `${Math.min(Math.max((spo2 - 90) / 10 * 100, 0), 100)}%` as any,
+                          backgroundColor: spo2 >= 95 ? GREEN : spo2 >= 90 ? ORANGE : RED,
+                        }]} />
+                      </View>
+                    </View>
+                    <View style={s.statusRow}>
+                      <View style={[s.statusBadgeSmall, {
+                        backgroundColor: spo2 >= 95 ? GREEN_BG : spo2 >= 90 ? ORANGE_BG : RED_BG,
+                      }]}>
+                        <Text style={[s.statusBadgeSmallText, {
+                          color: spo2 >= 95 ? GREEN_DK : spo2 >= 90 ? WARN : RED,
+                        }]}>
+                          {spo2 >= 95 ? '정상' : spo2 >= 90 ? '주의' : '위험'}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={s.lumiHint}>
+                      {spo2 >= 95
+                        ? '산소 수치 안정적이에요. 호흡이 편안해요 😊'
+                        : spo2 >= 90
+                        ? '산소 수치가 약간 낮아요. 환기를 시켜보세요'
+                        : '산소 수치가 낮아요. 병원에 가보세요'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+          </>
+        ) : (
+          /* 연결 안 됨 안내 */
+          <View style={s.autoNotConnected}>
+            <View style={s.autoNotConnectedIcons}>
+              <Text style={s.autoIcon}>💓 심박수</Text>
+              <Text style={s.autoIcon}>😴 수면</Text>
+              <Text style={s.autoIcon}>🫁 산소</Text>
+            </View>
+            <Text style={s.autoNotConnectedTitle}>폰을 연결하면 저절로 쌓여요</Text>
+            <Text style={s.autoNotConnectedDesc}>연결 안 해도 아래에서 직접 기록 가능해요</Text>
+            <TouchableOpacity style={s.connectBtn} activeOpacity={0.8} onPress={handleConnectHealth}>
+              <Text style={s.connectBtnTxt}>폰 건강 연결하기</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* ── 그룹 2: ✍️ 직접 재서 기록해요 ── */}
         <View style={[s.groupHeader, { marginTop: 8 }]}>
@@ -485,7 +718,8 @@ export default function HealthScreen({ route, navigation }: any) {
             <Text style={s.modalTitle}>
               {modalType === 'bp' ? '혈압 측정값' :
                modalType === 'sg' ? '혈당 측정값' :
-               modalType === 'temp' ? '체온 측정값' : '수면 시간'}
+               modalType === 'temp' ? '체온 측정값' :
+               modalType === 'steps' ? '오늘 걸음수 수정' : '수면 시간'}
             </Text>
 
             {modalType === 'bp' ? (
@@ -524,12 +758,14 @@ export default function HealthScreen({ route, navigation }: any) {
               <>
                 <Text style={s.modalHint}>
                   {modalType === 'sg' ? '혈당 수치 (예: 120)' :
-                   modalType === 'temp' ? '체온 (예: 36.5)' : '수면 시간 (예: 7.5)'}
+                   modalType === 'temp' ? '체온 (예: 36.5)' :
+                   modalType === 'steps' ? '걸음수 (예: 6500)' : '수면 시간 (예: 7.5)'}
                 </Text>
                 <TextInput
                   style={s.modalInput}
-                  placeholder={modalType === 'sg' ? '120' : modalType === 'temp' ? '36.5' : '7.5'}
-                  keyboardType="decimal-pad"
+                  placeholder={modalType === 'sg' ? '120' : modalType === 'temp' ? '36.5' : modalType === 'steps' ? '6500' : '7.5'}
+                  keyboardType={modalType === 'steps' ? 'number-pad' : 'decimal-pad'}
+
                   value={inputValue}
                   onChangeText={setInputValue}
                   autoFocus
@@ -742,6 +978,19 @@ const s = StyleSheet.create({
     backgroundColor: '#EFF6FF', borderWidth: 1.5, borderColor: BLUE,
   },
   connectBtnTxt: { fontSize: 14, fontWeight: '800', color: BLUE },
+
+  connectedBar: {
+    marginHorizontal: 18, marginBottom: 10, paddingVertical: 10, paddingHorizontal: 14,
+    borderRadius: 12, backgroundColor: '#E6F4E2',
+  },
+  connectedBarText: { fontSize: 13, fontWeight: '700', color: GREEN_DK },
+  metricSubValue: { fontSize: 13, fontWeight: '600', color: INK_MUTE, marginTop: 2, marginBottom: 4 },
+  spo2GaugeRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 6 },
+  spo2GaugeBar: {
+    flex: 1, height: 10, borderRadius: 5,
+    backgroundColor: 'rgba(15,27,45,0.08)', overflow: 'hidden',
+  },
+  spo2GaugeFill: { height: '100%', borderRadius: 5 },
 
   stepsLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
   autoBadge: {

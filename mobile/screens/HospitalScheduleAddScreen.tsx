@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+
+const localDate = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   StatusBar, TextInput, Alert, Switch,
@@ -36,12 +39,12 @@ function solarToLunarStr(dateStr: string): string {
 
 export default function HospitalScheduleAddScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
-  const { userId, name, appointmentId } = route.params;
+  const { userId, name, appointmentId, prefillDate } = route.params;
   const isEditMode = !!appointmentId;
 
   const [form, setForm] = useState({
     type:             'hospital' as AppType,
-    date:             new Date().toISOString().slice(0, 10),
+    date:             prefillDate || localDate(),
     time:             '14:30',
     isLunar:          false,
     title:            '',        // 메모 타입 제목
@@ -51,6 +54,8 @@ export default function HospitalScheduleAddScreen({ route, navigation }: any) {
     address:          '',
     scheduleNote:     '',
     hospitalNote:     '',
+    travel:           false,     // 여행 여부
+    dest:             '',        // 목적지
     notifyDayMorning: true,
     notifyHourBefore: true,
     notifyDayBefore:  false,
@@ -69,12 +74,12 @@ export default function HospitalScheduleAddScreen({ route, navigation }: any) {
       const list = raw ? JSON.parse(raw) : [];
       const existing = list.find((a: any) => a.id === appointmentId);
       if (existing) setForm(existing);
-    } catch {}
+    } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
   };
 
   const handleDateChange = (_: any, selectedDate: any) => {
     setShowDatePicker(false);
-    if (selectedDate) setForm(f => ({ ...f, date: selectedDate.toISOString().slice(0, 10) }));
+    if (selectedDate) setForm(f => ({ ...f, date: localDate(selectedDate) }));
   };
 
   const handleTimeChange = (_: any, selectedTime: any) => {
@@ -106,19 +111,20 @@ export default function HospitalScheduleAddScreen({ route, navigation }: any) {
         ? list.map((a: any) => a.id === appointmentId ? apt : a)
         : [...list, apt];
       await AsyncStorage.setItem(`appointments.${userId}`, JSON.stringify(list));
+      // 서버 동기화
+      fetch('https://silverlieai.onrender.com/appointments/sync/' + userId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appointments: list }),
+      }).catch(() => {});
       navigation.replace('HospitalSchedule', { userId, name });
     } catch {
       Alert.alert('오류', '저장에 실패했습니다');
     }
   };
 
-  const dateObj  = new Date(form.date + 'T00:00:00');
-  const dateLabel = form.isLunar
-    ? solarToLunarStr(form.date)
-    : dateObj.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' });
-  const solarCaption = form.isLunar
-    ? dateObj.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })
-    : '';
+  const dateObj   = new Date(form.date + 'T00:00:00');
+  const dateLabel = dateObj.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' });
   const [timeH, timeM] = form.time.split(':');
   const timeLabel = `${parseInt(timeH) >= 12 ? '오후' : '오전'} ${parseInt(timeH) % 12 || 12}:${timeM}`;
 
@@ -156,31 +162,35 @@ export default function HospitalScheduleAddScreen({ route, navigation }: any) {
           </Text>
         </View>
 
-        {/* 양력 / 음력 토글 */}
-        <View style={s.lunarRow}>
-          {(['양력', '음력'] as const).map((lbl, i) => {
-            const active = i === 0 ? !form.isLunar : form.isLunar;
-            return (
-              <TouchableOpacity
-                key={lbl}
-                style={[s.lunarBtn, active && s.lunarBtnActive]}
-                onPress={() => setForm(f => ({ ...f, isLunar: i === 1 }))}
-                activeOpacity={0.8}
-              >
-                <Text style={[s.lunarBtnTxt, active && s.lunarBtnTxtActive]}>{lbl}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        {/* ── 여행 토글 ── */}
+        <TouchableOpacity
+          style={s.travelToggle}
+          onPress={() => setForm(f => ({ ...f, travel: !f.travel }))}
+          activeOpacity={0.8}>
+          <View style={[s.travelCheck, form.travel && s.travelCheckOn]}>
+            {form.travel && <Text style={{ color: '#fff', fontSize: 14, fontWeight: '900' }}>✓</Text>}
+          </View>
+          <Text style={s.travelToggleTxt}>✈️ 여행 일정이에요 (목적지 날씨 안내)</Text>
+        </TouchableOpacity>
+
+        {form.travel && (
+          <View style={s.fieldGroup}>
+            <Text style={s.fieldLabel}>목적지</Text>
+            <TextInput
+              style={s.input}
+              placeholder="예) 부산, 제주도, 일본"
+              placeholderTextColor="#B0BEC5"
+              value={form.dest}
+              onChangeText={v => setForm(f => ({ ...f, dest: v }))}
+            />
+          </View>
+        )}
 
         {/* Date & Time */}
         <View style={s.pickerRow}>
           <TouchableOpacity style={[s.pickerTile, { flex: 1 }]} onPress={() => setShowDatePicker(true)}>
             <Text style={s.pickerLabel}>📅 날짜</Text>
             <Text style={s.pickerValue}>{dateLabel}</Text>
-            {form.isLunar && solarCaption ? (
-              <Text style={s.lunarCaption}>양력 {solarCaption}</Text>
-            ) : null}
           </TouchableOpacity>
 
           <TouchableOpacity style={[s.pickerTile, { flex: 1 }]} onPress={() => setShowTimePicker(true)}>
@@ -345,6 +355,18 @@ const s = StyleSheet.create({
     marginHorizontal: 18, marginBottom: 20, gap: 12,
   },
   greetingText: { fontSize: 18, fontWeight: '700', color: INK, flex: 1, lineHeight: 26 },
+
+  travelToggle: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 18, marginBottom: 16,
+    backgroundColor: '#F0F7FF', borderRadius: 14, padding: 16,
+  },
+  travelCheck: {
+    width: 28, height: 28, borderRadius: 8, borderWidth: 2, borderColor: '#3B82F6',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  travelCheckOn:  { backgroundColor: '#3B82F6' },
+  travelToggleTxt:{ fontSize: 18, fontWeight: '700', color: '#1E40AF', flex: 1 },
 
   lunarRow: {
     flexDirection: 'row', marginHorizontal: 18, marginBottom: 10, gap: 8,

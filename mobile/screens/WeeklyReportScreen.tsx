@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+
+const localDate = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 import { View, Text, StyleSheet, ScrollView, StatusBar, ActivityIndicator, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SeniorTabBar from '../components/SeniorTabBar';
@@ -121,7 +124,7 @@ function WeeklyReportScreenInner({ route, navigation }: any) {
             .filter((r: any) => r.date && new Date(r.date) >= sevenDaysAgo)
             .map(localToServer);
         }
-      } catch {}
+      } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
 
       // 2) 백엔드 API 시도
       let serverRecs: any[] = [];
@@ -131,7 +134,7 @@ function WeeklyReportScreenInner({ route, navigation }: any) {
           const d = await res.json();
           serverRecs = d.records || [];
         }
-      } catch {}
+      } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
 
       // 3) 병합: 서버 기록 우선, 서버에 없는 날짜는 로컬로 보완
       const serverDates = new Set(serverRecs.map((r: any) => r.date));
@@ -192,7 +195,7 @@ function WeeklyReportScreenInner({ route, navigation }: any) {
   const last7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = localDate(d);
     const dayKo   = DAYS_KO[d.getDay()];
     const label   = `${d.getMonth() + 1}/${d.getDate()}`;
     const rec = records.find(r => r.date === dateStr);

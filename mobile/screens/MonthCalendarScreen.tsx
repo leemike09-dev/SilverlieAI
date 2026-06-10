@@ -1,4 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import KoreanLunarCalendar from 'korean-lunar-calendar';
+
+const localDate = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, StatusBar } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,11 +24,26 @@ const TYPE = {
 };
 const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
 
+function getLunarLabel(dateStr: string): string | null {
+  try {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const cal = new KoreanLunarCalendar();
+    cal.setSolarDate(y, m, d);
+    const l = cal.getLunarCalendar();
+    if (l.day === 1) {
+      const prefix = l.intercalation ? '윤' : '';
+      return `${prefix}음${l.month}월`;
+    }
+    if (l.day === 15) return '보름';
+    return null;
+  } catch { return null; }
+}
+
 export default function MonthCalendarScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
   const { userId, name } = route.params;
   const [appointments, setAppointments] = useState<any[]>([]);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate();
   const [calMonth, setCalMonth] = useState(() => {
     const n = new Date(); return { year: n.getFullYear(), month: n.getMonth() };
   });
@@ -107,6 +126,18 @@ export default function MonthCalendarScreen({ route, navigation }: any) {
                       ci === 0 && { color: '#D9847F' }, ci === 6 && { color: '#7FA6E0' },
                       isSel && { color: '#fff' }, isToday && !isSel && { color: BLUE, fontWeight: '900' },
                     ]}>{day}</Text>
+                    {(() => {
+                      const ll = getLunarLabel(dateStr);
+                      if (!ll) return null;
+                      const isBorum = ll === '보름';
+                      return (
+                        <Text style={[
+                          s.lunarLabel,
+                          isBorum ? s.lunarLabelBorum : s.lunarLabelSak,
+                          isSel && { color: 'rgba(255,255,255,0.9)' },
+                        ]}>{ll}</Text>
+                      );
+                    })()}
                     <View style={s.calBars}>
                       {hasH && <View style={[s.calBar, { backgroundColor: isSel ? '#fff' : BLUE }]} />}
                       {hasM && <View style={[s.calBar, { backgroundColor: isSel ? '#fff' : ORANGE }]} />}
@@ -191,6 +222,9 @@ const s = StyleSheet.create({
   calCellToday: { borderWidth: 2, borderColor: BLUE },
   calCellSel:   { backgroundColor: BLUE },
   calDay:   { fontSize: 17, fontWeight: '700', color: INK },
+  lunarLabel:      { fontSize: 9, fontWeight: '700', marginTop: 1 },
+  lunarLabelSak:   { color: '#C0392B' },   // 초하루 — 붉은색 (음력 월 시작 강조)
+  lunarLabelBorum: { color: '#7E6A3E' },   // 보름 — 황갈색
   calBars:  { flexDirection: 'row', gap: 2, marginTop: 2 },
   calBar:   { width: 16, height: 4, borderRadius: 2 },
   legend:   { flexDirection: 'row', gap: 16, justifyContent: 'center', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(15,27,45,0.06)' },

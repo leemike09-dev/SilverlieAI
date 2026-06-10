@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { requestNotificationPermission, scheduleHealthDailyReminder } from '../utils/notifications';
 
 const API_URL = 'https://silverlieai.onrender.com';
+const SAVED_EMAIL_KEY = 'saved_email';
 
 export default function EmailAuthScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -19,6 +20,13 @@ export default function EmailAuthScreen({ navigation }: any) {
   const [phone,     setPhone]     = useState('');
   const [loading,   setLoading]   = useState(false);
   const [errorMsg,  setErrorMsg]  = useState('');
+  const [saveId,    setSaveId]    = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(SAVED_EMAIL_KEY).then(saved => {
+      if (saved) { setEmail(saved); setSaveId(true); }
+    });
+  }, []);
 
   const handleSubmit = async () => {
     setErrorMsg('');
@@ -43,6 +51,11 @@ export default function EmailAuthScreen({ navigation }: any) {
 
       await AsyncStorage.setItem('userId', data.id);
       await AsyncStorage.setItem('userName', data.name);
+
+      if (mode === 'login') {
+        if (saveId) await AsyncStorage.setItem(SAVED_EMAIL_KEY, email);
+        else        await AsyncStorage.removeItem(SAVED_EMAIL_KEY);
+      }
 
       if (mode === 'register') {
         await requestNotificationPermission();
@@ -120,6 +133,15 @@ export default function EmailAuthScreen({ navigation }: any) {
               </View>
             )}
 
+            {mode === 'login' && (
+              <TouchableOpacity style={s.saveIdRow} onPress={() => setSaveId(v => !v)} activeOpacity={0.7}>
+                <View style={[s.checkbox, saveId && s.checkboxOn]}>
+                  {saveId && <Text style={s.checkmark}>✓</Text>}
+                </View>
+                <Text style={s.saveIdTxt}>아이디 저장</Text>
+              </TouchableOpacity>
+            )}
+
             {errorMsg ? <Text style={s.errorTxt}>{errorMsg}</Text> : null}
 
             <TouchableOpacity style={s.mainBtn} onPress={handleSubmit} disabled={loading} activeOpacity={0.85}>
@@ -156,6 +178,13 @@ const s = StyleSheet.create({
   label:     { fontSize: 22, fontWeight: '700', color: '#444', marginBottom: 8 },
   input:     { height: 68, borderWidth: 1.5, borderColor: '#DDD', borderRadius: 16,
                paddingHorizontal: 20, fontSize: 22, color: '#222', backgroundColor: '#fff' },
+
+  saveIdRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  checkbox:   { width: 32, height: 32, borderRadius: 8, borderWidth: 2, borderColor: '#1A4A8A',
+                alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  checkboxOn: { backgroundColor: '#1A4A8A' },
+  checkmark:  { color: '#fff', fontSize: 20, fontWeight: '900' },
+  saveIdTxt:  { fontSize: 22, color: '#444', fontWeight: '600' },
 
   errorTxt:   { color: '#D32F2F', fontSize: 20, textAlign: 'center', marginBottom: 14, fontWeight: '600' },
   mainBtn:    { height: 72, backgroundColor: '#1A4A8A', borderRadius: 20,

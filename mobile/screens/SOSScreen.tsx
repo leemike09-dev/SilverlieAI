@@ -68,7 +68,7 @@ export default function SOSScreen({ route, navigation }: any) {
           .map(g => `${g.name}(${g.relation})`)
           .join(' · ');
         if (formatted) setGuardianNames(formatted);
-      } catch {}
+      } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
     });
 
     runSOS();

@@ -1,4 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useChatSession, SESSION_KEY, MAX_SESSIONS, ChatSession, Msg as ChatMsg, HistoryItem } from '../hooks/useChatSession';
+import { useVoice } from '../hooks/useVoice';
+
+const localDate = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   TextInput, KeyboardAvoidingView, Platform, Keyboard,
@@ -16,24 +22,7 @@ import { useLanguage } from '../i18n/LanguageContext';
 const API_URL = 'https://silverlieai.onrender.com';
 type Props = { route: any; navigation: any };
 type RiskLevel = 'normal' | 'low' | 'medium' | 'high' | 'critical';
-type Msg = {
-  role: 'ai' | 'user';
-  text: string;
-  riskLevel?: RiskLevel;
-  doctorMemoNeeded?: boolean;
-  doctorMemo?: string;
-};
-type HistoryItem = { role: 'user' | 'assistant'; content: string };
-type ChatSession = {
-  id: string;
-  date: string;
-  label: string;
-  messages: Msg[];
-  history: HistoryItem[];
-  turnCount: number;
-};
-const SESSION_KEY = 'ai_chat_sessions';
-const MAX_SESSIONS = 3;
+type Msg = ChatMsg;
 
 const C = {
   purple1: '#7B1FA2',
@@ -87,6 +76,20 @@ const COGNITIVE_KW = [
   '또 물어봐서', '아까 말했', '헷갈려', '뭔지 모르겠', '기억이 안나',
   '다시 한번 말해줘', '방금 뭐라고', '이해가 안', '다시 알려줘',
 ];
+
+// 건강 프로필 정규화: 프론트 문자열 → 백엔드 기대 배열 형식 변환
+function normalizeProfile(p: any): any {
+  if (!p) return null;
+  return {
+    ...p,
+    diseases: typeof p.diseases === 'string'
+      ? p.diseases.split(',').map((s: string) => s.trim()).filter(Boolean)
+      : (p.diseases || []),
+    drugAllergies: typeof p.allergies === 'string' && p.allergies
+      ? [p.allergies]
+      : (p.drugAllergies || []),
+  };
+}
 
 function classifyIntent(msg: string, history: HistoryItem[]): Intent {
   if (EMERGENCY_KW.some(k => msg.includes(k))) return 'emergency';
@@ -193,7 +196,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [history,      setHistory]      = useState<HistoryItem[]>([]);
   const [input,        setInput]        = useState('');
   const [loading,      setLoading]      = useState(false);
-  const [isRecording,  setIsRecording]  = useState(false);
   const [showEmergency,   setShowEmergency]   = useState(false);
   const [familyNotified,  setFamilyNotified]  = useState(false);
   const [memoState,    setMemoState]    = useState<'idle' | 'asking' | 'saved'>('idle');
@@ -207,25 +209,44 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [medications,      setMedications]      = useState<any[]>([]);
   const [ttsEnabled,      setTtsEnabled]      = useState(true);
   const [pendingConditions, setPendingConditions] = useState<string[]>([]);
-  const [sessions,          setSessions]         = useState<ChatSession[]>([]);
   const [currentSessionIdx, setCurrentSessionIdx] = useState(0);
-  const [showRestoreNotice, setShowRestoreNotice] = useState(false);
-  const weatherRef     = useRef<string | undefined>(undefined);
-  const sessionIdRef   = useRef<string>(Date.now().toString());
-  const historyRef     = useRef<HistoryItem[]>([]);
-  const turnCountRef   = useRef<number>(0);
+  const weatherRef   = useRef<string | undefined>(undefined);
+  const sessionIdRef = useRef<string>(Date.now().toString());
+  const historyRef   = useRef<HistoryItem[]>([]);
+  const turnCountRef = useRef<number>(0);
 
-  const scrollRef          = useRef<ScrollView>(null);
-  const pulseAnim          = useRef(new Animated.Value(1)).current;
-  const dotsAnim           = useRef(new Animated.Value(0)).current;
-  const recognitionRef     = useRef<any>(null);
-  const silenceTimerRef    = useRef<any>(null);
-  const toastTimerRef      = useRef<any>(null);
-  const finalTranscriptRef = useRef<string>('');
-  const lastFinalIdxRef    = useRef<number>(-1);
-  const prevInputRef        = useRef<string>('');
+  const scrollRef     = useRef<ScrollView>(null);
+  const dotsAnim      = useRef(new Animated.Value(0)).current;
+  const toastTimerRef = useRef<any>(null);
+  const prevInputRef  = useRef<string>('');
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToastMsg(''), 2500);
+  };
+
+  // 세션 관리 훅
+  const { sessions, setSessions, loadSessions, startNewSession: _startNewSession, deleteSession } = useChatSession({
+    messages, history, turnCountRef, sessionIdRef,
+    onNewSession: () => {
+      setMessages([]); setHistory([]); setTurnCount(0);
+      setMemoState('idle'); setCurrentSessionIdx(0);
+    },
+  });
+
+  // 음성 입력 훅
+  const { isRecording, pulseAnim, toggleVoice, stopVoice } = useVoice({
+    onTranscript: (text) => { prevInputRef.current = text; setInput(text); },
+    onSend: (text) => send(text),
+    showToast,
+  });
 
   const isWelcome = messages.length === 0 && !loading;
+  const [showPastChats, setShowPastChats] = useState(false);
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
+  const [expandedMsgs, setExpandedMsgs] = useState<Set<number>>(new Set());
+  const MSG_COLLAPSE_LEN = 120; // 이 글자 수 이상이면 접기
   const lastAiMsg = [...messages].reverse().find(m => m.role === 'ai');
 
   const lumiMood = (): LumiMood => {
@@ -243,9 +264,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
       AsyncStorage.getItem('tts_enabled'),
       AsyncStorage.getItem('health_records'),
       AsyncStorage.getItem('medications'),
-      AsyncStorage.getItem(SESSION_KEY),
-    ]).then(([hp, tts, hr, meds, sessRaw]) => {
-      if (hp)  { try { setHealthProfile(JSON.parse(hp)); } catch {} }
+    ]).then(([hp, tts, hr, meds]) => {
+      if (hp)  { try { setHealthProfile(JSON.parse(hp)); } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } } }
       if (tts !== null) setTtsEnabled(tts === 'true');
       if (hr)  {
         try {
@@ -263,33 +283,12 @@ export default function AIChatScreen({ route, navigation }: Props) {
               date:         l.date,
             });
           }
-        } catch {}
+        } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
       }
-      if (meds) { try { setMedications(JSON.parse(meds)); } catch {} }
+      if (meds) { try { setMedications(JSON.parse(meds)); } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } } }
 
-      // 세션 복원
-      if (sessRaw) {
-        try {
-          const saved: ChatSession[] = JSON.parse(sessRaw);
-          if (saved.length > 0) {
-            setSessions(saved);
-            const today = new Date().toISOString().slice(0, 10);
-            const latest = saved[0];
-            if (latest.messages.length > 0) {
-              // 오늘 세션이면 자동 복원, 오래된 것도 복원 (사용자가 원함)
-              sessionIdRef.current = latest.id;
-              setMessages(latest.messages);
-              setHistory(latest.history);
-              setTurnCount(latest.turnCount);
-              setCurrentSessionIdx(0);
-              // 오늘 세션 복원 안내
-              if (latest.date === today) {
-                setTimeout(() => { setShowRestoreNotice(true); setTimeout(() => setShowRestoreNotice(false), 2200); }, 600);
-              }
-            }
-          }
-        } catch {}
-      }
+      // 세션 기록 로드
+      loadSessions();
     });
 
     // 기분 seed: 홈 기분 체크인에서 부정 기분 선택 후 진입
@@ -322,7 +321,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
         if (!res.ok) return;
         const data = await res.json();
         if (data?.summary) { weatherRef.current = data.summary; }
-      } catch {}
+      } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
     })();
 
     return () => { stopSpeech(); };
@@ -332,39 +331,9 @@ export default function AIChatScreen({ route, navigation }: Props) {
   useEffect(() => { historyRef.current   = history;    }, [history]);
   useEffect(() => { turnCountRef.current = turnCount;  }, [turnCount]);
 
-  // 메시지가 바뀔 때마다 현재 세션 자동 저장
-  useEffect(() => {
-    if (messages.length === 0) return;
-    const today = new Date().toISOString().slice(0, 10);
-    const firstUserMsg = messages.find(m => m.role === 'user')?.text || '';
-    const label = firstUserMsg.length > 20 ? firstUserMsg.slice(0, 20) + '…' : firstUserMsg;
-    const current: ChatSession = {
-      id: sessionIdRef.current,
-      date: today,
-      label: label || '대화',
-      messages,
-      history:    historyRef.current,
-      turnCount:  turnCountRef.current,
-    };
-    AsyncStorage.getItem(SESSION_KEY).then(raw => {
-      try {
-        const existing: ChatSession[] = raw ? JSON.parse(raw) : [];
-        const filtered = existing.filter(s => s.id !== current.id);
-        const updated = [current, ...filtered].slice(0, MAX_SESSIONS);
-        setSessions(updated);
-        AsyncStorage.setItem(SESSION_KEY, JSON.stringify(updated));
-      } catch {}
-    });
-  }, [messages]);
-
   const startNewSession = () => {
     stopSpeech();
-    sessionIdRef.current = Date.now().toString();
-    setMessages([]);
-    setHistory([]);
-    setTurnCount(0);
-    setMemoState('idle');
-    setCurrentSessionIdx(0);
+    _startNewSession();
   };
 
   const switchSession = (idx: number, sess: ChatSession) => {
@@ -377,6 +346,16 @@ export default function AIChatScreen({ route, navigation }: Props) {
     setCurrentSessionIdx(idx);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 100);
   };
+
+  // 화면 벗어날 때 오늘 대화 자동 요약 (3턴 이상일 때만)
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        if (!userId || userId === 'guest' || turnCountRef.current < 2) return;
+        fetch(`${API_URL}/ai/summary/${userId}`, { method: 'POST' }).catch(() => {});
+      };
+    }, [userId])
+  );
 
   // Render 콜드스타트 방지 Keep-alive (진입 즉시 + 13분마다 ping)
   useEffect(() => {
@@ -399,23 +378,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
     }
   }, [loading]);
 
-  // 녹음 펄스 애니메이션
-  useEffect(() => {
-    if (isRecording) {
-      Animated.loop(Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.3, duration: 600, useNativeDriver: false }),
-        Animated.timing(pulseAnim, { toValue: 1.0, duration: 600, useNativeDriver: false }),
-      ])).start();
-    } else {
-      pulseAnim.stopAnimation(); pulseAnim.setValue(1);
-    }
-  }, [isRecording]);
-
-  const showToast = (msg: string) => {
-    setToastMsg(msg);
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = setTimeout(() => setToastMsg(''), 2500);
-  };
 
   const addMsg = (msg: Msg) => {
     setMessages(prev => [...prev, msg]);
@@ -423,7 +385,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
   };
 
   const fetchProactiveGreeting = async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDate();
     const [lastDate, cached] = await Promise.all([
       AsyncStorage.getItem('ai_greeting_date'),
       AsyncStorage.getItem('ai_greeting_cache'),
@@ -518,11 +480,13 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
     const records7d = await readHealthRecords7d();
 
+    const normalizedProfile = normalizeProfile(healthProfile);
+
     const chatBody = {
       user_id: userId, message: msg, history: history.slice(-10),
       turn_count: turnCount, force_summary: false,
       intent: detectedIntent,
-      client_profile:    healthProfile,
+      client_profile:    normalizedProfile,
       client_record:     healthRecord,
       client_records_7d: records7d.length > 0 ? records7d : undefined,
       client_meds:       medications.length > 0 ? medications : undefined,
@@ -620,7 +584,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
               applyResult(cleanText, riskLevel, dMemo, dMemoNeeded, isFinal,
                           data.sos_sent ?? false, data.profile_updates || []);
             }
-          } catch {}
+          } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
         }
       }
       }
@@ -656,7 +620,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
         body: JSON.stringify({
           user_id: userId, message: '지금까지 증상을 요약해 주세요',
           history: history.slice(-10), turn_count: turnCount,
-          force_summary: true, client_profile: healthProfile,
+          force_summary: true, client_profile: normalizeProfile(healthProfile),
         }),
       });
       if (!res.ok || !res.body) throw new Error('stream error');
@@ -695,7 +659,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
                 setTimeout(() => setMemoState('asking'), mainMs);
               }
             }
-          } catch {}
+          } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
         }
       }
     } catch {
@@ -713,8 +677,10 @@ export default function AIChatScreen({ route, navigation }: Props) {
       const cleanMemo = pendingMemo
         .replace(/지금까지\s*(증상을|내용을|이야기를)?\s*요약해\s*(주세요|줘)[.。]?\s*/g, '')
         .trim();
-      const now = new Date().toISOString();
-      const newItem = { id: now, createdAt: now, memo: cleanMemo, opinion: '' };
+      const nowDate = new Date();
+      const now = nowDate.toISOString();
+      const localDateStr = `${nowDate.getFullYear()}-${String(nowDate.getMonth()+1).padStart(2,'0')}-${String(nowDate.getDate()).padStart(2,'0')}`;
+      const newItem = { id: now, createdAt: now, localDate: localDateStr, memo: cleanMemo, opinion: '' };
       const raw = await AsyncStorage.getItem('doctor_memos');
       const existing = raw ? JSON.parse(raw) : [];
       const updated = [newItem, ...existing].slice(0, 10);
@@ -739,49 +705,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
     setPendingConditions([]);
   };
 
-  const stopVoice = () => {
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-    if (recognitionRef.current) recognitionRef.current.stop();
-    setIsRecording(false);
-  };
-
-  const toggleVoice = () => {
-    if (Platform.OS !== 'web') {
-      showToast('키보드의 🎤 마이크 버튼으로 음성 입력하세요');
-      return;
-    }
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) { showToast('Chrome 브라우저를 사용해 주세요'); return; }
-    if (isRecording) { stopVoice(); return; }
-    const recognition = new SR();
-    recognition.lang = 'ko-KR';
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognitionRef.current = recognition;
-    recognition.onstart = () => setIsRecording(true);
-    recognition.onend   = () => setIsRecording(false);
-    recognition.onerror = () => setIsRecording(false);
-    finalTranscriptRef.current = '';
-    lastFinalIdxRef.current = -1;
-    recognition.onresult = (e: any) => {
-      let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) {
-          if (i > lastFinalIdxRef.current) {
-            finalTranscriptRef.current += e.results[i][0].transcript;
-            lastFinalIdxRef.current = i;
-          }
-        } else {
-          interim += e.results[i][0].transcript;
-        }
-      }
-      const combined = (finalTranscriptRef.current + interim).trim();
-      if (combined) setInput(combined);
-      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = setTimeout(stopVoice, 1500);
-    };
-    recognition.start();
-  };
 
   const call119 = () => {
     if (Platform.OS === 'web') window.location.href = 'tel:119';
@@ -872,31 +795,77 @@ export default function AIChatScreen({ route, navigation }: Props) {
               contentContainerStyle={s.msgContent}
               showsVerticalScrollIndicator={false}
             >
+              {/* 이전 세션 기록 (오래된 순) */}
+              {[...sessions].reverse().filter(s => s.id !== sessionIdRef.current).map(sess => (
+                <View key={sess.id}>
+                  <View style={s.dateDivider}>
+                    <View style={s.dateDividerLine} />
+                    <Text style={s.dateDividerTxt}>{sess.date}</Text>
+                    <View style={s.dateDividerLine} />
+                  </View>
+                  {sess.messages.map((msg, i) => (
+                    <View key={i} style={msg.role === 'ai' ? s.aiRow : s.userRow}>
+                      {msg.role === 'ai' && <Lumi mood="happy" size={52} bob={false} />}
+                      <View style={msg.role === 'ai' ? s.aiBubble : s.userBubble}>
+                        {msg.role === 'ai' && <Text style={s.bubbleName}>루미</Text>}
+                        <Text style={msg.role === 'ai' ? s.aiTxt : s.userTxt}>{msg.text}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ))}
+
+              {/* 현재 세션 구분선 */}
+              {sessions.length > 1 && (
+                <View style={s.dateDivider}>
+                  <View style={s.dateDividerLine} />
+                  <Text style={s.dateDividerTxt}>{localDate()}</Text>
+                  <View style={s.dateDividerLine} />
+                </View>
+              )}
+
               {messages.map((msg, i) => {
                 const isStreaming = i === messages.length - 1 && msg.role === 'ai' && loading && msg.text === '';
+                const isLastAi   = msg.role === 'ai' && i === [...messages].map((m,j)=>m.role==='ai'?j:-1).filter(j=>j>=0).pop();
+                const isLong     = msg.role === 'ai' && !isStreaming && msg.text.length > MSG_COLLAPSE_LEN;
+                const isExpanded = expandedMsgs.has(i);
+                const displayTxt = isLong && !isExpanded
+                  ? msg.text.slice(0, MSG_COLLAPSE_LEN) + '…'
+                  : msg.text;
                 return (
                   <View key={i} style={msg.role === 'ai' ? s.aiRow : s.userRow}>
                     {msg.role === 'ai' && (
                       <Lumi mood={lumiMood()} size={52} bob={false} />
                     )}
                     <View style={msg.role === 'ai' ? s.aiBubble : s.userBubble}>
-                    {msg.role === 'ai' && <Text style={s.bubbleName}>루미</Text>}
-                    <Text style={msg.role === 'ai' ? s.aiTxt : s.userTxt}>
-                      {isStreaming ? (
-                        <Animated.Text style={{ opacity: dotsAnim.interpolate({ inputRange:[0,1], outputRange:[0.3,1] }) }}>
-                          ···
-                        </Animated.Text>
-                      ) : msg.text}
-                    </Text>
-                    {msg.role === 'ai' && !isStreaming && msg.text.length > 0 && ttsEnabled && (
-                      <TouchableOpacity
-                        onPress={() => speak(cleanForTTS(msg.text), 0.82, 0.88)}
-                        style={s.ttsBtnInline}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={s.ttsBtnTxt}>🔊</Text>
-                      </TouchableOpacity>
-                    )}
+                      {msg.role === 'ai' && <Text style={s.bubbleName}>루미</Text>}
+                      <Text selectable style={msg.role === 'ai' ? s.aiTxt : s.userTxt}>
+                        {isStreaming ? (
+                          <Animated.Text style={{ opacity: dotsAnim.interpolate({ inputRange:[0,1], outputRange:[0.3,1] }) }}>
+                            ···
+                          </Animated.Text>
+                        ) : displayTxt}
+                      </Text>
+                      {isLong && (
+                        <TouchableOpacity
+                          onPress={() => setExpandedMsgs(prev => {
+                            const next = new Set(prev);
+                            isExpanded ? next.delete(i) : next.add(i);
+                            return next;
+                          })}
+                          style={s.expandBtn} activeOpacity={0.7}>
+                          <Text style={s.expandBtnTxt}>{isExpanded ? '접기 ▲' : '더 보기 ▼'}</Text>
+                        </TouchableOpacity>
+                      )}
+                      {/* TTS 버튼: 마지막 AI 메시지에만 표시 */}
+                      {msg.role === 'ai' && isLastAi && !isStreaming && msg.text.length > 0 && ttsEnabled && (
+                        <TouchableOpacity
+                          onPress={() => speak(cleanForTTS(msg.text), 0.82, 0.88)}
+                          style={s.ttsBtnInline}
+                          activeOpacity={0.7}>
+                          <Text style={s.ttsBtnTxt}>🔊</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
                 );
@@ -969,6 +938,93 @@ export default function AIChatScreen({ route, navigation }: Props) {
               <View style={s.lumiGreetBubble}>
                 <Text style={s.lumiGreetTxt}>{getGreeting(name)}</Text>
               </View>
+
+              {/* 이전 대화 보기 버튼 */}
+              {sessions.filter(s => s.messages.length > 0).length > 0 && (
+                <TouchableOpacity
+                  style={s.pastChatBtn}
+                  onPress={() => setShowPastChats(v => !v)}
+                  activeOpacity={0.75}>
+                  <Text style={s.pastChatBtnIcon}>{showPastChats ? '▲' : '🕐'}</Text>
+                  <Text style={s.pastChatBtnTxt}>
+                    {showPastChats ? '이전 대화 닫기' : `이전 대화 보기 (${sessions.filter(s => s.messages.length > 0).length}개)`}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* 이전 대화 목록 — 카드형 */}
+              {showPastChats && (
+                <View style={s.pastChatList}>
+                  {[...sessions].reverse().filter(sess => sess.messages.length > 0).map(sess => {
+                    const isExpanded = expandedSessionId === sess.id;
+                    const firstUser = sess.messages.find((m: any) => m.role === 'user')?.text || '대화';
+                    const titleText = firstUser.length > 28 ? firstUser.slice(0, 28) + '…' : firstUser;
+                    return (
+                      <View key={sess.id} style={s.pastChatCard}>
+                        <TouchableOpacity
+                          style={s.pastChatCardHeader}
+                          onPress={() => setExpandedSessionId(isExpanded ? null : sess.id)}
+                          activeOpacity={0.75}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={s.pastChatCardDate}>{sess.date}</Text>
+                            <Text style={s.pastChatCardTitle} numberOfLines={1}>{titleText}</Text>
+                          </View>
+                          <TouchableOpacity
+                            style={s.pastChatDelBtn}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            onPress={() => {
+                              Alert.alert('대화 삭제', '이 대화 기록을 삭제할까요?', [
+                                { text: '취소', style: 'cancel' },
+                                { text: '삭제', style: 'destructive', onPress: async () => {
+                                  if (expandedSessionId === sess.id) setExpandedSessionId(null);
+                                  await deleteSession(sess.id);
+                                }},
+                              ]);
+                            }}>
+                            <Text style={s.pastChatDelTxt}>🗑</Text>
+                          </TouchableOpacity>
+                          <Text style={s.pastChatCardArrow}>{isExpanded ? '▲' : '▼'}</Text>
+                        </TouchableOpacity>
+                        {isExpanded && (
+                          <View style={s.pastChatCardBody}>
+                            {sess.messages.map((msg: any, i: number) => (
+                              <View key={i} style={[msg.role === 'ai' ? s.aiRow : s.userRow, { marginBottom: 8 }]}>
+                                {msg.role === 'ai' && <Lumi mood="happy" size={40} bob={false} />}
+                                <View style={msg.role === 'ai' ? s.aiBubble : s.userBubble}>
+                                  {msg.role === 'ai' && <Text style={s.bubbleName}>루미</Text>}
+                                  <Text selectable style={msg.role === 'ai' ? s.aiTxt : s.userTxt}>{msg.text}</Text>
+                                </View>
+                              </View>
+                            ))}
+
+                            {/* 병원전달 메모 만들기 */}
+                            <TouchableOpacity
+                              style={s.pastChatMemoBtn}
+                              activeOpacity={0.8}
+                              onPress={async () => {
+                                try {
+                                  const memoText = sess.messages
+                                    .map((m: any) => `${m.role === 'ai' ? '[루미]' : '[나]'} ${m.text}`)
+                                    .join('\n\n');
+                                  const nowDate = new Date();
+                                  const isoStr = nowDate.toISOString();
+                                  const localDateStr = `${nowDate.getFullYear()}-${String(nowDate.getMonth()+1).padStart(2,'0')}-${String(nowDate.getDate()).padStart(2,'0')}`;
+                                  const newItem = { id: isoStr, createdAt: isoStr, localDate: localDateStr, memo: `[${sess.date} 대화 요약]\n\n${memoText}`, opinion: '' };
+                                  const raw = await AsyncStorage.getItem('doctor_memos');
+                                  const existing = raw ? JSON.parse(raw) : [];
+                                  await AsyncStorage.setItem('doctor_memos', JSON.stringify([newItem, ...existing].slice(0, 10)));
+                                  showToast('병원전달 메모에 저장됐어요 🩺');
+                                } catch { showToast('저장에 실패했습니다'); }
+                              }}>
+                              <Text style={s.pastChatMemoBtnTxt}>🩺 병원전달 메모 만들기</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
 
               {/* 예시 질문 리스트 */}
               <View style={s.exampleList}>
@@ -1044,11 +1100,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
       </Modal>
 
       {toastMsg ? <View style={s.toast}><Text style={s.toastTxt}>{toastMsg}</Text></View> : null}
-      {showRestoreNotice && (
-        <View style={s.restoreNotice}>
-          <Text style={s.restoreNoticeTxt}>💬 이전 대화를 이어갑니다</Text>
-        </View>
-      )}
       <SeniorTabBar navigation={navigation} activeTab="" userId={userId} name={name} />
     </LinearGradient>
   );
@@ -1085,6 +1136,41 @@ const s = StyleSheet.create({
   bannerMediumTxt: { fontSize: 19, color: '#FF8F00', fontWeight: '700', textAlign: 'center' },
 
   // 메시지 버블
+  dateDivider:     { flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 16, paddingHorizontal: 4 },
+  dateDividerLine: { flex: 1, height: 1, backgroundColor: '#E5E7EB' },
+  dateDividerTxt:  { fontSize: 13, fontWeight: '700', color: '#9CA3AF', paddingHorizontal: 4 },
+
+  pastChatBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#ECE6F6', borderRadius: 20,
+    paddingHorizontal: 20, paddingVertical: 12,
+    marginTop: 4, marginBottom: 8, alignSelf: 'center',
+  },
+  pastChatBtnIcon: { fontSize: 16 },
+  pastChatBtnTxt:  { fontSize: 16, fontWeight: '700', color: '#5B3DB5' },
+  pastChatList:    { width: '100%', paddingHorizontal: 4, gap: 10 },
+
+  pastChatCard: {
+    backgroundColor: '#fff', borderRadius: 18,
+    overflow: 'hidden',
+    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 }, elevation: 2,
+  },
+  pastChatCardHeader: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 18, paddingVertical: 16, gap: 12,
+  },
+  pastChatCardDate:   { fontSize: 13, fontWeight: '700', color: '#9CA3AF', marginBottom: 3 },
+  pastChatCardTitle:  { fontSize: 17, fontWeight: '700', color: '#0F1B2D' },
+  pastChatCardArrow:  { fontSize: 14, color: '#9CA3AF' },
+  pastChatDelBtn:     { padding: 6, marginRight: 4 },
+  pastChatDelTxt:     { fontSize: 18 },
+  pastChatMemoBtn:    { backgroundColor: '#EEE8F8', borderRadius: 14, paddingVertical: 14,
+                        alignItems: 'center', marginTop: 8 },
+  pastChatMemoBtnTxt: { fontSize: 16, fontWeight: '800', color: '#5B3DB5' },
+  pastChatCardBody:   { paddingHorizontal: 12, paddingBottom: 14, paddingTop: 4, gap: 8,
+                        borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+
   msgScroll:   { flex: 1, flexGrow: 1, flexShrink: 1, flexBasis: 0 },
   msgPlaceholder: { flex: 1 },
   msgContent:  { paddingVertical: 12, gap: 10 },
@@ -1224,6 +1310,8 @@ const s = StyleSheet.create({
   criticalCardDesc: { fontSize: 16, color: '#C62828', marginBottom: 8, textAlign: 'center' },
   ttsBtnInline: { alignSelf: 'flex-end', marginTop: 6, paddingHorizontal: 6, paddingVertical: 2 },
   ttsBtnTxt:    { fontSize: 18 },
+  expandBtn:    { marginTop: 8, alignSelf: 'flex-start' },
+  expandBtnTxt: { fontSize: 15, fontWeight: '700', color: '#7C5BE3' },
 
   // 만성질환 감지 확인 카드
   condCard:  { backgroundColor: '#E8F5E9', borderRadius: 20, padding: 20, marginBottom: 12,
