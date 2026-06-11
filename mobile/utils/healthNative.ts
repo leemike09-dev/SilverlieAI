@@ -181,24 +181,38 @@ async function requestAndroidPermissions(): Promise<boolean> {
       diag.existingGrantsErr = e?.message;
     }
 
-    // requestPermission()은 Android 16(API 36)에서 앱 크래시 확인됨 → openHealthConnectSettings() 사용
-    diag.step = 'opening_hc_settings';
+    // requestPermission()은 Android 16(API 36)에서 앱 크래시 확인됨
+    // → IntentLauncher로 HC 권한 페이지 직접 열기 (requestPermission 우회)
+    diag.step = 'trying_intent_launcher';
     await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
 
-    // 4단계: HC 설정 화면 열기 (사용자가 직접 권한 허용)
     try {
-      await HC.openHealthConnectSettings();
-      diag.step = 'hc_settings_opened';
+      const IL = await import('expo-intent-launcher');
+      // MANAGE_HEALTH_PERMISSIONS: 우리 앱의 HC 권한 페이지 직접 오픈
+      await IL.startActivityAsync(
+        'android.health.connect.action.MANAGE_HEALTH_PERMISSIONS',
+        { extra: { 'android.health.connect.extra.PACKAGE_NAME': 'com.silverlifeai.app' } }
+      );
+      diag.step = 'manage_permissions_opened';
       diag.success = true;
       await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
       return true;
     } catch (e: any) {
-      diag.step = 'openSettings_threw';
-      diag.settingsErr = e?.message;
-      diag.failAt = 'openHealthConnectSettings';
-      await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
-      await logError('HC.openHealthConnectSettings', e);
-      return false;
+      diag.intentErr = e?.message;
+      // IntentLauncher 실패 시 일반 HC 설정으로 fallback
+      try {
+        await HC.openHealthConnectSettings();
+        diag.step = 'fallback_settings_opened';
+        diag.success = true;
+        await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
+        return true;
+      } catch (e2: any) {
+        diag.failAt = 'all_failed';
+        diag.settingsErr = (e2 as any)?.message;
+        await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
+        await logError('HC.openSettings_all_failed', e2);
+        return false;
+      }
     }
 
   } catch (e: any) {
