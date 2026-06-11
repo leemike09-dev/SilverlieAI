@@ -1,4 +1,6 @@
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logError } from './errorLogger';
 
 export interface HealthNativeData {
   connected: boolean;
@@ -131,21 +133,87 @@ async function readiOSData(): Promise<HealthNativeData> {
 // ─── Android Health Connect ───────────────────────────────────────────────────
 
 async function requestAndroidPermissions(): Promise<boolean> {
+  // 진단 정보를 단계별로 저장 — requestPermission 중 앱이 재시작되어도 이전 단계 정보 보존
+  const diag: any = { ts: new Date().toISOString(), os: 'android', v: Platform.Version };
+
   try {
     const HC = await import('react-native-health-connect');
-    const status = await HC.getSdkStatus();
-    if (status !== 3) return false;
-    const ok = await HC.initialize();
-    if (!ok) return false;
-    const granted = await HC.requestPermission([
-      { accessType: 'read', recordType: 'HeartRate' },
-      { accessType: 'read', recordType: 'Steps' },
-      { accessType: 'read', recordType: 'SleepSession' },
-      { accessType: 'read', recordType: 'OxygenSaturation' },
-      { accessType: 'read', recordType: 'HeartRateVariabilityRmssd' },
-    ]);
-    return granted.length > 0;
-  } catch {
+
+    // 1단계: SDK 상태
+    try {
+      diag.sdkStatus = await HC.getSdkStatus();
+      const labels: any = { 1: '미설치', 2: '업데이트필요', 3: '정상' };
+      diag.sdkStatusLabel = labels[diag.sdkStatus] ?? `코드${diag.sdkStatus}`;
+    } catch (e: any) {
+      diag.failAt = 'getSdkStatus'; diag.sdkStatusErr = e?.message;
+      await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
+      await logError('HC.getSdkStatus', e);
+      return false;
+    }
+
+    if (diag.sdkStatus !== 3) {
+      diag.failAt = 'sdkStatus_not_available';
+      await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
+      return false;
+    }
+
+    // 2단계: 초기화
+    try {
+      diag.init = await HC.initialize();
+    } catch (e: any) {
+      diag.failAt = 'initialize'; diag.initErr = e?.message;
+      await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
+      await logError('HC.initialize', e);
+      return false;
+    }
+
+    if (!diag.init) {
+      diag.failAt = 'initialize_returned_false';
+      await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
+      return false;
+    }
+
+    // 3단계: 기존 권한 확인
+    try {
+      const existing = await HC.getGrantedPermissions();
+      diag.existingGrants = (existing as any[]).map((g: any) => g.recordType).join(', ') || '없음';
+    } catch (e: any) {
+      diag.existingGrantsErr = e?.message;
+    }
+
+    // requestPermission 전 저장 — 이 호출 중 앱이 재시작되어도 이전 단계 기록 보존
+    diag.step = 'before_requestPermission';
+    await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
+
+    // 4단계: 권한 요청
+    try {
+      const granted = await HC.requestPermission([
+        { accessType: 'read', recordType: 'HeartRate' },
+        { accessType: 'read', recordType: 'Steps' },
+        { accessType: 'read', recordType: 'SleepSession' },
+        { accessType: 'read', recordType: 'OxygenSaturation' },
+        { accessType: 'read', recordType: 'HeartRateVariabilityRmssd' },
+      ]);
+      diag.step = 'requestPermission_returned';
+      diag.grantedCount = granted.length;
+      diag.grantedTypes = (granted as any[]).map((g: any) => g.recordType).join(', ') || '없음';
+      diag.success = true;
+      await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
+      return granted.length > 0;
+    } catch (e: any) {
+      diag.step = 'requestPermission_threw';
+      diag.permErr = e?.message;
+      diag.permErrCode = String(e?.code ?? '');
+      diag.failAt = 'requestPermission';
+      await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
+      await logError('HC.requestPermission', e, { sdkStatus: diag.sdkStatus });
+      return false;
+    }
+
+  } catch (e: any) {
+    diag.failAt = 'fatal'; diag.fatalErr = e?.message;
+    await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
+    await logError('requestAndroidPermissions', e);
     return false;
   }
 }

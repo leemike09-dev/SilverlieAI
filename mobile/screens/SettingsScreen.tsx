@@ -46,6 +46,9 @@ export default function SettingsScreen({ route, navigation }: Props) {
   const [notifFamily,  setNotifFamily]  = useState(true);
   const [termsModal,   setTermsModal]   = useState(false);
   const [privacyModal, setPrivacyModal] = useState(false);
+  const [debugTaps,    setDebugTaps]    = useState(0);
+  const [debugModal,   setDebugModal]   = useState(false);
+  const [debugText,    setDebugText]    = useState('');
 
   const isGuest = !userId || userId === 'guest';
 
@@ -202,10 +205,62 @@ export default function SettingsScreen({ route, navigation }: Props) {
           <Text style={s.btnLogoutTxt}>로그아웃</Text>
         </TouchableOpacity>
 
-        <Text style={s.version}>Silver Life AI v1.0.0</Text>
+        <TouchableOpacity
+          onPress={async () => {
+            const next = debugTaps + 1;
+            setDebugTaps(next);
+            if (next >= 7) {
+              setDebugTaps(0);
+              const { getErrorLogs, clearAllLogs } = await import('../utils/errorLogger');
+              const logs = await getErrorLogs();
+              const hcRaw = await AsyncStorage.getItem('hc_diag');
+              const hc = hcRaw ? JSON.parse(hcRaw) : null;
+              const hcText = hc
+                ? `\n\n[HC 진단]\n시간: ${(hc.ts||'').slice(0,19)}\nAndroid: ${hc.v}\nSDK: ${hc.sdkStatusLabel??hc.sdkStatus}\n단계: ${hc.step||'?'}\n${hc.success?'✅ 성공':'❌ 실패: '+(hc.failAt||'?')}\n${hc.permErr?'권한오류: '+hc.permErr:''}\n${hc.fatalErr?'치명오류: '+hc.fatalErr:''}`
+                : '\n\n[HC 진단] 없음';
+              const logText = logs.length
+                ? logs.slice(0, 5).map(l => `[${l.ts.slice(11,19)}] ${l.ctx}: ${l.msg}`).join('\n')
+                : '오류 없음';
+              setDebugText(`[오류 로그 (최근 5건)]\n${logText}${hcText}`);
+              setDebugModal(true);
+            }
+          }}
+          activeOpacity={1}
+        >
+          <Text style={s.version}>Silver Life AI v1.0.0</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       <SeniorTabBar navigation={navigation} activeTab="set" userId={userId} name={name} />
+
+      {/* 디버그 모달 (버전 7번 탭) */}
+      <Modal visible={debugModal} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 20 }}>
+            <Text style={{ fontSize: 16, fontWeight: '800', color: INK, marginBottom: 12 }}>🔧 개발자 진단</Text>
+            <ScrollView style={{ maxHeight: 320 }}>
+              <Text style={{ fontSize: 12, color: INK_SOFT, fontFamily: 'monospace', lineHeight: 18 }}>{debugText}</Text>
+            </ScrollView>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+              <TouchableOpacity
+                style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: '#f3f4f6', alignItems: 'center' }}
+                onPress={() => setDebugModal(false)}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: INK_SOFT }}>닫기</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, padding: 12, borderRadius: 10, backgroundColor: RED, alignItems: 'center' }}
+                onPress={async () => {
+                  const { clearAllLogs } = await import('../utils/errorLogger');
+                  await clearAllLogs();
+                  setDebugModal(false);
+                  Alert.alert('완료', '로그가 삭제됐습니다');
+                }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>로그 삭제</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Modals */}
       <TextModal visible={termsModal} title="서비스 이용약관"

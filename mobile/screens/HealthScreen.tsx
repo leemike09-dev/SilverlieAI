@@ -210,8 +210,39 @@ export default function HealthScreen({ route, navigation }: any) {
     try {
       const { requestHealthPermissions } = await import('../utils/healthNative');
       await requestHealthPermissions();
-      // 설정에서 돌아올 때 AppState 변경으로 데이터 재로드
-    } catch (e: any) { if (__DEV__) console.warn('[healthConnect]', e); }
+      // 권한 요청 완료 후 즉시 상태 재확인 (AppState 레이스 컨디션 방지)
+      await loadHealthNative();
+    } catch (e: any) {
+      const { logError } = await import('../utils/errorLogger');
+      await logError('handleConnectHealth', e);
+    }
+  };
+
+  const showDiagnostic = async () => {
+    const raw = await AsyncStorage.getItem('hc_diag');
+    if (!raw) {
+      Alert.alert('진단 없음', '연결 버튼을 먼저 눌러주세요');
+      return;
+    }
+    const d = JSON.parse(raw);
+    const lines = [
+      `시간: ${(d.ts || '').slice(0, 19).replace('T', ' ')}`,
+      `Android API: ${d.v ?? '?'}`,
+      `HC SDK: ${d.sdkStatusLabel ?? `코드 ${d.sdkStatus}`}`,
+      d.existingGrants ? `기존 권한: ${d.existingGrants}` : null,
+      d.step ? `단계: ${d.step}` : null,
+      d.success ? `✅ 성공 — ${d.grantedCount}개 권한 승인` : null,
+      d.failAt ? `❌ 실패: ${d.failAt}` : null,
+      d.permErr ? `권한 오류: ${d.permErr}` : null,
+      d.permErrCode ? `오류 코드: ${d.permErrCode}` : null,
+      d.initErr ? `초기화 오류: ${d.initErr}` : null,
+      d.sdkStatusErr ? `SDK 오류: ${d.sdkStatusErr}` : null,
+      d.fatalErr ? `치명 오류: ${d.fatalErr}` : null,
+    ].filter(Boolean).join('\n');
+    Alert.alert('Health Connect 진단', lines, [
+      { text: '닫기' },
+      { text: '초기화', style: 'destructive', onPress: () => AsyncStorage.removeItem('hc_diag') },
+    ]);
   };
 
   // Health Connect 설정에서 돌아올 때 데이터 재로드
@@ -583,6 +614,9 @@ export default function HealthScreen({ route, navigation }: any) {
               <Text style={s.connectBtnTxt}>{Platform.OS === 'ios' ? '애플 건강' : '삼성 헬스'} 연결하기</Text>
             </TouchableOpacity>
             <Text style={s.onboardFamily}>가족이 대신 설정해 드릴 수도 있어요</Text>
+            <TouchableOpacity onPress={showDiagnostic} style={{ paddingVertical: 8 }}>
+              <Text style={s.diagLink}>🔍 연결이 안 되면 여기를 눌러주세요</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -1028,6 +1062,7 @@ const s = StyleSheet.create({
   onboardIcon: { fontSize: 22, width: 28, textAlign: 'center' },
   onboardText: { flex: 1, fontSize: 17, fontWeight: '600', color: INK_SOFT, lineHeight: 24 },
   onboardFamily: { fontSize: 14, color: INK_MUTE, textAlign: 'center', marginTop: 10 },
+  diagLink: { fontSize: 13, color: BLUE, textAlign: 'center', textDecorationLine: 'underline' },
   connectBtn: {
     height: 52, borderRadius: 14, backgroundColor: BLUE,
     alignItems: 'center', justifyContent: 'center',

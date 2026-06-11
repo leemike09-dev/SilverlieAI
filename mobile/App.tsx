@@ -88,6 +88,28 @@ async function fetchWithTimeout(url: string, options: RequestInit, ms = FETCH_TI
   }
 }
 
+// 전역 JS 에러 핸들러 — 앱 전체에서 잡히지 않은 오류를 AsyncStorage에 기록
+(function setupGlobalErrorHandler() {
+  if (typeof ErrorUtils === 'undefined') return;
+  const prev = ErrorUtils.getGlobalHandler();
+  ErrorUtils.setGlobalHandler((error, isFatal) => {
+    try {
+      const entry = {
+        ts: new Date().toISOString(),
+        ctx: isFatal ? 'FATAL' : 'JS_ERROR',
+        msg: error?.message || String(error),
+        stack: error?.stack?.slice(0, 400),
+      };
+      AsyncStorage.getItem('app_error_logs').then(raw => {
+        const logs = raw ? JSON.parse(raw) : [];
+        logs.unshift(entry);
+        AsyncStorage.setItem('app_error_logs', JSON.stringify(logs.slice(0, 30)));
+      }).catch(() => {});
+    } catch {}
+    prev(error, isFatal);
+  });
+})();
+
 export default function App() {
   useEffect(() => {
     const ping = () => fetch(`${BACKEND}/`).catch(() => {});
