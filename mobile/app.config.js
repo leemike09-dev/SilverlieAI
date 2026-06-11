@@ -68,8 +68,8 @@ module.exports = {
     plugins: [
       ['expo-sensors', { motionPermission: '걸음수 자동 측정을 위해 신체 활동 접근 권한이 필요합니다.' }],
       'expo-notifications',
-      'react-native-health-connect',
       ['@react-native-seoul/kakao-login', { kakaoAppKey: '8f40217a9768056a44ce78516d2f5858', kotlinVersion: '2.1.21' }],
+      './plugins/fixHCRationale.js',
       ['expo-location', {
         locationAlwaysAndWhenInUsePermission: '앱이 백그라운드에 있을 때도 동선을 기록하기 위해 항상 위치 접근 권한이 필요합니다.',
         isAndroidBackgroundLocationEnabled: true,
