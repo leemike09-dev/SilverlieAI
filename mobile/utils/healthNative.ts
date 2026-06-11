@@ -262,7 +262,7 @@ async function readAndroidData(): Promise<HealthNativeData> {
     const spo2Result = await HC.readRecords('OxygenSaturation', range(startISO)).catch(() => ({ records: [] }));
     const spo2Records = (spo2Result as any).records;
     const spo2 = spo2Records.length > 0
-      ? Math.round(spo2Records[spo2Records.length - 1].percentage * 100) : null;
+      ? Math.round(spo2Records[spo2Records.length - 1].percentage) : null;
 
     const sleepResult = await HC.readRecords('SleepSession', range(sleepISO)).catch(() => ({ records: [] }));
     const sleepMs = (sleepResult as any).records.reduce((acc: number, r: any) => {
