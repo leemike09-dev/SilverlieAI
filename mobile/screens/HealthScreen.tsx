@@ -224,16 +224,34 @@ export default function HealthScreen({ route, navigation }: any) {
       return;
     }
     const d = JSON.parse(raw);
+    // 단계별 설명
+    const stepLabel: Record<string, string> = {
+      trying_intent_launcher:    'HC 권한 페이지 열기 시도 중',
+      manage_permissions_opened: 'HC 권한 페이지 열림 (앱 미등록)',
+      fallback_settings_opened:  'HC 일반 설정 열림 (앱 미등록 — 권한 없음)',
+      before_requestPermission:  '권한 요청 직전 (앱 재시작으로 중단)',
+    };
+    const stepTxt = d.step ? (stepLabel[d.step] || d.step) : null;
+
+    // 결과 판정
+    let resultLine: string | null = null;
+    if (d.step === 'manage_permissions_opened' || d.step === 'fallback_settings_opened') {
+      resultLine = '⚠️ HC 열림 — 앱이 HC에 미등록 (권한 없음)';
+    } else if (d.success && d.grantedCount > 0) {
+      resultLine = `✅ 성공 — ${d.grantedCount}개 권한 승인`;
+    } else if (d.failAt) {
+      resultLine = null; // 아래 failAt 라인에서 표시
+    }
+
     const lines = [
       `시간: ${(d.ts || '').slice(0, 19).replace('T', ' ')}`,
       `Android API: ${d.v ?? '?'}`,
       `HC SDK: ${d.sdkStatusLabel ?? `코드 ${d.sdkStatus}`}`,
       d.existingGrants ? `기존 권한: ${d.existingGrants}` : null,
-      d.step ? `단계: ${d.step}` : null,
-      d.success ? `✅ 성공 — ${d.grantedCount}개 권한 승인` : null,
+      stepTxt ? `단계: ${stepTxt}` : null,
+      resultLine,
+      d.intentErr ? `Intent 오류: ${d.intentErr}` : null,
       d.failAt ? `❌ 실패: ${d.failAt}` : null,
-      d.permErr ? `권한 오류: ${d.permErr}` : null,
-      d.permErrCode ? `오류 코드: ${d.permErrCode}` : null,
       d.initErr ? `초기화 오류: ${d.initErr}` : null,
       d.sdkStatusErr ? `SDK 오류: ${d.sdkStatusErr}` : null,
       d.fatalErr ? `치명 오류: ${d.fatalErr}` : null,
