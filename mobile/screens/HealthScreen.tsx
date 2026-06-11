@@ -5,7 +5,7 @@ const localDate = (d = new Date()) =>
 
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  StatusBar, Alert, Modal, TextInput, FlatList, Platform,
+  StatusBar, Alert, Modal, TextInput, FlatList, Platform, AppState,
 } from 'react-native';
 import Lumi from '../components/Lumi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -28,6 +28,7 @@ const RED = '#E5453C';
 const RED_BG = '#FFE6DC';
 const WARN = '#A8770F';
 const WARN_BG = '#FFF3D6';
+const PURPLE = '#7C5BE3';
 
 const STATUS = {
   normal: { label: '정상', fg: GREEN_DK, bg: GREEN_BG },
@@ -61,12 +62,6 @@ const sleepStatus = (hours: number) => {
 
 const API = 'https://silverlieai.onrender.com';
 
-const tempStatus = (v: number) => {
-  if (v >= 36.0 && v <= 37.5) return 'normal';
-  if (v > 38.5) return 'danger';
-  return 'caution';
-};
-
 const lumiInterpretBp = (sys: number, dia: number): string => {
   const st = bpStatus(sys, dia);
   if (st === 'normal')  return '혈압이 정상이에요. 안심하세요 😊';
@@ -79,19 +74,11 @@ const lumiInterpretSg = (v: number): string => {
   if (st === 'danger')  return '혈당이 높아요. 병원에 꼭 가보세요';
   return '혈당이 조금 높네요. 식사에 신경 써보세요';
 };
-const lumiInterpretTemp = (v: number): string => {
-  const st = tempStatus(v);
-  if (st === 'normal')  return '체온이 정상이에요. 건강하시네요 😊';
-  if (st === 'danger')  return '열이 많이 나요. 병원에 가보세요';
-  return '체온이 조금 높아요. 충분히 쉬세요';
-};
-
 interface HealthRecord {
   date: string;
   blood_pressure_systolic: number;
   blood_pressure_diastolic: number;
   blood_sugar: number;
-  temperature?: number;
   heart_rate: number;
   weight: number;
   steps: number;
@@ -193,9 +180,15 @@ export default function HealthScreen({ route, navigation }: any) {
   const loadHealthNative = useCallback(async () => {
     if (Platform.OS === 'web') return;
     try {
+      // 저장된 연결 상태 먼저 복원
+      const savedConnected = await AsyncStorage.getItem(`health_connected.${userId}`);
+      if (savedConnected === '1') setHealthConnected(true);
+
       const { readHealthData } = await import('../utils/healthNative');
       const data = await readHealthData();
       setHealthConnected(data.connected);
+      // 연결됐으면 AsyncStorage에 저장 (재시작해도 유지)
+      if (data.connected) await AsyncStorage.setItem(`health_connected.${userId}`, '1');
       if (data.heartRate) setHeartRate(data.heartRate);
       if (data.heartRateMin) setHeartRateMin(data.heartRateMin);
       if (data.heartRateMax) setHeartRateMax(data.heartRateMax);
@@ -216,10 +209,19 @@ export default function HealthScreen({ route, navigation }: any) {
     if (Platform.OS === 'web') return;
     try {
       const { requestHealthPermissions } = await import('../utils/healthNative');
-      const granted = await requestHealthPermissions();
-      if (granted) await loadHealthNative();
+      await requestHealthPermissions();
+      // 설정에서 돌아올 때 AppState 변경으로 데이터 재로드
     } catch (e: any) { if (__DEV__) console.warn('[healthConnect]', e); }
   };
+
+  // Health Connect 설정에서 돌아올 때 데이터 재로드
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') loadHealthNative();
+    });
+    return () => sub.remove();
+  }, [loadHealthNative]);
 
   useEffect(() => { loadHealthNative(); }, []);
 
@@ -297,8 +299,6 @@ export default function HealthScreen({ route, navigation }: any) {
         updated.blood_sugar = Number(inputValue);
       } else if (modalType === 'sl') {
         updated.sleep_hours = Number(inputValue);
-      } else if (modalType === 'temp') {
-        (updated as any).temperature = Number(inputValue);
       } else if (modalType === 'steps') {
         updated.steps = Number(inputValue);
         // liveSteps는 건드리지 않음 — 만보기가 항상 실제값으로 덮어씀
@@ -394,6 +394,7 @@ export default function HealthScreen({ route, navigation }: any) {
             <View style={s.metricContent}>
               <View style={s.stepsLabelRow}>
                 <Text style={s.metricLabel}>걸음수</Text>
+                <View style={s.sourceChip}><Text style={s.sourceChipText}>📱 폰</Text></View>
                 <View style={s.autoBadge}>
                   <Text style={s.autoBadgeText}>🟢 자동 측정 중</Text>
                 </View>
@@ -451,6 +452,7 @@ export default function HealthScreen({ route, navigation }: any) {
                   <View style={s.metricContent}>
                     <View style={s.stepsLabelRow}>
                       <Text style={s.metricLabel}>심박수</Text>
+                      <View style={s.sourceChip}><Text style={s.sourceChipText}>⌚ 워치</Text></View>
                       <View style={s.autoBadge}>
                         <Text style={s.autoBadgeText}>🟢 자동 측정 중</Text>
                       </View>
@@ -485,6 +487,7 @@ export default function HealthScreen({ route, navigation }: any) {
                   <View style={s.metricContent}>
                     <View style={s.stepsLabelRow}>
                       <Text style={s.metricLabel}>수면</Text>
+                      <View style={s.sourceChip}><Text style={s.sourceChipText}>⌚ 워치</Text></View>
                       <View style={s.autoBadge}>
                         <Text style={s.autoBadgeText}>🟢 자동 측정 중</Text>
                       </View>
@@ -521,6 +524,7 @@ export default function HealthScreen({ route, navigation }: any) {
                   <View style={s.metricContent}>
                     <View style={s.stepsLabelRow}>
                       <Text style={s.metricLabel}>산소포화도</Text>
+                      <View style={s.sourceChip}><Text style={s.sourceChipText}>⌚ 워치</Text></View>
                       <View style={s.autoBadge}>
                         <Text style={s.autoBadgeText}>🟢 자동 측정 중</Text>
                       </View>
@@ -561,18 +565,24 @@ export default function HealthScreen({ route, navigation }: any) {
             )}
           </>
         ) : (
-          /* 연결 안 됨 안내 */
-          <View style={s.autoNotConnected}>
-            <View style={s.autoNotConnectedIcons}>
-              <Text style={s.autoIcon}>💓 심박수</Text>
-              <Text style={s.autoIcon}>😴 수면</Text>
-              <Text style={s.autoIcon}>🫁 산소</Text>
+          /* 연결 안 됨 — 온보딩 가이드 카드 */
+          <View style={s.onboardCard}>
+            <View style={s.onboardRow}>
+              <Text style={s.onboardIcon}>📱</Text>
+              <Text style={s.onboardText}>폰만 연결해도 걸음수가 저절로 쌓여요</Text>
             </View>
-            <Text style={s.autoNotConnectedTitle}>폰을 연결하면 저절로 쌓여요</Text>
-            <Text style={s.autoNotConnectedDesc}>연결 안 해도 아래에서 직접 기록 가능해요</Text>
+            <View style={s.onboardRow}>
+              <Text style={s.onboardIcon}>⌚</Text>
+              <Text style={s.onboardText}>워치까지 있으면 심박·수면·산소도 자동으로</Text>
+            </View>
+            <View style={[s.onboardRow, { marginBottom: 16 }]}>
+              <Text style={s.onboardIcon}>🔒</Text>
+              <Text style={s.onboardText}>내 건강 정보는 안전하게 보관 · 배터리 걱정 없어요</Text>
+            </View>
             <TouchableOpacity style={s.connectBtn} activeOpacity={0.8} onPress={handleConnectHealth}>
-              <Text style={s.connectBtnTxt}>폰 건강 연결하기</Text>
+              <Text style={s.connectBtnTxt}>{Platform.OS === 'ios' ? '애플 건강' : '삼성 헬스'} 연결하기</Text>
             </TouchableOpacity>
+            <Text style={s.onboardFamily}>가족이 대신 설정해 드릴 수도 있어요</Text>
           </View>
         )}
 
@@ -648,37 +658,84 @@ export default function HealthScreen({ route, navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        {/* 체온 */}
-        <View style={s.metricCard}>
-          <View style={s.metricTopRow}>
-            <View style={[s.metricIconBox, { backgroundColor: WARN_BG }]}>
-              <Text style={s.metricIcon}>🌡️</Text>
+        {/* 수면 — 워치 없을 때 수동 입력 */}
+        {!sleepHoursAuto && (
+          <View style={s.metricCard}>
+            <View style={s.metricTopRow}>
+              <View style={[s.metricIconBox, { backgroundColor: '#EAE4F6' }]}>
+                <Text style={s.metricIcon}>😴</Text>
+              </View>
+              <View style={s.metricContent}>
+                <Text style={s.metricLabel}>수면</Text>
+                {todayRecord?.sleep_hours ? (
+                  <>
+                    <Text style={s.metricValue}>
+                      {todayRecord.sleep_hours}<Text style={s.metricUnit}> 시간</Text>
+                    </Text>
+                    <Text style={s.lumiHint}>
+                      {sleepStatus(todayRecord.sleep_hours) === 'normal'
+                        ? '충분히 주무셨어요. 오늘도 활기차게! 🌟'
+                        : sleepStatus(todayRecord.sleep_hours) === 'caution'
+                        ? '조금 더 주무시면 좋겠어요'
+                        : '수면이 부족해요. 오늘 일찍 주무세요'}
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={s.emptyValue}>어젯밤 수면 시간을 입력해주세요</Text>
+                )}
+              </View>
             </View>
-            <View style={s.metricContent}>
-              <Text style={s.metricLabel}>체온</Text>
-              {todayRecord?.temperature ? (
-                <>
-                  <Text style={s.metricValue}>
-                    {todayRecord.temperature.toFixed(1)}
-                    <Text style={s.metricUnit}> °C</Text>
-                  </Text>
-                  <View style={s.statusRow}>
-                    <View style={[s.statusBadgeSmall, { backgroundColor: STATUS[tempStatus(todayRecord.temperature)].bg }]}>
-                      <Text style={[s.statusBadgeSmallText, { color: STATUS[tempStatus(todayRecord.temperature)].fg }]}>
-                        {STATUS[tempStatus(todayRecord.temperature)].label}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={s.lumiHint}>{lumiInterpretTemp(todayRecord.temperature)}</Text>
-                </>
-              ) : (
-                <Text style={s.emptyValue}>측정 안 함</Text>
-              )}
+            <TouchableOpacity style={s.measureBtn} onPress={() => {
+              setInputValue(todayRecord?.sleep_hours ? String(todayRecord.sleep_hours) : '');
+              setModalType('sl');
+            }}>
+              <Text style={s.measureBtnText}>수면 기록하기</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* ── 오늘의 건강 평가 ── */}
+        <View style={s.evalCard}>
+          <View style={s.evalHeader}>
+            <Lumi
+              mood={hasWarning ? 'worried' : todayRecord || liveSteps ? 'content' : 'happy'}
+              size={56}
+              bob={false}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={s.evalTitle}>오늘의 건강 평가</Text>
+              <View style={[s.evalBadge, { backgroundColor: hasWarning ? RED_BG : GREEN_BG }]}>
+                <Text style={[s.evalBadgeText, { color: hasWarning ? RED : GREEN_DK }]}>
+                  {hasWarning ? '⚠️ 살펴봐요' : '✅ 양호해요'}
+                </Text>
+              </View>
             </View>
           </View>
-          <TouchableOpacity style={s.measureBtn} onPress={() => setModalType('temp')}>
-            <Text style={s.measureBtnText}>지금 측정하기</Text>
-          </TouchableOpacity>
+          <Text style={s.evalSummary}>
+            {(() => {
+              const lines: string[] = [];
+              if (liveSteps != null) {
+                if (liveSteps >= 8000) lines.push(`오늘 ${liveSteps.toLocaleString()}보를 걸으셨어요. 정말 대단해요! 🎉`);
+                else if (liveSteps >= 5000) lines.push(`오늘 ${liveSteps.toLocaleString()}보 걸으셨네요. 조금만 더 걸으면 목표예요!`);
+                else lines.push(`오늘 걸음이 조금 부족해요. 짧은 산책도 도움이 돼요.`);
+              }
+              if (todayRecord?.blood_pressure_systolic) {
+                const st = bpStatus(todayRecord.blood_pressure_systolic, todayRecord.blood_pressure_diastolic);
+                if (st === 'danger') lines.push('혈압이 높게 나왔어요. 병원에 가보시는 게 좋아요.');
+                else if (st === 'caution') lines.push('혈압이 조금 높네요. 오늘은 편히 쉬세요.');
+                else lines.push('혈압이 정상이에요. 안심하세요 😊');
+              }
+              if (heartRate != null) {
+                if (heartRate < 60 || heartRate > 100) lines.push('심박수가 평소와 다르게 나왔어요. 쉬면서 지켜보세요.');
+              }
+              if (sleepHoursAuto != null && sleepHoursAuto < 6) {
+                lines.push('수면이 조금 부족해요. 오늘 일찍 주무세요.');
+              }
+              if (lines.length === 0) lines.push('오늘 기록을 채워가고 있어요. 루미가 함께 살펴볼게요 💜');
+              return lines.join('\n');
+            })()}
+          </Text>
+          <Text style={s.evalDisclaimer}>의학적 진단이 아니라, 기록을 보고 드리는 도움말이에요.</Text>
         </View>
 
         {/* Recent Records */}
@@ -718,7 +775,6 @@ export default function HealthScreen({ route, navigation }: any) {
             <Text style={s.modalTitle}>
               {modalType === 'bp' ? '혈압 측정값' :
                modalType === 'sg' ? '혈당 측정값' :
-               modalType === 'temp' ? '체온 측정값' :
                modalType === 'steps' ? '오늘 걸음수 수정' : '수면 시간'}
             </Text>
 
@@ -758,12 +814,11 @@ export default function HealthScreen({ route, navigation }: any) {
               <>
                 <Text style={s.modalHint}>
                   {modalType === 'sg' ? '혈당 수치 (예: 120)' :
-                   modalType === 'temp' ? '체온 (예: 36.5)' :
                    modalType === 'steps' ? '걸음수 (예: 6500)' : '수면 시간 (예: 7.5)'}
                 </Text>
                 <TextInput
                   style={s.modalInput}
-                  placeholder={modalType === 'sg' ? '120' : modalType === 'temp' ? '36.5' : modalType === 'steps' ? '6500' : '7.5'}
+                  placeholder={modalType === 'sg' ? '120' : modalType === 'steps' ? '6500' : '7.5'}
                   keyboardType={modalType === 'steps' ? 'number-pad' : 'decimal-pad'}
 
                   value={inputValue}
@@ -961,23 +1016,46 @@ const s = StyleSheet.create({
     marginTop: 6, lineHeight: 20,
   },
 
-  autoNotConnected: {
+  // 온보딩 카드 (미연결)
+  onboardCard: {
     marginHorizontal: 18, marginBottom: 12, padding: 20,
     borderRadius: 20, backgroundColor: '#fff',
     borderWidth: 1.5, borderColor: 'rgba(15,27,45,0.06)',
-    alignItems: 'center',
     shadowColor: '#1C3C6E', shadowOpacity: 0.06, shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 }, elevation: 1,
   },
-  autoNotConnectedIcons: { flexDirection: 'row', gap: 20, marginBottom: 12 },
-  autoIcon: { fontSize: 16, fontWeight: '700', color: INK_SOFT },
-  autoNotConnectedTitle: { fontSize: 18, fontWeight: '800', color: INK, marginBottom: 6 },
-  autoNotConnectedDesc:  { fontSize: 14, fontWeight: '600', color: INK_MUTE, marginBottom: 14, textAlign: 'center' },
+  onboardRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
+  onboardIcon: { fontSize: 22, width: 28, textAlign: 'center' },
+  onboardText: { flex: 1, fontSize: 17, fontWeight: '600', color: INK_SOFT, lineHeight: 24 },
+  onboardFamily: { fontSize: 14, color: INK_MUTE, textAlign: 'center', marginTop: 10 },
   connectBtn: {
-    paddingHorizontal: 20, paddingVertical: 10, borderRadius: 99,
-    backgroundColor: '#EFF6FF', borderWidth: 1.5, borderColor: BLUE,
+    height: 52, borderRadius: 14, backgroundColor: BLUE,
+    alignItems: 'center', justifyContent: 'center',
   },
-  connectBtnTxt: { fontSize: 14, fontWeight: '800', color: BLUE },
+  connectBtnTxt: { fontSize: 17, fontWeight: '800', color: '#fff' },
+
+  // 출처 칩
+  sourceChip: {
+    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 99,
+    backgroundColor: '#F0F4FF', borderWidth: 1, borderColor: '#C7D7F8',
+    marginLeft: 4,
+  },
+  sourceChipText: { fontSize: 11, fontWeight: '700', color: '#3B5FC0' },
+
+  // 오늘의 건강 평가
+  evalCard: {
+    marginHorizontal: 18, marginBottom: 12, padding: 20,
+    borderRadius: 20, backgroundColor: '#fff',
+    borderWidth: 1.5, borderColor: PURPLE,
+    shadowColor: '#1C3C6E', shadowOpacity: 0.06, shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 }, elevation: 1,
+  },
+  evalHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 14 },
+  evalTitle: { fontSize: 16, fontWeight: '900', color: PURPLE, marginBottom: 6 },
+  evalBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 99 },
+  evalBadgeText: { fontSize: 13, fontWeight: '800' },
+  evalSummary: { fontSize: 18, fontWeight: '600', color: INK_SOFT, lineHeight: 28, marginBottom: 12 },
+  evalDisclaimer: { fontSize: 12, color: INK_MUTE, lineHeight: 18 },
 
   connectedBar: {
     marginHorizontal: 18, marginBottom: 10, paddingVertical: 10, paddingHorizontal: 14,
