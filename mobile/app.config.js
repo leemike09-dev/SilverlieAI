@@ -85,6 +85,7 @@ module.exports = {
           compileSdkVersion: 35,
           targetSdkVersion: 35,
           minSdkVersion: 26,
+          newArchEnabled: false,
         },
       }],
     ],

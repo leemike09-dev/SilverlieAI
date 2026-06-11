@@ -134,7 +134,7 @@ async function readiOSData(): Promise<HealthNativeData> {
 
 async function requestAndroidPermissions(): Promise<boolean> {
   try {
-    const HC = await import('react-native-health-connect' as any);
+    const HC = await import('react-native-health-connect');
     const ok = await HC.initialize();
     if (!ok) return false;
     const granted = await HC.requestPermission([
@@ -156,7 +156,7 @@ async function readAndroidData(): Promise<HealthNativeData> {
     heartRateMax: null, sleepHours: null, spo2: null, hrv: null,
   };
   try {
-    const HC = await import('react-native-health-connect' as any);
+    const HC = await import('react-native-health-connect');
     const ok = await HC.initialize();
     if (!ok) return empty;
 
