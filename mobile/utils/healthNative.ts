@@ -133,7 +133,6 @@ async function readiOSData(): Promise<HealthNativeData> {
 // ─── Android Health Connect ───────────────────────────────────────────────────
 
 async function requestAndroidPermissions(): Promise<boolean> {
-  // 진단 정보를 단계별로 저장 — requestPermission 중 앱이 재시작되어도 이전 단계 정보 보존
   const diag: any = { ts: new Date().toISOString(), os: 'android', v: Platform.Version };
 
   try {
@@ -173,47 +172,53 @@ async function requestAndroidPermissions(): Promise<boolean> {
       return false;
     }
 
-    // 3단계: 기존 권한 확인
+    // 3단계: 기존 권한 확인 — 이미 있으면 바로 성공
     try {
       const existing = await HC.getGrantedPermissions();
       diag.existingGrants = (existing as any[]).map((g: any) => g.recordType).join(', ') || '없음';
+      if ((existing as any[]).length > 0) {
+        diag.step = 'already_granted';
+        diag.success = true;
+        diag.grantedCount = (existing as any[]).length;
+        await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
+        return true;
+      }
     } catch (e: any) {
       diag.existingGrantsErr = e?.message;
     }
 
-    // requestPermission()은 Android 16(API 36)에서 앱 크래시 확인됨
-    // → IntentLauncher로 HC 권한 페이지 직접 열기 (requestPermission 우회)
-    diag.step = 'trying_intent_launcher';
+    // 4단계: requestPermission 호출
+    // 이전 APK는 ACTION_SHOW_PERMISSIONS_RATIONALE 인텐트 필터로 인해 크래시됐으나
+    // 새 빌드에서는 플러그인 미포함으로 해당 필터 없음 → 정상 작동
+    diag.step = 'before_requestPermission';
     await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
 
+    const permissions = [
+      { accessType: 'read' as const, recordType: 'HeartRate' as const },
+      { accessType: 'read' as const, recordType: 'Steps' as const },
+      { accessType: 'read' as const, recordType: 'SleepSession' as const },
+      { accessType: 'read' as const, recordType: 'OxygenSaturation' as const },
+      { accessType: 'read' as const, recordType: 'HeartRateVariabilityRmssd' as const },
+    ];
+
+    let granted: any[] = [];
     try {
-      const IL = await import('expo-intent-launcher');
-      // MANAGE_HEALTH_PERMISSIONS: 우리 앱의 HC 권한 페이지 직접 오픈
-      await IL.startActivityAsync(
-        'android.health.connect.action.MANAGE_HEALTH_PERMISSIONS',
-        { extra: { 'android.health.connect.extra.PACKAGE_NAME': 'com.silverlifeai.app' } }
-      );
-      diag.step = 'manage_permissions_opened';
-      diag.success = true;
-      await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
-      return true;
+      granted = (await HC.requestPermission(permissions)) as any[];
+      diag.grantedCount = granted.length;
+      diag.grantedTypes = granted.map((g: any) => g.recordType).join(', ') || '없음';
+      diag.step = 'requestPermission_returned';
     } catch (e: any) {
-      diag.intentErr = e?.message;
-      // IntentLauncher 실패 시 일반 HC 설정으로 fallback
-      try {
-        await HC.openHealthConnectSettings();
-        diag.step = 'fallback_settings_opened';
-        diag.success = true;
-        await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
-        return true;
-      } catch (e2: any) {
-        diag.failAt = 'all_failed';
-        diag.settingsErr = (e2 as any)?.message;
-        await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
-        await logError('HC.openSettings_all_failed', e2);
-        return false;
-      }
+      diag.failAt = 'requestPermission';
+      diag.permErr = e?.message;
+      diag.permErrCode = e?.code;
+      await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
+      await logError('HC.requestPermission', e);
+      return false;
     }
+
+    diag.success = granted.length > 0;
+    await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
+    return diag.success;
 
   } catch (e: any) {
     diag.failAt = 'fatal'; diag.fatalErr = e?.message;

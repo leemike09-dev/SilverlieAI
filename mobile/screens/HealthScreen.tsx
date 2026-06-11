@@ -630,7 +630,7 @@ export default function HealthScreen({ route, navigation }: any) {
             <TouchableOpacity style={s.connectBtn} activeOpacity={0.8} onPress={handleConnectHealth}>
               <Text style={s.connectBtnTxt}>{Platform.OS === 'ios' ? '애플 건강' : 'Health Connect'} 열기</Text>
             </TouchableOpacity>
-            <Text style={s.onboardHint}>열리는 화면에서 "실버 라이프 AI"를 찾아 허용해 주세요</Text>
+            <Text style={s.onboardHint}>버튼을 누르면 Health Connect 권한 화면이 열립니다</Text>
             <Text style={s.onboardFamily}>가족이 대신 설정해 드릴 수도 있어요</Text>
             <TouchableOpacity onPress={showDiagnostic} style={{ paddingVertical: 8 }}>
               <Text style={s.diagLink}>🔍 연결이 안 되면 여기를 눌러주세요</Text>
