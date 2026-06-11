@@ -2,7 +2,7 @@ import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
-from app.routers import health, ai, users, community, notifications, news, medications, family, anomaly, location, appointments, moods
+from app.routers import health, ai, users, community, notifications, news, medications, family, anomaly, location, appointments, moods, push
 
 app = FastAPI(
     title="Silver Life AI API",
@@ -34,6 +34,7 @@ app.include_router(anomaly.router, prefix="/anomaly", tags=["anomaly"])
 app.include_router(location.router,     prefix="/location",     tags=["location"])
 app.include_router(appointments.router, prefix="/appointments", tags=["appointments"])
 app.include_router(moods.router,        prefix="/moods",        tags=["moods"])
+app.include_router(push.router,         prefix="/push",         tags=["push"])
 
 _WMO_KO = {
     0: "맑음", 1: "대체로 맑음", 2: "구름 조금", 3: "흐림",

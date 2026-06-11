@@ -28,11 +28,13 @@ export default function SOSScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
   const { userId, name } = route.params;
 
-  const [countdown,     setCountdown]    = useState(10);
-  const [locationText,  setLocationText] = useState('');
-  const [guardianNames, setGuardianNames] = useState('');
-  const [status,        setStatus]       = useState<SOSStatus>('getting-location');
-  const [cancelled,     setCancelled]    = useState(false);
+  const [countdown,       setCountdown]      = useState(10);
+  const [locationText,    setLocationText]   = useState('');
+  const [guardianNames,   setGuardianNames]  = useState('');
+  const [guardianPhone,   setGuardianPhone]  = useState('');
+  const [guardianFirst,   setGuardianFirst]  = useState('');
+  const [status,          setStatus]         = useState<SOSStatus>('getting-location');
+  const [cancelled,       setCancelled]      = useState(false);
 
   const countdownRef = useRef<any>(null);
   const pulseAnim    = useRef(new Animated.Value(1)).current;
@@ -58,16 +60,20 @@ export default function SOSScreen({ route, navigation }: any) {
   const spin = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
   useEffect(() => {
-    // 보호자 이름 로드
+    // 보호자 정보 로드
     AsyncStorage.getItem(`guardians.${userId}`).then(raw => {
       if (!raw) return;
       try {
-        const list: { name: string; relation: string }[] = JSON.parse(raw);
+        const list: { name: string; relation: string; phoneNumber?: string }[] = JSON.parse(raw);
         const formatted = list
           .slice(0, 3)
           .map(g => `${g.name}(${g.relation})`)
           .join(' · ');
         if (formatted) setGuardianNames(formatted);
+        if (list.length > 0) {
+          setGuardianFirst(list[0].name);
+          setGuardianPhone(list[0].phoneNumber || '');
+        }
       } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
     });
 
@@ -115,6 +121,10 @@ export default function SOSScreen({ route, navigation }: any) {
   const handleCall119 = () => {
     if (countdownRef.current) clearInterval(countdownRef.current);
     Linking.openURL('tel:119').catch(() => {});
+  };
+
+  const handleCallGuardian = () => {
+    if (guardianPhone) Linking.openURL(`tel:${guardianPhone}`).catch(() => {});
   };
 
   const handleCancel = () => {
@@ -220,6 +230,12 @@ export default function SOSScreen({ route, navigation }: any) {
 
       {/* 버튼 */}
       <View style={[s.btnArea, { paddingBottom: Math.max(insets.bottom + 16, 32) }]}>
+        {guardianPhone ? (
+          <TouchableOpacity style={s.btnGuardian} onPress={handleCallGuardian}>
+            <Ionicons name="call" size={26} color="#fff" />
+            <Text style={s.btnGuardianTxt}>{guardianFirst || '보호자'}에게 전화</Text>
+          </TouchableOpacity>
+        ) : null}
         <TouchableOpacity style={s.btn119} onPress={handleCall119}>
           <Ionicons name="call" size={28} color={RED} />
           <Text style={s.btn119Txt}>지금 바로 119 전화</Text>
@@ -304,6 +320,13 @@ const s = StyleSheet.create({
     minHeight: 76, paddingVertical: 20,
   },
   btn119Txt: { fontSize: 24, fontWeight: '900', color: RED },
+  btnGuardian: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 12, backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 20,
+    minHeight: 72, paddingVertical: 18,
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.7)',
+  },
+  btnGuardianTxt: { fontSize: 22, fontWeight: '900', color: '#fff' },
   btnCancel: {
     borderWidth: 2, borderColor: 'rgba(255,255,255,0.6)',
     borderRadius: 16, minHeight: 60,
