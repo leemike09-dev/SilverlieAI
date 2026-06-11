@@ -210,8 +210,7 @@ export default function HealthScreen({ route, navigation }: any) {
     try {
       const { requestHealthPermissions } = await import('../utils/healthNative');
       await requestHealthPermissions();
-      // 권한 요청 완료 후 즉시 상태 재확인 (AppState 레이스 컨디션 방지)
-      await loadHealthNative();
+      // HC 설정 화면을 열었으므로 사용자가 돌아올 때 AppState active로 자동 재확인
     } catch (e: any) {
       const { logError } = await import('../utils/errorLogger');
       await logError('handleConnectHealth', e);
@@ -611,8 +610,9 @@ export default function HealthScreen({ route, navigation }: any) {
               <Text style={s.onboardText}>내 건강 정보는 안전하게 보관 · 배터리 걱정 없어요</Text>
             </View>
             <TouchableOpacity style={s.connectBtn} activeOpacity={0.8} onPress={handleConnectHealth}>
-              <Text style={s.connectBtnTxt}>{Platform.OS === 'ios' ? '애플 건강' : '삼성 헬스'} 연결하기</Text>
+              <Text style={s.connectBtnTxt}>{Platform.OS === 'ios' ? '애플 건강' : 'Health Connect'} 열기</Text>
             </TouchableOpacity>
+            <Text style={s.onboardHint}>열리는 화면에서 "실버 라이프 AI"를 찾아 허용해 주세요</Text>
             <Text style={s.onboardFamily}>가족이 대신 설정해 드릴 수도 있어요</Text>
             <TouchableOpacity onPress={showDiagnostic} style={{ paddingVertical: 8 }}>
               <Text style={s.diagLink}>🔍 연결이 안 되면 여기를 눌러주세요</Text>
@@ -1061,7 +1061,8 @@ const s = StyleSheet.create({
   onboardRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
   onboardIcon: { fontSize: 22, width: 28, textAlign: 'center' },
   onboardText: { flex: 1, fontSize: 17, fontWeight: '600', color: INK_SOFT, lineHeight: 24 },
-  onboardFamily: { fontSize: 14, color: INK_MUTE, textAlign: 'center', marginTop: 10 },
+  onboardHint: { fontSize: 14, color: INK_SOFT, textAlign: 'center', marginTop: 8, lineHeight: 20 },
+  onboardFamily: { fontSize: 14, color: INK_MUTE, textAlign: 'center', marginTop: 6 },
   diagLink: { fontSize: 13, color: BLUE, textAlign: 'center', textDecorationLine: 'underline' },
   connectBtn: {
     height: 52, borderRadius: 14, backgroundColor: BLUE,

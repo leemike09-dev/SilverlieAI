@@ -181,32 +181,23 @@ async function requestAndroidPermissions(): Promise<boolean> {
       diag.existingGrantsErr = e?.message;
     }
 
-    // requestPermission 전 저장 — 이 호출 중 앱이 재시작되어도 이전 단계 기록 보존
-    diag.step = 'before_requestPermission';
+    // requestPermission()은 Android 16(API 36)에서 앱 크래시 확인됨 → openHealthConnectSettings() 사용
+    diag.step = 'opening_hc_settings';
     await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
 
-    // 4단계: 권한 요청
+    // 4단계: HC 설정 화면 열기 (사용자가 직접 권한 허용)
     try {
-      const granted = await HC.requestPermission([
-        { accessType: 'read', recordType: 'HeartRate' },
-        { accessType: 'read', recordType: 'Steps' },
-        { accessType: 'read', recordType: 'SleepSession' },
-        { accessType: 'read', recordType: 'OxygenSaturation' },
-        { accessType: 'read', recordType: 'HeartRateVariabilityRmssd' },
-      ]);
-      diag.step = 'requestPermission_returned';
-      diag.grantedCount = granted.length;
-      diag.grantedTypes = (granted as any[]).map((g: any) => g.recordType).join(', ') || '없음';
+      await HC.openHealthConnectSettings();
+      diag.step = 'hc_settings_opened';
       diag.success = true;
       await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
-      return granted.length > 0;
+      return true;
     } catch (e: any) {
-      diag.step = 'requestPermission_threw';
-      diag.permErr = e?.message;
-      diag.permErrCode = String(e?.code ?? '');
-      diag.failAt = 'requestPermission';
+      diag.step = 'openSettings_threw';
+      diag.settingsErr = e?.message;
+      diag.failAt = 'openHealthConnectSettings';
       await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
-      await logError('HC.requestPermission', e, { sdkStatus: diag.sdkStatus });
+      await logError('HC.openHealthConnectSettings', e);
       return false;
     }
 
@@ -272,9 +263,20 @@ async function readAndroidData(): Promise<HealthNativeData> {
     const hrv = hrvRecords.length > 0
       ? Math.round(hrvRecords[hrvRecords.length - 1].heartRateVariabilityMillis) : null;
 
-    // 권한 허용 여부로 connected 판단 (데이터 유무와 무관)
-    const granted = await HC.getGrantedPermissions().catch(() => []);
-    const isConnected = (granted as any[]).length > 0;
+    // 권한 확인 — getGrantedPermissions 우선, 빈 배열이면 실제 읽기로 재확인
+    let isConnected = false;
+    try {
+      const granted = await HC.getGrantedPermissions();
+      if ((granted as any[]).length > 0) isConnected = true;
+    } catch {}
+    if (!isConnected) {
+      // openHealthConnectSettings() 경유 허용 시 getGrantedPermissions가 빈 배열일 수 있음
+      // → 실제 Steps 읽기 시도로 권한 여부 재확인
+      try {
+        await HC.readRecords('Steps', range(startISO));
+        isConnected = true;
+      } catch {}
+    }
 
     return {
       connected: isConnected,
