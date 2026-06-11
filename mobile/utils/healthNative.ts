@@ -129,86 +129,18 @@ async function readiOSData(): Promise<HealthNativeData> {
 }
 
 // ─── Android Health Connect ───────────────────────────────────────────────────
-// react-native-health-connect 패키지 미설치 시 graceful fallback
-// TODO: 패키지 호환 버전 확정 후 재설치
+// TODO: react-native-health-connect Gradle 호환 해결 후 재연동
 
 async function requestAndroidPermissions(): Promise<boolean> {
-  try {
-    const HC = await import('react-native-health-connect');
-    const ok = await HC.initialize();
-    if (!ok) return false;
-    const granted = await HC.requestPermission([
-      { accessType: 'read', recordType: 'HeartRate' },
-      { accessType: 'read', recordType: 'Steps' },
-      { accessType: 'read', recordType: 'SleepSession' },
-      { accessType: 'read', recordType: 'OxygenSaturation' },
-      { accessType: 'read', recordType: 'HeartRateVariabilityRmssd' },
-    ]);
-    return granted.length > 0;
-  } catch {
-    return false;
-  }
+  return false; // 추후 구현
 }
 
 async function readAndroidData(): Promise<HealthNativeData> {
-  const empty: HealthNativeData = {
+  // TODO: react-native-health-connect Gradle 호환 해결 후 구현
+  return {
     connected: false, heartRate: null, heartRateMin: null,
     heartRateMax: null, sleepHours: null, spo2: null, hrv: null,
   };
-  try {
-    const HC = await import('react-native-health-connect');
-    const ok = await HC.initialize();
-    if (!ok) return empty;
-
-    const nowISO = new Date().toISOString();
-    const startISO = midnight().toISOString();
-    const sleepISO = yesterday().toISOString();
-    const range = (start: string) => ({
-      timeRangeFilter: { operator: 'between' as const, startTime: start, endTime: nowISO },
-    });
-
-    const hrResult = await HC.readRecords('HeartRate', range(startISO)).catch(() => ({ records: [] }));
-    const hrValues = (hrResult as any).records.flatMap((r: any) =>
-      (r.samples || []).map((s: any) => s.beatsPerMinute)
-    ).filter((v: number) => v > 0);
-
-    const spo2Result = await HC.readRecords('OxygenSaturation', range(startISO)).catch(() => ({ records: [] }));
-    const spo2Records = (spo2Result as any).records;
-    const spo2 = spo2Records.length > 0
-      ? Math.round(spo2Records[spo2Records.length - 1].percentage * 100)
-      : null;
-
-    const sleepResult = await HC.readRecords('SleepSession', range(sleepISO)).catch(() => ({ records: [] }));
-    const sleepMs = (sleepResult as any).records.reduce((acc: number, r: any) => {
-      const stages = r.stages || [];
-      const sleepStages = stages.filter((s: any) =>
-        ['SLEEPING', 'LIGHT', 'DEEP', 'REM'].includes(s.stage)
-      );
-      if (sleepStages.length > 0) {
-        return acc + sleepStages.reduce((a: number, s: any) =>
-          a + (new Date(s.endTime).getTime() - new Date(s.startTime).getTime()), 0);
-      }
-      return acc + (new Date(r.endTime).getTime() - new Date(r.startTime).getTime());
-    }, 0);
-
-    const hrvResult = await HC.readRecords('HeartRateVariabilityRmssd', range(startISO)).catch(() => ({ records: [] }));
-    const hrvRecords = (hrvResult as any).records;
-    const hrv = hrvRecords.length > 0
-      ? Math.round(hrvRecords[hrvRecords.length - 1].heartRateVariabilityMillis)
-      : null;
-
-    return {
-      connected: hrValues.length > 0 || spo2 !== null || sleepMs > 0,
-      heartRate: hrValues.length > 0 ? hrValues[hrValues.length - 1] : null,
-      heartRateMin: hrValues.length > 0 ? Math.min(...hrValues) : null,
-      heartRateMax: hrValues.length > 0 ? Math.max(...hrValues) : null,
-      sleepHours: sleepMs > 0 ? Math.round((sleepMs / 3600000) * 10) / 10 : null,
-      spo2,
-      hrv,
-    };
-  } catch {
-    return empty;
-  }
 }
 
 // ─── 통합 공개 API ─────────────────────────────────────────────────────────────
