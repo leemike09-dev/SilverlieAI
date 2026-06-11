@@ -12,8 +12,9 @@ const { width, height } = Dimensions.get('window');
 const isNative = Platform.OS !== 'web';
 
 export default function IntroScreen({ navigation }: any) {
-  const insets   = useSafeAreaInsets();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const insets    = useSafeAreaInsets();
+  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const navigating = useRef(false);
 
   const player1 = useVideoPlayer(require('../assets/lumi3.mp4'), (p: any) => {
     p.muted = true;
@@ -21,12 +22,25 @@ export default function IntroScreen({ navigation }: any) {
     p.play();
   });
 
-  const handleLogin = async () => {
-    await AsyncStorage.setItem('onboarding_seen', '1');
+  const handleLogin = () => {
+    if (navigating.current) return;
+    navigating.current = true;
+    player1.pause();
+    AsyncStorage.setItem('onboarding_seen', '1').catch(() => {});
     navigation.replace('Login');
   };
-  const handleStart = () => navigation.replace('Onboarding');
-  const handleGuest = () => navigation.replace('Onboarding', { isGuest: true });
+  const handleStart = () => {
+    if (navigating.current) return;
+    navigating.current = true;
+    player1.pause();
+    navigation.replace('Onboarding');
+  };
+  const handleGuest = () => {
+    if (navigating.current) return;
+    navigating.current = true;
+    player1.pause();
+    navigation.replace('Onboarding', { isGuest: true });
+  };
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
