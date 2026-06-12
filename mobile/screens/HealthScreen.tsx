@@ -1124,7 +1124,7 @@ const s = StyleSheet.create({
   },
   spo2GaugeFill: { height: '100%', borderRadius: 5 },
 
-  stepsLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  stepsLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' },
   autoBadge: {
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
     backgroundColor: '#E6F4E2',
