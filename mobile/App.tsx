@@ -148,7 +148,7 @@ export default function App() {
       stepTrackingInProgress = true;
       try {
         const { Pedometer } = await import('expo-sensors');
-        const { status } = await Pedometer.getPermissionsAsync();
+        const { status } = await Pedometer.requestPermissionsAsync();
         if (status !== 'granted') return;
         const available = await Pedometer.isAvailableAsync();
         if (!available) return;
