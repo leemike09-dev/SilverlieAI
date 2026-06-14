@@ -71,6 +71,33 @@ CAT_KEYWORDS = {
 EMERGENCY_WORDS  = ['흉통','가슴통증','호흡곤란','숨막','마비','의식','쓰러','졸도','심정지']
 DOCTOR_KEYWORDS  = ['병원', '진료', '의사', '내원', '검사받']
 
+# LLM 우회 즉시 응급 라우팅 — 아래 키워드 감지 시 문진 없이 119 안내 먼저
+URGENT_BYPASS_WORDS = [
+    # 심장
+    '흉통', '가슴통증', '가슴이 아파', '가슴 조여', '가슴이 조여',
+    '가슴 답답', '가슴이 답답', '숨이 차', '숨이차', '숨막', '호흡곤란',
+    '숨쉬기 힘', '숨을 못 쉬',
+    # 뇌졸중 FAST
+    '팔에 힘이 없', '팔다리 마비', '한쪽 마비', '편마비',
+    '얼굴이 처져', '얼굴이 돌아', '얼굴 마비',
+    '말이 어눌', '말이 안 나', '언어장애', '말을 못 해',
+    '벼락두통', '벼락 맞은', '갑자기 심한 두통', '평생 처음 두통',
+    '시야가 흐려', '눈이 갑자기 안', '시야장애',
+    '균형을 잡지 못', '균형을 잡을 수 없', '걷기가 갑자기 힘',
+    # 의식·심정지
+    '심정지', '의식 잃', '의식을 잃', '쓰러졌', '졸도', '기절했',
+    '뇌졸중', '뇌경색', '뇌출혈',
+]
+
+def is_urgent_bypass(message: str) -> bool:
+    return any(w in message for w in URGENT_BYPASS_WORDS)
+
+URGENT_HARDCODED_REPLY = (
+    "[RISK:CRITICAL] 지금 증상은 한시가 급할 수 있어요. "
+    "무리하게 움직이지 마시고, 바로 **119**에 전화해 주세요. "
+    "가족분께도 알려주세요."
+)
+
 _OTHER_KW = [
     '친구', '이웃', '지인', '남편', '아내', '아들', '딸', '부모님',
     '형제', '어머니', '아버지', '누나', '오빠', '언니', '동생',
@@ -955,6 +982,22 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
 
     async def event_gen():
         import re as _re
+
+        # ── 응급 우선 라우팅 — LLM 호출 없이 즉시 119 안내 ──────────────────
+        if is_urgent_bypass(request.message):
+            yield f"data: {json.dumps({'token': URGENT_HARDCODED_REPLY}, ensure_ascii=False)}\n\n"
+            sos_sent = False
+            if request.user_id and request.user_id not in ("demo-user", "guest"):
+                uname = user_row.get('name', '사용자')
+                background_tasks.add_task(_send_family_alert, request.user_id, uname)
+                background_tasks.add_task(
+                    _save_chat_turn, request.user_id, request.message,
+                    URGENT_HARDCODED_REPLY, 'critical', 'bypass'
+                )
+                sos_sent = True
+            yield f"data: {json.dumps({'done': True, 'risk_level': 'critical', 'doctor_memo_needed': False, 'doctor_memo': None, 'is_final': False, 'sos_sent': sos_sent, 'profile_updates': []}, ensure_ascii=False)}\n\n"
+            return
+
         full_text = ""
         try:
             client_ai = anthropic.Anthropic(api_key=api_key)
