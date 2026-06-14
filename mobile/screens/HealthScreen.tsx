@@ -911,6 +911,16 @@ export default function HealthScreen({ route, navigation }: any) {
                   )}
                 </View>
               </View>
+              {/* HC 연결됐지만 혈압 데이터 없음 → 권한 추가 버튼 */}
+              {healthConnected && !displayBp && Platform.OS === 'android' && (
+                <TouchableOpacity
+                  style={[s.measureBtn, { backgroundColor: '#E6EDF7', marginBottom: 6 }]}
+                  onPress={handleConnectHealth}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[s.measureBtnText, { color: '#3B5FA0' }]}>⌚ 갤럭시 워치 혈압 연결하기</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity style={s.measureBtn} onPress={() => setModalType('bp')}>
                 <Text style={s.measureBtnText}>{displayBp ? '다시 측정하기' : '지금 측정하기'}</Text>
               </TouchableOpacity>
