@@ -911,8 +911,8 @@ export default function HealthScreen({ route, navigation }: any) {
                   )}
                 </View>
               </View>
-              {/* HC 연결됐지만 혈압 데이터 없음 → 권한 추가 버튼 */}
-              {healthConnected && !displayBp && Platform.OS === 'android' && (
+              {/* Android: HC 혈압 자동값 없으면 항상 연결 버튼 표시 */}
+              {!hcBp && Platform.OS === 'android' && (
                 <TouchableOpacity
                   style={[s.measureBtn, { backgroundColor: '#E6EDF7', marginBottom: 6 }]}
                   onPress={handleConnectHealth}
