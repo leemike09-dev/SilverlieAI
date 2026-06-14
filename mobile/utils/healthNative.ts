@@ -298,14 +298,6 @@ async function readAndroidData(): Promise<HealthNativeData> {
       if (d && typeof d === 'object') return d.packageName ?? '';
       return '';
     };
-    // 디버그: 실제 패키지명 목록 기록 (진단 후 제거 가능)
-    const originMap: Record<string, number> = {};
-    allStepsRecords.forEach((r: any) => {
-      const o = getOrigin(r);
-      originMap[o] = (originMap[o] || 0) + (r.count || 0);
-    });
-    await AsyncStorage.setItem('hc_steps_origins', JSON.stringify(originMap)).catch(() => {});
-
     const shealthRecords = allStepsRecords.filter((r: any) =>
       SHEALTH_PKGS.includes(getOrigin(r))
     );
