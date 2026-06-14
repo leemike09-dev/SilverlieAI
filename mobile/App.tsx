@@ -154,19 +154,36 @@ export default function App() {
         if (!available) return;
         if (stepSub) { stepSub.remove(); stepSub = null; }
         stepSub = Pedometer.watchStepCount(async (result) => {
-          const today = new Date().toDateString();
-          const currentTotal = result.steps;
-          const raw = await AsyncStorage.getItem('step_baseline_android');
-          const baseline = raw ? JSON.parse(raw) : null;
-          if (!baseline || baseline.date !== today) {
-            // 새 날 — 현재 누적값을 기준값으로 저장, 오늘 걸음 0
-            await AsyncStorage.setItem('step_baseline_android', JSON.stringify({ date: today, total: currentTotal }));
-            await AsyncStorage.setItem('steps_today_android', '0');
-          } else {
-            // 오늘 걸음 = 현재 누적 - 기준값
-            const todaySteps = Math.max(0, currentTotal - baseline.total);
-            await AsyncStorage.setItem('steps_today_android', String(todaySteps));
-          }
+          try {
+            const today = new Date().toDateString();
+            const currentTotal = result.steps;
+            const raw = await AsyncStorage.getItem('step_baseline_android');
+            const baseline = raw ? JSON.parse(raw) : null;
+
+            if (!baseline || baseline.date !== today) {
+              // 새 날이거나 첫 실행
+              // HC가 이미 오늘 걸음수를 steps_today_android에 저장했을 수 있음
+              // → 씨앗값으로 사용해 baseline.total 역산: total = sensor - hcSteps
+              let seedSteps = 0;
+              try {
+                const dateRaw = await AsyncStorage.getItem('steps_today_android_date');
+                const stepsRaw = await AsyncStorage.getItem('steps_today_android');
+                if (dateRaw === today && stepsRaw) seedSteps = parseInt(stepsRaw) || 0;
+              } catch {}
+              const baselineTotal = Math.max(0, currentTotal - seedSteps);
+              await AsyncStorage.setItem('step_baseline_android', JSON.stringify({
+                date: today, total: baselineTotal,
+              }));
+              // seedSteps > 0이면 steps_today_android는 HC가 이미 올바르게 세팅했으므로 건드리지 않음
+              if (seedSteps === 0) {
+                await AsyncStorage.setItem('steps_today_android', '0');
+              }
+            } else {
+              // 같은 날: 누적 센서값 - 기준값 = 오늘 걸음수
+              const todaySteps = Math.max(0, currentTotal - baseline.total);
+              await AsyncStorage.setItem('steps_today_android', String(todaySteps));
+            }
+          } catch (e: any) { if (__DEV__) console.warn('[stepTracking]', e); }
         });
       } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
       finally { stepTrackingInProgress = false; }
