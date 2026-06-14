@@ -922,25 +922,30 @@ export default function HealthScreen({ route, navigation }: any) {
                   )}
                 </View>
               </View>
-              {/* Android: HC 혈압 자동값 없으면 항상 연결 버튼 표시 */}
+              {/* Android: HC 혈압 자동값 없으면 항상 연결 버튼 + 진단 링크 표시 */}
               {!hcBp && Platform.OS === 'android' && (
-                <TouchableOpacity
-                  style={[s.measureBtn, { backgroundColor: '#E6EDF7', marginBottom: 6 }]}
-                  onPress={async () => {
-                    try {
-                      const HC = await import('react-native-health-connect');
-                      await HC.openHealthConnectSettings();
-                    } catch {
-                      Alert.alert(
-                        '안내',
-                        'Health Connect 앱을 직접 열어\n앱 권한 → Silver Life AI → 혈압을 허용해 주세요.'
-                      );
-                    }
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[s.measureBtnText, { color: '#3B5FA0' }]}>⌚ 갤럭시 워치 혈압 연결하기</Text>
-                </TouchableOpacity>
+                <>
+                  <TouchableOpacity
+                    style={[s.measureBtn, { backgroundColor: '#E6EDF7', marginBottom: 6 }]}
+                    onPress={async () => {
+                      try {
+                        const HC = await import('react-native-health-connect');
+                        await HC.openHealthConnectSettings();
+                      } catch {
+                        Alert.alert(
+                          '안내',
+                          'Health Connect 앱을 직접 열어\n앱 권한 → Silver Life AI → 혈압을 허용해 주세요.'
+                        );
+                      }
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[s.measureBtnText, { color: '#3B5FA0' }]}>⌚ 갤럭시 워치 혈압 연결하기</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={showDiagnostic} style={{ paddingVertical: 6, alignItems: 'center', marginBottom: 4 }}>
+                    <Text style={s.diagLink}>🔍 혈압 연결 진단 보기</Text>
+                  </TouchableOpacity>
+                </>
               )}
               <TouchableOpacity style={s.measureBtn} onPress={() => setModalType('bp')}>
                 <Text style={s.measureBtnText}>{displayBp ? '다시 측정하기' : '지금 측정하기'}</Text>
