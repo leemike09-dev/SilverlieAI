@@ -916,14 +916,15 @@ export default function HealthScreen({ route, navigation }: any) {
                 <TouchableOpacity
                   style={[s.measureBtn, { backgroundColor: '#E6EDF7', marginBottom: 6 }]}
                   onPress={async () => {
-                    Alert.alert(
-                      'Health Connect 혈압 권한',
-                      '갤럭시 워치 혈압 데이터를 읽으려면 권한이 필요합니다.\n\nHealth Connect를 열어 혈압 항목을 허용해 주세요.',
-                      [
-                        { text: '취소', style: 'cancel' },
-                        { text: 'Health Connect 열기', onPress: handleConnectHealth },
-                      ]
-                    );
+                    try {
+                      const HC = await import('react-native-health-connect');
+                      await HC.openHealthConnectSettings();
+                    } catch {
+                      Alert.alert(
+                        '안내',
+                        'Health Connect 앱을 직접 열어\n앱 권한 → Silver Life AI → 혈압을 허용해 주세요.'
+                      );
+                    }
                   }}
                   activeOpacity={0.8}
                 >
