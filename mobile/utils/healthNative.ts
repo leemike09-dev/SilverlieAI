@@ -191,27 +191,7 @@ async function requestAndroidPermissions(): Promise<boolean> {
       return false;
     }
 
-    // 3단계: 기존 권한 확인 — 이미 있으면 바로 성공
-    try {
-      const existing = await HC.getGrantedPermissions();
-      diag.existingGrants = (existing as any[]).map((g: any) => g.recordType).join(', ') || '없음';
-      if ((existing as any[]).length > 0) {
-        diag.step = 'already_granted';
-        diag.success = true;
-        diag.grantedCount = (existing as any[]).length;
-        await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
-        return true;
-      }
-    } catch (e: any) {
-      diag.existingGrantsErr = e?.message;
-    }
-
-    // 4단계: requestPermission 호출
-    // 이전 APK는 ACTION_SHOW_PERMISSIONS_RATIONALE 인텐트 필터로 인해 크래시됐으나
-    // 새 빌드에서는 플러그인 미포함으로 해당 필터 없음 → 정상 작동
-    diag.step = 'before_requestPermission';
-    await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
-
+    // 필요한 전체 권한 목록
     const permissions = [
       { accessType: 'read' as const, recordType: 'HeartRate' as const },
       { accessType: 'read' as const, recordType: 'Steps' as const },
@@ -220,6 +200,33 @@ async function requestAndroidPermissions(): Promise<boolean> {
       { accessType: 'read' as const, recordType: 'HeartRateVariabilityRmssd' as const },
       { accessType: 'read' as const, recordType: 'BloodPressure' as const },
     ];
+    const REQUIRED_TYPES = permissions.map(p => p.recordType);
+
+    // 3단계: 기존 권한 확인 — 필요한 권한이 모두 있을 때만 빠른 성공
+    // ⚠️ 일부만 있으면 requestPermission으로 나머지를 추가 요청해야 함
+    try {
+      const existing = await HC.getGrantedPermissions();
+      const grantedTypes = (existing as any[]).map((g: any) => g.recordType);
+      diag.existingGrants = grantedTypes.join(', ') || '없음';
+      const missingTypes = REQUIRED_TYPES.filter(t => !grantedTypes.includes(t));
+      diag.missingTypes = missingTypes.join(', ') || '없음';
+      if (missingTypes.length === 0) {
+        // 모든 권한 완비 → 즉시 성공
+        diag.step = 'already_granted_all';
+        diag.success = true;
+        diag.grantedCount = grantedTypes.length;
+        await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
+        return true;
+      }
+      // 일부 누락 → 아래 requestPermission으로 추가 요청
+      diag.step = 'partial_grant_need_more';
+    } catch (e: any) {
+      diag.existingGrantsErr = e?.message;
+    }
+
+    // 4단계: requestPermission 호출 (누락된 권한 포함 전체 재요청)
+    diag.step = 'before_requestPermission';
+    await AsyncStorage.setItem('hc_diag', JSON.stringify(diag));
 
     let granted: any[] = [];
     try {
