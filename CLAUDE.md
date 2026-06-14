@@ -351,6 +351,7 @@ DOCTOR_KEYWORDS = ['병원', '진료', '의사', '내원', '검사받']
 - [ ] 이번 주 마음 그래프 (HealthScreen)
 
 ### 빌드 / 배포
+- [ ] **EAS 빌드 필요 — 혈압 HC 연동** — `app.config.js`에 `android.permission.health.READ_BLOOD_PRESSURE` 추가 후 빌드. JS 코드(`healthNative.ts` + `HealthScreen.tsx`)는 빌드 시 함께 적용. HC 혈압 자동 표시 + 수동 입력 병행.
 - [ ] EAS Production Build (AAB/IPA)
 - [ ] TestFlight 베타 (iOS)
 - [ ] **EAS 빌드 후 반드시 실행** — 동선 기록 기능 테스트

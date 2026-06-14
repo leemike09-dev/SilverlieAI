@@ -25,7 +25,11 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
-        "android.permission.POST_NOTIFICATIONS"
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.READ_SLEEP",
+        "android.permission.health.READ_OXYGEN_SATURATION"
       ],
       "intentFilters": [
         {
@@ -63,7 +67,8 @@
         {
           "kakaoAppKey": "8f40217a9768056a44ce78516d2f5858"
         }
-      ]
+      ],
+      "./plugins/fixHCRationale.js"
     ],
     "extra": {
       "eas": {

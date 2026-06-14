@@ -10,6 +10,7 @@ export interface HealthNativeData {
   sleepHours: number | null;
   spo2: number | null;
   hrv: number | null; // AI 분석용, 화면 미표시
+  steps: number | null;
 }
 
 const midnight = () => {
@@ -56,7 +57,7 @@ async function requestiOSPermissions(): Promise<boolean> {
 async function readiOSData(): Promise<HealthNativeData> {
   const empty: HealthNativeData = {
     connected: false, heartRate: null, heartRateMin: null,
-    heartRateMax: null, sleepHours: null, spo2: null, hrv: null,
+    heartRateMax: null, sleepHours: null, spo2: null, hrv: null, steps: null,
   };
   try {
     const AppleHealthKit = (await import('react-native-health')).default;
@@ -124,6 +125,7 @@ async function readiOSData(): Promise<HealthNativeData> {
       sleepHours,
       spo2,
       hrv,
+      steps: null, // iOS는 HealthScreen에서 Pedometer로 직접 처리
     };
   } catch {
     return empty;
@@ -231,7 +233,7 @@ async function requestAndroidPermissions(): Promise<boolean> {
 async function readAndroidData(): Promise<HealthNativeData> {
   const empty: HealthNativeData = {
     connected: false, heartRate: null, heartRateMin: null,
-    heartRateMax: null, sleepHours: null, spo2: null, hrv: null,
+    heartRateMax: null, sleepHours: null, spo2: null, hrv: null, steps: null,
   };
   try {
     const HC = await import('react-native-health-connect');
@@ -282,15 +284,19 @@ async function readAndroidData(): Promise<HealthNativeData> {
     const hrv = hrvRecords.length > 0
       ? Math.round(hrvRecords[hrvRecords.length - 1].heartRateVariabilityMillis) : null;
 
+    // 걸음수: 자정부터 지금까지 HC 기록 합산
+    const stepsResult = await HC.readRecords('Steps', range(startISO)).catch(() => ({ records: [] }));
+    const stepsTotal = (stepsResult as any).records.reduce((acc: number, r: any) => acc + (r.count || 0), 0);
+
     // 권한 확인 — getGrantedPermissions 우선, 빈 배열이면 실제 읽기로 재확인
     let isConnected = false;
     try {
       const granted = await HC.getGrantedPermissions();
       if ((granted as any[]).length > 0) isConnected = true;
     } catch {}
+    if (!isConnected && stepsTotal > 0) isConnected = true;
     if (!isConnected) {
       // openHealthConnectSettings() 경유 허용 시 getGrantedPermissions가 빈 배열일 수 있음
-      // → 실제 Steps 읽기 시도로 권한 여부 재확인
       try {
         await HC.readRecords('Steps', range(startISO));
         isConnected = true;
@@ -305,6 +311,7 @@ async function readAndroidData(): Promise<HealthNativeData> {
       sleepHours: sleepMs > 0 ? Math.round((sleepMs / 3600000) * 10) / 10 : null,
       spo2,
       hrv,
+      steps: stepsTotal > 0 ? stepsTotal : null,
     };
   } catch {
     return empty;
@@ -324,6 +331,6 @@ export async function readHealthData(): Promise<HealthNativeData> {
   if (Platform.OS === 'android') return readAndroidData();
   return {
     connected: false, heartRate: null, heartRateMin: null,
-    heartRateMax: null, sleepHours: null, spo2: null, hrv: null,
+    heartRateMax: null, sleepHours: null, spo2: null, hrv: null, steps: null,
   };
 }
