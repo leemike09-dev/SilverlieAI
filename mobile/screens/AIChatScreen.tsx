@@ -38,16 +38,51 @@ const C = {
   emRed:   '#D32F2F',
 };
 
-const QUICK_CARDS = [
-  { emoji: '💊', label: '약을 깜박하고\n못 먹었어요',    color: '#3949AB', bg: '#E8EAF6' },
-  { emoji: '💗', label: '혈압이 높게\n나왔어요',          color: '#C62828', bg: '#FFEBEE' },
-  { emoji: '😔', label: '기분이 울적하고\n외로워요',      color: '#7B1FA2', bg: '#F3E5F5' },
-  { emoji: '🦴', label: '무릎·관절이\n아파요',            color: '#E65100', bg: '#FFF3E0' },
-  { emoji: '😴', label: '밤에 잠이\n안 와요',             color: '#1565C0', bg: '#E3F2FD' },
-  { emoji: '😵', label: '어지럽고\n쓰러질 것 같아요',     color: '#6A1B9A', bg: '#EDE7F6' },
-  { emoji: '🍽️', label: '밥맛이 없고\n식욕이 없어요',    color: '#00695C', bg: '#E0F2F1' },
-  { emoji: '🚶', label: '오늘 산책해도\n될까요?',          color: '#2E7D32', bg: '#E8F5E9' },
+// ── Lumi 지식베이스 기반 추천 질문 ──────────────────────────────────
+const DOMAIN_EMOJI: Record<string, string> = {
+  BP: '💗', GLU: '🩸', SLP: '😴', MED: '💊',
+  HRT: '💓', RESP: '😤', EXE: '🚶', NUT: '🍽️',
+  COG: '🧠', PAIN: '🦴', MOOD: '😔', DEV: '📱',
+  SEAS: '🌡️', EMG: '🚨',
+};
+
+function buildQuickCards(): { emoji: string; label: string }[] {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const kb = require('../assets/lumi-chat-kb.json') as { entries: any[] };
+    const seen = new Set<string>();
+    const result: { emoji: string; label: string }[] = [];
+    // approved 우선, 그 다음 review — draft·EMG(응급) 제외
+    const sorted = [...kb.entries].sort((a, b) => {
+      const rank = { approved: 0, review: 1, draft: 2 };
+      return (rank[a.status as keyof typeof rank] ?? 2) - (rank[b.status as keyof typeof rank] ?? 2);
+    });
+    for (const e of sorted) {
+      if (e.domain === 'EMG' || e.status === 'draft') continue;
+      if (seen.has(e.domain)) continue;
+      seen.add(e.domain);
+      const variant = e.variants?.[0] ?? e.intent;
+      result.push({ emoji: DOMAIN_EMOJI[e.domain] ?? '💬', label: variant });
+      if (result.length >= 8) break;
+    }
+    return result.length > 0 ? result : QUICK_CARDS_FALLBACK;
+  } catch {
+    return QUICK_CARDS_FALLBACK;
+  }
+}
+
+const QUICK_CARDS_FALLBACK = [
+  { emoji: '💊', label: '약을 깜박하고 못 먹었어요' },
+  { emoji: '💗', label: '혈압이 높게 나왔어요' },
+  { emoji: '😔', label: '기분이 울적하고 외로워요' },
+  { emoji: '🦴', label: '무릎·관절이 아파요' },
+  { emoji: '😴', label: '밤에 잠이 안 와요' },
+  { emoji: '😵', label: '어지럽고 쓰러질 것 같아요' },
+  { emoji: '🍽️', label: '밥맛이 없고 식욕이 없어요' },
+  { emoji: '🚶', label: '오늘 산책해도 될까요?' },
 ];
+
+const QUICK_CARDS = buildQuickCards();
 
 // ── Intent 분류 ──
 type Intent = 'emergency' | 'crisis' | 'emotional' | 'cognitive' | 'health' | 'daily';

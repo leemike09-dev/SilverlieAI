@@ -23,6 +23,39 @@ try:
 except Exception as _e:
     print(f'[WARNING] QA DB 로드 실패: {_e}')
 
+# Lumi 상담창 지식베이스 로드
+_KB_ENTRIES: List[dict] = []
+try:
+    _kb_path = os.path.join(os.path.dirname(__file__), '..', 'lumi-chat-kb.json')
+    with open(_kb_path, 'r', encoding='utf-8') as _f:
+        _kb_data = json.load(_f)
+        _KB_ENTRIES = _kb_data.get('entries', [])
+    print(f'[Lumi KB] {len(_KB_ENTRIES)}개 항목 로드 완료')
+except Exception as _e:
+    print(f'[WARNING] Lumi KB 로드 실패: {_e}')
+
+
+def build_kb_context() -> str:
+    """지식베이스 항목을 시스템 프롬프트 grounding 블록으로 변환."""
+    if not _KB_ENTRIES:
+        return ""
+    risk_ko = {'info': '정보', 'caution': '주의', 'urgent': '긴급'}
+    lines = ["\n[Lumi 상담 지식베이스 — 도메인별 답변 가이드]",
+             "아래 항목의 answerTemplate은 답변 방향 가이드다. {슬롯}은 사용자 실제 데이터로 채워라.",
+             "guardrails(금지)와 riskLevel(위험도)을 반드시 따를 것.\n"]
+    for e in _KB_ENTRIES:
+        risk = risk_ko.get(e.get('riskLevel', 'info'), '정보')
+        lines.append(f"[{e['id']} | {risk}] {e['intent']}")
+        tmpl = e.get('answerTemplate', '')
+        if tmpl:
+            # 너무 길면 첫 150자만
+            lines.append(f"  답변방향: {tmpl[:150]}{'...' if len(tmpl) > 150 else ''}")
+        guards = e.get('guardrails', [])
+        if guards:
+            lines.append(f"  금지: {' / '.join(guards)}")
+        lines.append("")
+    return "\n".join(lines)
+
 CAT_KEYWORDS = {
     '약물':        ['약','복용','먹','처방','부작용','약물'],
     '당뇨':        ['혈당','당뇨','인슐린'],
@@ -481,7 +514,8 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         "  CASE F: 암 이력 + 최근 활동 감소 추세 → '요 며칠 활동이 줄어든 것 같아 같이 살펴보고 싶어요. 다음 진료 때 이 기록을 보여드리면 좋아요.' (겁주지 않기)\n"
         "  CASE G: 뇌졸중 이력 + 혈압 급등 → 민감도↑, '뇌졸중 겪으셨던 만큼 조심하는 게 좋아요. 편히 쉬시고 며칠 이어지면 알려드릴게요.'\n"
         "  CASE H: 혈당 165 + 당뇨약 복용 중 → '식사 후라 조금 높을 수 있어요. 약 챙겨 드셨으면 너무 걱정 마세요.'\n\n"
-        "[답변 원칙]\n"
+        + build_kb_context()
+        + "[답변 원칙]\n"
         + (f"1. 첫 번째 답변이므로 반드시 '{name}님'으로 시작할 것\n" if turn_count == 0 else
            f"1. 두 번째 이후 답변: '{name}님'으로 시작하지 말 것. 자연스럽게 대화를 이어갈 것\n")
         +
