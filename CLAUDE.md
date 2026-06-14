@@ -320,13 +320,22 @@ DOCTOR_KEYWORDS = ['병원', '진료', '의사', '내원', '검사받']
 - [x] **HealthScreen ⑭-A** — 2그룹 + 체온 + 루미 해석 + 연결 안 됨 카드
 - [x] **korean-lunar-calendar** 설치 (v0.3.6)
 
+## ✅ 2026-06-13~14 완료 (건강 평가 + HC 버그 수정)
+
+- [x] **HealthProfileScreen 개편** — 만성질환 칩 선택(`CONDITIONS_OPTS`), 과거병력 칩+연도+상태(`PastEvent`), 가족력 칩 추가. 구 `history: string[]` / `diseases: string` 마이그레이션 호환.
+- [x] **HealthScreen buildContextEval** — 4슬롯 프레임워크(인사·관찰·맥락·행동) 루미 해석. 혈압약·당뇨약·뇌졸중·암·골절 이력 반영 9케이스.
+- [x] **백엔드 AI 건강 평가 가이드** — `build_system_prompt()`에 conditions/pastHistory/familyHistory 파싱 + `[건강 평가·답변 가이드]` 블록 (4슬롯·7가드레일·8케이스 A~H).
+- [x] **HC 걸음수 이중합산 수정** — `healthNative.ts` `getOrigin()` 헬퍼로 `dataOrigin` string/object 양쪽 처리. Samsung Health 패키지(`com.sec.android.app.shealth`) 필터로 갤럭시 워치 중복 제거.
+- [x] **Pedometer mid-day 재시작 버그 수정** — `App.tsx` 베이스라인 역산 로직: HC가 저장한 `steps_today_android` 씨앗값으로 `baseline.total = sensor - hcSteps` 계산 → 재시작 후 0 리셋 방지.
+- [x] **혈압 HC 자동 읽기 JS 완료** — `healthNative.ts` BloodPressure 권한·읽기(iOS/Android), `HealthScreen.tsx` `hcBp` 상태·"워치 자동" 뱃지·수동 우선 로직, `app.config.js` `READ_BLOOD_PRESSURE` 추가. **EAS 빌드 시 활성화.**
+
 ---
 
 ## 🔴 남은 작업
 
 ### 스토어 출시 전 필수
 - [ ] **인트로 화면** — 디자인과 협업 중
-- [ ] **건강 기기 연동 (⑭-B)** — HealthKit(iOS) / Health Connect(Android), 별도 세션
+- [ ] **건강 기기 연동 (⑭-B)** — 걸음·심박·수면·혈압 JS 완료. EAS 빌드 후 갤럭시 워치 혈압 자동 표시 활성화.
 - [ ] **SOSScreen 가족 전화번호 실제 연동**
 - [ ] **NotificationsScreen** — 진입 경로 없음, 홈 🔔 버튼 추가 필요
 - [ ] **WeeklyReport 나이 하드코딩** — `userAge = 70` → 건강프로필 연동
@@ -351,7 +360,7 @@ DOCTOR_KEYWORDS = ['병원', '진료', '의사', '내원', '검사받']
 - [ ] 이번 주 마음 그래프 (HealthScreen)
 
 ### 빌드 / 배포
-- [ ] **EAS 빌드 필요 — 혈압 HC 연동** — `app.config.js`에 `android.permission.health.READ_BLOOD_PRESSURE` 추가 후 빌드. JS 코드(`healthNative.ts` + `HealthScreen.tsx`)는 빌드 시 함께 적용. HC 혈압 자동 표시 + 수동 입력 병행.
+- [ ] **EAS 빌드 필요 — 혈압 HC 활성화** — JS 코드·권한 모두 준비 완료. 빌드하면 갤럭시 워치 혈압 자동 읽기 즉시 작동. (수동 입력 병행, 수동 우선)
 - [ ] EAS Production Build (AAB/IPA)
 - [ ] TestFlight 베타 (iOS)
 - [ ] **EAS 빌드 후 반드시 실행** — 동선 기록 기능 테스트
