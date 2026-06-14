@@ -284,9 +284,34 @@ async function readAndroidData(): Promise<HealthNativeData> {
     const hrv = hrvRecords.length > 0
       ? Math.round(hrvRecords[hrvRecords.length - 1].heartRateVariabilityMillis) : null;
 
-    // 걸음수: 자정부터 지금까지 HC 기록 합산
+    // 걸음수: 자정부터 지금까지 HC 기록
+    // 갤럭시에서 Samsung Health(폰) + Galaxy Watch가 각각 HC에 기록 → 단순 합산 시 2배
+    // Samsung Health 메인 앱 패키지만 필터링 (폰+워치 중복 제거 후 HC에 기록)
+    const SHEALTH_PKGS = ['com.sec.android.app.shealth', 'com.samsung.health'];
     const stepsResult = await HC.readRecords('Steps', range(startISO)).catch(() => ({ records: [] }));
-    const stepsTotal = (stepsResult as any).records.reduce((acc: number, r: any) => acc + (r.count || 0), 0);
+    const allStepsRecords = (stepsResult as any).records;
+
+    // dataOrigin은 라이브러리 버전에 따라 string 또는 { packageName } 형태가 다름
+    const getOrigin = (r: any): string => {
+      const d = r.metadata?.dataOrigin;
+      if (typeof d === 'string') return d;
+      if (d && typeof d === 'object') return d.packageName ?? '';
+      return '';
+    };
+    // 디버그: 실제 패키지명 목록 기록 (진단 후 제거 가능)
+    const originMap: Record<string, number> = {};
+    allStepsRecords.forEach((r: any) => {
+      const o = getOrigin(r);
+      originMap[o] = (originMap[o] || 0) + (r.count || 0);
+    });
+    await AsyncStorage.setItem('hc_steps_origins', JSON.stringify(originMap)).catch(() => {});
+
+    const shealthRecords = allStepsRecords.filter((r: any) =>
+      SHEALTH_PKGS.includes(getOrigin(r))
+    );
+    // Samsung Health 레코드가 있으면 그것만 사용 (중복 제거됨), 없으면 전체 합산
+    const recordsToSum = shealthRecords.length > 0 ? shealthRecords : allStepsRecords;
+    const stepsTotal = recordsToSum.reduce((acc: number, r: any) => acc + (r.count || 0), 0);
 
     // 권한 확인 — getGrantedPermissions 우선, 빈 배열이면 실제 읽기로 재확인
     let isConnected = false;
