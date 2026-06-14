@@ -310,13 +310,24 @@ async function readAndroidData(): Promise<HealthNativeData> {
       ? Math.round(hrvRecords[hrvRecords.length - 1].heartRateVariabilityMillis) : null;
 
     // 혈압: 갤럭시 워치 4/5/6/7이 HC에 기록 → 오늘 가장 최근 값 사용
-    const bpResult = await HC.readRecords('BloodPressure', range(startISO)).catch(() => ({ records: [] }));
+    // 오늘 자정 ~ 지금뿐만 아니라 어제 오후 6시부터도 포함 (워치 기록 시점 차이 대비)
+    const bpResult = await HC.readRecords('BloodPressure', range(sleepISO)).catch((e: any) => {
+      AsyncStorage.setItem('hc_bp_debug', JSON.stringify({ error: e?.message, at: new Date().toISOString() }));
+      return { records: [] };
+    });
     const bpRecords = (bpResult as any).records;
     const mmhg = (p: any): number => {
       if (typeof p === 'number') return Math.round(p);
       if (p?.inMillimetersOfMercury != null) return Math.round(p.inMillimetersOfMercury);
       return 0;
     };
+    // 디버그: 실제 레코드 구조 저장
+    await AsyncStorage.setItem('hc_bp_debug', JSON.stringify({
+      count: bpRecords.length,
+      range: { from: sleepISO, to: nowISO },
+      sample: bpRecords.length > 0 ? bpRecords[bpRecords.length - 1] : null,
+      at: new Date().toISOString(),
+    })).catch(() => {});
     const latestBp = bpRecords.length > 0 ? bpRecords[bpRecords.length - 1] : null;
     const bpSys = latestBp ? mmhg(latestBp.systolic) : 0;
     const bpDia = latestBp ? mmhg(latestBp.diastolic) : 0;

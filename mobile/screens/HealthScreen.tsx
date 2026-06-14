@@ -475,7 +475,18 @@ export default function HealthScreen({ route, navigation }: any) {
       d.sdkStatusErr ? `SDK 오류: ${d.sdkStatusErr}` : null,
       d.fatalErr ? `치명 오류: ${d.fatalErr}` : null,
     ].filter(Boolean).join('\n');
-    Alert.alert('Health Connect 진단', lines, [
+    // 혈압 디버그 추가
+    const bpRaw = await AsyncStorage.getItem('hc_bp_debug');
+    let bpLines = '';
+    if (bpRaw) {
+      const bp = JSON.parse(bpRaw);
+      if (bp.error) {
+        bpLines = `\n\n[혈압 HC]\n오류: ${bp.error}`;
+      } else {
+        bpLines = `\n\n[혈압 HC]\n레코드 수: ${bp.count}\n기간: ${(bp.range?.from||'').slice(0,16)} ~\n${bp.sample ? `샘플: ${JSON.stringify(bp.sample).slice(0,120)}` : '레코드 없음'}`;
+      }
+    }
+    Alert.alert('Health Connect 진단', lines + bpLines, [
       { text: '닫기' },
       { text: '초기화', style: 'destructive', onPress: () => AsyncStorage.removeItem('hc_diag') },
     ]);
