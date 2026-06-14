@@ -309,8 +309,34 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
     age    = user.get('age') or p.get('age', '')
     gender = user.get('gender') or p.get('gender', '')
 
-    diseases_list = p.get('diseases') or p.get('chronic_diseases') or user.get('chronic_diseases') or []
-    diseases      = ', '.join(diseases_list) if diseases_list else '없음'
+    # 현재 만성질환: conditions(신규 배열) → diseases(구 배열/문자열) 순으로 폴백
+    conditions_raw = p.get('conditions') or p.get('diseases') or p.get('chronic_diseases') or user.get('chronic_diseases') or []
+    if isinstance(conditions_raw, list):
+        diseases_list = conditions_raw
+    else:
+        diseases_list = [c.strip() for c in str(conditions_raw).split(',') if c.strip()]
+    diseases = ', '.join(diseases_list) if diseases_list else '없음'
+
+    # 과거 병력: PastEvent[] (신규) → history string[] (구) 순으로 폴백
+    past_raw = p.get('pastHistory') or p.get('history') or []
+    past_lines = []
+    for ev in past_raw:
+        if isinstance(ev, dict):
+            label   = ev.get('label', '')
+            status  = ev.get('status', '')
+            year    = ev.get('year', '')
+            status_ko = '완치됨' if status == 'resolved' else ('치료 중' if status == 'ongoing' else '')
+            parts_ev = [label]
+            if year:       parts_ev.append(f"{year}년")
+            if status_ko:  parts_ev.append(status_ko)
+            past_lines.append(' '.join(parts_ev))
+        elif isinstance(ev, str) and ev.strip():
+            past_lines.append(ev.strip())
+    past_history = ', '.join(past_lines) if past_lines else '없음'
+
+    # 가족력
+    family_raw = p.get('familyHistory') or []
+    family_history = ', '.join(family_raw) if family_raw else '없음'
 
     surg_list = p.get('surgeries', []) or []
     surgeries = ', '.join(
@@ -410,7 +436,9 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         "· 답변은 3~5문장, 마크다운(*, #, **) 사용 금지\n\n"
         "[환자 정보]\n"
         f"이름: {name}" + (f" ({age_gender})" if age_gender else "") + "\n"
-        f"만성질환: {diseases}\n"
+        f"현재 만성질환: {diseases}\n"
+        f"과거 병력: {past_history}\n"
+        f"가족력: {family_history}\n"
         f"수술 경력: {surgeries}\n"
         f"알레르기: {allergies}\n"
         f"현재 복용약: {meds_str}\n"
@@ -423,6 +451,36 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         f"생활습관: {habits}\n"
         + (f"[실시간 날씨 데이터] {weather_str} (GPS 기반 실시간 수집 완료)\n" if weather_str else "")
         + "\n"
+        "[건강 평가·답변 가이드 — 반드시 준수]\n"
+        "답변을 만들기 전에 아래 맥락 신호를 먼저 확인하고, 신호에 따라 말이 달라져야 한다.\n\n"
+        "▶ 맥락 신호 우선순위\n"
+        "① 복용약 — '혈압약 복용 중'이면 이미 진료 중. '병원 가보세요' 금지. 복약 확인 + 다음 진료 기록 활용.\n"
+        "② 과거 병력 — 완치됐어도 민감도 달라짐. 암 이력+하락 추세→worried 분기. 뇌졸중 이력+혈압 급등→즉각 주의.\n"
+        "③ 시간대 — 아침에 걸음수 부족은 '하루 막 시작'. 목표 안내만, 비교·질책 금지.\n"
+        "④ 추세 — 단발 수치로 경보 금지. 며칠 이어질 때만 언급.\n"
+        "⑤ 측정 시점 — 식후 혈당이 높은 건 자연스러움. 맥락 없이 '위험' 금지.\n\n"
+        "▶ 4슬롯 답변 틀 (건강 평가 시 적용)\n"
+        "  슬롯1 인사·시점: 시간대 반영해 짧게 (좋은 아침 / 오늘 하루 어떠셨어요)\n"
+        "  슬롯2 오늘의 관찰: 가장 의미 있는 지표 1~2개만. 정상 지표 줄줄이 나열 금지.\n"
+        "  슬롯3 맥락 해석: 왜 이 수치인지 — 약·프로필·추세·시점을 엮어 한 줄. 인구 평균이 아닌 그 사람 평소와 비교.\n"
+        "  슬롯4 한 가지 행동: 지금·여기서 가능한 것 하나. 질책·과제 금지.\n"
+        "  하단 고정: '의학적 진단이 아니라, 기록을 보고 드리는 도움말이에요.'\n\n"
+        "▶ 절대 금지 가드레일\n"
+        "  ✗ 오전에 부분-누적 걸음을 종일 목표와 비교\n"
+        "  ✗ 이미 복약 중인 질환에 '병원 가보세요' (복약=이미 진료 중)\n"
+        "  ✗ 단발 수치로 경보 (며칠 이어질 때만)\n"
+        "  ✗ 정상 지표를 장황히 칭찬·나열\n"
+        "  ✗ 진단·처방 표현 ('고혈압입니다', '~를 드세요')\n"
+        "  ✗ 식후 혈당을 공복 기준으로 판정\n\n"
+        "▶ 케이스 예시 (같은 수치, 맥락이 다르면 답이 달라야 한다)\n"
+        "  CASE A: 아침 걸음 1200보 → '오늘 목표 8000보예요. 천천히 시작해 볼까요?' (질책 금지)\n"
+        "  CASE B: 혈압 145/92 + 혈압약 복용 중 → '혈압약 잊지 않고 드셨어요? 며칠 이어지면 다음 진료 때 보여드려요.' ('병원 가세요' 금지)\n"
+        "  CASE C: 혈압 150/95 + 복약 없음 → '한 번 더 재보시고, 며칠 이어지면 병원에서 봐드리는 게 좋아요.'\n"
+        "  CASE D: 수면 5h + 평소 6.5h → '평소보다 조금 짧았어요. 낮엔 무리 마시고 잠깐 쉬어가세요.' (7시간 기준 질책 금지)\n"
+        "  CASE E: 전 지표 정상 → '오늘 컨디션 좋아 보여요. 어제처럼만 지내시면 충분해요.' (지표 나열 금지)\n"
+        "  CASE F: 암 이력 + 최근 활동 감소 추세 → '요 며칠 활동이 줄어든 것 같아 같이 살펴보고 싶어요. 다음 진료 때 이 기록을 보여드리면 좋아요.' (겁주지 않기)\n"
+        "  CASE G: 뇌졸중 이력 + 혈압 급등 → 민감도↑, '뇌졸중 겪으셨던 만큼 조심하는 게 좋아요. 편히 쉬시고 며칠 이어지면 알려드릴게요.'\n"
+        "  CASE H: 혈당 165 + 당뇨약 복용 중 → '식사 후라 조금 높을 수 있어요. 약 챙겨 드셨으면 너무 걱정 마세요.'\n\n"
         "[답변 원칙]\n"
         + (f"1. 첫 번째 답변이므로 반드시 '{name}님'으로 시작할 것\n" if turn_count == 0 else
            f"1. 두 번째 이후 답변: '{name}님'으로 시작하지 말 것. 자연스럽게 대화를 이어갈 것\n")

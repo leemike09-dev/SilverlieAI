@@ -74,6 +74,163 @@ const lumiInterpretSg = (v: number): string => {
   if (st === 'danger')  return '혈당이 높아요. 병원에 꼭 가보세요';
   return '혈당이 조금 높네요. 식사에 신경 써보세요';
 };
+
+// ─── 맥락 기반 오늘의 건강 평가 ────────────────────────────────
+interface CtxEvalInput {
+  todayRecord:   HealthRecord | null;
+  liveSteps:     number | null;
+  heartRate:     number | null;
+  sleepHoursAuto:number | null;
+  records:       HealthRecord[];
+  profile:       any;
+  medications:   any[];
+  now:           Date;
+}
+interface CtxEvalResult {
+  mood:    'happy' | 'content' | 'worried';
+  badge:   string;
+  badgeBg: string;
+  badgeFg: string;
+  text:    string;
+}
+
+function buildContextEval({
+  todayRecord, liveSteps, heartRate, sleepHoursAuto,
+  records, profile, medications, now,
+}: CtxEvalInput): CtxEvalResult {
+  const hour      = now.getHours();
+  const isMorning = hour < 12;
+  const isEvening = hour >= 17;
+
+  // 복약 중 질환 감지
+  const medNames   = medications.map((m: any) => (m.name || '') + ' ' + (m.type || ''));
+  const isOnBpMed  = medNames.some(n => /혈압/.test(n));
+  const isOnDmMed  = medNames.some(n => /당뇨|혈당|인슐린/.test(n));
+
+  // 과거 병력 (HealthProfileScreen에서 저장한 PastEvent[])
+  const past: any[]  = profile?.pastHistory || [];
+  const hasCancer    = past.some((e: any) => e.category === 'cancer');
+  const hasStroke    = past.some((e: any) => e.category === 'stroke');
+  const hasFracture  = past.some((e: any) => e.category === 'fracture');
+
+  const stepGoal = profile?.goals?.steps ?? 8000;
+
+  // 7일 추세
+  const recentBp  = records.slice(0, 7).filter(r => r.blood_pressure_systolic > 0);
+  const avgBpSys  = recentBp.length >= 3
+    ? recentBp.reduce((s, r) => s + r.blood_pressure_systolic, 0) / recentBp.length : null;
+  const recentSlp = records.slice(1, 8).filter(r => r.sleep_hours > 0);
+  const avgSleep  = recentSlp.length >= 2
+    ? recentSlp.reduce((s, r) => s + r.sleep_hours, 0) / recentSlp.length : null;
+
+  // CASE 08: 암 병력 + 활동량 하락 추세
+  let decliningActivity = false;
+  if (hasCancer && records.length >= 6) {
+    const r3 = records.slice(0, 3).map(r => r.steps).filter(s => s > 0);
+    const o3 = records.slice(3, 7).map(r => r.steps).filter(s => s > 0);
+    if (r3.length >= 2 && o3.length >= 2) {
+      const rAvg = r3.reduce((s, v) => s + v, 0) / r3.length;
+      const oAvg = o3.reduce((s, v) => s + v, 0) / o3.length;
+      if (rAvg < oAvg * 0.65) decliningActivity = true;
+    }
+  }
+
+  const parts: string[] = [];
+  let mood: 'happy' | 'content' | 'worried' = 'happy';
+  let issueCount = 0;
+
+  // ─ 걸음수 (CASE 01, 02) ─
+  if (liveSteps != null) {
+    if (isMorning) {
+      // CASE 01: 아침 → 목표 안내, 비교 금지
+      parts.push(`오늘 걸음 목표는 ${stepGoal.toLocaleString()}보예요. 천천히 시작해 볼까요?`);
+    } else if (liveSteps >= stepGoal) {
+      parts.push(`오늘 ${liveSteps.toLocaleString()}보를 걸으셨어요! 목표를 달성하셨네요 🎉`);
+      mood = 'content';
+    } else if (isEvening) {
+      // CASE 02: 저녁 + 부족 → 내일로 연결
+      parts.push(hasFracture
+        ? `오늘 ${liveSteps.toLocaleString()}보 걸으셨어요. 관절 생각해서 무리 안 하신 것도 잘하신 거예요. 내일 날 좋을 때 한 바퀴 어떠세요?`
+        : `오늘 ${liveSteps.toLocaleString()}보 걸으셨어요. 내일 산책 한 번 어떠세요?`);
+    }
+  }
+
+  // ─ 혈압 (CASE 03, 04, 뇌졸중 분기) ─
+  if (todayRecord?.blood_pressure_systolic && issueCount < 2) {
+    const st    = bpStatus(todayRecord.blood_pressure_systolic, todayRecord.blood_pressure_diastolic);
+    const bpStr = `${todayRecord.blood_pressure_systolic}/${todayRecord.blood_pressure_diastolic}`;
+    const trendBad = avgBpSys != null && avgBpSys > 135;
+
+    if (st === 'normal') {
+      if (parts.length === 0) { parts.push('혈압이 정상이에요. 안심하세요 😊'); mood = 'content'; }
+    } else if (isOnBpMed) {
+      // CASE 03: 이미 진료 중 → 복약 확인, "병원 가세요" 금지
+      parts.push(`오늘 혈압이 평소보다 조금 높네요 (${bpStr}). 혈압약은 잊지 않고 드셨어요? 며칠 이어지면 다음 진료 때 이 기록을 보여드리면 도움이 돼요.`);
+      if (trendBad) mood = 'worried';
+      issueCount++;
+    } else if (hasStroke && st === 'danger') {
+      // 뇌졸중 이력 + 위험 혈압 → 민감도↑
+      parts.push(`오늘 혈압이 꽤 높게 나왔어요 (${bpStr}). 뇌졸중 겪으셨던 만큼 조심하는 게 좋아요. 편히 쉬시고, 며칠 이어지면 바로 알려드릴게요.`);
+      mood = 'worried'; issueCount++;
+    } else if (st === 'danger') {
+      // CASE 04: 진료 기록 없음 → 부드러운 안내
+      parts.push(`오늘 혈압이 높게 나왔어요 (${bpStr}). 한 번 더 재보시고, 며칠 이어지면 병원에서 한 번 봐드리는 게 좋아요.`);
+      if (trendBad) mood = 'worried';
+      issueCount++;
+    } else {
+      parts.push('혈압이 조금 높네요. 오늘은 편히 쉬세요.'); issueCount++;
+    }
+  }
+
+  // ─ 혈당 (CASE 09) ─
+  if (todayRecord?.blood_sugar && issueCount < 2) {
+    const st = glucoseStatus(todayRecord.blood_sugar);
+    if (st !== 'normal') {
+      if (isOnDmMed) {
+        // CASE 09: 당뇨약 복용 중 → 식후 여부 감안, 겁 주지 않기
+        parts.push(`혈당이 좀 높게 나왔어요 (${todayRecord.blood_sugar}). 약 챙겨 드셨으면 너무 걱정 마세요. 식사 후라면 자연스러운 거예요.`);
+      } else if (st === 'danger') {
+        parts.push(`혈당이 높게 나왔어요 (${todayRecord.blood_sugar}). 식사 전후를 구분해서 재보시고, 며칠 이어지면 확인해 보세요.`);
+        issueCount++;
+      }
+    }
+  }
+
+  // ─ 수면 (CASE 05) ─
+  if (sleepHoursAuto != null && sleepHoursAuto < 7 && issueCount < 2) {
+    if (avgSleep != null && sleepHoursAuto < avgSleep - 0.5) {
+      // CASE 05: 인구 기준이 아닌 개인 평균 비교
+      parts.push(`어젯밤은 ${sleepHoursAuto}시간 주무셨어요. 평소(${avgSleep.toFixed(1)}시간)보단 조금 짧았어요. 낮엔 무리하지 마시고, 졸리면 잠깐 쉬어가세요.`);
+      issueCount++;
+    } else if (sleepHoursAuto < 5) {
+      parts.push(`어젯밤 수면이 ${sleepHoursAuto}시간으로 많이 부족했어요. 오늘은 좀 더 쉬어가세요.`);
+      issueCount++;
+    }
+  }
+
+  // ─ CASE 08: 암 병력 + 활동 하락 ─
+  if (decliningActivity) {
+    parts.push(`요 며칠 활동이 좀 줄어든 것 같아 같이 살펴보고 싶어요. 무리하지 마시고, 다음 진료 때 이 기록을 보여드리면 좋아요.`);
+    mood = 'worried';
+  }
+
+  // ─ CASE 07: 데이터 없음 / CASE 06: 전부 정상 ─
+  if (parts.length === 0) {
+    const anyData = !!todayRecord || liveSteps != null || heartRate != null || sleepHoursAuto != null;
+    if (!anyData) {
+      parts.push('아직 오늘 기록이 없어요. 기기를 연결하거나 직접 입력하면 루미가 함께 살펴볼게요 💜');
+    } else {
+      // CASE 06: 전 지표 정상 → 짧고 따뜻하게
+      parts.push('오늘 컨디션 좋아 보여요 💜 어제처럼만 지내시면 충분해요.');
+      mood = 'content';
+    }
+  }
+
+  const badge   = mood === 'worried' ? '⚠️ 살펴봐요' : mood === 'content' ? '✅ 양호해요' : '💜 함께 살펴요';
+  const badgeBg = mood === 'worried' ? RED_BG : mood === 'content' ? GREEN_BG : '#F0E9FF';
+  const badgeFg = mood === 'worried' ? RED    : mood === 'content' ? GREEN_DK : PURPLE;
+  return { mood, badge, badgeBg, badgeFg, text: parts.join('\n\n') };
+}
 interface HealthRecord {
   date: string;
   blood_pressure_systolic: number;
@@ -106,11 +263,28 @@ export default function HealthScreen({ route, navigation }: any) {
   const [sleepHoursAuto, setSleepHoursAuto] = useState<number | null>(null);
   const [spo2, setSpo2] = useState<number | null>(null);
 
+  // 맥락 기반 평가용 — 프로필 + 복약
+  const [healthProfile, setHealthProfile] = useState<any>(null);
+  const [medications,   setMedications]   = useState<any[]>([]);
+
   const todayKey = localDate();
 
   useEffect(() => {
     loadRecords();
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [profRaw, medsRaw] = await Promise.all([
+          AsyncStorage.getItem('health_profile'),
+          AsyncStorage.getItem(`medications.${userId}`),
+        ]);
+        if (profRaw) setHealthProfile(JSON.parse(profRaw));
+        if (medsRaw) setMedications(JSON.parse(medsRaw));
+      } catch {}
+    })();
+  }, [userId]);
 
   // Pedometer: 오늘 0시부터 누적 걸음수 실시간 구독
   useEffect(() => {
@@ -192,7 +366,26 @@ export default function HealthScreen({ route, navigation }: any) {
       if (data.heartRate) setHeartRate(data.heartRate);
       if (data.heartRateMin) setHeartRateMin(data.heartRateMin);
       if (data.heartRateMax) setHeartRateMax(data.heartRateMax);
-      if (data.sleepHours) setSleepHoursAuto(data.sleepHours);
+      if (data.sleepHours) {
+        setSleepHoursAuto(data.sleepHours);
+        // HC 수면 데이터를 health_records에도 저장 → 최근 기록 테이블에 표시
+        const raw = await AsyncStorage.getItem(`health_records.${userId}`);
+        const list = raw ? JSON.parse(raw) : [];
+        const idx = list.findIndex((r: any) => r.date === todayKey);
+        if (idx >= 0) {
+          list[idx] = { ...list[idx], sleep_hours: data.sleepHours };
+        } else {
+          list.push({ date: todayKey, blood_pressure_systolic: 0, blood_pressure_diastolic: 0,
+            blood_sugar: 0, heart_rate: 0, weight: 0, steps: 0, sleep_hours: data.sleepHours });
+        }
+        await AsyncStorage.setItem(`health_records.${userId}`, JSON.stringify(list));
+        loadRecords();
+      }
+      if (data.steps) {
+        // HC에서 오늘 자정부터 누적 걸음수 → liveSteps 및 AsyncStorage 갱신
+        setLiveSteps(data.steps);
+        await AsyncStorage.setItem('steps_today_android', String(data.steps));
+      }
       if (data.spo2) setSpo2(data.spo2);
       // HRV는 화면 미표시 — 백엔드 전송 (추후 AI 컨텍스트 반영)
       if (data.hrv && userId) {
@@ -387,6 +580,11 @@ export default function HealthScreen({ route, navigation }: any) {
       stepsStatus(todayRecord.steps),
       sleepStatus(todayRecord.sleep_hours),
     ].some(s => s !== 'normal') : false;
+
+  const ctxEval = buildContextEval({
+    todayRecord, liveSteps, heartRate, sleepHoursAuto,
+    records, profile: healthProfile, medications, now: new Date(),
+  });
 
 
   return (
@@ -749,44 +947,15 @@ export default function HealthScreen({ route, navigation }: any) {
         {/* ── 오늘의 건강 평가 ── */}
         <View style={s.evalCard}>
           <View style={s.evalHeader}>
-            <Lumi
-              mood={hasWarning ? 'worried' : todayRecord || liveSteps ? 'content' : 'happy'}
-              size={56}
-              bob={false}
-            />
+            <Lumi mood={ctxEval.mood} size={56} bob={false} />
             <View style={{ flex: 1 }}>
               <Text style={s.evalTitle}>오늘의 건강 평가</Text>
-              <View style={[s.evalBadge, { backgroundColor: hasWarning ? RED_BG : GREEN_BG }]}>
-                <Text style={[s.evalBadgeText, { color: hasWarning ? RED : GREEN_DK }]}>
-                  {hasWarning ? '⚠️ 살펴봐요' : '✅ 양호해요'}
-                </Text>
+              <View style={[s.evalBadge, { backgroundColor: ctxEval.badgeBg }]}>
+                <Text style={[s.evalBadgeText, { color: ctxEval.badgeFg }]}>{ctxEval.badge}</Text>
               </View>
             </View>
           </View>
-          <Text style={s.evalSummary}>
-            {(() => {
-              const lines: string[] = [];
-              if (liveSteps != null) {
-                if (liveSteps >= 8000) lines.push(`오늘 ${liveSteps.toLocaleString()}보를 걸으셨어요. 정말 대단해요! 🎉`);
-                else if (liveSteps >= 5000) lines.push(`오늘 ${liveSteps.toLocaleString()}보 걸으셨네요. 조금만 더 걸으면 목표예요!`);
-                else lines.push(`오늘 걸음이 조금 부족해요. 짧은 산책도 도움이 돼요.`);
-              }
-              if (todayRecord?.blood_pressure_systolic) {
-                const st = bpStatus(todayRecord.blood_pressure_systolic, todayRecord.blood_pressure_diastolic);
-                if (st === 'danger') lines.push('혈압이 높게 나왔어요. 병원에 가보시는 게 좋아요.');
-                else if (st === 'caution') lines.push('혈압이 조금 높네요. 오늘은 편히 쉬세요.');
-                else lines.push('혈압이 정상이에요. 안심하세요 😊');
-              }
-              if (heartRate != null) {
-                if (heartRate < 60 || heartRate > 100) lines.push('심박수가 평소와 다르게 나왔어요. 쉬면서 지켜보세요.');
-              }
-              if (sleepHoursAuto != null && sleepHoursAuto < 6) {
-                lines.push('수면이 조금 부족해요. 오늘 일찍 주무세요.');
-              }
-              if (lines.length === 0) lines.push('오늘 기록을 채워가고 있어요. 루미가 함께 살펴볼게요 💜');
-              return lines.join('\n');
-            })()}
-          </Text>
+          <Text style={s.evalSummary}>{ctxEval.text}</Text>
           <Text style={s.evalDisclaimer}>의학적 진단이 아니라, 기록을 보고 드리는 도움말이에요.</Text>
         </View>
 
