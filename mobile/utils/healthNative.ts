@@ -11,6 +11,7 @@ export interface HealthNativeData {
   spo2: number | null;
   hrv: number | null; // AI 분석용, 화면 미표시
   steps: number | null;
+  bloodPressure: { systolic: number; diastolic: number } | null;
 }
 
 const midnight = () => {
@@ -42,6 +43,8 @@ async function requestiOSPermissions(): Promise<boolean> {
               Permissions.SleepAnalysis,
               Permissions.OxygenSaturation,
               Permissions.HeartRateVariability,
+              Permissions.BloodPressureDiastolic,
+              Permissions.BloodPressureSystolic,
             ],
             write: [],
           },
@@ -57,7 +60,7 @@ async function requestiOSPermissions(): Promise<boolean> {
 async function readiOSData(): Promise<HealthNativeData> {
   const empty: HealthNativeData = {
     connected: false, heartRate: null, heartRateMin: null,
-    heartRateMax: null, sleepHours: null, spo2: null, hrv: null, steps: null,
+    heartRateMax: null, sleepHours: null, spo2: null, hrv: null, steps: null, bloodPressure: null,
   };
   try {
     const AppleHealthKit = (await import('react-native-health')).default;
@@ -117,6 +120,19 @@ async function readiOSData(): Promise<HealthNativeData> {
       );
     });
 
+    const bloodPressure: { systolic: number; diastolic: number } | null = await new Promise((resolve) => {
+      AppleHealthKit.getBloodPressureSamples(
+        { startDate: start, endDate: now, ascending: false, limit: 1 } as any,
+        (err: any, results: any) => {
+          if (err || !results?.length) { resolve(null); return; }
+          const r = results[0];
+          const sys = r.bloodPressureSystolicValue ?? r.systolic ?? 0;
+          const dia = r.bloodPressureDiastolicValue ?? r.diastolic ?? 0;
+          resolve(sys > 0 && dia > 0 ? { systolic: Math.round(sys), diastolic: Math.round(dia) } : null);
+        }
+      );
+    });
+
     return {
       connected: true,
       heartRate: readHR.heartRate,
@@ -126,6 +142,7 @@ async function readiOSData(): Promise<HealthNativeData> {
       spo2,
       hrv,
       steps: null, // iOS는 HealthScreen에서 Pedometer로 직접 처리
+      bloodPressure,
     };
   } catch {
     return empty;
@@ -201,6 +218,7 @@ async function requestAndroidPermissions(): Promise<boolean> {
       { accessType: 'read' as const, recordType: 'SleepSession' as const },
       { accessType: 'read' as const, recordType: 'OxygenSaturation' as const },
       { accessType: 'read' as const, recordType: 'HeartRateVariabilityRmssd' as const },
+      { accessType: 'read' as const, recordType: 'BloodPressure' as const },
     ];
 
     let granted: any[] = [];
@@ -233,7 +251,7 @@ async function requestAndroidPermissions(): Promise<boolean> {
 async function readAndroidData(): Promise<HealthNativeData> {
   const empty: HealthNativeData = {
     connected: false, heartRate: null, heartRateMin: null,
-    heartRateMax: null, sleepHours: null, spo2: null, hrv: null, steps: null,
+    heartRateMax: null, sleepHours: null, spo2: null, hrv: null, steps: null, bloodPressure: null,
   };
   try {
     const HC = await import('react-native-health-connect');
@@ -284,6 +302,19 @@ async function readAndroidData(): Promise<HealthNativeData> {
     const hrv = hrvRecords.length > 0
       ? Math.round(hrvRecords[hrvRecords.length - 1].heartRateVariabilityMillis) : null;
 
+    // 혈압: 갤럭시 워치 4/5/6/7이 HC에 기록 → 오늘 가장 최근 값 사용
+    const bpResult = await HC.readRecords('BloodPressure', range(startISO)).catch(() => ({ records: [] }));
+    const bpRecords = (bpResult as any).records;
+    const mmhg = (p: any): number => {
+      if (typeof p === 'number') return Math.round(p);
+      if (p?.inMillimetersOfMercury != null) return Math.round(p.inMillimetersOfMercury);
+      return 0;
+    };
+    const latestBp = bpRecords.length > 0 ? bpRecords[bpRecords.length - 1] : null;
+    const bpSys = latestBp ? mmhg(latestBp.systolic) : 0;
+    const bpDia = latestBp ? mmhg(latestBp.diastolic) : 0;
+    const bloodPressure = bpSys > 0 && bpDia > 0 ? { systolic: bpSys, diastolic: bpDia } : null;
+
     // 걸음수: 자정부터 지금까지 HC 기록
     // 갤럭시에서 Samsung Health(폰) + Galaxy Watch가 각각 HC에 기록 → 단순 합산 시 2배
     // Samsung Health 메인 앱 패키지만 필터링 (폰+워치 중복 제거 후 HC에 기록)
@@ -329,6 +360,7 @@ async function readAndroidData(): Promise<HealthNativeData> {
       spo2,
       hrv,
       steps: stepsTotal > 0 ? stepsTotal : null,
+      bloodPressure,
     };
   } catch {
     return empty;
@@ -348,6 +380,6 @@ export async function readHealthData(): Promise<HealthNativeData> {
   if (Platform.OS === 'android') return readAndroidData();
   return {
     connected: false, heartRate: null, heartRateMin: null,
-    heartRateMax: null, sleepHours: null, spo2: null, hrv: null, steps: null,
+    heartRateMax: null, sleepHours: null, spo2: null, hrv: null, steps: null, bloodPressure: null,
   };
 }

@@ -262,6 +262,7 @@ export default function HealthScreen({ route, navigation }: any) {
   const [heartRateMax, setHeartRateMax] = useState<number | null>(null);
   const [sleepHoursAuto, setSleepHoursAuto] = useState<number | null>(null);
   const [spo2, setSpo2] = useState<number | null>(null);
+  const [hcBp, setHcBp] = useState<{ systolic: number; diastolic: number } | null>(null);
 
   // 맥락 기반 평가용 — 프로필 + 복약
   const [healthProfile, setHealthProfile] = useState<any>(null);
@@ -381,9 +382,37 @@ export default function HealthScreen({ route, navigation }: any) {
         await AsyncStorage.setItem(`health_records.${userId}`, JSON.stringify(list));
         loadRecords();
       }
-      // HC steps는 표시에 사용하지 않음 — 갤럭시에서 폰+워치 이중집계로 2배 나옴
-      // Android 걸음수 표시 권위 소스 = App.tsx Pedometer baseline (steps_today_android)
+      if (data.steps) {
+        // HC steps: healthNative에서 Samsung Health 패키지 필터링 적용 → 중복 제거됨
+        // steps_today_android_date 함께 저장 → App.tsx 베이스라인이 HC 씨앗값으로 사용
+        const todayStr = new Date().toDateString();
+        setLiveSteps(data.steps);
+        await AsyncStorage.setItem('steps_today_android', String(data.steps));
+        await AsyncStorage.setItem('steps_today_android_date', todayStr);
+      }
       if (data.spo2) setSpo2(data.spo2);
+      if (data.bloodPressure) {
+        setHcBp(data.bloodPressure);
+        // HC 혈압을 health_records에도 저장 → 최근 기록 테이블 + buildContextEval 반영
+        const bpRaw = await AsyncStorage.getItem(`health_records.${userId}`);
+        const bpList = bpRaw ? JSON.parse(bpRaw) : [];
+        const bpIdx = bpList.findIndex((r: any) => r.date === todayKey);
+        if (bpIdx >= 0) {
+          // 수동 입력이 있으면 덮어쓰지 않음 (수동 우선)
+          if (!bpList[bpIdx].blood_pressure_systolic) {
+            bpList[bpIdx].blood_pressure_systolic = data.bloodPressure.systolic;
+            bpList[bpIdx].blood_pressure_diastolic = data.bloodPressure.diastolic;
+            await AsyncStorage.setItem(`health_records.${userId}`, JSON.stringify(bpList));
+            loadRecords();
+          }
+        } else {
+          bpList.push({ date: todayKey, blood_pressure_systolic: data.bloodPressure.systolic,
+            blood_pressure_diastolic: data.bloodPressure.diastolic,
+            blood_sugar: 0, heart_rate: 0, weight: 0, steps: 0, sleep_hours: 0 });
+          await AsyncStorage.setItem(`health_records.${userId}`, JSON.stringify(bpList));
+          loadRecords();
+        }
+      }
       // HRV는 화면 미표시 — 백엔드 전송 (추후 AI 컨텍스트 반영)
       if (data.hrv && userId) {
         fetch(`${API}/health/hrv`, {
@@ -839,38 +868,55 @@ export default function HealthScreen({ route, navigation }: any) {
           <Text style={s.groupHeaderTitle}>직접 재서 기록해요</Text>
         </View>
 
-        {/* 혈압 */}
-        <View style={s.metricCard}>
-          <View style={s.metricTopRow}>
-            <View style={[s.metricIconBox, { backgroundColor: ORANGE_BG }]}>
-              <Text style={s.metricIcon}>❤️</Text>
-            </View>
-            <View style={s.metricContent}>
-              <Text style={s.metricLabel}>혈압</Text>
-              {todayRecord?.blood_pressure_systolic ? (
-                <>
-                  <Text style={s.metricValue}>
-                    {todayRecord.blood_pressure_systolic} / {todayRecord.blood_pressure_diastolic}
-                    <Text style={s.metricUnit}> mmHg</Text>
-                  </Text>
-                  <View style={s.statusRow}>
-                    <View style={[s.statusBadgeSmall, { backgroundColor: STATUS[bpStatus(todayRecord.blood_pressure_systolic, todayRecord.blood_pressure_diastolic)].bg }]}>
-                      <Text style={[s.statusBadgeSmallText, { color: STATUS[bpStatus(todayRecord.blood_pressure_systolic, todayRecord.blood_pressure_diastolic)].fg }]}>
-                        {STATUS[bpStatus(todayRecord.blood_pressure_systolic, todayRecord.blood_pressure_diastolic)].label}
-                      </Text>
-                    </View>
+        {/* 혈압 — HC 자동(갤럭시 워치) 또는 수동 입력 */}
+        {(() => {
+          // 우선순위: 수동 입력 > HC 자동 (수동이 더 최신·정확)
+          const manualBp = todayRecord?.blood_pressure_systolic
+            ? { systolic: todayRecord.blood_pressure_systolic, diastolic: todayRecord.blood_pressure_diastolic }
+            : null;
+          const displayBp = manualBp ?? hcBp;
+          const isAuto = !manualBp && !!hcBp;
+          return (
+            <View style={s.metricCard}>
+              <View style={s.metricTopRow}>
+                <View style={[s.metricIconBox, { backgroundColor: ORANGE_BG }]}>
+                  <Text style={s.metricIcon}>❤️</Text>
+                </View>
+                <View style={s.metricContent}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={s.metricLabel}>혈압</Text>
+                    {isAuto && (
+                      <View style={{ backgroundColor: '#E6EDF7', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                        <Text style={{ fontSize: 11, color: '#3B5FA0', fontWeight: '600' }}>워치 자동</Text>
+                      </View>
+                    )}
                   </View>
-                  <Text style={s.lumiHint}>{lumiInterpretBp(todayRecord.blood_pressure_systolic, todayRecord.blood_pressure_diastolic)}</Text>
-                </>
-              ) : (
-                <Text style={s.emptyValue}>측정 안 함</Text>
-              )}
+                  {displayBp ? (
+                    <>
+                      <Text style={s.metricValue}>
+                        {displayBp.systolic} / {displayBp.diastolic}
+                        <Text style={s.metricUnit}> mmHg</Text>
+                      </Text>
+                      <View style={s.statusRow}>
+                        <View style={[s.statusBadgeSmall, { backgroundColor: STATUS[bpStatus(displayBp.systolic, displayBp.diastolic)].bg }]}>
+                          <Text style={[s.statusBadgeSmallText, { color: STATUS[bpStatus(displayBp.systolic, displayBp.diastolic)].fg }]}>
+                            {STATUS[bpStatus(displayBp.systolic, displayBp.diastolic)].label}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={s.lumiHint}>{lumiInterpretBp(displayBp.systolic, displayBp.diastolic)}</Text>
+                    </>
+                  ) : (
+                    <Text style={s.emptyValue}>측정 안 함</Text>
+                  )}
+                </View>
+              </View>
+              <TouchableOpacity style={s.measureBtn} onPress={() => setModalType('bp')}>
+                <Text style={s.measureBtnText}>{displayBp ? '다시 측정하기' : '지금 측정하기'}</Text>
+              </TouchableOpacity>
             </View>
-          </View>
-          <TouchableOpacity style={s.measureBtn} onPress={() => setModalType('bp')}>
-            <Text style={s.measureBtnText}>지금 측정하기</Text>
-          </TouchableOpacity>
-        </View>
+          );
+        })()}
 
         {/* 혈당 */}
         <View style={s.metricCard}>

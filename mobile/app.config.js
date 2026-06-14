@@ -37,6 +37,7 @@ module.exports = {
         'android.permission.health.READ_SLEEP',
         'android.permission.health.READ_OXYGEN_SATURATION',
         'android.permission.health.READ_HEART_RATE_VARIABILITY',
+        'android.permission.health.READ_BLOOD_PRESSURE',
       ],
       intentFilters: [
         {
