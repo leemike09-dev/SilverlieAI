@@ -915,7 +915,16 @@ export default function HealthScreen({ route, navigation }: any) {
               {!hcBp && Platform.OS === 'android' && (
                 <TouchableOpacity
                   style={[s.measureBtn, { backgroundColor: '#E6EDF7', marginBottom: 6 }]}
-                  onPress={handleConnectHealth}
+                  onPress={async () => {
+                    Alert.alert(
+                      'Health Connect 혈압 권한',
+                      '갤럭시 워치 혈압 데이터를 읽으려면 권한이 필요합니다.\n\nHealth Connect를 열어 혈압 항목을 허용해 주세요.',
+                      [
+                        { text: '취소', style: 'cancel' },
+                        { text: 'Health Connect 열기', onPress: handleConnectHealth },
+                      ]
+                    );
+                  }}
                   activeOpacity={0.8}
                 >
                   <Text style={[s.measureBtnText, { color: '#3B5FA0' }]}>⌚ 갤럭시 워치 혈압 연결하기</Text>
