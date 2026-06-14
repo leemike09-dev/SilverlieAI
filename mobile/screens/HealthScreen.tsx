@@ -381,11 +381,8 @@ export default function HealthScreen({ route, navigation }: any) {
         await AsyncStorage.setItem(`health_records.${userId}`, JSON.stringify(list));
         loadRecords();
       }
-      if (data.steps) {
-        // HC에서 오늘 자정부터 누적 걸음수 → liveSteps 및 AsyncStorage 갱신
-        setLiveSteps(data.steps);
-        await AsyncStorage.setItem('steps_today_android', String(data.steps));
-      }
+      // HC steps는 표시에 사용하지 않음 — 갤럭시에서 폰+워치 이중집계로 2배 나옴
+      // Android 걸음수 표시 권위 소스 = App.tsx Pedometer baseline (steps_today_android)
       if (data.spo2) setSpo2(data.spo2);
       // HRV는 화면 미표시 — 백엔드 전송 (추후 AI 컨텍스트 반영)
       if (data.hrv && userId) {
