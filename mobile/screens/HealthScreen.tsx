@@ -364,7 +364,21 @@ export default function HealthScreen({ route, navigation }: any) {
       setHealthConnected(data.connected);
       // 연결됐으면 AsyncStorage에 저장 (재시작해도 유지)
       if (data.connected) await AsyncStorage.setItem(`health_connected.${userId}`, '1');
-      if (data.heartRate) setHeartRate(data.heartRate);
+      if (data.heartRate) {
+        setHeartRate(data.heartRate);
+        // HC 심박수를 health_records에 저장 → 주간 리포트 반영
+        const hrRaw = await AsyncStorage.getItem(`health_records.${userId}`);
+        const hrList = hrRaw ? JSON.parse(hrRaw) : [];
+        const hrIdx = hrList.findIndex((r: any) => r.date === todayKey);
+        if (hrIdx >= 0) {
+          hrList[hrIdx] = { ...hrList[hrIdx], heart_rate: data.heartRate };
+        } else {
+          hrList.push({ date: todayKey, blood_pressure_systolic: 0, blood_pressure_diastolic: 0,
+            blood_sugar: 0, heart_rate: data.heartRate, weight: 0, steps: 0, sleep_hours: 0 });
+        }
+        await AsyncStorage.setItem(`health_records.${userId}`, JSON.stringify(hrList));
+        loadRecords();
+      }
       if (data.heartRateMin) setHeartRateMin(data.heartRateMin);
       if (data.heartRateMax) setHeartRateMax(data.heartRateMax);
       if (data.sleepHours) {
@@ -398,13 +412,11 @@ export default function HealthScreen({ route, navigation }: any) {
         const bpList = bpRaw ? JSON.parse(bpRaw) : [];
         const bpIdx = bpList.findIndex((r: any) => r.date === todayKey);
         if (bpIdx >= 0) {
-          // 수동 입력이 있으면 덮어쓰지 않음 (수동 우선)
-          if (!bpList[bpIdx].blood_pressure_systolic) {
-            bpList[bpIdx].blood_pressure_systolic = data.bloodPressure.systolic;
-            bpList[bpIdx].blood_pressure_diastolic = data.bloodPressure.diastolic;
-            await AsyncStorage.setItem(`health_records.${userId}`, JSON.stringify(bpList));
-            loadRecords();
-          }
+          // HC 값으로 항상 갱신 — 수동 입력보다 HC(기기) 측정값 우선
+          bpList[bpIdx].blood_pressure_systolic  = data.bloodPressure.systolic;
+          bpList[bpIdx].blood_pressure_diastolic = data.bloodPressure.diastolic;
+          await AsyncStorage.setItem(`health_records.${userId}`, JSON.stringify(bpList));
+          loadRecords();
         } else {
           bpList.push({ date: todayKey, blood_pressure_systolic: data.bloodPressure.systolic,
             blood_pressure_diastolic: data.bloodPressure.diastolic,
@@ -475,16 +487,11 @@ export default function HealthScreen({ route, navigation }: any) {
       d.sdkStatusErr ? `SDK 오류: ${d.sdkStatusErr}` : null,
       d.fatalErr ? `치명 오류: ${d.fatalErr}` : null,
     ].filter(Boolean).join('\n');
-    // 혈압 디버그 추가
     const bpRaw = await AsyncStorage.getItem('hc_bp_debug');
     let bpLines = '';
     if (bpRaw) {
       const bp = JSON.parse(bpRaw);
-      if (bp.error) {
-        bpLines = `\n\n[혈압 HC]\n오류: ${bp.error}`;
-      } else {
-        bpLines = `\n\n[혈압 HC]\n레코드 수: ${bp.count}\n기간: ${(bp.range?.from||'').slice(0,16)} ~\n${bp.sample ? `샘플: ${JSON.stringify(bp.sample).slice(0,120)}` : '레코드 없음'}`;
-      }
+      bpLines = `\n\n[혈압 HC]\n레코드 수: ${bp.count}\n기간: 7일\n${bp.sample ? `최근: ${JSON.stringify(bp.sample).slice(0, 150)}` : '레코드 없음'}`;
     }
     Alert.alert('Health Connect 진단', lines + bpLines, [
       { text: '닫기' },
@@ -879,14 +886,24 @@ export default function HealthScreen({ route, navigation }: any) {
           <Text style={s.groupHeaderTitle}>직접 재서 기록해요</Text>
         </View>
 
-        {/* 혈압 — HC 자동(갤럭시 워치) 또는 수동 입력 */}
+        {/* 혈압 — 3-상태: 권한없음 / 권한있고오늘0 / 데이터있음 */}
         {(() => {
-          // 우선순위: 수동 입력 > HC 자동 (수동이 더 최신·정확)
+          // HC 우선, 없으면 수동 폴백
           const manualBp = todayRecord?.blood_pressure_systolic
             ? { systolic: todayRecord.blood_pressure_systolic, diastolic: todayRecord.blood_pressure_diastolic }
             : null;
-          const displayBp = manualBp ?? hcBp;
-          const isAuto = !manualBp && !!hcBp;
+          const displayBp = hcBp ?? manualBp;
+          const isAuto = !!hcBp;
+
+          // Android 3-상태 안내 메시지
+          const bpHint = Platform.OS === 'android'
+            ? !healthConnected
+              ? '건강 앱 연결 후 자동으로 불러올 수 있어요'
+              : !hcBp
+              ? '오늘은 아직 기록이 없어요'
+              : null
+            : null;
+
           return (
             <View style={s.metricCard}>
               <View style={s.metricTopRow}>
@@ -897,8 +914,8 @@ export default function HealthScreen({ route, navigation }: any) {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={s.metricLabel}>혈압</Text>
                     {isAuto && (
-                      <View style={{ backgroundColor: '#E6EDF7', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                        <Text style={{ fontSize: 11, color: '#3B5FA0', fontWeight: '600' }}>워치 자동</Text>
+                      <View style={{ backgroundColor: '#EAF0FA', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                        <Text style={{ fontSize: 11, color: '#3B5FA0' }}>앱 연동</Text>
                       </View>
                     )}
                   </View>
@@ -920,33 +937,11 @@ export default function HealthScreen({ route, navigation }: any) {
                   ) : (
                     <Text style={s.emptyValue}>측정 안 함</Text>
                   )}
+                  {bpHint && (
+                    <Text style={{ fontSize: 12, color: INK_MUTE, marginTop: 4 }}>{bpHint}</Text>
+                  )}
                 </View>
               </View>
-              {/* Android: HC 혈압 자동값 없으면 항상 연결 버튼 + 진단 링크 표시 */}
-              {!hcBp && Platform.OS === 'android' && (
-                <>
-                  <TouchableOpacity
-                    style={[s.measureBtn, { backgroundColor: '#E6EDF7', marginBottom: 6 }]}
-                    onPress={async () => {
-                      try {
-                        const HC = await import('react-native-health-connect');
-                        await HC.openHealthConnectSettings();
-                      } catch {
-                        Alert.alert(
-                          '안내',
-                          'Health Connect 앱을 직접 열어\n앱 권한 → Silver Life AI → 혈압을 허용해 주세요.'
-                        );
-                      }
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[s.measureBtnText, { color: '#3B5FA0' }]}>⌚ 갤럭시 워치 혈압 연결하기</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={showDiagnostic} style={{ paddingVertical: 6, alignItems: 'center', marginBottom: 4 }}>
-                    <Text style={s.diagLink}>🔍 혈압 연결 진단 보기</Text>
-                  </TouchableOpacity>
-                </>
-              )}
               <TouchableOpacity style={s.measureBtn} onPress={() => setModalType('bp')}>
                 <Text style={s.measureBtnText}>{displayBp ? '다시 측정하기' : '지금 측정하기'}</Text>
               </TouchableOpacity>
