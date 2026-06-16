@@ -446,6 +446,11 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
     hr    = f"{rec.get('heart_rate','')} bpm" if rec.get('heart_rate') else '미측정'
     wt    = f"{rec.get('weight','')} kg" if rec.get('weight') else '미측정'
 
+    # 오늘 기분 (AsyncStorage mood.uid.date → 클라이언트 전송)
+    today_mood = health_ctx.get('mood') or ''
+    mood_negative = today_mood in ('걱정돼요', '힘들어요')
+    mood_neutral  = today_mood == '그저그래요'
+
     # 최근 7일 건강 기록 트렌드 (오늘 포함)
     records_7d = health_ctx.get('health_records', [])
     trend_lines = []
@@ -506,6 +511,7 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         f"최근 기록 걸음수: {steps}\n"
         f"최근 7일 건강 기록:\n{trend_str}\n"
         f"생활습관: {habits}\n"
+        + (f"오늘 기분: {today_mood}\n" if today_mood else "")
         + (f"[실시간 날씨 데이터] {weather_str} (GPS 기반 실시간 수집 완료)\n" if weather_str else "")
         + "\n"
         "[건강 평가·답변 가이드 — 반드시 준수]\n"
@@ -518,8 +524,11 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         "⑤ 측정 시점 — 식후 혈당이 높은 건 자연스러움. 맥락 없이 '위험' 금지.\n\n"
         "▶ 4슬롯 답변 틀 (건강 평가 시 적용)\n"
         "  슬롯1 인사·시점: 시간대 반영해 짧게 (좋은 아침 / 오늘 하루 어떠셨어요)\n"
-        "  슬롯2 오늘의 관찰: 가장 의미 있는 지표 1~2개만. 정상 지표 줄줄이 나열 금지.\n"
-        "  슬롯3 맥락 해석: 왜 이 수치인지 — 약·프로필·추세·시점을 엮어 한 줄. 인구 평균이 아닌 그 사람 평소와 비교.\n"
+        + ("  → 오늘 기분이 '걱정돼요' 또는 '힘들어요': 인사 앞에 한 마디 공감 먼저 ('많이 무거우셨겠어요', '마음이 쓰이는걸요'). 건강 수치는 두 번째.\n" if mood_negative else
+           "  → 오늘 기분이 '그저그래요': 격려보다 중립 인사. 수치 나열 금지.\n" if mood_neutral else "")
+        + "  슬롯2 오늘의 관찰: 가장 의미 있는 지표 1~2개만. 정상 지표 줄줄이 나열 금지.\n"
+        + ("  → 기분이 부정적인 날: 주의 지표가 없어도 먼저 기분에 공감하고 수치는 간단히.\n" if mood_negative else "")
+        + "  슬롯3 맥락 해석: 왜 이 수치인지 — 약·프로필·추세·시점을 엮어 한 줄. 인구 평균이 아닌 그 사람 평소와 비교.\n"
         "  슬롯4 한 가지 행동: 지금·여기서 가능한 것 하나. 질책·과제 금지.\n"
         "  하단 고정: '의학적 진단이 아니라, 기록을 보고 드리는 도움말이에요.'\n\n"
         "▶ 절대 금지 가드레일\n"
@@ -528,7 +537,9 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         "  ✗ 단발 수치로 경보 (며칠 이어질 때만)\n"
         "  ✗ 정상 지표를 장황히 칭찬·나열\n"
         "  ✗ 진단·처방 표현 ('고혈압입니다', '~를 드세요')\n"
-        "  ✗ 식후 혈당을 공복 기준으로 판정\n\n"
+        "  ✗ 식후 혈당을 공복 기준으로 판정\n"
+        + ("  ✗ 기분이 '걱정돼요/힘들어요'인데 수치 나열로 시작하기 — 공감 먼저\n" if mood_negative else "")
+        + "\n"
         "▶ 케이스 예시 (같은 수치, 맥락이 다르면 답이 달라야 한다)\n"
         "  CASE A: 아침 걸음 1200보 → '오늘 목표 8000보예요. 천천히 시작해 볼까요?' (질책 금지)\n"
         "  CASE B: 혈압 145/92 + 혈압약 복용 중 → '혈압약 잊지 않고 드셨어요? 며칠 이어지면 다음 진료 때 보여드려요.' ('병원 가세요' 금지)\n"
@@ -914,6 +925,7 @@ class ChatRequest(BaseModel):
     client_record:      Optional[dict] = None
     client_records_7d:  Optional[list] = None
     client_weather:     Optional[str]  = None
+    client_mood:        Optional[str]  = None
     turn_count:     int = 0
     force_summary:  bool = False
     intent:         str  = "health"   # health|emotional|cognitive|crisis|daily
@@ -934,6 +946,7 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
         'profile':      request.client_profile or {},
         'medications':  request.client_meds    or [],
         'today_record': request.client_record  or {},
+        'mood':         request.client_mood,
     }
     # 클라이언트가 7일 기록을 보내면 먼저 채워둠 (클라이언트 데이터 우선)
     print(f"[chat/records] client_records_7d count={len(request.client_records_7d) if request.client_records_7d else 0}")
@@ -1086,6 +1099,7 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         'profile':      request.client_profile or {},
         'medications':  request.client_meds    or [],
         'today_record': request.client_record  or {},
+        'mood':         request.client_mood,
     }
     # 클라이언트가 7일 기록을 보내면 먼저 채워둠 (스트리밍 엔드포인트와 동일 처리)
     if request.client_records_7d:

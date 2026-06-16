@@ -21,6 +21,10 @@ import { useLanguage } from '../i18n/LanguageContext';
 
 const API_URL = 'https://silverlieai.onrender.com';
 type Props = { route: any; navigation: any };
+type ChatSessionProps = {
+  userId: string; name: string; seedMood?: string;
+  language: any; navigation: any; onNewChat: () => void;
+};
 type RiskLevel = 'normal' | 'low' | 'medium' | 'high' | 'critical';
 type Msg = ChatMsg;
 
@@ -87,13 +91,25 @@ const QUICK_CARDS = buildQuickCards();
 // ── Intent 분류 ──
 type Intent = 'emergency' | 'crisis' | 'emotional' | 'cognitive' | 'health' | 'daily';
 
-const EMERGENCY_KW = [
-  '가슴이 아파', '가슴 아파', '가슴통증', '가슴 답답', '심장이 아파', '심장 통증',
-  '숨이 막혀', '숨막혀', '숨쉬기 힘들', '호흡 곤란', '호흡이 안', '호흡곤란',
-  '쓰러질 것', '쓰러졌어', '쓰러졌다', '넘어졌어', '못 일어나',
-  '의식이 없', '정신을 잃', '졸도', '심정지', '뇌졸중',
-  '119 불러', '응급실 가야',
+// EMERGENCY_KW — KB urgent entries의 keywords에서 단일 생성 (이원화 방지)
+function buildEmergencyKw(): string[] {
+  try {
+    const kb = require('../assets/lumi-chat-kb.json') as { entries: any[] };
+    const kws = kb.entries
+      .filter((e: any) => e.riskLevel === 'urgent' && Array.isArray(e.keywords))
+      .flatMap((e: any) => e.keywords as string[]);
+    return kws.length > 0 ? kws : EMERGENCY_KW_FALLBACK;
+  } catch {
+    return EMERGENCY_KW_FALLBACK;
+  }
+}
+// KB 로드 실패 시 최소 보호망
+const EMERGENCY_KW_FALLBACK = [
+  '가슴이 아파', '가슴이 답답', '숨이 차', '호흡곤란',
+  '넘어졌', '쓰러질 것', '뇌졸중', '심정지',
+  '팔에 힘이 없', '말이 어눌', '119 불러', '응급실 가야',
 ];
+const EMERGENCY_KW: string[] = buildEmergencyKw();
 
 const CRISIS_KW = [
   '죽고 싶', '죽고싶', '살기 싫', '살기싫', '더 살기 힘',
@@ -202,30 +218,30 @@ function getGreeting(name: string): string {
   return `${name}님, 편안한 밤 되세요. 잠 자기 전 건강이나 걱정되는 것 있으시면 언제든 말씀해요.`;
 }
 
-async function readHealthRecords7d(): Promise<any[]> {
+const MOOD_LABELS = ['좋아요', '평온해요', '그저그래요', '걱정돼요', '힘들어요'];
+
+async function readHealthRecords7d(userId: string): Promise<any[]> {
   try {
-    const raw = await AsyncStorage.getItem('health_records');
+    const raw = await AsyncStorage.getItem(`health_records.${userId}`);
     if (!raw) return [];
     const recs: any[] = JSON.parse(raw);
     return recs.slice(0, 7).map(r => ({
       date:                     r.date,
-      blood_pressure_systolic:  r.bp?.sys    ?? null,
-      blood_pressure_diastolic: r.bp?.dia    ?? null,
-      blood_sugar:              r.glucose?.val ?? null,
-      steps:                    r.steps      ?? null,
-      sleep_hours:              r.sleep?.hours ?? null,
-      heart_rate:               r.heartRate  ?? null,
-      weight:                   r.weight     ?? null,
+      blood_pressure_systolic:  r.blood_pressure_systolic  ?? null,
+      blood_pressure_diastolic: r.blood_pressure_diastolic ?? null,
+      blood_sugar:              r.blood_sugar   ?? null,
+      steps:                    r.steps         ?? null,
+      sleep_hours:              r.sleep_hours   ?? null,
+      heart_rate:               r.heart_rate    ?? null,
+      weight:                   r.weight        ?? null,
     })).filter(r => !!r.date);
   } catch {
     return [];
   }
 }
 
-export default function AIChatScreen({ route, navigation }: Props) {
+function ChatSessionView({ userId, name, seedMood = '', language, navigation, onNewChat }: ChatSessionProps) {
   const insets = useSafeAreaInsets();
-  const { language } = useLanguage();
-  const { name = '회원', userId = '', seedMood = '' } = route?.params ?? {};
 
   const [messages,     setMessages]     = useState<Msg[]>([]);
   const [history,      setHistory]      = useState<HistoryItem[]>([]);
@@ -242,18 +258,22 @@ export default function AIChatScreen({ route, navigation }: Props) {
   const [healthProfile,    setHealthProfile]    = useState<any>(null);
   const [healthRecord,     setHealthRecord]     = useState<any>(null);
   const [medications,      setMedications]      = useState<any[]>([]);
+  const [todayMood,        setTodayMood]        = useState<string | undefined>(undefined);
   const [ttsEnabled,      setTtsEnabled]      = useState(true);
   const [pendingConditions, setPendingConditions] = useState<string[]>([]);
   const [currentSessionIdx, setCurrentSessionIdx] = useState(0);
+  const [guardianPhone, setGuardianPhone] = useState('');
+  const [guardianLabel, setGuardianLabel] = useState('');
   const weatherRef   = useRef<string | undefined>(undefined);
   const sessionIdRef = useRef<string>(Date.now().toString());
   const historyRef   = useRef<HistoryItem[]>([]);
   const turnCountRef = useRef<number>(0);
 
-  const scrollRef     = useRef<ScrollView>(null);
-  const dotsAnim      = useRef(new Animated.Value(0)).current;
-  const toastTimerRef = useRef<any>(null);
-  const prevInputRef  = useRef<string>('');
+  const scrollRef      = useRef<ScrollView>(null);
+  const dotsAnim       = useRef(new Animated.Value(0)).current;
+  const toastTimerRef  = useRef<any>(null);
+  const prevInputRef   = useRef<string>('');
+
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -262,12 +282,9 @@ export default function AIChatScreen({ route, navigation }: Props) {
   };
 
   // 세션 관리 훅
-  const { sessions, setSessions, loadSessions, startNewSession: _startNewSession, deleteSession } = useChatSession({
+  const { sessions, setSessions, loadSessions, deleteSession } = useChatSession({
     messages, history, turnCountRef, sessionIdRef,
-    onNewSession: () => {
-      setMessages([]); setHistory([]); setTurnCount(0);
-      setMemoState('idle'); setCurrentSessionIdx(0);
-    },
+    onNewSession: () => {}, // key remount이 상태 초기화를 담당 — 수동 나열 불필요
   });
 
   // 음성 입력 훅
@@ -292,14 +309,29 @@ export default function AIChatScreen({ route, navigation }: Props) {
     return 'happy';
   };
 
-  // 초기 로드: 건강프로필 + 건강기록 + 약 목록 + TTS + 세션 복원
+  // 초기 로드: 건강프로필 + 건강기록 + 약 목록 + TTS + 보호자 + 세션 복원
   useEffect(() => {
+    // 보호자 전화번호 — 응급 모달에서 직접 전화 연결
+    AsyncStorage.getItem(`guardians.${userId}`).then(raw => {
+      if (!raw) return;
+      try {
+        const list: { name: string; relation: string; phoneNumber?: string }[] = JSON.parse(raw);
+        const first = list.find(g => g.phoneNumber);
+        if (first) {
+          setGuardianPhone(first.phoneNumber!);
+          setGuardianLabel(`${first.name}(${first.relation})`);
+        }
+      } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
+    }).catch(() => {});
+
+    const todayKey = localDate();
     Promise.all([
       AsyncStorage.getItem('health_profile'),
       AsyncStorage.getItem('tts_enabled'),
-      AsyncStorage.getItem('health_records'),
-      AsyncStorage.getItem('medications'),
-    ]).then(([hp, tts, hr, meds]) => {
+      AsyncStorage.getItem(`health_records.${userId}`),
+      AsyncStorage.getItem(`medications.${userId}`),
+      AsyncStorage.getItem(`mood.${userId}.${todayKey}`),
+    ]).then(([hp, tts, hr, meds, moodRaw]) => {
       if (hp)  { try { setHealthProfile(JSON.parse(hp)); } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } } }
       if (tts !== null) setTtsEnabled(tts === 'true');
       if (hr)  {
@@ -308,25 +340,31 @@ export default function AIChatScreen({ route, navigation }: Props) {
           if (recs.length > 0) {
             const l = recs[0];
             setHealthRecord({
-              blood_pressure_systolic:  l.bp?.sys ?? null,
-              blood_pressure_diastolic: l.bp?.dia ?? null,
-              blood_sugar:  l.glucose?.val ?? null,
-              steps:        l.steps   ?? null,
-              sleep_hours:  l.sleep?.hours ?? null,
-              heart_rate:   l.heartRate ?? null,
-              weight:       l.weight ?? null,
+              blood_pressure_systolic:  l.blood_pressure_systolic  ?? null,
+              blood_pressure_diastolic: l.blood_pressure_diastolic ?? null,
+              blood_sugar:  l.blood_sugar   ?? null,
+              steps:        l.steps         ?? null,
+              sleep_hours:  l.sleep_hours   ?? null,
+              heart_rate:   l.heart_rate    ?? null,
+              weight:       l.weight        ?? null,
               date:         l.date,
             });
           }
         } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
       }
       if (meds) { try { setMedications(JSON.parse(meds)); } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } } }
+      if (moodRaw !== null) {
+        const idx = parseInt(moodRaw, 10);
+        if (!isNaN(idx) && idx >= 0 && idx < MOOD_LABELS.length) {
+          setTodayMood(MOOD_LABELS[idx]);
+        }
+      }
 
       // 세션 기록 로드
       loadSessions();
     });
 
-    // 기분 seed: 홈 기분 체크인에서 부정 기분 선택 후 진입
+    // 기분 seed: 홈 기분 체크인에서 부정 기분 선택 후 진입 시에만 메시지 표시
     if (seedMood) {
       setTimeout(() => {
         addMsg({
@@ -335,8 +373,6 @@ export default function AIChatScreen({ route, navigation }: Props) {
           riskLevel: 'low',
         });
       }, 400);
-    } else {
-      fetchProactiveGreeting();
     }
 
     // 날씨 조회: getLastKnownPositionAsync로 즉시 반환 (GPS 대기 없음)
@@ -368,7 +404,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
 
   const startNewSession = () => {
     stopSpeech();
-    _startNewSession();
+    onNewChat(); // key 교체 → ChatSessionView 전체 remount → 모든 상태 자동 초기화
   };
 
   const switchSession = (idx: number, sess: ChatSession) => {
@@ -391,6 +427,8 @@ export default function AIChatScreen({ route, navigation }: Props) {
       };
     }, [userId])
   );
+
+  // 재진입 시 remount는 App.tsx getId()가 처리 — 여기서 별도 reset 불필요
 
   // Render 콜드스타트 방지 Keep-alive (진입 즉시 + 13분마다 ping)
   useEffect(() => {
@@ -513,7 +551,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
     // 빈 AI 메시지 선점 (스트리밍 채움용)
     setMessages(prev => [...prev, { role: 'ai', text: '' }]);
 
-    const records7d = await readHealthRecords7d();
+    const records7d = await readHealthRecords7d(userId);
 
     const normalizedProfile = normalizeProfile(healthProfile);
 
@@ -526,6 +564,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
       client_records_7d: records7d.length > 0 ? records7d : undefined,
       client_meds:       medications.length > 0 ? medications : undefined,
       client_weather:    weatherRef.current,
+      client_mood:       todayMood,
       language,
     };
 
@@ -830,34 +869,7 @@ export default function AIChatScreen({ route, navigation }: Props) {
               contentContainerStyle={s.msgContent}
               showsVerticalScrollIndicator={false}
             >
-              {/* 이전 세션 기록 (오래된 순) */}
-              {[...sessions].reverse().filter(s => s.id !== sessionIdRef.current).map(sess => (
-                <View key={sess.id}>
-                  <View style={s.dateDivider}>
-                    <View style={s.dateDividerLine} />
-                    <Text style={s.dateDividerTxt}>{sess.date}</Text>
-                    <View style={s.dateDividerLine} />
-                  </View>
-                  {sess.messages.map((msg, i) => (
-                    <View key={i} style={msg.role === 'ai' ? s.aiRow : s.userRow}>
-                      {msg.role === 'ai' && <Lumi mood="happy" size={52} bob={false} />}
-                      <View style={msg.role === 'ai' ? s.aiBubble : s.userBubble}>
-                        {msg.role === 'ai' && <Text style={s.bubbleName}>루미</Text>}
-                        <Text style={msg.role === 'ai' ? s.aiTxt : s.userTxt}>{msg.text}</Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              ))}
-
-              {/* 현재 세션 구분선 */}
-              {sessions.length > 1 && (
-                <View style={s.dateDivider}>
-                  <View style={s.dateDividerLine} />
-                  <Text style={s.dateDividerTxt}>{localDate()}</Text>
-                  <View style={s.dateDividerLine} />
-                </View>
-              )}
+              {/* 이전 세션은 "이전 대화 보기" 패널에서만 확인 가능 — 인라인 노출 제거 */}
 
               {messages.map((msg, i) => {
                 const isStreaming = i === messages.length - 1 && msg.role === 'ai' && loading && msg.text === '';
@@ -1122,11 +1134,19 @@ export default function AIChatScreen({ route, navigation }: Props) {
             <TouchableOpacity style={s.btn119} onPress={call119} activeOpacity={0.85}>
               <Text style={s.btn119Txt}>119 지금 전화하기</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={s.btnFamily}
-              onPress={() => { setShowEmergency(false); navigation.navigate('ImportantContacts'); }}
-              activeOpacity={0.85}>
-              <Text style={s.btnFamilyTxt}>중요 연락처 보기</Text>
-            </TouchableOpacity>
+            {guardianPhone ? (
+              <TouchableOpacity style={s.btnFamily}
+                onPress={() => Linking.openURL(`tel:${guardianPhone}`).catch(() => {})}
+                activeOpacity={0.85}>
+                <Text style={s.btnFamilyTxt}>{guardianLabel || '보호자'}에게 전화</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={s.btnFamily}
+                onPress={() => { setShowEmergency(false); navigation.navigate('Guardian', { userId, name }); }}
+                activeOpacity={0.85}>
+                <Text style={s.btnFamilyTxt}>보호자 등록하기</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={s.btnDismiss} onPress={() => setShowEmergency(false)}>
               <Text style={s.btnDismissTxt}>괜찮습니다, 닫기</Text>
             </TouchableOpacity>
@@ -1361,9 +1381,9 @@ const s = StyleSheet.create({
   condNoTxt: { fontSize: 20, color: '#2E7D32', fontWeight: '700' },
 
   // 새 대화 버튼 (탑바 오른쪽)
-  newChatBtn: { backgroundColor: '#F3E5F5', borderRadius: 14, paddingHorizontal: 12,
-    paddingVertical: 7, borderWidth: 1, borderColor: '#CE93D8' },
-  newChatTxt: { fontSize: 13, fontWeight: '800', color: '#7B1FA2' },
+  newChatBtn: { backgroundColor: '#F3E5F5', borderRadius: 14, paddingHorizontal: 14,
+    paddingVertical: 10, borderWidth: 1.5, borderColor: '#CE93D8', minHeight: 44, justifyContent: 'center' },
+  newChatTxt: { fontSize: 17, fontWeight: '800', color: '#7B1FA2' },
 
   // 루미 웰컴
   lumiWelcome: {
@@ -1411,3 +1431,21 @@ const s = StyleSheet.create({
   },
   restoreNoticeTxt: { color: '#fff', fontSize: 22, fontWeight: '900', letterSpacing: 0.5 },
 });
+
+// ─── 얇은 래퍼: chatKey만 관리, 상태 초기화는 key remount가 처리 ───────────────
+export default function AIChatScreen({ route, navigation }: Props) {
+  const { language } = useLanguage();
+  const { name = '회원', userId = '', seedMood = '' } = route?.params ?? {};
+  const [chatKey, setChatKey] = useState(() => String(Date.now()));
+  return (
+    <ChatSessionView
+      key={chatKey}
+      userId={userId}
+      name={name}
+      seedMood={seedMood}
+      language={language}
+      navigation={navigation}
+      onNewChat={() => setChatKey(String(Date.now()))}
+    />
+  );
+}
