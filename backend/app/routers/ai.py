@@ -431,6 +431,9 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
     if p.get('drugAllergies'):  allergy_parts.append(', '.join(p['drugAllergies']))
     if p.get('foodAllergies'):  allergy_parts.append(', '.join(p['foodAllergies']))
     if p.get('allergyNote'):    allergy_parts.append(p['allergyNote'])
+    # 신형 단일 allergies 문자열 폴백 (Supabase JSONB 직접 경로 포함)
+    if not allergy_parts and p.get('allergies'):
+        allergy_parts.append(str(p['allergies']))
     allergies = ' / '.join(allergy_parts) or '없음'
 
     # 복용 로그 맵 (맥락 신호 계산에도 사용하므로 if 블록 밖에서 빌드)
@@ -856,6 +859,8 @@ def build_doctor_memo(user: dict, health_ctx: dict, current_msg: str) -> str:
     allergy_parts = []
     if p.get('drugAllergies'): allergy_parts.extend(p['drugAllergies'])
     if p.get('foodAllergies'): allergy_parts.extend(p['foodAllergies'])
+    if not allergy_parts and p.get('allergies'):
+        allergy_parts.append(str(p['allergies']))
     allergies = ', '.join(allergy_parts) or ''
     meds_str  = ', '.join([
         f"{m.get('name','')} {m.get('dosage','')}({m.get('time_slot','')})"
