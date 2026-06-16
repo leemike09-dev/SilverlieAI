@@ -71,23 +71,20 @@ CAT_KEYWORDS = {
 EMERGENCY_WORDS  = ['흉통','가슴통증','호흡곤란','숨막','마비','의식','쓰러','졸도','심정지']
 DOCTOR_KEYWORDS  = ['병원', '진료', '의사', '내원', '검사받']
 
-# LLM 우회 즉시 응급 라우팅 — 아래 키워드 감지 시 문진 없이 119 안내 먼저
-URGENT_BYPASS_WORDS = [
-    # 심장
-    '흉통', '가슴통증', '가슴이 아파', '가슴 조여', '가슴이 조여',
-    '가슴 답답', '가슴이 답답', '숨이 차', '숨이차', '숨막', '호흡곤란',
-    '숨쉬기 힘', '숨을 못 쉬',
-    # 뇌졸중 FAST
-    '팔에 힘이 없', '팔다리 마비', '한쪽 마비', '편마비',
-    '얼굴이 처져', '얼굴이 돌아', '얼굴 마비',
-    '말이 어눌', '말이 안 나', '언어장애', '말을 못 해',
-    '벼락두통', '벼락 맞은', '갑자기 심한 두통', '평생 처음 두통',
-    '시야가 흐려', '눈이 갑자기 안', '시야장애',
-    '균형을 잡지 못', '균형을 잡을 수 없', '걷기가 갑자기 힘',
-    # 의식·심정지
-    '심정지', '의식 잃', '의식을 잃', '쓰러졌', '졸도', '기절했',
-    '뇌졸중', '뇌경색', '뇌출혈',
-]
+# LLM 우회 즉시 응급 라우팅 — KB urgent entries의 keywords에서 단일 생성 (이원화 방지)
+def _build_urgent_bypass_words() -> list:
+    kws = [
+        kw for e in _KB_ENTRIES
+        if e.get('riskLevel') == 'urgent'
+        for kw in e.get('keywords', [])
+    ]
+    if kws:
+        return kws
+    # KB 로드 실패 시 최소 보호망
+    return ['가슴이 아파', '가슴이 답답', '숨이 차', '호흡곤란',
+            '넘어졌', '뇌졸중', '심정지', '팔에 힘이 없', '말이 어눌']
+
+URGENT_BYPASS_WORDS: list = _build_urgent_bypass_words()
 
 def is_urgent_bypass(message: str) -> bool:
     return any(w in message for w in URGENT_BYPASS_WORDS)
