@@ -9,6 +9,8 @@ router = APIRouter()
 class SOSPushRequest(BaseModel):
     user_id: str
     name: Optional[str] = ''
+    lat: Optional[str] = None
+    lng: Optional[str] = None
 
 
 @router.post("/sos-push")
@@ -21,13 +23,18 @@ def sos_push(req: SOSPushRequest):
     except Exception:
         family_ids = []
 
+    if req.lat and req.lng:
+        body = f"📍 위치 확인: https://map.kakao.com/link/map/{req.lat},{req.lng}"
+    else:
+        body = "앱에서 동선과 상태를 확인해주세요."
+
     inserted = 0
     for fid in family_ids:
         try:
             db.table("notifications").insert({
                 "user_id": fid,
                 "title":   f"🚨 {req.name or '사용자'}님 SOS 발생",
-                "body":    "앱에서 동선과 상태를 확인해주세요.",
+                "body":    body,
                 "is_read": False,
             }).execute()
             inserted += 1
