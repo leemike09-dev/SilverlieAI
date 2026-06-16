@@ -66,3 +66,17 @@ def mark_as_read(notification_id: str):
     if not result.data:
         raise HTTPException(status_code=404, detail="알림을 찾을 수 없습니다")
     return result.data[0]
+
+
+@router.delete("/{notification_id}")
+def delete_notification(notification_id: str):
+    db = get_supabase()
+    db.table("notifications").delete().eq("id", notification_id).execute()
+    return {"ok": True}
+
+
+@router.delete("/all/{user_id}")
+def delete_all_notifications(user_id: str):
+    db = get_supabase()
+    db.table("notifications").delete().eq("user_id", user_id).execute()
+    return {"ok": True}
