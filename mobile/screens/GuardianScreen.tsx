@@ -185,7 +185,7 @@ export default function GuardianScreen({ route, navigation }: any) {
                   </View>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TouchableOpacity onPress={() => openEdit(g)} style={s.editBtn}>
-                      <Ionicons name="create" size={24} color={BLUE} />
+                      <Text style={s.editIcon}>✏️</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => handleDelete(g.id)} style={s.deleteBtn}>
                       <Ionicons name="trash-outline" size={20} color={RED} />
@@ -375,6 +375,7 @@ const s = StyleSheet.create({
   memberRel:   { fontSize: 16, fontWeight: '600', color: INK_SOFT },
   memberPhone: { fontSize: 15, fontWeight: '600', color: INK_MUTE, marginTop: 2 },
   editBtn:     { padding: 8 },
+  editIcon:    { fontSize: 22 },
   deleteBtn:   { padding: 8 },
 
   actionRow: { flexDirection: 'row', gap: 10 },
