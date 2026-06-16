@@ -100,13 +100,13 @@ function WeeklyReportScreenInner({ route, navigation }: any) {
   // AsyncStorage 로컬 기록을 백엔드 포맷으로 변환
   const localToServer = (r: any) => ({
     date: r.date,
-    blood_pressure_systolic:  r.bp?.sys   ?? null,
-    blood_pressure_diastolic: r.bp?.dia   ?? null,
-    blood_sugar:   r.glucose?.val         ?? null,
-    steps:         r.steps                ?? null,
-    sleep_hours:   r.sleep?.hours         ?? null,
-    heart_rate:    r.heartRate            ?? null,
-    weight:        r.weight               ?? null,
+    blood_pressure_systolic:  r.blood_pressure_systolic  ?? null,
+    blood_pressure_diastolic: r.blood_pressure_diastolic ?? null,
+    blood_sugar:   r.blood_sugar   ?? null,
+    steps:         r.steps         ?? null,
+    sleep_hours:   r.sleep_hours   ?? null,
+    heart_rate:    r.heart_rate    ?? null,
+    weight:        r.weight        ?? null,
   });
 
   const loadData = async (uid: string) => {
@@ -118,7 +118,7 @@ function WeeklyReportScreenInner({ route, navigation }: any) {
       sevenDaysAgo.setHours(0, 0, 0, 0);
       let localRecs: any[] = [];
       try {
-        const raw = await AsyncStorage.getItem('health_records');
+        const raw = await AsyncStorage.getItem(`health_records.${uid}`);
         if (raw) {
           localRecs = JSON.parse(raw)
             .filter((r: any) => r.date && new Date(r.date) >= sevenDaysAgo)
@@ -167,11 +167,13 @@ function WeeklyReportScreenInner({ route, navigation }: any) {
       const userAge  = hp.age ? Number(hp.age) : 70;
       const weeklyData = recs.map(r => ({
         date: r.date,
-        steps: r.steps || null,
+        steps:                    r.steps                    || null,
         blood_pressure_systolic:  r.blood_pressure_systolic  || null,
         blood_pressure_diastolic: r.blood_pressure_diastolic || null,
-        sleep_hours: r.sleep_hours || null,
-        weight_kg: r.weight || null,
+        sleep_hours:              r.sleep_hours              || null,
+        blood_sugar:              r.blood_sugar              || null,
+        heart_rate:               r.heart_rate               || null,
+        weight_kg:                r.weight                   || null,
       }));
       const res = await fetch(`${API}/health/weekly-report`, {
         method: 'POST',

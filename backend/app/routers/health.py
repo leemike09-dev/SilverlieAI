@@ -262,7 +262,9 @@ def weekly_report(request: ReportRequest):
     client = anthropic.Anthropic(api_key=api_key)
 
     weekly_summary = "\n".join([
-        f"- {item.date}: 걸음수 {item.steps or 'N/A'}, 수면 {item.sleep_hours or 'N/A'}시간, 혈압 {item.blood_pressure_systolic or 'N/A'}/{item.blood_pressure_diastolic or 'N/A'}"
+        f"- {item.date}: 걸음수 {item.steps or 'N/A'}, 수면 {item.sleep_hours or 'N/A'}시간, "
+        f"혈압 {item.blood_pressure_systolic or 'N/A'}/{item.blood_pressure_diastolic or 'N/A'}, "
+        f"혈당 {item.blood_sugar or 'N/A'}, 심박수 {item.heart_rate or 'N/A'}bpm"
         for item in request.weekly_data
     ])
 
