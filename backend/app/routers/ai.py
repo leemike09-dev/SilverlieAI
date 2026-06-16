@@ -357,7 +357,8 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
                         chat_ctx: Optional[dict] = None,
                         turn_count: int = 0, force_summary: bool = False,
                         intent: str = "health", language: str = "ko",
-                        weather_str: Optional[str] = None) -> str:
+                        weather_str: Optional[str] = None,
+                        session_facts: Optional[list] = None) -> str:
     p   = health_ctx.get('profile', {}) or {}
     meds_raw = health_ctx.get('medications', []) or []
     rec = health_ctx.get('today_record', {}) or {}
@@ -592,7 +593,14 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         + "\n"
         f"[오늘 맥락 신호 — 답변 생성 전 가장 먼저 확인할 것]\n"
         f"{ctx_signals_str}\n\n"
-        "[건강 평가·답변 가이드 — 반드시 준수]\n"
+        + (
+            "[오늘 파악한 사실 — 사용자가 직접 말한 내용(원문 인용)]\n"
+            + _fmt_session_facts(session_facts) + "\n"
+            "⚠️ 언급 시 '아까 말씀하신 것처럼' 형태로 인용. 사용자가 부정하면 즉시 무시.\n"
+            "⚠️ 현재 발화·응급 라우팅을 이 사실이 덮어쓰지 않는다.\n\n"
+            if session_facts else ""
+        )
+        + "[건강 평가·답변 가이드 — 반드시 준수]\n"
         "답변을 만들기 전에 아래 맥락 신호를 먼저 확인하고, 신호에 따라 말이 달라져야 한다.\n\n"
         "▶ 맥락 신호 우선순위\n"
         "① 복용약 — '혈압약 복용 중'이면 이미 진료 중. '병원 가보세요' 금지. 복약 확인 + 다음 진료 기록 활용.\n"
@@ -962,6 +970,117 @@ def _save_chat_turn(user_id: str, user_msg: str, ai_reply: str, risk: str, model
         print(f"[ai_chat_logs] {se}")
 
 
+# ── ③ 핵심 사실 메모리 (session_facts) ──────────────────────────────────────
+
+_FACT_TYPES = {'병원예약', '약변경', '증상지속', '감정상태', '생활변화'}
+
+_FACT_EXTRACT_PROMPT = """\
+사용자 발언에서 사실만 추출하세요. 4규칙 엄수.
+
+[규칙]
+1. 정의된 type 외 추출 금지. 스키마 강제.
+2. verbatim: 사용자 원문 토큰 그대로. 해석·요약·추론 금지.
+3. confidence=high: 사용자가 명확히 말한 것만. 불확실하면 skip.
+4. 기존 사실과 모순되면 기존 사실을 최종 배열에서 제거.
+
+[타입 스키마]
+- 병원예약: when(오늘/어제/내일/날짜), hospital(기관명 or null), specialty(과 or null)
+- 약변경:   detail(원문 그대로), since(시점 or null)
+- 증상지속: symptom(증상명), days(일수 int or null), severity(심함/보통/가벼움 or null)
+- 감정상태: emotion(원문), since(시점 or null)
+- 생활변화: detail(원문 그대로), since(시점 or null)
+
+[현재 저장된 사실]:
+{existing}
+
+[사용자 발언]:
+{user_msg}
+
+JSON 배열로만 응답 (설명 금지). 각 항목: type, verbatim, confidence, + 타입별 필드.
+추출 없으면: []"""
+
+
+def _load_session_facts(user_id: str, db) -> list:
+    """오늘 session_facts 로드. 테이블 없거나 오류 시 빈 리스트(묵음)."""
+    try:
+        today = date.today().isoformat()
+        r = db.table("session_facts").select("facts").eq("user_id", user_id).eq("session_date", today).execute()
+        if r.data:
+            return r.data[0].get("facts") or []
+    except Exception as e:
+        print(f"[session_facts/load] {e}")
+    return []
+
+
+def _save_session_facts(user_id: str, facts: list, db) -> None:
+    """오늘 session_facts upsert."""
+    try:
+        today = date.today().isoformat()
+        db.table("session_facts").upsert({
+            "user_id":      user_id,
+            "session_date": today,
+            "facts":        facts,
+            "updated_at":   datetime.now(timezone.utc).isoformat(),
+        }, on_conflict="user_id,session_date").execute()
+    except Exception as e:
+        print(f"[session_facts/save] {e}")
+
+
+def _extract_and_save_facts_background(user_id: str, user_msg: str, api_key: str) -> None:
+    """백그라운드: Haiku로 구조화 추출 → 스키마 검증 → upsert."""
+    try:
+        db       = get_supabase()
+        existing = _load_session_facts(user_id, db)
+        client   = anthropic.Anthropic(api_key=api_key)
+        prompt   = _FACT_EXTRACT_PROMPT.format(
+            existing=json.dumps(existing, ensure_ascii=False) if existing else "[]",
+            user_msg=user_msg,
+        )
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=500,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = resp.content[0].text.strip()
+        m = re.search(r'\[.*\]', raw, re.DOTALL)
+        if not m:
+            return
+        parsed: list = json.loads(m.group(0))
+        # 스키마 검증: type ∈ _FACT_TYPES + confidence=high + verbatim 존재
+        valid = [
+            f for f in parsed
+            if isinstance(f, dict)
+            and f.get('type') in _FACT_TYPES
+            and f.get('confidence') == 'high'
+            and f.get('verbatim', '').strip()
+        ]
+        if valid != existing:
+            _save_session_facts(user_id, valid, db)
+            print(f"[session_facts] {user_id} → {len(valid)}개 저장")
+    except Exception as e:
+        print(f"[session_facts/bg] {e}")
+
+
+def _fmt_session_facts(facts: list) -> str:
+    """session_facts → 시스템 프롬프트 삽입용 텍스트."""
+    lines = []
+    for f in facts:
+        t = f.get('type', '')
+        v = f.get('verbatim', '')
+        extra_parts = []
+        if t == '증상지속':
+            if f.get('symptom'): extra_parts.append(f.get('symptom'))
+            if f.get('days'):    extra_parts.append(f"{f['days']}일 지속")
+        elif t == '병원예약':
+            if f.get('when'):    extra_parts.append(f.get('when'))
+            if f.get('hospital'): extra_parts.append(f.get('hospital'))
+        elif t in ('약변경', '생활변화', '감정상태'):
+            if f.get('since'):   extra_parts.append(f.get('since'))
+        extra = f" ({', '.join(extra_parts)})" if extra_parts else ''
+        lines.append(f"  • [{t}] \"{v}\"{extra}")
+    return "\n".join(lines)
+
+
 def choose_model(history_msgs: list, current_msg: str) -> str:
     """3단계 모델 선택:
     - Opus   : 응급/위험 키워드 포함 시
@@ -1035,6 +1154,7 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
             health_ctx['today_record'] = request.client_records_7d[0]
 
     chat_ctx = None
+    session_facts: list = []
     db = None
 
     if request.user_id and request.user_id not in ("demo-user", "guest"):
@@ -1053,6 +1173,7 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
             if user_row.get("health_profile") and not health_ctx.get("profile"):
                 health_ctx["profile"] = user_row["health_profile"]
             chat_ctx = load_chat_context(request.user_id, db)
+            session_facts = _load_session_facts(request.user_id, db)
         except Exception as ex:
             print(f"[stream/user_load] {ex}")
 
@@ -1064,7 +1185,8 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
                                         force_summary=request.force_summary,
                                         intent=request.intent,
                                         language=request.language,
-                                        weather_str=request.client_weather)
+                                        weather_str=request.client_weather,
+                                        session_facts=session_facts or None)
     history_msgs = [{"role": m.role, "content": m.content} for m in (request.history or [])[-10:]]
     model        = choose_model(history_msgs, request.message)
     ai_messages  = history_msgs + [{"role": "user", "content": request.message}]
@@ -1116,6 +1238,12 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
 
         if request.user_id and request.user_id not in ("demo-user", "guest"):
             background_tasks.add_task(_save_chat_turn, request.user_id, request.message, reply_text, risk, model)
+            # ③ 핵심 사실 메모리: 응급·일상 대화 제외하고 추출
+            if request.intent not in ("daily",) and not is_urgent_bypass(request.message):
+                background_tasks.add_task(
+                    _extract_and_save_facts_background,
+                    request.user_id, request.message, api_key
+                )
 
         about_self = _is_about_self(request.message)
         doctor_memo_needed = about_self and (is_final_flag or check_doctor_visit(reply_text, request.message))
