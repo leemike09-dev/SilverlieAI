@@ -111,6 +111,18 @@ const EMERGENCY_KW_FALLBACK = [
 ];
 const EMERGENCY_KW: string[] = buildEmergencyKw();
 
+// 응급 게이트 정밀화 — 백엔드 is_urgent_bypass()와 동일 로직
+const _NOW_KW    = ['지금', '방금', '갑자기', '지금 당장', '이 순간', '지금 막', '막 시작'];
+const _PAST_RE   = /\d+\s*(?:개월|달|년|주일?)\s*전|예전에?|과거에?|어렸을\s*때|작년|재작년|지난\s*해|지난\s*달|지난번에?/;
+const _HIST_KW   = ['병력', '가족력', '수술했었', '쓰러진 적', '진단받았었', '앓으셨', '돌아가셨', '세상을 떠나', '기왕력'];
+
+function isEmergencySignal(msg: string): boolean {
+  if (!EMERGENCY_KW.some(k => msg.includes(k))) return false;
+  if (_NOW_KW.some(k => msg.includes(k))) return true;                              // 현재성 → 무조건 응급
+  if (_PAST_RE.test(msg) || _HIST_KW.some(k => msg.includes(k))) return false;     // 과거/이력 → 제외
+  return true;                                                                       // 애매 → 응급 유지
+}
+
 const CRISIS_KW = [
   '죽고 싶', '죽고싶', '살기 싫', '살기싫', '더 살기 힘',
   '이 세상 떠나', '사라지고 싶', '없어지고 싶', '자살',
@@ -143,7 +155,7 @@ function normalizeProfile(p: any): any {
 }
 
 function classifyIntent(msg: string, history: HistoryItem[]): Intent {
-  if (EMERGENCY_KW.some(k => msg.includes(k))) return 'emergency';
+  if (isEmergencySignal(msg)) return 'emergency';
   if (CRISIS_KW.some(k => msg.includes(k))) return 'crisis';
   if (EMOTIONAL_KW.some(k => msg.includes(k))) return 'emotional';
   if (COGNITIVE_KW.some(k => msg.includes(k))) return 'cognitive';
@@ -1148,7 +1160,7 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
               </TouchableOpacity>
             )}
             <TouchableOpacity style={s.btnDismiss} onPress={() => setShowEmergency(false)}>
-              <Text style={s.btnDismissTxt}>괜찮습니다, 닫기</Text>
+              <Text style={s.btnDismissTxt}>지금 일어난 일이 아닙니다</Text>
             </TouchableOpacity>
           </View>
         </View>

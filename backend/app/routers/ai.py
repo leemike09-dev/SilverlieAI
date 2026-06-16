@@ -86,8 +86,34 @@ def _build_urgent_bypass_words() -> list:
 
 URGENT_BYPASS_WORDS: list = _build_urgent_bypass_words()
 
+# 응급 게이트 정밀화 상수 — "지금·본인/눈앞 사람"일 때만 응급
+_URGENT_NOW_KW = ['지금', '방금', '갑자기', '지금 당장', '이 순간', '지금 막', '막 시작']
+_URGENT_PAST_ANCHOR_RE = re.compile(
+    r'\d+\s*(?:개월|달|년|주일?)\s*전'          # 6개월 전, 2년 전, 3일 전
+    r'|예전에?|과거에?|어렸을\s*때'
+    r'|작년|재작년|지난\s*해|지난\s*달|지난번에?'
+)
+_URGENT_HISTORY_KW = [
+    '병력', '가족력', '수술했었', '쓰러진 적', '진단받았었',
+    '앓으셨', '돌아가셨', '세상을 떠나', '기왕력',
+]
+
 def is_urgent_bypass(message: str) -> bool:
-    return any(w in message for w in URGENT_BYPASS_WORDS)
+    """응급 게이트 — '지금·본인/눈앞 사람에게 벌어지는 일'일 때만 bypass.
+    1) 현재성 신호(지금/갑자기 등) → 주어 불문 즉시 응급
+    2) 명백한 과거·이력 서술 → 응급 제외 (일반 대화로)
+    3) 애매하면 응급 유지 (놓치는 것보다 거짓경보가 안전)
+    """
+    if not any(w in message for w in URGENT_BYPASS_WORDS):
+        return False
+    # 1) 현재성 신호 → 무조건 응급
+    if any(kw in message for kw in _URGENT_NOW_KW):
+        return True
+    # 2) 과거 시점 고정 또는 이력/병력 서술 → 응급 아님
+    if _URGENT_PAST_ANCHOR_RE.search(message) or any(k in message for k in _URGENT_HISTORY_KW):
+        return False
+    # 3) 의심스러우면 응급 유지
+    return True
 
 URGENT_HARDCODED_REPLY = (
     "[RISK:CRITICAL] 지금 증상은 한시가 급할 수 있어요. "
@@ -972,14 +998,15 @@ def _save_chat_turn(user_id: str, user_msg: str, ai_reply: str, risk: str, model
 
 # ── ③ 핵심 사실 메모리 (session_facts) ──────────────────────────────────────
 
-_FACT_TYPES = {'병원예약', '약변경', '증상지속', '감정상태', '생활변화'}
+_FACT_TYPES = {'병원예약', '약변경', '증상지속', '감정상태', '생활변화', '가족력'}
 
 _FACT_EXTRACT_PROMPT = """\
 사용자 발언을 보고 '현재 저장된 사실' 목록을 갱신하세요.
 
 [규칙 — 엄수]
-1. 정의된 5가지 type 외 저장 금지. 진단·의료적 추론·결론 저장 절대 금지.
+1. 정의된 6가지 type 외 저장 금지. 진단·의료적 추론·결론 저장 절대 금지.
    예) "무릎 3일째 아파요" → 증상지속 ✓  /  "관절염인 것 같아요" → 추론이므로 ✗
+       "어머니가 6개월 전 뇌출혈로 쓰러지셨어요" → 가족력{subject:'어머니',detail:'뇌출혈'} ✓
 2. verbatim: 사용자 원문 그대로. 해석·요약·재표현 금지.
 3. confidence=high: 사용자가 명확히 말한 것만. 애매하면 해당 항목 제외.
 4. 반환값 = 기존 목록 전체(모순 제거) + 이번 발언의 신규 사실.
@@ -993,6 +1020,7 @@ _FACT_EXTRACT_PROMPT = """\
 - 증상지속: symptom(증상명), days(일수 int or null), severity(심함/보통/가벼움 or null)
 - 감정상태: emotion(원문), since(시점 or null)
 - 생활변화: detail(원문 그대로), since(시점 or null)
+- 가족력:   subject(어머니/아버지/가족 등), detail(병명·사건), when(시점 or null)
 
 [현재 저장된 사실]:
 {existing}
