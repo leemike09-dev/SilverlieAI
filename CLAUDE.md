@@ -340,6 +340,27 @@ DOCTOR_KEYWORDS = ['병원', '진료', '의사', '내원', '검사받']
 - [x] **NotificationsScreen 삭제 기능** — 단건/전체 삭제 + 백 버튼
 - [x] **HC 심박수 누적 저장** — `health_records.${uid}` heart_rate 필드 누적
 
+## ✅ 2026-06-17 완료 (③ session_facts + 응급 게이트 정밀화)
+
+- [x] **③ 핵심 사실 메모리 (session_facts)** — Haiku 배경 추출 → 6종 타입 스키마 검증 → Supabase upsert (당일 세션 한정).
+  - `_FACT_TYPES`: 병원예약·약변경·증상지속·감정상태·생활변화·**가족력** (6종)
+  - 4 안전장치: ① 구조화 추출만 ② verbatim 원문 보존 ③ 세션 범위(당일 만료) ④ 영구 프로필 자동 승격 금지
+  - 부정 표현 감지(`안 바꿨·아니요` 등) → 정정 발언 즉시 반영, 무관한 발언은 기존 유지
+  - 금지선: 의료적 추론 저장 금지, 응급 라우팅 덮기 금지, 프로필 자동 승격 금지
+- [x] **응급 게이트 거짓양성(FP) 제거** — `is_urgent_bypass()` 3단계 정밀 판단 (백엔드·프론트 동일):
+  1. 현재성 신호(`지금/방금/갑자기`) → 주어 불문 즉시 응급
+  2. 과거 시점(`X개월 전·예전에`) 또는 이력(`병력·가족력·돌아가셨`) → 응급 제외
+  3. 애매하면 응급 유지 (놓치는 것보다 거짓경보가 안전)
+  - FP 재현: "어머니가 뇌출혈로 6개월 전에 쓰러지셨다" → 이제 공감 응답 + 가족력 기록
+  - `lumi-chat-kb.json` EMG-002에 `쓰러지셨·쓰러졌` 추가
+  - 응급 모달 닫기 버튼: "지금 일어난 일이 아닙니다"
+- [x] **테스트 분리** — `backend/tests/` 두 파일:
+  - `test_session_facts.py`: 추출/메모리 동작 (정적 6종 전통과 / LLM 7종 출시 직전 실행)
+    - S-01a 세션 격리, S-01b 응급 우선, S-02 프로필 승격 금지 → **구조로 불가능하게 만듦**
+  - `test_emergency_gate.py`: 응급 라우팅 판정 E-01 7종 전통과 (API 불필요)
+  - LLM 테스트(F-01~B-04) 실행 방법: `cd backend && venv/bin/python3 tests/test_session_facts.py <ANTHROPIC_API_KEY>`
+    Render의 기존 키 재사용 — 출시 직전 회귀 점검 시 실행
+
 ## ✅ 2026-06-16 완료 (구조적 버그 수정 + 출시 전 필수 항목)
 
 - [x] **응급 라우팅 단일 사전화** — `lumi-chat-kb.json` urgent entries에 `keywords[]` 추가. 프론트 `buildEmergencyKw()` · 백엔드 `_build_urgent_bypass_words()` 모두 KB에서 자동 생성. 6/6 케이스 통과. ⚠️ 이후 응급 키워드 추가는 KB만 수정.
@@ -367,7 +388,7 @@ DOCTOR_KEYWORDS = ['병원', '진료', '의사', '내원', '검사받']
 - [ ] API Rate limiting
 
 ### AI 고도화
-- [ ] **③ 핵심 사실 메모리** — 대화 중 파악한 "오늘 병원 예약됨", "약 바꿨어요" 등 핵심 사실을 당일 세션 내 기억. 환각 방지 가드레일 설계 필요 (확인 안 된 사실 과신 금지). ①②⑤ 검증 완료 후 다음 순위.
+- [x] **③ 핵심 사실 메모리** — 완료. 위 2026-06-17 섹션 참고.
 - [ ] 벡터 검색 기반 장기 컨텍스트
 - [ ] 일일 대화 요약 자동 생성
 - [ ] 모델 동적 선택 (④ — Qwen provider 작업과 묶어서 설계)
@@ -397,7 +418,7 @@ DOCTOR_KEYWORDS = ['병원', '진료', '의사', '내원', '검사받']
   - 앱에서 자동 업데이트 수신 확인
 
 ### 백로그 (다음 라운드)
-- [ ] **BL-1: 응급 회귀 테스트 자동화** — 흉통·편마비·언어장애·두통·낙상 → BYPASS, 일반질문 → LLM. Jest 또는 node 스크립트. urgent.keywords 수정 시 회귀 즉시 감지용.
+- [x] **BL-1: 응급 회귀 테스트 자동화** — `backend/tests/test_emergency_gate.py` E-01 7종 (FP×3, TP×2, BD×2). API 불필요, `venv/bin/python3 tests/test_emergency_gate.py` 로 즉시 실행. urgent.keywords 수정 시 회귀 즉시 감지.
 - [ ] **BL-2: 응급 KB 항목 임상 승격** — EMG-001/002/003, GLU-002 현재 `status: 'review'`. 의료 자문 검토 후 `status: 'approved'` 승격. 도구: `review-tool.html`.
 
 ### 2차 개발
