@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import SeniorTabBar from '../components/SeniorTabBar';
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as Linking from 'expo-linking';
 import { useFocusEffect } from '@react-navigation/native';
@@ -146,7 +147,9 @@ export default function SeniorHomeScreen({ route, navigation }: ScreenProps) {
   // 화면 포커스될 때마다 맨 위로
   useFocusEffect(useCallback(() => {
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-  }, []));
+    // HealthScreen에서 BP 수정 후 복귀 시 최신값 반영
+    if (userId && userId !== 'guest') loadTodayData(userId);
+  }, [userId]));
   const todayKey = useMemo(() => localDate(), []);
 
   const sendLocation = async (uid: string) => {
@@ -385,9 +388,17 @@ const MOOD_REACTIONS = [
         {/* TOP BAR */}
         <View style={[s.topBar, { paddingTop: Math.max(insets.top + 4, 16) }]}>
           <Text style={s.wordmark}>Lumi <Text style={{ color: '#E9A23B' }}>♥</Text></Text>
-          <View>
-            <Text style={s.topDate}>{dateStr}</Text>
-            <Text style={s.topTime}>{timeStr}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View>
+              <Text style={s.topDate}>{dateStr}</Text>
+              <Text style={s.topTime}>{timeStr}</Text>
+            </View>
+            <TouchableOpacity
+              style={s.bellBtn}
+              onPress={() => navigation.navigate('Notifications', { userId, name })}
+              activeOpacity={0.7}>
+              <Ionicons name="notifications-outline" size={26} color={INK} />
+            </TouchableOpacity>
           </View>
         </View>
         {/* HERO — 루미 크게 + 인사 텍스트 */}
@@ -437,7 +448,7 @@ const MOOD_REACTIONS = [
                 <Text style={s.moodChatText}>{MOOD_REACTIONS[todayMood].msg}</Text>
                 <TouchableOpacity
                   style={[s.moodChatBtn, { backgroundColor: MOOD_REACTIONS[todayMood].btnColor }]}
-                  onPress={() => navigation.navigate(MOOD_REACTIONS[todayMood].screen, { userId, name })}>
+                  onPress={() => navigation.navigate(MOOD_REACTIONS[todayMood!].screen as any, { userId, name, seedMood: MOOD_LABEL[todayMood!] })}>
                   <Text style={s.moodChatBtnText}>{MOOD_REACTIONS[todayMood].btnLabel}</Text>
                 </TouchableOpacity>
               </View>
@@ -577,7 +588,7 @@ const MOOD_REACTIONS = [
         {/* 6. 루미 대화 — 흰 카드 + 라벤더 칩 */}
         <TouchableOpacity
           style={[s.card, { backgroundColor: '#fff', overflow: 'hidden' }]}
-          onPress={() => navigation.navigate('AIChat', { userId, name })}
+          onPress={() => navigation.navigate('AIChat', { userId, name, k: Date.now() })}
         >
           {/* 워터마크 */}
           <Lumi mood="happy" size={200} bob={false}
@@ -663,6 +674,12 @@ const s = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 18,
     paddingBottom: 16,
+  },
+  bellBtn: {
+    width: 44, height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    alignItems: 'center', justifyContent: 'center',
   },
   wordmark: {
     fontSize: 28,
