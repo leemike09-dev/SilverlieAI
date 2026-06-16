@@ -64,7 +64,7 @@ def extract(user_msg: str, existing: list = []) -> tuple[list, str]:
 # ── 코드 레벨 정적 검증 (API 불필요) ──────────────────────────────────────────
 
 def check_static():
-    """세션 격리·응급 우선순위 — 코드 읽기로 검증."""
+    """세션 격리·응급 우선순위·영구 프로필 승격 금지 — 코드 읽기로 검증."""
     import inspect, app.routers.ai as ai_mod
 
     # 3a: session_date 필터 확인
@@ -80,6 +80,26 @@ def check_static():
     assert idx_bypass < idx_task, \
         "❌ 3b FAIL: is_urgent_bypass 체크가 session_facts 등록보다 나중에 있음"
     print("[3b] ✅ PASS  is_urgent_bypass 체크 → session_facts 추출 건너뜀 (코드 순서 확인)")
+
+    # S-01: 응급 발언 → _extract_and_save_facts_background 호출 안 됨
+    # chat_stream() 안에서 is_urgent_bypass가 True이면 session_facts background_task가 추가되지 않음을 확인.
+    # 검증 방법: is_urgent_bypass 체크와 _extract_and_save_facts_background 등록이
+    #   'not is_urgent_bypass' 조건 하나의 if 블록 안에 묶여 있어야 한다.
+    import re as _re
+    # chat_stream 소스에서 "not is_urgent_bypass" 바로 뒤에 _extract_and_save_facts_background가 오는지 확인
+    pattern = r'not\s+is_urgent_bypass.*?_extract_and_save_facts_background'
+    assert _re.search(pattern, src_stream, _re.DOTALL), \
+        "❌ S-01 FAIL: 응급 발언(is_urgent_bypass=True) 시 session_facts 추출이 skip되지 않을 수 있음"
+    print("[S-01] ✅ PASS  응급 발언 → session_facts 저장 skip (is_urgent_bypass 가드 내부에 등록)")
+
+    # S-02: _extract_and_save_facts_background → 영구 프로필 쓰기 없음
+    # 이 함수가 health_profile / users 테이블 / _update_conditions_background 를 건드리지 않아야 함.
+    src_extract = inspect.getsource(ai_mod._extract_and_save_facts_background)
+    FORBIDDEN = ['health_profile', '_update_conditions_background', 'users.update', '"users"', 'conditions']
+    violations = [kw for kw in FORBIDDEN if kw in src_extract]
+    assert not violations, \
+        f"❌ S-02 FAIL: _extract_and_save_facts_background에 영구 프로필 쓰기 코드 발견: {violations}"
+    print("[S-02] ✅ PASS  session_facts → session_facts 테이블만 씀, 영구 프로필 자동 승격 없음")
 
 
 # ── LLM 행동 검증 ─────────────────────────────────────────────────────────────
