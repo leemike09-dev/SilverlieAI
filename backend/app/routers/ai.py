@@ -406,16 +406,16 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
     if p.get('allergyNote'):    allergy_parts.append(p['allergyNote'])
     allergies = ' / '.join(allergy_parts) or '없음'
 
-    if meds_raw:
-        # 오늘 복용 로그로 각 약의 복용 현황 매핑
-        logs_today = health_ctx.get('today_med_logs', []) or []
-        log_map: dict = {}  # medication_id → {time: status}
-        for lg in logs_today:
-            mid = lg.get('medication_id', '')
-            if mid not in log_map:
-                log_map[mid] = {}
-            log_map[mid][lg.get('scheduled_time', '')] = lg.get('taken', False)
+    # 복용 로그 맵 (맥락 신호 계산에도 사용하므로 if 블록 밖에서 빌드)
+    logs_today = health_ctx.get('today_med_logs', []) or []
+    log_map: dict = {}
+    for lg in logs_today:
+        _mid = lg.get('medication_id', '')
+        if _mid not in log_map:
+            log_map[_mid] = {}
+        log_map[_mid][lg.get('scheduled_time', '')] = lg.get('taken', False)
 
+    if meds_raw:
         med_lines = []
         for m in meds_raw:
             times_list = m.get('times') or []
@@ -453,6 +453,88 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
 
     # 최근 7일 건강 기록 트렌드 (오늘 포함)
     records_7d = health_ctx.get('health_records', [])
+
+    # ── 오늘 맥락 신호: 평소값 대비 비교 (LLM이 직접 계산하게 하지 않음) ──
+    h_now = datetime.now().hour
+    past_recs = [r for r in records_7d[1:] if r]  # 오늘 제외 과거 최대 6일
+
+    def _avg(field: str) -> float | None:
+        vals = [float(r[field]) for r in past_recs if r.get(field)]
+        return sum(vals) / len(vals) if vals else None
+
+    def _cmp(today_v, avg_v, unit='', pos_thr=5, neg_thr=None) -> str:
+        """오늘 vs 평소 비교 문자열."""
+        neg_thr = neg_thr if neg_thr is not None else pos_thr
+        diff = float(today_v) - avg_v
+        if diff > pos_thr:   return f"평소 {avg_v:.0f}{unit}보다 높음"
+        if diff < -neg_thr:  return f"평소 {avg_v:.0f}{unit}보다 낮음"
+        return f"평소 {avg_v:.0f}{unit}와 비슷"
+
+    ctx_signals: list = []
+
+    # 혈압
+    if bp_s and bp_d:
+        avg_s, avg_d = _avg('blood_pressure_systolic'), _avg('blood_pressure_diastolic')
+        if avg_s and avg_d:
+            ctx_signals.append(f"혈압: {bp_s}/{bp_d} ({_cmp(bp_s, avg_s, pos_thr=8)} — 수축기 평소 {avg_s:.0f})")
+        else:
+            ctx_signals.append(f"혈압: {bp_s}/{bp_d} (평소 데이터 없음)")
+
+    # 혈당
+    if sugar_val:
+        avg_g = _avg('blood_sugar')
+        if avg_g:
+            ctx_signals.append(f"혈당: {sugar_val} mg/dL ({_cmp(sugar_val, avg_g, pos_thr=10)})")
+        else:
+            ctx_signals.append(f"혈당: {sugar_val} mg/dL")
+
+    # 걸음 — 시간대가 결정적
+    steps_val = rec.get('steps')
+    if steps_val:
+        if h_now < 12:
+            ctx_signals.append(f"걸음: {int(steps_val):,}보 — 오전 {h_now}시 기준 (하루 진행 중, 종일 목표 비교 절대 금지)")
+        else:
+            avg_st = _avg('steps')
+            if avg_st:
+                diff_pct = (float(steps_val) - avg_st) / avg_st * 100
+                cmp_st = f"평소 {avg_st:.0f}보보다 {'많음' if diff_pct > 15 else '적음' if diff_pct < -15 else '비슷'}"
+                ctx_signals.append(f"걸음: {int(steps_val):,}보 ({cmp_st})")
+            else:
+                ctx_signals.append(f"걸음: {int(steps_val):,}보")
+
+    # 수면
+    sl_val = rec.get('sleep_hours')
+    if sl_val:
+        avg_sl = _avg('sleep_hours')
+        if avg_sl:
+            ctx_signals.append(f"수면: {sl_val}h ({_cmp(sl_val, avg_sl, unit='h', pos_thr=0.5)})")
+        else:
+            ctx_signals.append(f"수면: {sl_val}h")
+
+    # 심박수
+    if rec.get('heart_rate'):
+        ctx_signals.append(f"심박수: {rec['heart_rate']}bpm")
+
+    # 체중
+    if rec.get('weight'):
+        ctx_signals.append(f"체중: {rec['weight']}kg")
+
+    # 기분 — 이미 알고 있음, 재확인 금지
+    if today_mood:
+        mood_hint = " (공감 먼저, 수치 나중)" if mood_negative else ""
+        ctx_signals.append(f"기분: {today_mood} — 홈에서 이미 선택됨. 루미는 알고 있음. 다시 묻지 말 것{mood_hint}")
+
+    # 미복용 약 감지 → 슬롯4 확인 행동 지정
+    missed_meds: list = []
+    for m in meds_raw:
+        m_id = m.get('id', '')
+        for t in (m.get('times') or []):
+            if log_map.get(m_id, {}).get(t) is False:
+                missed_meds.append(f"{m.get('name','')}({t})")
+    if missed_meds:
+        ctx_signals.append(f"미복용 감지: {', '.join(missed_meds)} → 슬롯4: '{missed_meds[0].split('(')[0]} 오늘 챙기셨어요?' 한 마디 확인")
+
+    ctx_signals_str = "\n".join(f"  • {s}" for s in ctx_signals) if ctx_signals else "  • 오늘 측정값 없음 (일상·감정 대화 모드로)"
     trend_lines = []
     for r in records_7d[:7]:
         parts = [str(r.get('date',''))]
@@ -504,16 +586,12 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         f"수술 경력: {surgeries}\n"
         f"알레르기: {allergies}\n"
         f"현재 복용약: {meds_str}\n"
-        f"최근 기록 혈압: {bp}\n"
-        f"최근 기록 혈당: {sugar}\n"
-        f"최근 기록 심박수: {hr}\n"
-        f"최근 기록 체중: {wt}\n"
-        f"최근 기록 걸음수: {steps}\n"
-        f"최근 7일 건강 기록:\n{trend_str}\n"
         f"생활습관: {habits}\n"
-        + (f"오늘 기분: {today_mood}\n" if today_mood else "")
+        f"최근 7일 건강 기록:\n{trend_str}\n"
         + (f"[실시간 날씨 데이터] {weather_str} (GPS 기반 실시간 수집 완료)\n" if weather_str else "")
         + "\n"
+        f"[오늘 맥락 신호 — 답변 생성 전 가장 먼저 확인할 것]\n"
+        f"{ctx_signals_str}\n\n"
         "[건강 평가·답변 가이드 — 반드시 준수]\n"
         "답변을 만들기 전에 아래 맥락 신호를 먼저 확인하고, 신호에 따라 말이 달라져야 한다.\n\n"
         "▶ 맥락 신호 우선순위\n"
@@ -529,8 +607,9 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         + "  슬롯2 오늘의 관찰: 가장 의미 있는 지표 1~2개만. 정상 지표 줄줄이 나열 금지.\n"
         + ("  → 기분이 부정적인 날: 주의 지표가 없어도 먼저 기분에 공감하고 수치는 간단히.\n" if mood_negative else "")
         + "  슬롯3 맥락 해석: 왜 이 수치인지 — 약·프로필·추세·시점을 엮어 한 줄. 인구 평균이 아닌 그 사람 평소와 비교.\n"
-        "  슬롯4 한 가지 행동: 지금·여기서 가능한 것 하나. 질책·과제 금지.\n"
-        "  하단 고정: '의학적 진단이 아니라, 기록을 보고 드리는 도움말이에요.'\n\n"
+        + "  슬롯4 한 가지 행동: 지금·여기서 가능한 것 하나. 질책·과제 금지.\n"
+        + (f"  → 미복용 감지 시: 슬롯4를 '{missed_meds[0].split('(')[0]} 오늘 챙기셨어요?' 한 마디로 끝낼 것. 다른 행동 불필요.\n" if missed_meds else "")
+        + "  하단 고정: '의학적 진단이 아니라, 기록을 보고 드리는 도움말이에요.'\n\n"
         "▶ 절대 금지 가드레일\n"
         "  ✗ 오전에 부분-누적 걸음을 종일 목표와 비교\n"
         "  ✗ 이미 복약 중인 질환에 '병원 가보세요' (복약=이미 진료 중)\n"
