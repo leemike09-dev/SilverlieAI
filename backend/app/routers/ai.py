@@ -1067,6 +1067,22 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
     if not api_key:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY가 설정되지 않았습니다.")
 
+    # 응급 키워드 — 스트리밍과 동일한 우선순위 처리
+    if is_urgent_bypass(request.message):
+        if request.user_id and request.user_id not in ("demo-user", "guest"):
+            background_tasks.add_task(_send_family_alert, request.user_id, "사용자")
+            background_tasks.add_task(_save_chat_turn, request.user_id, request.message,
+                                      URGENT_HARDCODED_REPLY, 'critical', 'bypass')
+        return {
+            "reply": URGENT_HARDCODED_REPLY,
+            "risk_level": "critical",
+            "doctor_memo_needed": False,
+            "doctor_memo": None,
+            "is_final": False,
+            "sos_sent": True,
+            "profile_updates": [],
+        }
+
     relevant_qa = find_relevant_qa_vector(request.message)
     user_row: dict = {}
     health_ctx: dict = {
