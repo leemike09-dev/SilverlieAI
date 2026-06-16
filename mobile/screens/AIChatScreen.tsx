@@ -276,6 +276,12 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
   const [currentSessionIdx, setCurrentSessionIdx] = useState(0);
   const [guardianPhone, setGuardianPhone] = useState('');
   const [guardianLabel, setGuardianLabel] = useState('');
+  const [profilePrompt, setProfilePrompt] = useState<{
+    fieldKey: string; question: string; chips: string[];
+  } | null>(null);
+  const sessionAskedRef      = useRef<Set<string>>(new Set());
+  const profilePromptCountRef = useRef(0);
+
   const weatherRef   = useRef<string | undefined>(undefined);
   const sessionIdRef = useRef<string>(Date.now().toString());
   const historyRef   = useRef<HistoryItem[]>([]);
@@ -463,6 +469,120 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
     }
   }, [loading]);
 
+
+  // ─── 대화형 프로필 수집 트리거 ─────────────────────────────────────────────
+  // 우선순위: 혈액형 → 알레르기 → 비상연락 → 루틴 → 말투 → 호칭
+  const PROFILE_QUEUE = [
+    {
+      key: 'bloodType',
+      question: '혈액형을 알고 계세요? 응급 때 꼭 필요해요.',
+      chips: ['A형', 'B형', 'O형', 'AB형', '모르겠어요', '나중에'],
+    },
+    {
+      key: 'allergies',
+      question: '약이나 음식 알레르기가 있으신가요?',
+      chips: ['없어요', '있어요 →', '나중에'],
+    },
+    {
+      key: 'guardian',
+      question: '비상연락처(보호자)를 등록해 두시면 더 안심이에요.',
+      chips: ['지금 등록할게요 →', '나중에'],
+    },
+    {
+      key: 'routine',
+      question: '보통 몇 시쯤 일어나세요?',
+      chips: ['5~6시', '6~7시', '7~8시', '8시 이후', '나중에'],
+    },
+    {
+      key: 'speechStyle',
+      question: '루미가 어떻게 말씀드리면 편하실까요?',
+      chips: ['정중하게', '친근하게', '나중에'],
+    },
+    {
+      key: 'address',
+      question: '루미가 어르신을 어떻게 불러드릴까요?',
+      chips: [...(name ? [`${name}님`] : []), '어르신', '편하게', '나중에'],
+    },
+  ] as const;
+
+  useEffect(() => {
+    // 2턴, 5턴에서만 자연스러운 틈에 수집
+    if (turnCount !== 2 && turnCount !== 5) return;
+    if (loading) return;
+    // 응급·위기·감정호소 중 프로필 질문 금지
+    if (currentIntent === 'emergency' || currentIntent === 'crisis' || currentIntent === 'emotional') return;
+    if (profilePromptCountRef.current >= 2) return;
+    if (memoState !== 'idle') return;
+    if (pendingConditions.length > 0) return;
+    if (profilePrompt !== null) return;
+
+    const hp = healthProfile || {};
+    for (const item of PROFILE_QUEUE) {
+      if (sessionAskedRef.current.has(item.key)) continue;
+      let missing = false;
+      if (item.key === 'bloodType')   missing = !hp.bloodType;
+      if (item.key === 'allergies')   missing = !hp.allergies;
+      if (item.key === 'guardian')    missing = !guardianPhone;
+      if (item.key === 'routine')     missing = !(hp.routine?.wakeAt);
+      if (item.key === 'speechStyle') missing = !hp.speechStyle;
+      if (item.key === 'address')     missing = !hp.address;
+      if (missing) {
+        setProfilePrompt({ fieldKey: item.key, question: item.question, chips: [...item.chips] });
+        profilePromptCountRef.current += 1;
+        break;
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turnCount]);
+
+  const handleProfileAnswer = async (fieldKey: string, value: string) => {
+    setProfilePrompt(null);
+    sessionAskedRef.current.add(fieldKey);
+
+    if (value === '나중에') return;
+
+    // 내비게이션 케이스
+    if (fieldKey === 'guardian' || value === '지금 등록할게요 →') {
+      navigation.navigate('Guardian', { userId });
+      return;
+    }
+    if (fieldKey === 'allergies' && value === '있어요 →') {
+      navigation.navigate('HealthProfile', { userId });
+      return;
+    }
+
+    // 프로필 저장
+    try {
+      const raw = await AsyncStorage.getItem('health_profile');
+      const prof = raw ? JSON.parse(raw) : {};
+      const sources = prof.fieldSources || {};
+
+      if (fieldKey === 'bloodType') {
+        prof.bloodType = value;  // 'A형' 등
+        sources.bloodType = 'self';
+      } else if (fieldKey === 'allergies') {
+        prof.allergies = '없음';
+        sources.allergies = 'self';
+      } else if (fieldKey === 'routine') {
+        const wakeMap: Record<string, string> = {
+          '5~6시': '05:30', '6~7시': '06:30', '7~8시': '07:30', '8시 이후': '08:30',
+        };
+        prof.routine = { ...(prof.routine || {}), wakeAt: wakeMap[value] || '' };
+        sources.routine = 'self';
+      } else if (fieldKey === 'speechStyle') {
+        prof.speechStyle = value;
+        sources.speechStyle = 'self';
+      } else if (fieldKey === 'address') {
+        prof.address = value;
+        sources.address = 'self';
+      }
+
+      prof.fieldSources = sources;
+      await AsyncStorage.setItem('health_profile', JSON.stringify(prof));
+      setHealthProfile(prof);
+      showToast('✓ 저장됐어요');
+    } catch {}
+  };
 
   const addMsg = (msg: Msg) => {
     setMessages(prev => [...prev, msg]);
@@ -975,6 +1095,25 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
             </View>
           )}
 
+          {/* 대화형 프로필 수집 카드 */}
+          {profilePrompt && memoState === 'idle' && !loading && pendingConditions.length === 0 && (
+            <View style={s.ppCard}>
+              <Text style={s.ppQ}>💜 {profilePrompt.question}</Text>
+              <View style={s.ppChips}>
+                {profilePrompt.chips.map(chip => (
+                  <TouchableOpacity
+                    key={chip}
+                    style={[s.ppChip, chip === '나중에' && s.ppChipSkip]}
+                    onPress={() => handleProfileAnswer(profilePrompt.fieldKey, chip)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={[s.ppChipTxt, chip === '나중에' && s.ppChipSkipTxt]}>{chip}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
           {/* 의사 메모 제안 */}
           {memoState === 'asking' && (
             <View style={s.memoPrompt}>
@@ -1306,6 +1445,23 @@ const s = StyleSheet.create({
     paddingVertical: 14, alignItems: 'center', marginBottom: 10,
     borderWidth: 2, borderColor: '#9C27B0' },
   summaryBtnTxt: { fontSize: 20, color: '#7B1FA2', fontWeight: '800' },
+
+  // 대화형 프로필 수집 카드
+  ppCard: {
+    marginHorizontal: 12, marginBottom: 10,
+    backgroundColor: '#F4EFFB', borderRadius: 18,
+    padding: 16, borderWidth: 1.5, borderColor: '#C9B7F0',
+  },
+  ppQ:       { fontSize: 18, fontWeight: '700', color: '#4A3580', marginBottom: 12, lineHeight: 26 },
+  ppChips:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  ppChip:    {
+    paddingHorizontal: 18, paddingVertical: 12,
+    backgroundColor: '#fff', borderRadius: 24,
+    borderWidth: 1.5, borderColor: '#9B7FE8',
+  },
+  ppChipSkip:    { borderColor: '#D1CCBC', backgroundColor: '#F8F6F1' },
+  ppChipTxt:     { fontSize: 17, fontWeight: '700', color: '#7C5BE3' },
+  ppChipSkipTxt: { color: '#A0A0A0', fontWeight: '500' },
 
   // 2열 카드 그리드
   cardGrid:  { paddingBottom: 8, marginTop: 6 },
