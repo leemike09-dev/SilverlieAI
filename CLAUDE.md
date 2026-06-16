@@ -327,18 +327,37 @@ DOCTOR_KEYWORDS = ['병원', '진료', '의사', '내원', '검사받']
 - [x] **백엔드 AI 건강 평가 가이드** — `build_system_prompt()`에 conditions/pastHistory/familyHistory 파싱 + `[건강 평가·답변 가이드]` 블록 (4슬롯·7가드레일·8케이스 A~H).
 - [x] **HC 걸음수 이중합산 수정** — `healthNative.ts` `getOrigin()` 헬퍼로 `dataOrigin` string/object 양쪽 처리. Samsung Health 패키지(`com.sec.android.app.shealth`) 필터로 갤럭시 워치 중복 제거.
 - [x] **Pedometer mid-day 재시작 버그 수정** — `App.tsx` 베이스라인 역산 로직: HC가 저장한 `steps_today_android` 씨앗값으로 `baseline.total = sensor - hcSteps` 계산 → 재시작 후 0 리셋 방지.
-- [x] **혈압 HC 자동 읽기 JS 완료** — `healthNative.ts` BloodPressure 권한·읽기(iOS/Android), `HealthScreen.tsx` `hcBp` 상태·"워치 자동" 뱃지·수동 우선 로직, `app.config.js` `READ_BLOOD_PRESSURE` 추가. **EAS 빌드 시 활성화.**
+- [x] **혈압 HC 읽기 JS 완료** — `healthNative.ts` BloodPressure 권한·읽기(iOS/Android), `HealthScreen.tsx` `hcBp` 상태·출처칩·HC 우선 로직, `app.config.js` `READ_BLOOD_PRESSURE` 추가. Samsung Health → HC 혈압 동기화 검증 진행 중. Galaxy 사용자 수동 입력 폴백 유지. HC 읽기는 오므론 등 전용 앱 연동 시에도 유효.
+
+## ✅ 2026-06-16 완료 (상담 품질 ①②⑤ + 버그 수정)
+
+- [x] **상담창 품질 ①②⑤ 번들** — 오늘 기분·측정값·복약현황 시스템 프롬프트 주입 + 4슬롯 틀·가드레일 한 세트. 4케이스 실측 검증 통과.
+  - AIChatScreen: `health_records.${userId}` / `medications.${userId}` 키 수정, 건강기록 필드 경로 수정 (`r.bp?.sys` → `r.blood_pressure_systolic` 등)
+  - `client_mood` 추가: `mood.${userId}.${date}` → 백엔드 `build_system_prompt()` 주입
+  - `[오늘 맥락 신호]` 섹션: 혈압·혈당·걸음·수면 평소값 대비 비교, 미복용 약 슬롯4 분기, 기분 "다시 묻지 말 것" 명시
+  - 기분 반응 카드 → AIChat 진입 시 `seedMood` 미전달 버그 수정
+- [x] **SOS Kakao Map 링크** — 가족 알림에 GPS 좌표 포함 카카오맵 링크 발송
+- [x] **NotificationsScreen 삭제 기능** — 단건/전체 삭제 + 백 버튼
+- [x] **HC 심박수 누적 저장** — `health_records.${uid}` heart_rate 필드 누적
+
+## ✅ 2026-06-16 완료 (구조적 버그 수정 + 출시 전 필수 항목)
+
+- [x] **응급 라우팅 단일 사전화** — `lumi-chat-kb.json` urgent entries에 `keywords[]` 추가. 프론트 `buildEmergencyKw()` · 백엔드 `_build_urgent_bypass_words()` 모두 KB에서 자동 생성. 6/6 케이스 통과. ⚠️ 이후 응급 키워드 추가는 KB만 수정.
+- [x] **AIChatScreen key remount 구조화** — 얇은 래퍼(`AIChatScreen`) + `ChatSessionView` 분리. 새 대화 = `setChatKey(Date.now())` → React unmount/remount → 자동 초기화. 상태 나열 수동 초기화 방식 완전 제거.
+- [x] **홈 혈압 표시 동기화** — `useFocusEffect`에 `loadTodayData` 추가 → HealthScreen 수정 후 홈 복귀 시 즉시 반영.
+- [x] **AIChatScreen 응급 모달 보호자 직접 전화** — `guardians.${userId}` 로드 → 등록 시 직접 `tel:` 연결, 미등록 시 "보호자 등록하기" → GuardianScreen 이동.
+- [x] **WeeklyReport `health_records` 네임스페이스 버그 수정** — `health_records` → `health_records.${uid}` (로컬 기록 항상 빈 배열로 읽히던 버그).
+- [x] **WeeklyReport 나이 연동** — 이미 `health_profile.age` 읽는 코드 확인. 폴백 70 유지.
+- [x] **SOSScreen 가족 연락처 연동 완료** — SSOT: `guardians.${userId}`. 미등록 시 `null` → "취소 후 설정 > 보호자 관리에서 등록하세요" 안내 박스. GuardianScreen에 수정(편집) 기능 추가 (✏️ 버튼 → 모달 pre-fill → 저장 시 기존 항목 업데이트).
+- [x] **NotificationsScreen 홈 🔔 버튼** — TopBar 우측에 `notifications-outline` 아이콘 버튼(44×44px) 추가 → `Notifications` 스택 이동.
 
 ---
 
 ## 🔴 남은 작업
 
 ### 스토어 출시 전 필수
-- [ ] **인트로 화면** — 디자인과 협업 중
-- [ ] **건강 기기 연동 (⑭-B)** — 걸음·심박·수면·혈압 JS 완료. EAS 빌드 후 갤럭시 워치 혈압 자동 표시 활성화.
-- [ ] **SOSScreen 가족 전화번호 실제 연동**
-- [ ] **NotificationsScreen** — 진입 경로 없음, 홈 🔔 버튼 추가 필요
-- [ ] **WeeklyReport 나이 하드코딩** — `userAge = 70` → 건강프로필 연동
+- [ ] **인트로 화면** — 디자인과 협업 중. **완성 전까지 EAS Production Build 보류.**
+- [ ] **건강 기기 연동 (⑭-B)** — 걸음·심박·수면·혈압 JS 완료. 혈압은 Samsung Health 수동/커프 → HC 경로 지원. 갤럭시 워치 자동측정은 Privileged SDK 제한으로 불가.
 - [ ] **Play Store 제출** — Google Play Console ($25 일회성)
 - [ ] **App Store 제출** — Apple Developer ($99/년) + Apple 로그인 필수
 
@@ -348,9 +367,10 @@ DOCTOR_KEYWORDS = ['병원', '진료', '의사', '내원', '검사받']
 - [ ] API Rate limiting
 
 ### AI 고도화
+- [ ] **③ 핵심 사실 메모리** — 대화 중 파악한 "오늘 병원 예약됨", "약 바꿨어요" 등 핵심 사실을 당일 세션 내 기억. 환각 방지 가드레일 설계 필요 (확인 안 된 사실 과신 금지). ①②⑤ 검증 완료 후 다음 순위.
 - [ ] 벡터 검색 기반 장기 컨텍스트
 - [ ] 일일 대화 요약 자동 생성
-- [ ] 모델 동적 선택 (CRITICAL→Opus / 일반→Sonnet)
+- [ ] 모델 동적 선택 (④ — Qwen provider 작업과 묶어서 설계)
 
 ### 기능 확장
 - [ ] 처방전 OCR 스캔 (약 관리)
@@ -360,8 +380,8 @@ DOCTOR_KEYWORDS = ['병원', '진료', '의사', '내원', '검사받']
 - [ ] 이번 주 마음 그래프 (HealthScreen)
 
 ### 빌드 / 배포
-- [ ] **EAS 빌드 필요 — 혈압 HC 활성화** — JS 코드·권한 모두 준비 완료. 빌드하면 갤럭시 워치 혈압 자동 읽기 즉시 작동. (수동 입력 병행, 수동 우선)
-- [ ] EAS Production Build (AAB/IPA)
+- [x] **EAS 빌드 완료 — 혈압 HC 활성화** — `READ_BLOOD_PRESSURE` 권한 포함 빌드 완료. Samsung Health 커프/수동 입력값이 HC 경유 자동 표시됨.
+- [ ] **EAS Production Build (AAB/IPA)** — ⚠️ 인트로 화면 완성 후 진행
 - [ ] TestFlight 베타 (iOS)
 - [ ] **EAS 빌드 후 반드시 실행** — 동선 기록 기능 테스트
   - `eas build --profile preview --platform android` 로 APK 빌드
@@ -375,6 +395,10 @@ DOCTOR_KEYWORDS = ['병원', '진료', '의사', '내원', '검사받']
 - [ ] **EAS 빌드 후 반드시 실행** — EAS Update 첫 배포 테스트
   - `cd mobile && eas update --branch production --message "첫 배포"` 실행
   - 앱에서 자동 업데이트 수신 확인
+
+### 백로그 (다음 라운드)
+- [ ] **BL-1: 응급 회귀 테스트 자동화** — 흉통·편마비·언어장애·두통·낙상 → BYPASS, 일반질문 → LLM. Jest 또는 node 스크립트. urgent.keywords 수정 시 회귀 즉시 감지용.
+- [ ] **BL-2: 응급 KB 항목 임상 승격** — EMG-001/002/003, GLU-002 현재 `status: 'review'`. 의료 자문 검토 후 `status: 'approved'` 승격. 도구: `review-tool.html`.
 
 ### 2차 개발
 - [ ] BLE 의료기기 직접 연결 (혈압계·혈당계)
