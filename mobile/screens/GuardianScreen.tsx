@@ -41,6 +41,7 @@ export default function GuardianScreen({ route, navigation }: any) {
 
   const [guardians, setGuardians]   = useState<Guardian[]>([]);
   const [modalOpen, setModalOpen]   = useState(false);
+  const [editId, setEditId]         = useState<string | null>(null);
   const [inputName, setInputName]   = useState('');
   const [inputRel,  setInputRel]    = useState('딸');
   const [inputPhone, setInputPhone] = useState('');
@@ -59,20 +60,44 @@ export default function GuardianScreen({ route, navigation }: any) {
     await AsyncStorage.setItem(`guardians.${userId}`, JSON.stringify(list));
   };
 
-  const handleAdd = async () => {
+  const openAdd = () => {
+    setEditId(null);
+    setInputName('');
+    setInputPhone('');
+    setInputRel('딸');
+    setModalOpen(true);
+  };
+
+  const openEdit = (g: Guardian) => {
+    setEditId(g.id);
+    setInputName(g.name);
+    setInputPhone(g.phoneNumber);
+    setInputRel(g.relation);
+    setModalOpen(true);
+  };
+
+  const handleSave = async () => {
     const trimName  = inputName.trim();
     const trimPhone = inputPhone.trim();
     if (!trimName)  { Alert.alert('알림', '이름을 입력해주세요'); return; }
     if (!trimPhone) { Alert.alert('알림', '전화번호를 입력해주세요'); return; }
-    const newItem: Guardian = {
-      id: Date.now().toString(),
-      name: trimName,
-      relation: inputRel,
-      phoneNumber: trimPhone,
-      priority: guardians.length === 0 ? 1 : undefined,
-    };
-    await save([...guardians, newItem]);
+    if (editId) {
+      const updated = guardians.map(g =>
+        g.id === editId ? { ...g, name: trimName, relation: inputRel, phoneNumber: trimPhone } : g
+      );
+      await save(updated);
+    } else {
+      const newItem: Guardian = {
+        id: Date.now().toString(),
+        name: trimName,
+        relation: inputRel,
+        phoneNumber: trimPhone,
+        priority: guardians.length === 0 ? 1 : undefined,
+      };
+      await save([...guardians, newItem]);
+    }
     setModalOpen(false);
+    setEditId(null);
     setInputName('');
     setInputPhone('');
     setInputRel('딸');
@@ -111,7 +136,7 @@ export default function GuardianScreen({ route, navigation }: any) {
             <Ionicons name="chevron-back" size={28} color={INK} />
           </TouchableOpacity>
           <Text style={s.headerTitle}>보호자 연락처</Text>
-          <TouchableOpacity onPress={() => setModalOpen(true)} style={s.addHeaderBtn}>
+          <TouchableOpacity onPress={openAdd} style={s.addHeaderBtn}>
             <Ionicons name="add" size={28} color={BLUE} />
           </TouchableOpacity>
         </View>
@@ -132,7 +157,7 @@ export default function GuardianScreen({ route, navigation }: any) {
             <Text style={s.emptyIcon}>👨‍👩‍👧</Text>
             <Text style={s.emptyTitle}>아직 보호자가 없어요</Text>
             <Text style={s.emptyDesc}>가족 연락처를 추가하면{'\n'}SOS 상황에 바로 연결돼요</Text>
-            <TouchableOpacity style={s.btnPrimary} onPress={() => setModalOpen(true)}>
+            <TouchableOpacity style={s.btnPrimary} onPress={openAdd}>
               <Text style={s.btnPrimaryText}>+ 첫 보호자 추가하기</Text>
             </TouchableOpacity>
           </View>
@@ -158,9 +183,14 @@ export default function GuardianScreen({ route, navigation }: any) {
                     <Text style={s.memberRel}>{g.relation}</Text>
                     <Text style={s.memberPhone}>{g.phoneNumber}</Text>
                   </View>
-                  <TouchableOpacity onPress={() => handleDelete(g.id)} style={s.deleteBtn}>
-                    <Ionicons name="trash-outline" size={20} color={RED} />
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity onPress={() => openEdit(g)} style={s.editBtn}>
+                      <Ionicons name="pencil" size={24} color={BLUE} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleDelete(g.id)} style={s.deleteBtn}>
+                      <Ionicons name="trash-outline" size={20} color={RED} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 {/* Action buttons */}
@@ -180,7 +210,7 @@ export default function GuardianScreen({ route, navigation }: any) {
             ))}
 
             {/* Add more */}
-            <TouchableOpacity style={s.addMoreBtn} onPress={() => setModalOpen(true)}>
+            <TouchableOpacity style={s.addMoreBtn} onPress={openAdd}>
               <Ionicons name="add-circle-outline" size={24} color={INK_SOFT} />
               <Text style={s.addMoreTxt}>보호자 추가하기</Text>
             </TouchableOpacity>
@@ -195,7 +225,7 @@ export default function GuardianScreen({ route, navigation }: any) {
         <View style={s.modalOverlay}>
           <View style={s.modalCard}>
             <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>보호자 추가</Text>
+              <Text style={s.modalTitle}>{editId ? '보호자 수정' : '보호자 추가'}</Text>
               <TouchableOpacity onPress={() => setModalOpen(false)}>
                 <Ionicons name="close" size={26} color={INK} />
               </TouchableOpacity>
@@ -231,7 +261,7 @@ export default function GuardianScreen({ route, navigation }: any) {
               keyboardType="phone-pad"
             />
 
-            <TouchableOpacity style={s.btnSave} onPress={handleAdd}>
+            <TouchableOpacity style={s.btnSave} onPress={handleSave}>
               <Text style={s.btnSaveTxt}>저장하기</Text>
             </TouchableOpacity>
           </View>
@@ -344,6 +374,7 @@ const s = StyleSheet.create({
   badgeText:   { fontSize: 12, fontWeight: '800', color: '#A8770F' },
   memberRel:   { fontSize: 16, fontWeight: '600', color: INK_SOFT },
   memberPhone: { fontSize: 15, fontWeight: '600', color: INK_MUTE, marginTop: 2 },
+  editBtn:     { padding: 8 },
   deleteBtn:   { padding: 8 },
 
   actionRow: { flexDirection: 'row', gap: 10 },
