@@ -699,17 +699,43 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
     addMsg({ role: 'user', text: '지금까지 내용을 요약해 주세요' });
     setLoading(true);
     setMessages(prev => [...prev, { role: 'ai', text: '' }]);
+
+    const summaryBody = {
+      user_id: userId, message: '지금까지 증상을 요약해 주세요',
+      history: history.slice(-10), turn_count: turnCount,
+      force_summary: true, client_profile: normalizeProfile(healthProfile),
+      intent: currentIntent, client_mood: todayMood,
+      client_record: healthRecord, client_weather: weatherRef.current,
+    };
+    const doFetch = () => fetch(`${API_URL}/ai/chat/stream`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(summaryBody),
+    });
+
     try {
-      const res = await fetch(`${API_URL}/ai/chat/stream`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: userId, message: '지금까지 증상을 요약해 주세요',
-          history: history.slice(-10), turn_count: turnCount,
-          force_summary: true, client_profile: normalizeProfile(healthProfile),
-        }),
-      });
-      if (!res.ok || !res.body) throw new Error('stream error');
+      let res = await doFetch();
+      // 서버 콜드스타트 → 5초 대기 후 재시도
+      if (!res.ok || !res.body) {
+        await new Promise(r => setTimeout(r, 5000));
+        res = await doFetch();
+      }
+      if (!res.ok) throw new Error('server error');
+
+      // React Native에서 res.body null → 비스트리밍 폴백
+      if (!res.body) {
+        const fallback = await fetch(`${API_URL}/ai/chat`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(summaryBody),
+        });
+        if (!fallback.ok) throw new Error('fallback error');
+        const data = await fallback.json();
+        const cleanText = stripEmoji(data.reply) || '요약 실패. 다시 시도해주세요.';
+        setMessages(prev => { const next=[...prev]; next[next.length-1]={ role:'ai', text:cleanText }; return next; });
+        setHistory(prev => [...prev, { role:'user', content:'요약 요청' }, { role:'assistant', content:cleanText }]);
+        setTurnCount(t => t + 1);
+        return;
+      }
+
       const reader  = res.body.getReader();
       const decoder = new TextDecoder();
       let accumulated = '';
@@ -973,7 +999,7 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
           )}
 
           {/* 빠른 질문 칩 (초기) */}
-          {turnCount >= 2 && !loading && memoState === 'idle' && !!lastAiMsg && currentIntent !== 'daily' && (
+          {turnCount >= 5 && !loading && memoState === 'idle' && !!lastAiMsg && currentIntent !== 'daily' && (
             <TouchableOpacity style={s.summaryBtn} onPress={sendForceSummary} activeOpacity={0.8}>
               <Text style={s.summaryBtnTxt}>지금 요약해줘</Text>
             </TouchableOpacity>
