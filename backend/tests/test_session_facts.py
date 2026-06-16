@@ -101,6 +101,36 @@ def check_static():
         f"❌ S-02 FAIL: _extract_and_save_facts_background에 영구 프로필 쓰기 코드 발견: {violations}"
     print("[S-02] ✅ PASS  session_facts → session_facts 테이블만 씀, 영구 프로필 자동 승격 없음")
 
+    # ── S-01a: 세션 격리 (날짜 단위 만료) ──────────────────────────────────────
+    # _load_session_facts 가 date.today() 를 직접 생성하여 필터하므로
+    # 어제 session_date 로 저장된 사실은 오늘 로드 시 반환되지 않는다.
+    # 검증: _load_session_facts 의 단독 로직 — today 변수로만 필터, 외부 주입 없음.
+    src_load = inspect.getsource(ai_mod._load_session_facts)
+    assert 'date.today()' in src_load, \
+        "❌ S-01a FAIL: _load_session_facts 가 date.today() 대신 외부에서 날짜를 받음 (격리 깨질 수 있음)"
+    assert src_load.count('today') >= 2, \
+        "❌ S-01a FAIL: session_date 필터에 today 변수가 충분히 사용되지 않음"
+    print("[S-01a] ✅ PASS  세션 격리 — _load_session_facts 가 date.today() 로 자체 생성, 어제 날짜 주입 불가")
+
+    # ── S-01b: 응급 우선 — session_facts 내용이 응급 라우팅에 영향 못 줌 ─────────
+    # is_urgent_bypass(message) 는 '현재 메시지'만 인자로 받는다.
+    # session_facts 에 과거 응급 증상이 쌓여 있어도 is_urgent_bypass 는 이를 볼 수 없다.
+    sig = inspect.signature(ai_mod.is_urgent_bypass)
+    params = list(sig.parameters.keys())
+    assert params == ['message'], \
+        f"❌ S-01b FAIL: is_urgent_bypass 시그니처가 변경됨 → 파라미터: {params}"
+    # 실제 응급 메시지가 session_facts 여부와 무관하게 True 를 반환하는지 행동 확인
+    stored_past_symptom = [
+        {"type":"증상지속","symptom":"가슴통증",
+         "verbatim":"어제 가슴이 좀 아팠어요","confidence":"high"}
+    ]
+    # is_urgent_bypass 는 stored_past_symptom 을 전혀 참조하지 않음 — 현재 메시지만
+    assert ai_mod.is_urgent_bypass("가슴이 답답해요") is True, \
+        "❌ S-01b FAIL: '가슴이 답답해요' → is_urgent_bypass=False (응급 누락)"
+    assert ai_mod.is_urgent_bypass("오늘 날씨 좋다") is False, \
+        "❌ S-01b FAIL: 일반 발언 → is_urgent_bypass=True (오발동)"
+    print("[S-01b] ✅ PASS  응급 우선 — is_urgent_bypass 는 현재 메시지만 판정, session_facts 내용 무관")
+
 
 # ── LLM 행동 검증 ─────────────────────────────────────────────────────────────
 
@@ -163,6 +193,18 @@ CASES = [
             any(f.get('type') == '증상지속' for f in r) and
             any(f.get('type') == '병원예약'  for f in r),
             f"증상지속+병원예약 둘 다 추출돼야 하는데 실패: {r}"
+        ),
+    ),
+    # ── [E-01 연계] 응급 제외 발언 → 가족력 데이터로 전환 ──────────────────────
+    # test_emergency_gate.py FP-01 에서 응급 X 판정된 이 발언이
+    # session_facts 에서는 가족력으로 올바르게 추출되는지 확인.
+    dict(
+        id="B-04", name="[E-01 연계] 응급 제외 가족 병력 → 가족력 타입 추출",
+        msg="어머니가 6개월 전에 뇌출혈로 쓰러지셨어요",
+        existing=[],
+        check=lambda r: (
+            any(f.get('type') == '가족력' for f in r),
+            f"가족력 타입으로 추출되지 않음 (응급 오발동 발언이 버려짐): {r}"
         ),
     ),
 ]
