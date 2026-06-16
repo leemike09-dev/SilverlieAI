@@ -975,13 +975,17 @@ def _save_chat_turn(user_id: str, user_msg: str, ai_reply: str, risk: str, model
 _FACT_TYPES = {'병원예약', '약변경', '증상지속', '감정상태', '생활변화'}
 
 _FACT_EXTRACT_PROMPT = """\
-사용자 발언에서 사실만 추출하세요. 4규칙 엄수.
+사용자 발언을 보고 '현재 저장된 사실' 목록을 갱신하세요.
 
-[규칙]
-1. 정의된 type 외 추출 금지. 스키마 강제.
-2. verbatim: 사용자 원문 토큰 그대로. 해석·요약·추론 금지.
-3. confidence=high: 사용자가 명확히 말한 것만. 불확실하면 skip.
-4. 기존 사실과 모순되면 기존 사실을 최종 배열에서 제거.
+[규칙 — 엄수]
+1. 정의된 5가지 type 외 저장 금지. 진단·의료적 추론·결론 저장 절대 금지.
+   예) "무릎 3일째 아파요" → 증상지속 ✓  /  "관절염인 것 같아요" → 추론이므로 ✗
+2. verbatim: 사용자 원문 그대로. 해석·요약·재표현 금지.
+3. confidence=high: 사용자가 명확히 말한 것만. 애매하면 해당 항목 제외.
+4. 반환값 = 기존 목록 전체(모순 제거) + 이번 발언의 신규 사실.
+   ⚠ 이번 발언에 새 사실·모순 없으면 기존 목록을 그대로 반환(지우지 말 것).
+   ⚠ 모순 시 해당 기존 사실만 제거, 나머지 유지.
+5. 추출 불확실 → 해당 항목 제외(빈 값이 틀린 값보다 낫다).
 
 [타입 스키마]
 - 병원예약: when(오늘/어제/내일/날짜), hospital(기관명 or null), specialty(과 or null)
@@ -996,8 +1000,8 @@ _FACT_EXTRACT_PROMPT = """\
 [사용자 발언]:
 {user_msg}
 
-JSON 배열로만 응답 (설명 금지). 각 항목: type, verbatim, confidence, + 타입별 필드.
-추출 없으면: []"""
+JSON 배열만 반환 (설명 금지). 각 항목: type, verbatim, confidence(high), + 타입별 필드.
+변화 없으면 기존 목록 그대로 반환."""
 
 
 def _load_session_facts(user_id: str, db) -> list:
@@ -1044,7 +1048,7 @@ def _extract_and_save_facts_background(user_id: str, user_msg: str, api_key: str
         raw = resp.content[0].text.strip()
         m = re.search(r'\[.*\]', raw, re.DOTALL)
         if not m:
-            return
+            return  # 파싱 불가 → 기존 유지
         parsed: list = json.loads(m.group(0))
         # 스키마 검증: type ∈ _FACT_TYPES + confidence=high + verbatim 존재
         valid = [
@@ -1054,6 +1058,13 @@ def _extract_and_save_facts_background(user_id: str, user_msg: str, api_key: str
             and f.get('confidence') == 'high'
             and f.get('verbatim', '').strip()
         ]
+        # 안전장치: 추출 결과가 빈 배열 + 기존 사실이 있을 때
+        # → 사용자 발언에 부정·정정 표현이 없으면 Haiku 오작동으로 보고 기존 유지
+        # → 부정 표현이 있으면 정정으로 간주, 기존 삭제 허용
+        _NEGATION_KW = ['아니요', '아니에요', '아닌데', '안 했', '안했', '그게 아니', '틀렸', '잘못', '안 바꿨', '안 아파', '없어졌', '다 나았', '취소']
+        if not valid and existing:
+            if not any(kw in user_msg for kw in _NEGATION_KW):
+                return  # 무관한 발언 → 기존 유지
         if valid != existing:
             _save_session_facts(user_id, valid, db)
             print(f"[session_facts] {user_id} → {len(valid)}개 저장")

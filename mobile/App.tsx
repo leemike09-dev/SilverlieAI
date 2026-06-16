@@ -330,7 +330,8 @@ export default function App() {
               <Stack.Screen name="Login"         component={LoginScreen}           />
               <Stack.Screen name="Health"        component={HealthScreen} />
               <Stack.Screen name="Dashboard"     component={DashboardScreen} />
-              <Stack.Screen name="AIChat"        component={AIChatScreen} />
+              <Stack.Screen name="AIChat"        component={AIChatScreen}
+                getId={({ params }) => String((params as any)?.k ?? 0)} />
               <Stack.Screen name="Notifications" component={NotificationsScreen} />
               <Stack.Screen name="Settings"      component={SettingsScreen} />
               <Stack.Screen name="WeeklyReport"  component={WeeklyReportScreen} />

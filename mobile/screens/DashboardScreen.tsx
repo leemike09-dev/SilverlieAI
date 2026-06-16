@@ -168,7 +168,7 @@ export default function DashboardScreen({ route, navigation }: any) {
 
           {/* AI 상담 CTA */}
           <TouchableOpacity style={s.chatBtn}
-            onPress={() => navigation.navigate('AIChat', { userId, name })}
+            onPress={() => navigation.navigate('AIChat', { userId, name, k: Date.now() })}
             activeOpacity={0.85}>
             <Text style={s.chatBtnTxt}>🤖 AI에게 더 물어보기</Text>
           </TouchableOpacity>

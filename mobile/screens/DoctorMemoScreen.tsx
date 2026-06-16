@@ -151,7 +151,7 @@ export default function DoctorMemoScreen({ route, navigation }: Props) {
               있을 때 메모를 저장할 수 있어요
             </Text>
             <TouchableOpacity style={s.goAIBtn}
-              onPress={() => navigation.navigate('AIChat', { userId })}>
+              onPress={() => navigation.navigate('AIChat', { userId, k: Date.now() })}>
               <Text style={s.goAIBtnTxt}>🤖 AI 상담 시작하기</Text>
             </TouchableOpacity>
           </View>

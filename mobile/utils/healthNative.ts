@@ -268,6 +268,9 @@ async function readAndroidData(): Promise<HealthNativeData> {
     const nowISO = new Date().toISOString();
     const startISO = midnight().toISOString();
     const sleepISO = yesterday().toISOString();
+    // 혈압은 7일 범위 (삼성헬스 HC 동기화 딜레이 및 이전 기록 포함)
+    const week7 = new Date(); week7.setDate(week7.getDate() - 7); week7.setHours(0, 0, 0, 0);
+    const week7ISO = week7.toISOString();
     // 심박수는 24시간으로 확장 (오늘 자정보다 넉넉하게)
     const hrStartISO = yesterday().toISOString();
     const range = (start: string) => ({
@@ -309,25 +312,22 @@ async function readAndroidData(): Promise<HealthNativeData> {
     const hrv = hrvRecords.length > 0
       ? Math.round(hrvRecords[hrvRecords.length - 1].heartRateVariabilityMillis) : null;
 
-    // 혈압: 갤럭시 워치 4/5/6/7이 HC에 기록 → 오늘 가장 최근 값 사용
-    // 오늘 자정 ~ 지금뿐만 아니라 어제 오후 6시부터도 포함 (워치 기록 시점 차이 대비)
-    const bpResult = await HC.readRecords('BloodPressure', range(sleepISO)).catch((e: any) => {
-      AsyncStorage.setItem('hc_bp_debug', JSON.stringify({ error: e?.message, at: new Date().toISOString() }));
-      return { records: [] };
-    });
+    // 혈압: 오므론 등 전용 앱이 HC에 직접 기록한 경우에만 읽힘
+    // Samsung Health는 설정 여부와 무관하게 BP를 HC로 내보내지 않음 (실증 확인)
+    // → Galaxy 사용자는 우리 앱 수동 입력이 주 경로
+    const bpResult = await HC.readRecords('BloodPressure', range(week7ISO)).catch(() => ({ records: [] }));
     const bpRecords = (bpResult as any).records;
+    await AsyncStorage.setItem('hc_bp_debug', JSON.stringify({
+      count: bpRecords.length,
+      range: { from: week7ISO, to: nowISO },
+      sample: bpRecords.length > 0 ? bpRecords[bpRecords.length - 1] : null,
+      at: new Date().toISOString(),
+    })).catch(() => {});
     const mmhg = (p: any): number => {
       if (typeof p === 'number') return Math.round(p);
       if (p?.inMillimetersOfMercury != null) return Math.round(p.inMillimetersOfMercury);
       return 0;
     };
-    // 디버그: 실제 레코드 구조 저장
-    await AsyncStorage.setItem('hc_bp_debug', JSON.stringify({
-      count: bpRecords.length,
-      range: { from: sleepISO, to: nowISO },
-      sample: bpRecords.length > 0 ? bpRecords[bpRecords.length - 1] : null,
-      at: new Date().toISOString(),
-    })).catch(() => {});
     const latestBp = bpRecords.length > 0 ? bpRecords[bpRecords.length - 1] : null;
     const bpSys = latestBp ? mmhg(latestBp.systolic) : 0;
     const bpDia = latestBp ? mmhg(latestBp.diastolic) : 0;
