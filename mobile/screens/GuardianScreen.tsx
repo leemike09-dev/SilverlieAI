@@ -185,7 +185,7 @@ export default function GuardianScreen({ route, navigation }: any) {
                   </View>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TouchableOpacity onPress={() => openEdit(g)} style={s.editBtn}>
-                      <Ionicons name="pencil" size={24} color={BLUE} />
+                      <Ionicons name="create" size={24} color={BLUE} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => handleDelete(g.id)} style={s.deleteBtn}>
                       <Ionicons name="trash-outline" size={20} color={RED} />
