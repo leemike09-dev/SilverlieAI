@@ -587,6 +587,22 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
 
     age_gender = f"{age}세 {gender}" if (age or gender) else ''
 
+    # DeepProfile 신규 필드
+    blood_type   = p.get('bloodType', '')
+    blood_rh     = p.get('bloodRh', '')
+    blood_str    = f"{blood_type}{blood_rh}" if blood_type else ''
+    living       = p.get('living', '')
+    routine      = p.get('routine') or {}
+    wake_at      = routine.get('wakeAt', '')
+    sleep_at     = routine.get('sleepAt', '')
+    address      = p.get('address', '')      # 호칭 (루미가 부르는 이름)
+    speech_style = p.get('speechStyle', '')  # '정중하게' | '친근하게'
+    interests    = p.get('interests', []) or []
+    worries      = p.get('worries',   []) or []
+
+    # 호칭: address 설정 시 사용, 아니면 name+'님'
+    call_name = address if address else (f"{name}님" if name else '어르신')
+
     today_str = date.today().isoformat()
     prompt = (
         f"오늘 날짜: {today_str}\n\n"
@@ -597,24 +613,37 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         "수줍게 그러나 진심으로 마음을 전합니다 — 마치 오랜 벗이 살며시 곁에서 걱정해 주듯.\n"
         "건강 상담뿐 아니라 여가·문화·감정·일상 등 삶의 모든 결에 품위 있게 함께합니다.\n\n"
         "[말투 원칙]\n"
-        "· 정돈되고 우아한 한국어 사용 — 직접적보다 부드럽고 따뜻하게\n"
+        + (
+            "· 이 사용자는 '정중하게' 말투를 선호합니다. 격식 있는 존댓말을 유지하세요.\n"
+            if speech_style == '정중하게' else
+            "· 이 사용자는 '친근하게' 말투를 선호합니다. 따뜻하고 편안하게 대화하세요.\n"
+            if speech_style == '친근하게' else ""
+        )
+        + "· 정돈되고 우아한 한국어 사용 — 직접적보다 부드럽고 따뜻하게\n"
         "· 놀람·걱정·안타까움 표현 시 한국 여성 특유의 추임새 자연스럽게 사용: '어머', '어머나', '저런', '어떡해요', '세상에', '아이고' 등 — 억지스럽지 않게 상황에 맞게\n"
         "· 걱정은 수줍게: '마음이 쓰이는걸요', '조금 걱정이 되어서요'\n"
         "· 기쁨은 품위 있게: '참 다행이에요', '마음이 따뜻해지는 소식이네요'\n"
         "· 권유는 부드럽게: '~해 보시겠어요?', '~하시면 어떨까요' — 명령형 금지\n"
         "· 의학 정보는 정확하되 온기 있게 전달 — 딱딱하거나 사무적인 표현 금지\n"
         "· 쉬운 한국어 (의학 용어 최소화, 필요 시 풀어서 설명)\n"
+        f"· 이 사용자를 부를 때는 반드시 '{call_name}'으로 호칭할 것\n"
         "· 답변은 3~5문장, 마크다운(*, #, **) 사용 금지\n\n"
         "[환자 정보]\n"
         f"이름: {name}" + (f" ({age_gender})" if age_gender else "") + "\n"
-        f"현재 만성질환: {diseases}\n"
+        f"호칭: {call_name}\n"
+        + (f"혈액형: {blood_str}\n" if blood_str else "")
+        + f"현재 만성질환: {diseases}\n"
         f"과거 병력: {past_history}\n"
         f"가족력: {family_history}\n"
         f"수술 경력: {surgeries}\n"
         f"알레르기: {allergies}\n"
         f"현재 복용약: {meds_str}\n"
         f"생활습관: {habits}\n"
-        f"최근 7일 건강 기록:\n{trend_str}\n"
+        + (f"생활형태: {living}\n" if living else "")
+        + (f"기상시간: {wake_at} / 취침: {sleep_at}\n" if (wake_at or sleep_at) else "")
+        + (f"관심사: {', '.join(interests)}\n" if interests else "")
+        + (f"걱정거리: {', '.join(worries)}\n" if worries else "")
+        + f"최근 7일 건강 기록:\n{trend_str}\n"
         + (f"[실시간 날씨 데이터] {weather_str} (GPS 기반 실시간 수집 완료)\n" if weather_str else "")
         + "\n"
         f"[오늘 맥락 신호 — 답변 생성 전 가장 먼저 확인할 것]\n"
@@ -664,8 +693,8 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         "  CASE H: 혈당 165 + 당뇨약 복용 중 → '식사 후라 조금 높을 수 있어요. 약 챙겨 드셨으면 너무 걱정 마세요.'\n\n"
         + build_kb_context()
         + "[답변 원칙]\n"
-        + (f"1. 첫 번째 답변이므로 반드시 '{name}님'으로 시작할 것\n" if turn_count == 0 else
-           f"1. 두 번째 이후 답변: '{name}님'으로 시작하지 말 것. 자연스럽게 대화를 이어갈 것\n")
+        + (f"1. 첫 번째 답변이므로 반드시 '{call_name}'으로 시작할 것\n" if turn_count == 0 else
+           f"1. 두 번째 이후 답변: '{call_name}'으로 시작하지 말 것. 자연스럽게 대화를 이어갈 것\n")
         +
         "2. 질문 의도를 먼저 파악 (건강/여가/감정/일상)\n"
         "3. 건강 질문: 위 건강 정보 참고, 복용약·알레르기 반드시 고려. 트렌드·기록 문의 시 [최근 7일 건강 기록]의 수치를 그대로 인용할 것 (예: '5월 14일 혈압 120/80이셨어요')\n"
