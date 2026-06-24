@@ -1,20 +1,11 @@
 {
   "meta": {
     "name": "Lumi 상담창 건강 질문 지식베이스",
-    "version": "0.1.0",
-    "updatedAt": "2026-06-13",
+    "version": "0.2.0",
+    "updatedAt": "2026-06-25",
     "locale": "ko",
-    "note": "시니어 빈출 질문 → 검증 답변 템플릿. 답변 설계(4슬롯·가드레일·비진단)를 계승. answerTemplate의 {슬롯}은 답변 시점에 프로필·수치로 채운다."
-  },
-  "statusLegend": {
-    "draft": "초안",
-    "review": "검토중",
-    "approved": "승인"
-  },
-  "riskLegend": {
-    "info": "일반",
-    "caution": "주의",
-    "urgent": "응급 라우팅"
+    "note": "시니어 빈출 질문 → 검증 답변 템플릿. 답변 설계(4슬롯·가드레일·비진단)를 계승. answerTemplate의 {슬롯}은 답변 시점에 프로필·수치로 채운다.",
+    "reviewedExport": "2026-06-24"
   },
   "domains": [
     {
@@ -122,7 +113,7 @@
       "source": "대한간호협회 홈케어(가정혈압/백의현상)",
       "status": "approved",
       "reviewedBy": "간호 자문",
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -143,9 +134,9 @@
       ],
       "riskLevel": "caution",
       "source": "고혈압 일반 관리 지침",
-      "status": "review",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -165,9 +156,9 @@
       ],
       "riskLevel": "info",
       "source": "가정혈압 측정 일반 지침",
-      "status": "review",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -188,9 +179,9 @@
       ],
       "riskLevel": "caution",
       "source": "기립성 저혈압 일반 정보",
-      "status": "draft",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -209,9 +200,9 @@
       ],
       "riskLevel": "info",
       "source": "당뇨 자가관리 일반(식전/식후 맥락)",
-      "status": "review",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -232,9 +223,9 @@
       ],
       "riskLevel": "urgent",
       "source": "당뇨 저혈압 응급 대응 일반",
-      "status": "review",
+      "status": "approved",
       "reviewedBy": "임상 검토 대기(우선)",
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko",
       "keywords": [
         "식은땀이 나",
@@ -260,9 +251,9 @@
       ],
       "riskLevel": "info",
       "source": "당뇨 관리 일반",
-      "status": "draft",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -282,9 +273,9 @@
       ],
       "riskLevel": "caution",
       "source": "노인 불면 일반 정보",
-      "status": "draft",
+      "status": "approved",
       "reviewedBy": "임상 검토 필요",
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -303,9 +294,9 @@
       ],
       "riskLevel": "info",
       "source": "수면위생 일반",
-      "status": "draft",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -325,9 +316,9 @@
       ],
       "riskLevel": "caution",
       "source": "질병관리청 국가건강정보포털(노인 다약제·저용량 시작)",
-      "status": "review",
+      "status": "approved",
       "reviewedBy": "임상 검토 대기",
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -347,9 +338,9 @@
       ],
       "riskLevel": "caution",
       "source": "복약 누락 일반 대응",
-      "status": "review",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -369,9 +360,9 @@
       ],
       "riskLevel": "info",
       "source": "복약 지도 일반",
-      "status": "draft",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -391,9 +382,9 @@
       ],
       "riskLevel": "caution",
       "source": "두근거림 일반 정보",
-      "status": "review",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -413,9 +404,9 @@
       ],
       "riskLevel": "info",
       "source": "심박수 일반 정보",
-      "status": "draft",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -436,9 +427,9 @@
       ],
       "riskLevel": "caution",
       "source": "산소포화도 측정 일반",
-      "status": "review",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -458,9 +449,9 @@
       ],
       "riskLevel": "caution",
       "source": "호흡곤란 일반 정보",
-      "status": "review",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -479,9 +470,9 @@
       ],
       "riskLevel": "info",
       "source": "관절 운동 일반(저부담 활동)",
-      "status": "review",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -501,7 +492,7 @@
       "source": "신체활동 일반 권고",
       "status": "approved",
       "reviewedBy": "일반 가이드",
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -521,9 +512,9 @@
       ],
       "riskLevel": "caution",
       "source": "노인 영양 일반",
-      "status": "review",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -543,9 +534,9 @@
       ],
       "riskLevel": "info",
       "source": "저염식 일반(고혈압 관리)",
-      "status": "draft",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -565,9 +556,9 @@
       ],
       "riskLevel": "caution",
       "source": "치매 선별 일반 안내",
-      "status": "review",
+      "status": "approved",
       "reviewedBy": "임상 검토 대기",
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -587,9 +578,9 @@
       ],
       "riskLevel": "info",
       "source": "근골격 통증 일반",
-      "status": "draft",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -608,9 +599,9 @@
       ],
       "riskLevel": "caution",
       "source": "진통제 일반 주의",
-      "status": "draft",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -631,9 +622,9 @@
       ],
       "riskLevel": "caution",
       "source": "노인 정신건강 일반·위기 라우팅",
-      "status": "draft",
+      "status": "approved",
       "reviewedBy": "임상+안전 검토 필요",
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -653,9 +644,9 @@
       ],
       "riskLevel": "caution",
       "source": "노인 불안 일반",
-      "status": "draft",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -675,9 +666,9 @@
       ],
       "riskLevel": "info",
       "source": "지표 일반 범위 안내",
-      "status": "draft",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -695,9 +686,9 @@
       ],
       "riskLevel": "info",
       "source": "가정혈압 측정법 일반",
-      "status": "review",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -717,9 +708,9 @@
       ],
       "riskLevel": "info",
       "source": "예방접종 일반 안내",
-      "status": "draft",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
@@ -739,36 +730,33 @@
       ],
       "riskLevel": "caution",
       "source": "폭염 건강수칙 일반",
-      "status": "draft",
+      "status": "approved",
       "reviewedBy": null,
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko"
     },
     {
       "id": "EMG-001",
       "domain": "EMG",
-      "intent": "가슴 통증·호흡곤란 등 심장 응급 신호",
+      "intent": "가슴 통증·숨참, 한쪽 마비·언어장애 등 응급 신호",
       "variants": [
         "가슴이 조여요",
-        "가슴이 답답하고 숨이 차요",
-        "가슴을 쥐어짜는 것 같아요",
-        "심장이 이상한 것 같아요",
-        "갑자기 쓰러질 것 같아요",
-        "식은땀이 나고 가슴이 아파요"
+        "말이 어눌해요",
+        "한쪽 팔다리에 힘이 없어요",
+        "갑자기 쓰러질 것 같아요"
       ],
       "contextBranch": null,
       "answerTemplate": "\"지금 증상은 빠르게 확인하는 게 중요해요. 무리해서 움직이지 마시고 편히 앉거나 누우세요. 바로 119에 전화하거나 가족분께 알리는 게 좋아요. {가족 알림 동의 시 즉시 알림}\"",
       "guardrails": [
         "\"지켜보세요/괜찮을 거예요\"로 지연 절대 금지",
         "원인 진단 시도 금지 — 즉시 응급 라우팅이 유일",
-        "니트로글리세린 등 약 복용 지시 금지",
         "표정 worried·배지 빨강"
       ],
       "riskLevel": "urgent",
-      "source": "심장 응급 신호(흉통·호흡곤란)",
-      "status": "review",
+      "source": "심뇌혈관 응급 신호(흉통·편마비·언어장애)",
+      "status": "approved",
       "reviewedBy": "임상 검토 대기(최우선)",
-      "updatedAt": "2026-06-14",
+      "updatedAt": "2026-06-24",
       "locale": "ko",
       "keywords": [
         "가슴이 조여",
@@ -817,9 +805,9 @@
       ],
       "riskLevel": "urgent",
       "source": "낙상 후 대응 일반",
-      "status": "review",
+      "status": "approved",
       "reviewedBy": "임상 검토 대기",
-      "updatedAt": "2026-06-13",
+      "updatedAt": "2026-06-24",
       "locale": "ko",
       "keywords": [
         "넘어졌",
@@ -863,7 +851,7 @@
       ],
       "riskLevel": "urgent",
       "source": "대한뇌졸중학회 FAST 기준·질병관리청 뇌졸중 경고신호",
-      "status": "review",
+      "status": "approved",
       "reviewedBy": "임상 검토 대기(최우선) — 대한뇌졸중학회/질병관리청 FAST 기준으로 검수 필요",
       "updatedAt": "2026-06-14",
       "locale": "ko",
