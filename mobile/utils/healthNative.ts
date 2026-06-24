@@ -331,7 +331,11 @@ async function readAndroidData(): Promise<HealthNativeData> {
     const latestBp = bpRecords.length > 0 ? bpRecords[bpRecords.length - 1] : null;
     const bpSys = latestBp ? mmhg(latestBp.systolic) : 0;
     const bpDia = latestBp ? mmhg(latestBp.diastolic) : 0;
-    const bloodPressure = bpSys > 0 && bpDia > 0 ? { systolic: bpSys, diastolic: bpDia } : null;
+    // 오늘 기록된 HC 혈압만 유효 — 갤럭시헬스 구버전 수동입력 캐시(며칠~수주 전) 차단
+    const todayStr = midnight().toISOString().slice(0, 10);
+    const bpTime: string = latestBp?.time ?? latestBp?.startTime ?? '';
+    const bpIsToday = bpTime.slice(0, 10) === todayStr;
+    const bloodPressure = bpSys > 0 && bpDia > 0 && bpIsToday ? { systolic: bpSys, diastolic: bpDia } : null;
 
     // 걸음수: 자정부터 지금까지 HC 기록
     // 갤럭시에서 Samsung Health(폰) + Galaxy Watch가 각각 HC에 기록 → 단순 합산 시 2배
