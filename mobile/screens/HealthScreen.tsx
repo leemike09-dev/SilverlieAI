@@ -263,6 +263,7 @@ export default function HealthScreen({ route, navigation }: any) {
   const [sleepHoursAuto, setSleepHoursAuto] = useState<number | null>(null);
   const [spo2, setSpo2] = useState<number | null>(null);
   const [hcBp, setHcBp] = useState<{ systolic: number; diastolic: number } | null>(null);
+  const manualBpRef = useRef(false); // ref: closure 안에서도 항상 최신값
 
   // 맥락 기반 평가용 — 프로필 + 복약
   const [healthProfile, setHealthProfile] = useState<any>(null);
@@ -405,14 +406,13 @@ export default function HealthScreen({ route, navigation }: any) {
         await AsyncStorage.setItem('steps_today_android_date', todayStr);
       }
       if (data.spo2) setSpo2(data.spo2);
-      if (data.bloodPressure) {
+      if (data.bloodPressure && !manualBpRef.current) {
         setHcBp(data.bloodPressure);
-        // HC 혈압을 health_records에도 저장 → 최근 기록 테이블 + buildContextEval 반영
+        // HC 혈압을 health_records에 저장 (수동 입력 후에는 덮지 않음)
         const bpRaw = await AsyncStorage.getItem(`health_records.${userId}`);
         const bpList = bpRaw ? JSON.parse(bpRaw) : [];
         const bpIdx = bpList.findIndex((r: any) => r.date === todayKey);
         if (bpIdx >= 0) {
-          // HC 값으로 항상 갱신 — 수동 입력보다 HC(기기) 측정값 우선
           bpList[bpIdx].blood_pressure_systolic  = data.bloodPressure.systolic;
           bpList[bpIdx].blood_pressure_diastolic = data.bloodPressure.diastolic;
           await AsyncStorage.setItem(`health_records.${userId}`, JSON.stringify(bpList));
@@ -586,7 +586,7 @@ export default function HealthScreen({ route, navigation }: any) {
         updated.sleep_hours = Number(inputValue);
       } else if (modalType === 'steps') {
         updated.steps = Number(inputValue);
-        // liveSteps는 건드리지 않음 — 만보기가 항상 실제값으로 덮어씀
+        setLiveSteps(Number(inputValue)); // display + 3초 타이머가 이 값으로 저장
       }
 
       const raw = await AsyncStorage.getItem(`health_records.${userId}`);
@@ -607,6 +607,7 @@ export default function HealthScreen({ route, navigation }: any) {
       }).catch(() => {});
 
       setTodayRecord(updated);
+      if (modalType === 'bp') { setHcBp(null); manualBpRef.current = true; }
       setModalType(null);
       setInputValue('');
       setBpSys('');
@@ -690,7 +691,7 @@ export default function HealthScreen({ route, navigation }: any) {
                 </View>
               </View>
               {(() => {
-                const displaySteps = liveSteps ?? todayRecord?.steps ?? null;
+                const displaySteps = liveSteps || todayRecord?.steps || null;
                 if (displaySteps != null && displaySteps > 0) {
                   const st = stepsStatus(displaySteps);
                   return (

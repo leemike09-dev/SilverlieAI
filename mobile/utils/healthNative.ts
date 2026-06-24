@@ -336,7 +336,11 @@ async function readAndroidData(): Promise<HealthNativeData> {
     // 걸음수: 자정부터 지금까지 HC 기록
     // 갤럭시에서 Samsung Health(폰) + Galaxy Watch가 각각 HC에 기록 → 단순 합산 시 2배
     // Samsung Health 메인 앱 패키지만 필터링 (폰+워치 중복 제거 후 HC에 기록)
-    const SHEALTH_PKGS = ['com.sec.android.app.shealth', 'com.samsung.health'];
+    const SHEALTH_PKGS = [
+      'com.sec.android.app.shealth',          // Samsung Health (구버전)
+      'com.samsung.health',                    // Samsung Health (신버전)
+      'com.samsung.android.health.dashboard',  // Galaxy Health (2025 리브랜딩)
+    ];
     const stepsResult = await HC.readRecords('Steps', range(startISO)).catch(() => ({ records: [] }));
     const allStepsRecords = (stepsResult as any).records;
 
