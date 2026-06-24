@@ -59,6 +59,10 @@ interface DeepProfile {
   fieldSources:  Record<string, string>;
   updatedAt:     string;
   locale:        string;
+  // Phase 2: 대화에서 확인된 관찰
+  confirmedObservations?: Array<{
+    id: string; fact_type: string; verbatim: string; confirmed_at: string; source: string;
+  }>;
 }
 
 // ─── 선택지 상수 ────────────────────────────────────────────────────────────
@@ -132,6 +136,7 @@ export default function HealthProfileScreen({ navigation, route }: any) {
   const [guardianExists, setGuardianExists] = useState(false);
   const [saving,         setSaving]        = useState(false);
   const [saved,          setSaved]         = useState(false);
+  const [confirmedObs,   setConfirmedObs]  = useState<NonNullable<DeepProfile['confirmedObservations']>>([]);
 
   useEffect(() => {
     (async () => {
@@ -196,6 +201,7 @@ export default function HealthProfileScreen({ navigation, route }: any) {
         }
 
         if (Array.isArray(p.familyHistory)) setFamilyHistory(p.familyHistory);
+        if (Array.isArray(p.confirmedObservations)) setConfirmedObs(p.confirmedObservations);
       } catch {}
     })();
   }, []);
@@ -254,6 +260,26 @@ export default function HealthProfileScreen({ navigation, route }: any) {
       }, 800);
     } catch {}
     setSaving(false);
+  };
+
+  const handleDeleteObs = async (obsId: string) => {
+    const updated = confirmedObs.filter(o => o.id !== obsId);
+    setConfirmedObs(updated);
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        p.confirmedObservations = updated;
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+      }
+      if (userId) {
+        fetch(`${API_URL}/ai/promote`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, observation_id: obsId, action: 'reject' }),
+        }).catch(() => {});
+      }
+    } catch {}
   };
 
   // ─── 공통 칩 컴포넌트 ────────────────────────────────────────────────────
@@ -509,6 +535,26 @@ export default function HealthProfileScreen({ navigation, route }: any) {
             ))}
           </View>
 
+          {/* ── Phase 2: 루미가 기억한 것 ── */}
+          {confirmedObs.length > 0 && (
+            <View style={s.obsSection}>
+              <Text style={s.obsSectionTitle}>💜 루미가 기억한 것</Text>
+              <Text style={s.obsSectionSub}>대화에서 직접 말씀하시고 저장하신 내용이에요</Text>
+              {confirmedObs.map((obs, idx) => (
+                <View key={obs.id || idx} style={s.obsItem}>
+                  <View style={s.obsItemLeft}>
+                    <Text style={s.obsItemType}>{obs.fact_type}</Text>
+                    <Text style={s.obsItemText}>"{obs.verbatim}"</Text>
+                    <Text style={s.obsItemDate}>{(obs.confirmed_at || '').slice(0, 10)}</Text>
+                  </View>
+                  <TouchableOpacity style={s.obsItemDel} onPress={() => handleDeleteObs(obs.id)} activeOpacity={0.7}>
+                    <Text style={s.obsItemDelTxt}>삭제</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
           {/* ── 저장 ── */}
           <TouchableOpacity
             style={[s.saveBtn, (saving || saved) && { opacity: 0.7 }]}
@@ -632,4 +678,19 @@ const s = StyleSheet.create({
   privacyNote: {
     fontSize: 14, color: INK_MUTE, textAlign: 'center', marginTop: 16,
   },
+
+  // Phase 2: 루미가 기억한 것
+  obsSection:       { marginTop: 32, marginBottom: 8 },
+  obsSectionTitle:  { fontSize: 22, fontWeight: '900', color: PURPLE, marginBottom: 6 },
+  obsSectionSub:    { fontSize: 15, color: INK_MUTE, marginBottom: 14 },
+  obsItem:          { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F0FF',
+                      borderRadius: 14, padding: 14, marginBottom: 10,
+                      borderWidth: 1.5, borderColor: '#DDD6FE' },
+  obsItemLeft:      { flex: 1 },
+  obsItemType:      { fontSize: 13, fontWeight: '700', color: PURPLE, marginBottom: 4 },
+  obsItemText:      { fontSize: 18, fontWeight: '600', color: INK, lineHeight: 26 },
+  obsItemDate:      { fontSize: 13, color: INK_MUTE, marginTop: 4 },
+  obsItemDel:       { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#fff',
+                      borderRadius: 10, borderWidth: 1.5, borderColor: '#DDD6FE', marginLeft: 10 },
+  obsItemDelTxt:    { fontSize: 15, color: '#7C3AED', fontWeight: '700' },
 });

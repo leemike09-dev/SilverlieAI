@@ -273,6 +273,9 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
   const [todayMood,        setTodayMood]        = useState<string | undefined>(undefined);
   const [ttsEnabled,      setTtsEnabled]      = useState(true);
   const [pendingConditions, setPendingConditions] = useState<string[]>([]);
+  const [pendingPromotion, setPendingPromotion]   = useState<{
+    id: string; fact_type: string; verbatim: string;
+  } | null>(null);
   const [currentSessionIdx, setCurrentSessionIdx] = useState(0);
   const [guardianPhone, setGuardianPhone] = useState('');
   const [guardianLabel, setGuardianLabel] = useState('');
@@ -790,6 +793,11 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
               const cleanText = stripEmoji(accumulated) || '죄송합니다, 다시 시도해주세요.';
               applyResult(cleanText, riskLevel, dMemo, dMemoNeeded, isFinal,
                           data.sos_sent ?? false, data.profile_updates || []);
+              // Phase 2: 승격 후보 — 다른 카드 없을 때만 노출
+              const cands = data.promotion_candidates || [];
+              if (cands.length > 0) {
+                setPendingPromotion({ id: cands[0].id, fact_type: cands[0].fact_type, verbatim: cands[0].verbatim });
+              }
             }
           } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
         }
@@ -936,6 +944,67 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
       showToast(`${pendingConditions.join(', ')} 프로필에 저장됐어요 ✅`);
     } catch { showToast('저장에 실패했습니다'); }
     setPendingConditions([]);
+  };
+
+  // Phase 2: 승격 배너 핸들러
+  const handlePromotionAccept = async () => {
+    if (!pendingPromotion) return;
+    try {
+      const userId = await AsyncStorage.getItem('userId');
+      if (userId) {
+        const r = await fetch(`${API_URL}/ai/promote`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userId,
+            observation_id: pendingPromotion.id,
+            action: 'accept',
+            fact_type: pendingPromotion.fact_type,
+            verbatim: pendingPromotion.verbatim,
+          }),
+        });
+        if (r.ok) {
+          // 로컬 health_profile 업데이트
+          const raw = await AsyncStorage.getItem('health_profile');
+          const prof = raw ? JSON.parse(raw) : {};
+          const now = new Date().toISOString();
+          const existing = prof.confirmedObservations || [];
+          if (!existing.find((o: any) => o.id === pendingPromotion.id)) {
+            prof.confirmedObservations = [...existing, {
+              id: pendingPromotion.id,
+              fact_type: pendingPromotion.fact_type,
+              verbatim: pendingPromotion.verbatim,
+              confirmed_at: now,
+              source: 'self-confirmed',
+            }];
+            if (pendingPromotion.fact_type === '가족력') {
+              const fh = prof.familyHistory || [];
+              if (!fh.includes(pendingPromotion.verbatim)) {
+                prof.familyHistory = [...fh, pendingPromotion.verbatim];
+              }
+            }
+            await AsyncStorage.setItem('health_profile', JSON.stringify(prof));
+          }
+          showToast('기억해 둘게요');
+        }
+      }
+    } catch {}
+    setPendingPromotion(null);
+  };
+
+  const handlePromotionReject = async () => {
+    if (!pendingPromotion) return;
+    try {
+      const userId = await AsyncStorage.getItem('userId');
+      if (userId) {
+        fetch(`${API_URL}/ai/promote`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, observation_id: pendingPromotion.id, action: 'reject' }),
+        }).catch(() => {});
+      }
+    } catch {}
+    setPendingPromotion(null);
   };
 
 
@@ -1091,6 +1160,26 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
                 </TouchableOpacity>
                 <TouchableOpacity style={s.condNo} onPress={() => setPendingConditions([])} activeOpacity={0.8}>
                   <Text style={s.condNoTxt}>괜찮아요</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Phase 2: 관찰 승격 제안 배너 */}
+          {pendingPromotion && memoState === 'idle' && pendingConditions.length === 0 && (
+            <View style={s.obsCard}>
+              <Text style={s.obsTitle}>루미가 기억해 둘까요?</Text>
+              <Text style={s.obsVerbatim}>"{pendingPromotion.verbatim}"</Text>
+              <Text style={s.obsSub}>이전 대화에서 말씀하신 내용이에요. 저장하면 다음에도 기억해요.</Text>
+              <View style={s.obsBtns}>
+                <TouchableOpacity style={s.obsYes} onPress={handlePromotionAccept} activeOpacity={0.8}>
+                  <Text style={s.obsYesTxt}>네, 저장해요</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.obsNo} onPress={handlePromotionReject} activeOpacity={0.8}>
+                  <Text style={s.obsNoTxt}>괜찮아요</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.obsSnooze} onPress={() => setPendingPromotion(null)} activeOpacity={0.8}>
+                  <Text style={s.obsSnoozeTxt}>나중에</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1636,6 +1725,20 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
   },
   restoreNoticeTxt: { color: '#fff', fontSize: 22, fontWeight: '900', letterSpacing: 0.5 },
+
+  // Phase 2: 관찰 승격 배너
+  obsCard:     { backgroundColor: '#EEE8FC', borderRadius: 20, padding: 20, marginBottom: 12,
+                 borderWidth: 1.5, borderColor: '#C4B5FD' },
+  obsTitle:    { fontSize: 18, fontWeight: '800', color: '#4C1D95', marginBottom: 6 },
+  obsVerbatim: { fontSize: 22, fontWeight: '700', color: '#5B21B6', marginBottom: 6, lineHeight: 30 },
+  obsSub:      { fontSize: 15, color: '#6D28D9', marginBottom: 16, lineHeight: 22 },
+  obsBtns:     { flexDirection: 'row', gap: 8 },
+  obsYes:      { flex: 1, backgroundColor: '#5B21B6', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+  obsYesTxt:   { fontSize: 18, color: '#fff', fontWeight: '800' },
+  obsNo:       { flex: 1, backgroundColor: '#DDD6FE', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+  obsNoTxt:    { fontSize: 18, color: '#4C1D95', fontWeight: '700' },
+  obsSnooze:   { paddingHorizontal: 14, paddingVertical: 15, alignItems: 'center' },
+  obsSnoozeTxt:{ fontSize: 16, color: '#7C3AED', fontWeight: '600' },
 });
 
 // ─── 얇은 래퍼: chatKey만 관리, 상태 초기화는 key remount가 처리 ───────────────

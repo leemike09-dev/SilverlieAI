@@ -13,7 +13,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import anthropic
-from app.routers.ai import _FACT_EXTRACT_PROMPT, _FACT_TYPES
+from app.routers.ai import (
+    _FACT_EXTRACT_PROMPT, _FACT_TYPES,
+    _PROMOTABLE_TYPES, _merge_facts_to_observations,
+    _get_promotion_candidates, _fmt_confirmed_observations,
+    promote_observation, PromoteRequest,
+    is_urgent_bypass,
+)
 
 api_key = (
     sys.argv[1] if len(sys.argv) > 1
@@ -131,6 +137,64 @@ def check_static():
         "❌ S-01b FAIL: 일반 발언 → is_urgent_bypass=True (오발동)"
     print("[S-01b] ✅ PASS  응급 우선 — is_urgent_bypass 는 현재 메시지만 판정, session_facts 내용 무관")
 
+    # ── Phase 2: 승격 레이어 정적 검증 ────────────────────────────────────────
+
+    # P-01: 승격 가능 타입 필터 — 병원예약·약변경·증상지속은 후보 제외
+    NON_PROMOTABLE = _FACT_TYPES - _PROMOTABLE_TYPES
+    assert NON_PROMOTABLE == {'병원예약', '약변경', '증상지속'}, \
+        f"❌ P-01 FAIL: _PROMOTABLE_TYPES 정의가 바뀜 → 비승격 집합: {NON_PROMOTABLE}"
+    assert '감정상태' in _PROMOTABLE_TYPES and '생활변화' in _PROMOTABLE_TYPES and '가족력' in _PROMOTABLE_TYPES, \
+        f"❌ P-01 FAIL: _PROMOTABLE_TYPES에 필수 타입 누락: {_PROMOTABLE_TYPES}"
+    print("[P-01] ✅ PASS  승격 대상 타입 필터 — 병원예약·약변경·증상지속은 후보 아님, 감정상태·생활변화·가족력만 승격")
+
+    # P-02: 자동 승격 금지 — _merge_facts_to_observations 는 'promoted' 필드를 False로만 삽입
+    src_merge = inspect.getsource(_merge_facts_to_observations)
+    import re as _re2
+    assert _re2.search(r'"promoted"\s*:\s*False', src_merge), \
+        "❌ P-02 FAIL: _merge_facts_to_observations가 promoted=True로 삽입할 수 있음 (자동 승격 위험)"
+    assert 'health_profile' not in src_merge and 'users' not in src_merge, \
+        "❌ P-02 FAIL: _merge_facts_to_observations가 users/health_profile 테이블을 건드림"
+    print("[P-02] ✅ PASS  자동 승격 금지 — _merge_facts_to_observations는 promoted=False로 삽입, profile 미수정")
+
+    # P-03: 응급 발화 → session_facts 저장 skip → 관찰 누적 안 됨 (구조 확인)
+    # _extract_and_save_facts_background 가 먼저 호출되고, 그 안에서 _merge_facts_to_observations 를 호출.
+    # is_urgent_bypass 체크 이후에 _extract_and_save_facts_background 가 등록되므로
+    # 응급 발화는 관찰 누적 함수에도 도달하지 않는다.
+    src_bg = inspect.getsource(ai_mod._extract_and_save_facts_background)
+    assert '_merge_facts_to_observations' in src_bg, \
+        "❌ P-03 FAIL: _extract_and_save_facts_background 안에 _merge_facts_to_observations 호출 없음"
+    src_stream2 = inspect.getsource(ai_mod.chat_stream)
+    idx_bypass2 = src_stream2.find('is_urgent_bypass')
+    idx_extract = src_stream2.find('_extract_and_save_facts_background')
+    assert idx_bypass2 < idx_extract, \
+        "❌ P-03 FAIL: 응급 체크 전에 관찰 누적이 실행될 수 있음"
+    print("[P-03] ✅ PASS  응급 발화 → is_urgent_bypass 조기 반환 → 관찰 누적(_merge_facts_to_observations) 미실행")
+
+    # P-04: 확인된 관찰 → 시스템 프롬프트 주입 텍스트 포맷 검증
+    sample_obs = [
+        {"fact_type": "가족력", "verbatim": "어머니가 당뇨가 있으세요", "confirmed_at": "2026-06-20T10:00:00Z"},
+        {"fact_type": "생활변화", "verbatim": "산책을 시작했어요", "confirmed_at": "2026-06-18T09:00:00Z"},
+    ]
+    fmt = _fmt_confirmed_observations(sample_obs)
+    assert '루미가 기억하는 것' in fmt, "❌ P-04 FAIL: _fmt_confirmed_observations 헤더 없음"
+    assert '어머니가 당뇨가 있으세요' in fmt, "❌ P-04 FAIL: verbatim이 출력에 없음"
+    assert '가족력' in fmt and '생활변화' in fmt, "❌ P-04 FAIL: fact_type 태그가 없음"
+    assert '한 세션 최대 1회' in fmt, "❌ P-04 FAIL: 반복 금지 경고문 없음"
+    # 빈 리스트 → 빈 문자열
+    assert _fmt_confirmed_observations([]) == "", "❌ P-04 FAIL: 빈 관찰 → 빈 문자열이어야 함"
+    print("[P-04] ✅ PASS  확인된 관찰 → _fmt_confirmed_observations → 시스템 프롬프트 주입 포맷 검증")
+
+    # P-05: promote 엔드포인트 — snooze는 DB 변경 없음 (구조 확인)
+    src_promote = inspect.getsource(ai_mod.promote_observation)
+    # snooze 분기가 조기 반환이고 DB 호출 없어야 함
+    snooze_idx = src_promote.find("'snooze'")
+    supabase_idx = src_promote.find('get_supabase()')
+    assert snooze_idx < supabase_idx, \
+        "❌ P-05 FAIL: snooze 분기 이전에 get_supabase() 호출이 있음"
+    assert "return {\"ok\": True}" in src_promote or "return {'ok': True}" in src_promote, \
+        "❌ P-05 FAIL: snooze → 즉시 반환 구조 확인 불가"
+    print("[P-05] ✅ PASS  promote(snooze) → DB 변경 없이 즉시 반환 (사용자 action 없이 profile 미변경)")
+
 
 # ── LLM 행동 검증 ─────────────────────────────────────────────────────────────
 
@@ -236,6 +300,7 @@ if __name__ == '__main__':
     except AssertionError as e:
         print(f"  {e}")
         static_ok = False
+        sys.exit(1)
 
     if not api_key:
         print("\n── LLM 검증 건너뜀 (API key 없음) ──────")

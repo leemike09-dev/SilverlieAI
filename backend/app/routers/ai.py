@@ -384,7 +384,8 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
                         turn_count: int = 0, force_summary: bool = False,
                         intent: str = "health", language: str = "ko",
                         weather_str: Optional[str] = None,
-                        session_facts: Optional[list] = None) -> str:
+                        session_facts: Optional[list] = None,
+                        confirmed_observations: Optional[list] = None) -> str:
     p   = health_ctx.get('profile', {}) or {}
     meds_raw = health_ctx.get('medications', []) or []
     rec = health_ctx.get('today_record', {}) or {}
@@ -651,6 +652,7 @@ def build_system_prompt(user: dict, health_ctx: dict, relevant_qa: List[dict],
         + "\n"
         f"[오늘 맥락 신호 — 답변 생성 전 가장 먼저 확인할 것]\n"
         f"{ctx_signals_str}\n\n"
+        + (_fmt_confirmed_observations(confirmed_observations) if confirmed_observations else "")
         + (
             "[오늘 파악한 사실 — 사용자가 직접 말한 내용(원문 인용)]\n"
             + _fmt_session_facts(session_facts) + "\n"
@@ -1036,7 +1038,9 @@ def _save_chat_turn(user_id: str, user_msg: str, ai_reply: str, risk: str, model
 
 # ── ③ 핵심 사실 메모리 (session_facts) ──────────────────────────────────────
 
-_FACT_TYPES = {'병원예약', '약변경', '증상지속', '감정상태', '생활변화', '가족력'}
+_FACT_TYPES       = {'병원예약', '약변경', '증상지속', '감정상태', '생활변화', '가족력'}
+# Phase 2: 프로필 승격이 의미 있는 타입만 (시간 한정·의료 판단 제외)
+_PROMOTABLE_TYPES = {'감정상태', '생활변화', '가족력'}
 
 _FACT_EXTRACT_PROMPT = """\
 사용자 발언을 보고 '현재 저장된 사실' 목록을 갱신하세요.
@@ -1134,8 +1138,90 @@ def _extract_and_save_facts_background(user_id: str, user_msg: str, api_key: str
         if valid != existing:
             _save_session_facts(user_id, valid, db)
             print(f"[session_facts] {user_id} → {len(valid)}개 저장")
+        # Phase 2: 승격 가능 타입만 관찰 누적
+        if valid:
+            _merge_facts_to_observations(user_id, valid, db)
     except Exception as e:
         print(f"[session_facts/bg] {e}")
+
+
+# ── Phase 2: 관찰 후보 지속화 (session_observations) ─────────────────────────
+
+def _merge_facts_to_observations(user_id: str, facts: list, db) -> None:
+    """session_facts → session_observations 누적 (count++, cross-session).
+    승격 가능 타입(_PROMOTABLE_TYPES)만 저장."""
+    today = date.today().isoformat()
+    for f in facts:
+        fact_type = f.get('type', '')
+        verbatim  = f.get('verbatim', '').strip()
+        if not verbatim or fact_type not in _PROMOTABLE_TYPES:
+            continue
+        try:
+            r = (db.table("session_observations")
+                   .select("id,count")
+                   .eq("user_id", user_id)
+                   .eq("fact_type", fact_type)
+                   .eq("verbatim", verbatim)
+                   .limit(1)
+                   .execute())
+            value_data = {k: v for k, v in f.items() if k not in ('type', 'verbatim', 'confidence')}
+            if r.data:
+                obs = r.data[0]
+                db.table("session_observations").update({
+                    "count":     obs["count"] + 1,
+                    "last_seen": today,
+                    "value":     value_data,
+                }).eq("id", obs["id"]).execute()
+            else:
+                db.table("session_observations").insert({
+                    "user_id":    user_id,
+                    "fact_type":  fact_type,
+                    "verbatim":   verbatim,
+                    "value":      value_data,
+                    "first_seen": today,
+                    "last_seen":  today,
+                    "count":      1,
+                    "source":     "self",
+                    "confirmed":  False,
+                    "promoted":   False,
+                }).execute()
+        except Exception as e:
+            print(f"[obs/merge:{fact_type}] {e}")
+
+
+def _get_promotion_candidates(user_id: str, db) -> list:
+    """count>=2이고 미승격·미확인 관찰 중 가장 빈도 높은 1개 반환."""
+    try:
+        r = (db.table("session_observations")
+               .select("id,fact_type,verbatim,count,first_seen")
+               .eq("user_id", user_id)
+               .eq("confirmed", False)
+               .eq("promoted", False)
+               .gte("count", 2)
+               .order("count", desc=True)
+               .limit(1)
+               .execute())
+        return r.data or []
+    except Exception as e:
+        print(f"[obs/candidates] {e}")
+        return []
+
+
+def _fmt_confirmed_observations(obs_list: list) -> str:
+    """확인된 관찰 → 시스템 프롬프트 삽입용 텍스트."""
+    if not obs_list:
+        return ""
+    lines = []
+    for o in obs_list:
+        dt = (o.get('confirmed_at') or '')[:10]
+        tag = o.get('fact_type', '')
+        v   = o.get('verbatim', '')
+        lines.append(f"  • [{tag}] \"{v}\"" + (f" ({dt})" if dt else ""))
+    return (
+        "[루미가 기억하는 것 — 이전 대화에서 사용자가 직접 확인한 내용]\n"
+        + "\n".join(lines) + "\n"
+        "⚠️ 자연스러운 틈에만 한 세션 최대 1회 언급. 집요하게 반복 금지.\n\n"
+    )
 
 
 def _fmt_session_facts(facts: list) -> str:
@@ -1251,6 +1337,9 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
                 health_ctx["profile"] = user_row["health_profile"]
             chat_ctx = load_chat_context(request.user_id, db)
             session_facts = _load_session_facts(request.user_id, db)
+            # Phase 2: 확인된 관찰 (profile.confirmedObservations 에서 읽음)
+            _p = health_ctx.get('profile') or {}
+            confirmed_obs: list = _p.get('confirmedObservations') or []
         except Exception as ex:
             print(f"[stream/user_load] {ex}")
 
@@ -1263,7 +1352,8 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
                                         intent=request.intent,
                                         language=request.language,
                                         weather_str=request.client_weather,
-                                        session_facts=session_facts or None)
+                                        session_facts=session_facts or None,
+                                        confirmed_observations=confirmed_obs or None)
     history_msgs = [{"role": m.role, "content": m.content} for m in (request.history or [])[-10:]]
     model        = choose_model(history_msgs, request.message)
     ai_messages  = history_msgs + [{"role": "user", "content": request.message}]
@@ -1346,7 +1436,15 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
                     _update_conditions_background, request.user_id, profile_updates
                 )
 
-        yield f"data: {json.dumps({'done': True, 'risk_level': risk, 'doctor_memo_needed': doctor_memo_needed, 'doctor_memo': doctor_memo, 'is_final': is_final_flag, 'sos_sent': sos_sent, 'profile_updates': profile_updates}, ensure_ascii=False)}\n\n"
+        # Phase 2: 승격 후보 조회 (background task가 이전 턴 관찰을 이미 저장한 경우에 반환)
+        promotion_candidates: list = []
+        if request.user_id and request.user_id not in ("demo-user", "guest") and db:
+            try:
+                promotion_candidates = _get_promotion_candidates(request.user_id, db)
+            except Exception:
+                pass
+
+        yield f"data: {json.dumps({'done': True, 'risk_level': risk, 'doctor_memo_needed': doctor_memo_needed, 'doctor_memo': doctor_memo, 'is_final': is_final_flag, 'sos_sent': sos_sent, 'profile_updates': profile_updates, 'promotion_candidates': promotion_candidates}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(
         event_gen(),
@@ -1644,3 +1742,80 @@ def proactive_greeting(user_id: str):
         except Exception:
             name_fb = ""
         return {"message": fallback_msg(name_fb)}
+
+
+# ── Phase 2: 관찰 승격 엔드포인트 ─────────────────────────────────────────────
+
+class PromoteRequest(BaseModel):
+    user_id:        str
+    observation_id: str
+    action:         str            # 'accept' | 'reject' | 'snooze'
+    fact_type:      Optional[str] = None
+    verbatim:       Optional[str] = None
+
+
+@router.post("/promote")
+def promote_observation(req: PromoteRequest):
+    """관찰 후보 승격 처리.
+    accept → session_observations 확인 + health_profile.confirmedObservations 추가.
+    reject → promoted=True 로 마킹 (다시 제안 안 함).
+    snooze → DB 변경 없음 (프론트에서만 닫기).
+    4제약 안전선: 자동 승격 없음 — 반드시 사용자 action 필요."""
+    if not req.user_id or req.user_id in ("demo-user", "guest"):
+        return {"ok": False, "reason": "no_user"}
+
+    if req.action == 'snooze':
+        return {"ok": True}
+
+    try:
+        db  = get_supabase()
+        now = datetime.now(timezone.utc).isoformat()
+
+        if req.action == 'reject':
+            db.table("session_observations").update({"promoted": True}).eq("id", req.observation_id).execute()
+            return {"ok": True}
+
+        if req.action == 'accept':
+            # 1. session_observations 승격 처리
+            db.table("session_observations").update({
+                "confirmed":    True,
+                "confirmed_at": now,
+                "promoted":     True,
+                "promoted_at":  now,
+            }).eq("id", req.observation_id).execute()
+
+            # 2. health_profile.confirmedObservations 추가 (중복 방지)
+            res  = db.table("users").select("health_profile").eq("id", req.user_id).execute()
+            prof: dict = (res.data[0].get("health_profile") or {}) if res.data else {}
+
+            confirmed_obs: list = prof.get("confirmedObservations") or []
+            already = any(o.get("id") == req.observation_id for o in confirmed_obs)
+            if not already:
+                confirmed_obs.append({
+                    "id":           req.observation_id,
+                    "fact_type":    req.fact_type  or "",
+                    "verbatim":     req.verbatim   or "",
+                    "confirmed_at": now,
+                    "source":       "self-confirmed",
+                })
+                prof["confirmedObservations"] = confirmed_obs
+
+                # 가족력이면 familyHistory에도 원문 추가
+                if req.fact_type == '가족력' and req.verbatim:
+                    fh = prof.get("familyHistory") or []
+                    if req.verbatim not in fh:
+                        fh.append(req.verbatim)
+                        prof["familyHistory"] = fh
+
+                fs = prof.get("fieldSources") or {}
+                fs["confirmedObservations"] = "self-confirmed"
+                prof["fieldSources"] = fs
+
+                db.table("users").update({"health_profile": prof}).eq("id", req.user_id).execute()
+                print(f"[promote/accept] {req.user_id}: {req.fact_type} → confirmedObservations")
+
+            return {"ok": True, "confirmed_observations": confirmed_obs}
+
+    except Exception as e:
+        print(f"[promote] {e}")
+        return {"ok": False, "reason": str(e)}
