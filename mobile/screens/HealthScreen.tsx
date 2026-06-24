@@ -248,6 +248,7 @@ export default function HealthScreen({ route, navigation }: any) {
 
   const [records, setRecords] = useState<HealthRecord[]>([]);
   const [todayRecord, setTodayRecord] = useState<HealthRecord | null>(null);
+  const [showAllRecords, setShowAllRecords] = useState(false);
   const [modalType, setModalType] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [bpSys, setBpSys] = useState('');
@@ -612,6 +613,7 @@ export default function HealthScreen({ route, navigation }: any) {
       setInputValue('');
       setBpSys('');
       setBpDia('');
+      loadRecords();
       Alert.alert('', '저장되었습니다');
     } catch (e) {
       Alert.alert('오류', '저장에 실패했습니다');
@@ -1044,7 +1046,7 @@ export default function HealthScreen({ route, navigation }: any) {
             <Text style={[s.tableCell, { flex: 1 }]}>걸음</Text>
             <Text style={[s.tableCell, { flex: 0.8 }]}>수면</Text>
           </View>
-          {records.slice(0, 4).map((r) => (
+          {records.slice(0, showAllRecords ? records.length : 4).map((r) => (
             <View key={r.date} style={s.tableRow}>
               <Text style={[s.tableCell, { flex: 1, fontWeight: '600' }]}>
                 {r.date.slice(5).replace('-', '/')}
@@ -1059,9 +1061,11 @@ export default function HealthScreen({ route, navigation }: any) {
           ))}
         </View>
 
-        <TouchableOpacity>
-          <Text style={s.moreLink}>전체 기록 보기 →</Text>
-        </TouchableOpacity>
+        {records.length > 4 && (
+          <TouchableOpacity onPress={() => setShowAllRecords(prev => !prev)}>
+            <Text style={s.moreLink}>{showAllRecords ? '접기 ↑' : `전체 기록 보기 (${records.length}건) →`}</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       {/* Input Modal */}
