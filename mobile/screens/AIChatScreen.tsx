@@ -425,15 +425,16 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
     onNewChat(); // key 교체 → ChatSessionView 전체 remount → 모든 상태 자동 초기화
   };
 
-  const switchSession = (idx: number, sess: ChatSession) => {
+  const switchSession = (sess: ChatSession) => {
     stopSpeech();
     sessionIdRef.current = sess.id;
     setMessages(sess.messages);
     setHistory(sess.history);
     setTurnCount(sess.turnCount);
     setMemoState('idle');
-    setCurrentSessionIdx(idx);
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 100);
+    setShowPastChats(false);
+    setExpandedSessionId(null);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 150);
   };
 
   // 화면 벗어날 때 오늘 대화 자동 요약 (3턴 이상일 때만)
@@ -1221,6 +1222,14 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
                               </View>
                             ))}
 
+                            {/* 이 대화 이어가기 */}
+                            <TouchableOpacity
+                              style={s.continueBtn}
+                              activeOpacity={0.8}
+                              onPress={() => switchSession(sess)}>
+                              <Text style={s.continueBtnTxt}>이 대화 이어가기 →</Text>
+                            </TouchableOpacity>
+
                             {/* 병원전달 메모 만들기 */}
                             <TouchableOpacity
                               style={s.pastChatMemoBtn}
@@ -1397,6 +1406,9 @@ const s = StyleSheet.create({
   pastChatCardArrow:  { fontSize: 14, color: '#9CA3AF' },
   pastChatDelBtn:     { padding: 6, marginRight: 4 },
   pastChatDelTxt:     { fontSize: 18 },
+  continueBtn:        { backgroundColor: '#5B3DB5', borderRadius: 14, paddingVertical: 14,
+                        alignItems: 'center', marginTop: 4 },
+  continueBtnTxt:     { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
   pastChatMemoBtn:    { backgroundColor: '#EEE8F8', borderRadius: 14, paddingVertical: 14,
                         alignItems: 'center', marginTop: 8 },
   pastChatMemoBtnTxt: { fontSize: 16, fontWeight: '800', color: '#5B3DB5' },
