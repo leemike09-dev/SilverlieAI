@@ -2,12 +2,20 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logError } from './errorLogger';
 
+export interface SleepStages {
+  deep:  number; // minutes
+  light: number;
+  rem:   number;
+  awake: number;
+}
+
 export interface HealthNativeData {
   connected: boolean;
   heartRate: number | null;
   heartRateMin: number | null;
   heartRateMax: number | null;
   sleepHours: number | null;
+  sleepStages: SleepStages | null; // null = 단계 데이터 미수신
   spo2: number | null;
   hrv: number | null; // AI 분석용, 화면 미표시
   steps: number | null;
@@ -60,7 +68,7 @@ async function requestiOSPermissions(): Promise<boolean> {
 async function readiOSData(): Promise<HealthNativeData> {
   const empty: HealthNativeData = {
     connected: false, heartRate: null, heartRateMin: null,
-    heartRateMax: null, sleepHours: null, spo2: null, hrv: null, steps: null, bloodPressure: null,
+    heartRateMax: null, sleepHours: null, sleepStages: null, spo2: null, hrv: null, steps: null, bloodPressure: null,
   };
   try {
     const AppleHealthKit = (await import('react-native-health')).default;
@@ -139,6 +147,7 @@ async function readiOSData(): Promise<HealthNativeData> {
       heartRateMin: readHR.heartRateMin,
       heartRateMax: readHR.heartRateMax,
       sleepHours,
+      sleepStages: null, // iOS HealthKit은 단계 분리 미구현
       spo2,
       hrv,
       steps: null, // iOS는 HealthScreen에서 Pedometer로 직접 처리
@@ -258,7 +267,7 @@ async function requestAndroidPermissions(): Promise<boolean> {
 async function readAndroidData(): Promise<HealthNativeData> {
   const empty: HealthNativeData = {
     connected: false, heartRate: null, heartRateMin: null,
-    heartRateMax: null, sleepHours: null, spo2: null, hrv: null, steps: null, bloodPressure: null,
+    heartRateMax: null, sleepHours: null, sleepStages: null, spo2: null, hrv: null, steps: null, bloodPressure: null,
   };
   try {
     const HC = await import('react-native-health-connect');
@@ -295,17 +304,56 @@ async function readAndroidData(): Promise<HealthNativeData> {
       ? Math.round(spo2Records[spo2Records.length - 1].percentage) : null;
 
     const sleepResult = await HC.readRecords('SleepSession', range(sleepISO)).catch(() => ({ records: [] }));
-    const sleepMs = (sleepResult as any).records.reduce((acc: number, r: any) => {
-      const stages = r.stages || [];
-      const sleepStages = stages.filter((s: any) =>
+    const sleepRecords: any[] = (sleepResult as any).records;
+
+    // ── 수면 단계 로그 (단계 데이터 수신 여부 확인용) ──────────────────────
+    const rawStagesSample = sleepRecords.slice(0, 2).map((r: any) => ({
+      start: r.startTime, end: r.endTime,
+      stagesCount: (r.stages || []).length,
+      stagesRaw: (r.stages || []).slice(0, 6),
+    }));
+    console.log('[HC/sleep] records:', sleepRecords.length, 'sample:', JSON.stringify(rawStagesSample));
+    await AsyncStorage.setItem('hc_sleep_stage_debug', JSON.stringify({
+      ts: new Date().toISOString(),
+      recordCount: sleepRecords.length,
+      sample: rawStagesSample,
+    })).catch(() => {});
+    // ────────────────────────────────────────────────────────────────────────
+
+    // 단계별 분(minute) 누적
+    const stageMins = { DEEP: 0, LIGHT: 0, REM: 0, SLEEPING: 0, AWAKE: 0 };
+    let hasStageData = false;
+
+    const sleepMs = sleepRecords.reduce((acc: number, r: any) => {
+      const stages: any[] = r.stages || [];
+      const sleepStagesArr = stages.filter((s: any) =>
         ['SLEEPING', 'LIGHT', 'DEEP', 'REM'].includes(s.stage)
       );
-      if (sleepStages.length > 0) {
-        return acc + sleepStages.reduce((a: number, s: any) =>
+      if (sleepStagesArr.length > 0) {
+        hasStageData = true;
+        stages.forEach((s: any) => {
+          const ms = new Date(s.endTime).getTime() - new Date(s.startTime).getTime();
+          const mins = ms / 60000;
+          if (s.stage === 'DEEP')     stageMins.DEEP    += mins;
+          else if (s.stage === 'LIGHT')  stageMins.LIGHT   += mins;
+          else if (s.stage === 'REM')    stageMins.REM     += mins;
+          else if (s.stage === 'SLEEPING') stageMins.SLEEPING += mins;
+          else if (s.stage === 'AWAKE')  stageMins.AWAKE   += mins;
+        });
+        return acc + sleepStagesArr.reduce((a: number, s: any) =>
           a + (new Date(s.endTime).getTime() - new Date(s.startTime).getTime()), 0);
       }
       return acc + (new Date(r.endTime).getTime() - new Date(r.startTime).getTime());
     }, 0);
+
+    // SLEEPING은 미분류 수면(단계 없음)으로 LIGHT로 간주
+    const sleepStagesResult: import('./healthNative').SleepStages | null = hasStageData ? {
+      deep:  Math.round(stageMins.DEEP),
+      light: Math.round(stageMins.LIGHT + stageMins.SLEEPING),
+      rem:   Math.round(stageMins.REM),
+      awake: Math.round(stageMins.AWAKE),
+    } : null;
+    console.log('[HC/sleep] hasStageData:', hasStageData, 'stages:', sleepStagesResult);
 
     const hrvResult = await HC.readRecords('HeartRateVariabilityRmssd', range(startISO)).catch(() => ({ records: [] }));
     const hrvRecords = (hrvResult as any).records;
@@ -383,6 +431,7 @@ async function readAndroidData(): Promise<HealthNativeData> {
       heartRateMin: hrValues.length > 0 ? Math.min(...hrValues) : null,
       heartRateMax: hrValues.length > 0 ? Math.max(...hrValues) : null,
       sleepHours: sleepMs > 0 ? Math.round((sleepMs / 3600000) * 10) / 10 : null,
+      sleepStages: sleepStagesResult,
       spo2,
       hrv,
       steps: stepsTotal > 0 ? stepsTotal : null,
@@ -406,6 +455,6 @@ export async function readHealthData(): Promise<HealthNativeData> {
   if (Platform.OS === 'android') return readAndroidData();
   return {
     connected: false, heartRate: null, heartRateMin: null,
-    heartRateMax: null, sleepHours: null, spo2: null, hrv: null, steps: null, bloodPressure: null,
+    heartRateMax: null, sleepHours: null, sleepStages: null, spo2: null, hrv: null, steps: null, bloodPressure: null,
   };
 }

@@ -262,9 +262,16 @@ export default function HealthScreen({ route, navigation }: any) {
   const [heartRateMin, setHeartRateMin] = useState<number | null>(null);
   const [heartRateMax, setHeartRateMax] = useState<number | null>(null);
   const [sleepHoursAuto, setSleepHoursAuto] = useState<number | null>(null);
+  const [sleepStages, setSleepStages] = useState<import('../utils/healthNative').SleepStages | null>(null);
   const [spo2, setSpo2] = useState<number | null>(null);
   const [hcBp, setHcBp] = useState<{ systolic: number; diastolic: number } | null>(null);
   const manualBpRef = useRef(false); // ref: closure 안에서도 항상 최신값
+
+  // 요약 타일 → 카드 스크롤 이동용 Y 오프셋
+  const scrollViewRef = useRef<ScrollView>(null);
+  const cardYRef = useRef<{steps:number; hr:number; sleep:number; spo2:number}>({
+    steps: 0, hr: 0, sleep: 0, spo2: 0,
+  });
 
   // 맥락 기반 평가용 — 프로필 + 복약
   const [healthProfile, setHealthProfile] = useState<any>(null);
@@ -406,6 +413,7 @@ export default function HealthScreen({ route, navigation }: any) {
         await AsyncStorage.setItem('steps_today_android', String(data.steps));
         await AsyncStorage.setItem('steps_today_android_date', todayStr);
       }
+      if (data.sleepStages) setSleepStages(data.sleepStages);
       if (data.spo2) setSpo2(data.spo2);
       if (data.bloodPressure && !manualBpRef.current) {
         setHcBp(data.bloodPressure);
@@ -638,7 +646,7 @@ export default function HealthScreen({ route, navigation }: any) {
     <LinearGradient colors={[APP_BG_TOP, APP_BG_BOT]} style={s.root}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView ref={scrollViewRef} contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Header */}
         <View style={[s.header, { paddingTop: Math.max(insets.top + 8, 24) }]}>
           <Text style={s.headerTitle}>건강 기록</Text>
@@ -654,6 +662,39 @@ export default function HealthScreen({ route, navigation }: any) {
             <Text style={s.greetingText}>{name}님, 오늘도{'\n'}잘 챙기고 계세요 💜</Text>
           </View>
         </View>
+
+        {/* ── 4지표 요약 타일 ── */}
+        {(() => {
+          const displaySteps = liveSteps || todayRecord?.steps || null;
+          const tiles = [
+            { key: 'steps', icon: '🚶', label: '걸음', value: displaySteps != null ? displaySteps.toLocaleString() : '—', unit: '보' },
+            { key: 'hr',    icon: '💓', label: '심박', value: heartRate != null ? String(heartRate) : '—', unit: 'bpm' },
+            { key: 'sleep', icon: '😴', label: '수면', value: sleepHoursAuto != null ? String(sleepHoursAuto) : '—', unit: 'h' },
+            { key: 'spo2',  icon: '🫁', label: '산소', value: spo2 != null ? String(spo2) : '—', unit: '%' },
+          ];
+          return (
+            <View style={s.summaryTileRow}>
+              {tiles.map(t => (
+                <TouchableOpacity
+                  key={t.key}
+                  style={s.summaryTile}
+                  activeOpacity={0.75}
+                  onPress={() => {
+                    const y = cardYRef.current[t.key as keyof typeof cardYRef.current];
+                    scrollViewRef.current?.scrollTo({ y: Math.max(0, y - 16), animated: true });
+                  }}
+                >
+                  <Text style={s.summaryTileIcon}>{t.icon}</Text>
+                  <Text style={s.summaryTileValue} numberOfLines={1}>
+                    {t.value}
+                    {t.value !== '—' && <Text style={s.summaryTileUnit}>{t.unit}</Text>}
+                  </Text>
+                  <Text style={s.summaryTileLabel}>{t.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          );
+        })()}
 
         {/* AI Weekly Report */}
         <TouchableOpacity
@@ -679,7 +720,7 @@ export default function HealthScreen({ route, navigation }: any) {
         </View>
 
         {/* 걸음수 카드 (Pedometer 작동) */}
-        <View style={s.metricCard}>
+        <View style={s.metricCard} onLayout={e => { cardYRef.current.steps = e.nativeEvent.layout.y; }}>
           <View style={s.metricTopRow}>
             <View style={[s.metricIconBox, { backgroundColor: GREEN_BG }]}>
               <Text style={s.metricIcon}>🚶</Text>
@@ -737,7 +778,7 @@ export default function HealthScreen({ route, navigation }: any) {
 
             {/* 심박수 카드 */}
             {heartRate != null && (
-              <View style={s.metricCard}>
+              <View style={s.metricCard} onLayout={e => { cardYRef.current.hr = e.nativeEvent.layout.y; }}>
                 <View style={s.metricTopRow}>
                   <View style={[s.metricIconBox, { backgroundColor: '#FFE4E4' }]}>
                     <Text style={s.metricIcon}>💓</Text>
@@ -753,17 +794,41 @@ export default function HealthScreen({ route, navigation }: any) {
                     <Text style={s.metricValue}>
                       {heartRate}<Text style={s.metricUnit}> bpm</Text>
                     </Text>
-                    {heartRateMin != null && heartRateMax != null && (
-                      <Text style={s.metricSubValue}>
-                        오늘 최저 {heartRateMin} / 최고 {heartRateMax} bpm
-                      </Text>
-                    )}
+
+                    {/* 심박 범위 막대 */}
+                    {heartRateMin != null && heartRateMax != null && (() => {
+                      const barMin = 40, barMax = 160;
+                      const span = barMax - barMin;
+                      const safeL = (60 - barMin) / span * 100;
+                      const safeW = (100 - 60) / span * 100;
+                      const minPct = Math.max(0, (heartRateMin - barMin) / span * 100);
+                      const maxPct = Math.min(100, (heartRateMax - barMin) / span * 100);
+                      const curPct = Math.min(100, Math.max(0, (heartRate - barMin) / span * 100));
+                      return (
+                        <View style={s.vizWrap}>
+                          <View style={s.hrBarTrack}>
+                            {/* 안정 구간 배경 */}
+                            <View style={[s.hrSafeZone, { left: `${safeL}%` as any, width: `${safeW}%` as any }]} />
+                            {/* 최저~최고 범위 */}
+                            <View style={[s.hrRangeBar, { left: `${minPct}%` as any, width: `${maxPct - minPct}%` as any }]} />
+                            {/* 현재값 마커 */}
+                            <View style={[s.hrMarker, { left: `${curPct}%` as any }]} />
+                          </View>
+                          <View style={s.hrBarLabels}>
+                            <Text style={s.hrBarLabel}>최저 {heartRateMin}</Text>
+                            <Text style={s.hrBarLabelSafe}>안정 60–100</Text>
+                            <Text style={s.hrBarLabel}>최고 {heartRateMax}</Text>
+                          </View>
+                        </View>
+                      );
+                    })()}
+
                     <Text style={s.lumiHint}>
                       {heartRate >= 60 && heartRate <= 100
-                        ? '심박수가 정상이에요. 심장이 건강해요 💙'
+                        ? '심박이 안정적이에요 💙'
                         : heartRate > 100
-                        ? '심박수가 높아요. 잠시 쉬어보세요'
-                        : '심박수가 낮아요. 이상하면 병원에 가보세요'}
+                        ? '심박이 다소 빠른 편이에요. 잠시 쉬어보세요'
+                        : '심박이 낮은 편이에요. 따뜻하게 계세요'}
                     </Text>
                   </View>
                 </View>
@@ -772,7 +837,7 @@ export default function HealthScreen({ route, navigation }: any) {
 
             {/* 수면 카드 */}
             {sleepHoursAuto != null && (
-              <View style={s.metricCard}>
+              <View style={s.metricCard} onLayout={e => { cardYRef.current.sleep = e.nativeEvent.layout.y; }}>
                 <View style={s.metricTopRow}>
                   <View style={[s.metricIconBox, { backgroundColor: '#EAE4F6' }]}>
                     <Text style={s.metricIcon}>😴</Text>
@@ -788,6 +853,30 @@ export default function HealthScreen({ route, navigation }: any) {
                     <Text style={s.metricValue}>
                       {sleepHoursAuto}<Text style={s.metricUnit}> 시간</Text>
                     </Text>
+
+                    {/* 수면 단계 막대 — 단계 데이터 있을 때만 */}
+                    {sleepStages != null && (() => {
+                      const total = sleepStages.deep + sleepStages.light + sleepStages.rem + sleepStages.awake;
+                      if (total === 0) return null;
+                      const pct = (m: number) => `${Math.round(m / total * 100)}%` as any;
+                      return (
+                        <View style={s.vizWrap}>
+                          <View style={s.sleepStageBar}>
+                            {sleepStages.deep  > 0 && <View style={[s.sleepSeg, { flex: sleepStages.deep,  backgroundColor: '#1E3A5F' }]} />}
+                            {sleepStages.light > 0 && <View style={[s.sleepSeg, { flex: sleepStages.light, backgroundColor: '#8B7EC8' }]} />}
+                            {sleepStages.rem   > 0 && <View style={[s.sleepSeg, { flex: sleepStages.rem,   backgroundColor: '#B8A9E8' }]} />}
+                            {sleepStages.awake > 0 && <View style={[s.sleepSeg, { flex: sleepStages.awake, backgroundColor: '#F5C842' }]} />}
+                          </View>
+                          <View style={s.sleepLegendRow}>
+                            {sleepStages.deep  > 0 && <View style={s.sleepLegendItem}><View style={[s.sleepLegendDot, { backgroundColor: '#1E3A5F' }]} /><Text style={s.sleepLegendTxt}>깊은 {pct(sleepStages.deep)}</Text></View>}
+                            {sleepStages.light > 0 && <View style={s.sleepLegendItem}><View style={[s.sleepLegendDot, { backgroundColor: '#8B7EC8' }]} /><Text style={s.sleepLegendTxt}>얕은 {pct(sleepStages.light)}</Text></View>}
+                            {sleepStages.rem   > 0 && <View style={s.sleepLegendItem}><View style={[s.sleepLegendDot, { backgroundColor: '#B8A9E8' }]} /><Text style={s.sleepLegendTxt}>렘 {pct(sleepStages.rem)}</Text></View>}
+                            {sleepStages.awake > 0 && <View style={s.sleepLegendItem}><View style={[s.sleepLegendDot, { backgroundColor: '#F5C842' }]} /><Text style={s.sleepLegendTxt}>깬 {pct(sleepStages.awake)}</Text></View>}
+                          </View>
+                        </View>
+                      );
+                    })()}
+
                     <View style={s.statusRow}>
                       <View style={[s.statusBadgeSmall, { backgroundColor: STATUS[sleepStatus(sleepHoursAuto)].bg }]}>
                         <Text style={[s.statusBadgeSmallText, { color: STATUS[sleepStatus(sleepHoursAuto)].fg }]}>
@@ -809,7 +898,7 @@ export default function HealthScreen({ route, navigation }: any) {
 
             {/* SpO2 산소포화도 카드 */}
             {spo2 != null && (
-              <View style={s.metricCard}>
+              <View style={s.metricCard} onLayout={e => { cardYRef.current.spo2 = e.nativeEvent.layout.y; }}>
                 <View style={s.metricTopRow}>
                   <View style={[s.metricIconBox, { backgroundColor: '#E4F0FF' }]}>
                     <Text style={s.metricIcon}>🫁</Text>
@@ -822,35 +911,40 @@ export default function HealthScreen({ route, navigation }: any) {
                         <Text style={s.autoBadgeText}>🟢 자동 측정 중</Text>
                       </View>
                     </View>
-                    {/* 게이지 */}
-                    <View style={s.spo2GaugeRow}>
-                      <Text style={s.metricValue}>
-                        {spo2}<Text style={s.metricUnit}> %</Text>
-                      </Text>
-                      <View style={s.spo2GaugeBar}>
-                        <View style={[s.spo2GaugeFill, {
-                          width: `${Math.min(Math.max((spo2 - 90) / 10 * 100, 0), 100)}%` as any,
-                          backgroundColor: spo2 >= 95 ? GREEN : spo2 >= 90 ? ORANGE : RED,
-                        }]} />
-                      </View>
-                    </View>
-                    <View style={s.statusRow}>
-                      <View style={[s.statusBadgeSmall, {
-                        backgroundColor: spo2 >= 95 ? GREEN_BG : spo2 >= 90 ? ORANGE_BG : RED_BG,
-                      }]}>
-                        <Text style={[s.statusBadgeSmallText, {
-                          color: spo2 >= 95 ? GREEN_DK : spo2 >= 90 ? WARN : RED,
-                        }]}>
-                          {spo2 >= 95 ? '정상' : spo2 >= 90 ? '주의' : '위험'}
-                        </Text>
-                      </View>
-                    </View>
+                    <Text style={[s.metricValue, spo2 < 90 && { color: RED }]}>
+                      {spo2}<Text style={s.metricUnit}> %</Text>
+                    </Text>
+
+                    {/* SpO2 구역 막대 — 90~100 범위, 95% 이상 초록 구역 강조 */}
+                    {(() => {
+                      const barMin = 90, barMax = 100, span = barMax - barMin;
+                      const safeL = (95 - barMin) / span * 100;
+                      const safeW = (100 - 95) / span * 100;
+                      const curPct = Math.min(100, Math.max(0, (spo2 - barMin) / span * 100));
+                      const markerColor = spo2 >= 95 ? GREEN : spo2 >= 90 ? ORANGE : RED;
+                      return (
+                        <View style={s.vizWrap}>
+                          <View style={s.hrBarTrack}>
+                            {/* 95%↑ 초록 구역 */}
+                            <View style={[s.spo2SafeZone, { left: `${safeL}%` as any, width: `${safeW}%` as any }]} />
+                            {/* 현재값 마커 */}
+                            <View style={[s.hrMarker, { left: `${curPct}%` as any, backgroundColor: markerColor, borderColor: markerColor }]} />
+                          </View>
+                          <View style={s.hrBarLabels}>
+                            <Text style={s.hrBarLabel}>90%</Text>
+                            <Text style={[s.hrBarLabelSafe, { color: GREEN_DK }]}>95% 이상</Text>
+                            <Text style={s.hrBarLabel}>100%</Text>
+                          </View>
+                        </View>
+                      );
+                    })()}
+
                     <Text style={s.lumiHint}>
                       {spo2 >= 95
-                        ? '산소 수치 안정적이에요. 호흡이 편안해요 😊'
+                        ? '산소 수치가 안정적이에요. 호흡이 편안해요 😊'
                         : spo2 >= 90
-                        ? '산소 수치가 약간 낮아요. 환기를 시켜보세요'
-                        : '산소 수치가 낮아요. 병원에 가보세요'}
+                        ? '산소 수치가 조금 낮아요. 환기를 시켜보세요'
+                        : '산소 수치가 낮아요. 환기·휴식 후 다시 측정해보세요'}
                     </Text>
                   </View>
                 </View>
@@ -1540,4 +1634,65 @@ const s = StyleSheet.create({
     fontWeight: '800',
     color: '#fff',
   },
+
+  // ── 4지표 요약 타일 ──────────────────────────────────────────────────────
+  summaryTileRow: {
+    flexDirection: 'row', marginHorizontal: 16, marginBottom: 14, gap: 8,
+  },
+  summaryTile: {
+    flex: 1, backgroundColor: '#fff', borderRadius: 16,
+    paddingVertical: 14, paddingHorizontal: 6, alignItems: 'center',
+    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
+  },
+  summaryTileIcon:  { fontSize: 22, marginBottom: 4 },
+  summaryTileValue: { fontSize: 18, fontWeight: '800', color: INK, lineHeight: 22 },
+  summaryTileUnit:  { fontSize: 13, fontWeight: '600', color: INK_SOFT },
+  summaryTileLabel: { fontSize: 13, color: INK_MUTE, marginTop: 3 },
+
+  // ── 시각화 공통 ───────────────────────────────────────────────────────────
+  vizWrap: { marginTop: 10, marginBottom: 4 },
+
+  // 심박 범위 막대
+  hrBarTrack: {
+    height: 14, backgroundColor: '#EEE', borderRadius: 7,
+    marginBottom: 6, position: 'relative', overflow: 'visible',
+  },
+  hrSafeZone: {
+    position: 'absolute', height: '100%', borderRadius: 7,
+    backgroundColor: '#D4EDDA',
+  },
+  hrRangeBar: {
+    position: 'absolute', height: '100%', borderRadius: 7,
+    backgroundColor: '#E5453C', opacity: 0.75,
+  },
+  hrMarker: {
+    position: 'absolute', width: 20, height: 20, borderRadius: 10,
+    backgroundColor: '#E5453C', borderWidth: 3, borderColor: '#fff',
+    top: -3, marginLeft: -10,
+    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 4, elevation: 3,
+  },
+  hrBarLabels: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  },
+  hrBarLabel:     { fontSize: 13, color: INK_MUTE, fontWeight: '600' },
+  hrBarLabelSafe: { fontSize: 12, color: GREEN_DK, fontWeight: '700' },
+
+  // SpO2 구역 막대 (hrBarTrack 재사용)
+  spo2SafeZone: {
+    position: 'absolute', height: '100%', borderRadius: 7,
+    backgroundColor: '#BBEDD0',
+  },
+
+  // 수면 단계 막대
+  sleepStageBar: {
+    flexDirection: 'row', height: 16, borderRadius: 8, overflow: 'hidden',
+    marginBottom: 8,
+  },
+  sleepSeg: { height: '100%' },
+  sleepLegendRow: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 10,
+  },
+  sleepLegendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  sleepLegendDot:  { width: 10, height: 10, borderRadius: 5 },
+  sleepLegendTxt:  { fontSize: 13, color: INK_SOFT, fontWeight: '600' },
 });
