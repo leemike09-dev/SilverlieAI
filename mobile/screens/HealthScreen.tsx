@@ -36,9 +36,21 @@ const STATUS = {
   danger: { label: '위험', fg: RED, bg: RED_BG },
 };
 
+// ─── 혈압 절대 밴드 상수 (시니어 기준 잠정값 — KB 임상검토 후 확정) ─────────
+// 수치 확정 전까지 보수적 값 사용. 최종값은 KB/임상 검토에서 결정.
+const BP_LOW_SYS        =  90;  // 수축기 저혈압 경계
+const BP_LOW_DIA        =  55;  // 이완기 저혈압 경계
+const BP_NORMAL_MAX_SYS = 135;  // 시니어 정상 상한 (일반 기준 120보다 완화)
+const BP_NORMAL_MAX_DIA =  85;  // 시니어 이완기 정상 상한
+const BP_HIGH_SYS       = 155;  // 높음 하한 (시니어 기준, 일반 140보다 완화)
+const BP_HIGH_DIA       = 100;  // 이완기 높음 하한
+const BP_TREND_DELTA    =   5;  // 추세 판정 최소 차이 (mmHg) — 이 이상 변해야 방향 판정
+const BP_BASELINE_DAYS  =  14;  // 기준선 계산 기간 (오늘 제외, 최근 N일)
+
 const bpStatus = (sys: number, dia: number) => {
-  if (sys >= 90 && sys <= 120 && dia >= 60 && dia <= 80) return 'normal';
-  if (sys > 140 || dia > 90) return 'danger';
+  if (sys < BP_LOW_SYS || dia < BP_LOW_DIA) return 'caution';
+  if (sys <= BP_NORMAL_MAX_SYS && dia <= BP_NORMAL_MAX_DIA) return 'normal';
+  if (sys > BP_HIGH_SYS || dia > BP_HIGH_DIA) return 'danger';
   return 'caution';
 };
 
@@ -62,12 +74,56 @@ const sleepStatus = (hours: number) => {
 
 const API = 'https://silverlieai.onrender.com';
 
-const lumiInterpretBp = (sys: number, dia: number): string => {
-  const st = bpStatus(sys, dia);
-  if (st === 'normal')  return '혈압이 정상이에요. 안심하세요 😊';
-  if (st === 'danger')  return '혈압이 높아요. 병원에 가보시는 게 좋아요';
-  return '혈압이 조금 높네요. 오늘은 편히 쉬세요';
-};
+// ─── 추세 기반 혈압 평가 ──────────────────────────────────────────────────
+// baselineSys: 오늘 제외 최근 BP_BASELINE_DAYS 평균. null이면 절대값만 사용.
+// isOnBpMed: 혈압약 복용 중이면 복약 전제로 말함, "병원 가세요" 금지.
+function bpTrendText(
+  sys: number, dia: number,
+  baselineSys: number | null,
+  isOnBpMed: boolean,
+): string {
+  const bpStr = `${sys}/${dia}`;
+  const abs: 'normal' | 'caution' | 'high' =
+    sys <= BP_NORMAL_MAX_SYS && dia <= BP_NORMAL_MAX_DIA ? 'normal'
+    : sys > BP_HIGH_SYS || dia > BP_HIGH_DIA ? 'high'
+    : 'caution';
+
+  if (baselineSys == null) {
+    // 기준선 없음 — 절대값만
+    if (abs === 'normal') return '혈압이 좋은 편이에요 😊';
+    if (abs === 'high') return isOnBpMed
+      ? `오늘 혈압(${bpStr})이 높게 나왔어요. 약은 잊지 않고 드셨죠?`
+      : `오늘 혈압(${bpStr})이 높게 나왔어요. 며칠 계속되면 살펴봐요.`;
+    return `오늘 혈압(${bpStr})을 기록했어요.`;
+  }
+
+  const delta = sys - baselineSys;
+  const avgStr = Math.round(baselineSys).toString();
+
+  if (delta <= -BP_TREND_DELTA) {
+    // 낮아짐(호전) — 방향 먼저 칭찬
+    const base = isOnBpMed
+      ? `평소(${avgStr})보다 내려왔어요(${sys}). 약 드시며 잘 관리하고 계세요 💙`
+      : `평소(${avgStr})보다 혈압이 내려왔어요(${sys}) 👍`;
+    return abs !== 'normal'
+      ? base + ' 아직 조금 높은 편이지만, 이 방향으로 계속 가봐요.'
+      : base;
+  }
+
+  if (delta >= BP_TREND_DELTA) {
+    // 높아짐
+    const suffix = isOnBpMed
+      ? ` 혈압약 잊지 않고 드셨어요? 며칠 이어지면 다음 진료 때 보여드려요.`
+      : ` 며칠 이어지는지 지켜봐요.`;
+    return `오늘 혈압(${sys})이 평소(${avgStr})보다 조금 올랐어요.` + suffix;
+  }
+
+  // 비슷함
+  if (abs === 'normal') return `혈압이 평소와 비슷하게 안정적이에요 😊`;
+  return isOnBpMed
+    ? `오늘 혈압(${sys})이 평소와 비슷해요. 꾸준히 잘 챙기고 계세요.`
+    : `오늘 혈압(${sys})이 평소와 비슷한 편이에요.`;
+}
 const lumiInterpretSg = (v: number): string => {
   const st = glucoseStatus(v);
   if (st === 'normal')  return '혈당이 정상 범위예요. 잘 챙기고 계세요 💙';
@@ -115,10 +171,7 @@ function buildContextEval({
 
   const stepGoal = profile?.goals?.steps ?? 8000;
 
-  // 7일 추세
-  const recentBp  = records.slice(0, 7).filter(r => r.blood_pressure_systolic > 0);
-  const avgBpSys  = recentBp.length >= 3
-    ? recentBp.reduce((s, r) => s + r.blood_pressure_systolic, 0) / recentBp.length : null;
+  // 수면 추세 (오늘 제외)
   const recentSlp = records.slice(1, 8).filter(r => r.sleep_hours > 0);
   const avgSleep  = recentSlp.length >= 2
     ? recentSlp.reduce((s, r) => s + r.sleep_hours, 0) / recentSlp.length : null;
@@ -155,30 +208,74 @@ function buildContextEval({
     }
   }
 
-  // ─ 혈압 (CASE 03, 04, 뇌졸중 분기) ─
+  // ─ 혈압 — 추세 우선 평가 ─
   if (todayRecord?.blood_pressure_systolic && issueCount < 2) {
-    const st    = bpStatus(todayRecord.blood_pressure_systolic, todayRecord.blood_pressure_diastolic);
-    const bpStr = `${todayRecord.blood_pressure_systolic}/${todayRecord.blood_pressure_diastolic}`;
-    const trendBad = avgBpSys != null && avgBpSys > 135;
+    const sys = todayRecord.blood_pressure_systolic;
+    const dia = todayRecord.blood_pressure_diastolic;
+    const bpStr = `${sys}/${dia}`;
 
-    if (st === 'normal') {
-      if (parts.length === 0) { parts.push('혈압이 정상이에요. 안심하세요 😊'); mood = 'content'; }
+    // 오늘 날짜 제외한 기준선 (최근 BP_BASELINE_DAYS 일 평균)
+    const todayStr = localDate(now);
+    const pastBpRecs = records
+      .filter(r => r.date !== todayStr && r.blood_pressure_systolic > 0)
+      .slice(0, BP_BASELINE_DAYS);
+    const bpBaselineSys = pastBpRecs.length >= 2
+      ? pastBpRecs.reduce((s, r) => s + r.blood_pressure_systolic, 0) / pastBpRecs.length
+      : null;
+    const avgStr = bpBaselineSys != null ? Math.round(bpBaselineSys).toString() : null;
+
+    const delta = bpBaselineSys != null ? sys - bpBaselineSys : null;
+    const trend: 'down' | 'flat' | 'up' | null =
+      delta == null ? null
+      : delta <= -BP_TREND_DELTA ? 'down'
+      : delta >= BP_TREND_DELTA ? 'up'
+      : 'flat';
+
+    const abs: 'normal' | 'caution' | 'high' =
+      sys <= BP_NORMAL_MAX_SYS && dia <= BP_NORMAL_MAX_DIA ? 'normal'
+      : sys > BP_HIGH_SYS || dia > BP_HIGH_DIA ? 'high'
+      : 'caution';
+
+    if (abs === 'normal' && trend !== 'up') {
+      // 절대 정상 + 악화 아닌 경우
+      if (parts.length === 0) {
+        const txt = trend === 'down' && avgStr
+          ? `혈압이 평소(${avgStr})보다 내려왔어요(${sys}). 좋아지고 있어요 😊`
+          : '혈압이 좋은 편이에요 😊';
+        parts.push(txt); mood = 'content';
+      }
+    } else if (trend === 'down') {
+      // 낮아짐(호전) — 절대값이 아직 높아도 방향 먼저 칭찬
+      const praise = isOnBpMed && avgStr
+        ? `평소(${avgStr})보다 내려왔어요(${sys}). 약 드시며 잘 관리하고 계세요 💙`
+        : avgStr
+          ? `평소(${avgStr})보다 혈압이 내려왔어요(${sys}) 👍`
+          : `오늘 혈압(${bpStr})이 내려왔어요 👍`;
+      const caveat = abs !== 'normal' ? ' 아직 조금 높은 편이지만, 이 방향으로 계속 가봐요.' : '';
+      parts.push(praise + caveat);
+      if (abs !== 'high') mood = 'content';
     } else if (isOnBpMed) {
-      // CASE 03: 이미 진료 중 → 복약 확인, "병원 가세요" 금지
-      parts.push(`오늘 혈압이 평소보다 조금 높네요 (${bpStr}). 혈압약은 잊지 않고 드셨어요? 며칠 이어지면 다음 진료 때 이 기록을 보여드리면 도움이 돼요.`);
-      if (trendBad) mood = 'worried';
-      issueCount++;
-    } else if (hasStroke && st === 'danger') {
-      // 뇌졸중 이력 + 위험 혈압 → 민감도↑
+      // CASE 03: 복약 중 + 높아짐/비슷함 → 복약 확인, "병원 가세요" 금지
+      const trendDesc = trend === 'up' && avgStr
+        ? `평소(${avgStr})보다 조금 올랐어요(${sys}). `
+        : `오늘 혈압(${bpStr})을 확인했어요. `;
+      parts.push(trendDesc + '혈압약은 잊지 않고 드셨어요? 며칠 이어지면 다음 진료 때 이 기록을 보여드리면 도움이 돼요.');
+      if (abs === 'high') { mood = 'worried'; issueCount++; }
+    } else if (hasStroke && abs === 'high') {
+      // 뇌졸중 이력 + 절대 높음 → 민감도↑
       parts.push(`오늘 혈압이 꽤 높게 나왔어요 (${bpStr}). 뇌졸중 겪으셨던 만큼 조심하는 게 좋아요. 편히 쉬시고, 며칠 이어지면 바로 알려드릴게요.`);
       mood = 'worried'; issueCount++;
-    } else if (st === 'danger') {
-      // CASE 04: 진료 기록 없음 → 부드러운 안내
-      parts.push(`오늘 혈압이 높게 나왔어요 (${bpStr}). 한 번 더 재보시고, 며칠 이어지면 병원에서 한 번 봐드리는 게 좋아요.`);
-      if (trendBad) mood = 'worried';
-      issueCount++;
+    } else if (abs === 'high') {
+      // CASE 04: 복약 기록 없음 + 절대 높음
+      const trendNote = trend === 'up' && avgStr ? ` 평소(${avgStr})보다 오른 편이에요.` : '';
+      parts.push(`오늘 혈압이 높게 나왔어요 (${bpStr}).${trendNote} 한 번 더 재보시고, 며칠 이어지면 병원에서 확인해 보세요.`);
+      mood = 'worried'; issueCount++;
     } else {
-      parts.push('혈압이 조금 높네요. 오늘은 편히 쉬세요.'); issueCount++;
+      // caution 범위 + flat/up
+      const trendNote = trend === 'up' && avgStr
+        ? `평소(${avgStr})보다 조금 올랐어요(${sys}). 오늘은 편히 쉬세요.`
+        : `혈압이 조금 높은 편이에요(${sys}). 오늘은 편히 쉬세요.`;
+      parts.push(trendNote); issueCount++;
     }
   }
 
@@ -1028,6 +1125,17 @@ export default function HealthScreen({ route, navigation }: any) {
             } catch {}
           }
 
+          // 카드용 기준선 — 오늘 제외 최근 BP_BASELINE_DAYS 평균
+          const todayStr = localDate();
+          const pastBpCard = records
+            .filter(r => r.date !== todayStr && r.blood_pressure_systolic > 0)
+            .slice(0, BP_BASELINE_DAYS);
+          const cardBaselineSys = pastBpCard.length >= 2
+            ? pastBpCard.reduce((s, r) => s + r.blood_pressure_systolic, 0) / pastBpCard.length
+            : null;
+          const cardMedNames = medications.map((m: any) => (m.name || '') + ' ' + (m.type || ''));
+          const cardIsOnBpMed = cardMedNames.some((n: string) => /혈압/.test(n));
+
           return (
             <View style={s.metricCard}>
               <View style={s.metricTopRow}>
@@ -1056,7 +1164,9 @@ export default function HealthScreen({ route, navigation }: any) {
                           </Text>
                         </View>
                       </View>
-                      <Text style={s.lumiHint}>{lumiInterpretBp(displayBp.systolic, displayBp.diastolic)}</Text>
+                      <Text style={s.lumiHint}>
+                        {bpTrendText(displayBp.systolic, displayBp.diastolic, cardBaselineSys, cardIsOnBpMed)}
+                      </Text>
                     </>
                   ) : (
                     <Text style={s.emptyValue}>—</Text>
