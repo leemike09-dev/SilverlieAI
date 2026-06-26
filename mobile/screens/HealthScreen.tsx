@@ -502,7 +502,19 @@ export default function HealthScreen({ route, navigation }: any) {
       const bp = JSON.parse(bpRaw);
       bpLines = `\n\n[혈압 HC]\n레코드 수: ${bp.count}\n기간: 7일\n${bp.sample ? `최근: ${JSON.stringify(bp.sample).slice(0, 150)}` : '레코드 없음'}`;
     }
-    Alert.alert('Health Connect 진단', lines + bpLines, [
+    const spo2Raw = await AsyncStorage.getItem('hc_spo2_debug');
+    let spo2Lines = '';
+    if (spo2Raw) {
+      const sp = JSON.parse(spo2Raw);
+      spo2Lines = `\n\n[SpO2 HC]\n레코드 수: ${sp.count}\n${sp.sample?.length ? `최근: ${JSON.stringify(sp.sample[0]).slice(0, 100)}` : '레코드 없음'}`;
+    }
+    const sleepRaw = await AsyncStorage.getItem('hc_sleep_stage_debug');
+    let sleepLines = '';
+    if (sleepRaw) {
+      const sd = JSON.parse(sleepRaw);
+      sleepLines = `\n\n[수면 단계]\n레코드 수: ${sd.recordCount}\nstagesCount: ${sd.sample?.[0]?.stagesCount ?? 0}`;
+    }
+    Alert.alert('Health Connect 진단', lines + bpLines + spo2Lines + sleepLines, [
       { text: '닫기' },
       { text: '초기화', style: 'destructive', onPress: () => AsyncStorage.removeItem('hc_diag') },
     ]);
@@ -777,179 +789,186 @@ export default function HealthScreen({ route, navigation }: any) {
             </View>
 
             {/* 심박수 카드 */}
-            {heartRate != null && (
-              <View style={s.metricCard} onLayout={e => { cardYRef.current.hr = e.nativeEvent.layout.y; }}>
-                <View style={s.metricTopRow}>
-                  <View style={[s.metricIconBox, { backgroundColor: '#FFE4E4' }]}>
-                    <Text style={s.metricIcon}>💓</Text>
-                  </View>
-                  <View style={s.metricContent}>
-                    <View style={s.stepsLabelRow}>
-                      <Text style={s.metricLabel}>심박수</Text>
-                      <View style={s.sourceChip}><Text style={s.sourceChipText}>⌚ 워치</Text></View>
-                      <View style={s.autoBadge}>
-                        <Text style={s.autoBadgeText}>🟢 자동 측정 중</Text>
-                      </View>
+            <View style={s.metricCard} onLayout={e => { cardYRef.current.hr = e.nativeEvent.layout.y; }}>
+              <View style={s.metricTopRow}>
+                <View style={[s.metricIconBox, { backgroundColor: '#FFE4E4' }]}>
+                  <Text style={s.metricIcon}>💓</Text>
+                </View>
+                <View style={s.metricContent}>
+                  <View style={s.stepsLabelRow}>
+                    <Text style={s.metricLabel}>심박수</Text>
+                    <View style={s.sourceChip}><Text style={s.sourceChipText}>⌚ 워치</Text></View>
+                    <View style={s.autoBadge}>
+                      <Text style={s.autoBadgeText}>🟢 자동 측정 중</Text>
                     </View>
-                    <Text style={s.metricValue}>
-                      {heartRate}<Text style={s.metricUnit}> bpm</Text>
-                    </Text>
-
-                    {/* 심박 범위 막대 */}
-                    {heartRateMin != null && heartRateMax != null && (() => {
-                      const barMin = 40, barMax = 160;
-                      const span = barMax - barMin;
-                      const safeL = (60 - barMin) / span * 100;
-                      const safeW = (100 - 60) / span * 100;
-                      const minPct = Math.max(0, (heartRateMin - barMin) / span * 100);
-                      const maxPct = Math.min(100, (heartRateMax - barMin) / span * 100);
-                      const curPct = Math.min(100, Math.max(0, (heartRate - barMin) / span * 100));
-                      return (
-                        <View style={s.vizWrap}>
-                          <View style={s.hrBarTrack}>
-                            {/* 안정 구간 배경 */}
-                            <View style={[s.hrSafeZone, { left: `${safeL}%` as any, width: `${safeW}%` as any }]} />
-                            {/* 최저~최고 범위 */}
-                            <View style={[s.hrRangeBar, { left: `${minPct}%` as any, width: `${maxPct - minPct}%` as any }]} />
-                            {/* 현재값 마커 */}
-                            <View style={[s.hrMarker, { left: `${curPct}%` as any }]} />
-                          </View>
-                          <View style={s.hrBarLabels}>
-                            <Text style={s.hrBarLabel}>최저 {heartRateMin}</Text>
-                            <Text style={s.hrBarLabelSafe}>안정 60–100</Text>
-                            <Text style={s.hrBarLabel}>최고 {heartRateMax}</Text>
-                          </View>
-                        </View>
-                      );
-                    })()}
-
-                    <Text style={s.lumiHint}>
-                      {heartRate >= 60 && heartRate <= 100
-                        ? '심박이 안정적이에요 💙'
-                        : heartRate > 100
-                        ? '심박이 다소 빠른 편이에요. 잠시 쉬어보세요'
-                        : '심박이 낮은 편이에요. 따뜻하게 계세요'}
-                    </Text>
                   </View>
+                  {heartRate != null ? (
+                    <>
+                      <Text style={s.metricValue}>
+                        {heartRate}<Text style={s.metricUnit}> bpm</Text>
+                      </Text>
+
+                      {/* 심박 범위 막대 */}
+                      {heartRateMin != null && heartRateMax != null && (() => {
+                        const barMin = 40, barMax = 160;
+                        const span = barMax - barMin;
+                        const safeL = (60 - barMin) / span * 100;
+                        const safeW = (100 - 60) / span * 100;
+                        const minPct = Math.max(0, (heartRateMin - barMin) / span * 100);
+                        const maxPct = Math.min(100, (heartRateMax - barMin) / span * 100);
+                        const curPct = Math.min(100, Math.max(0, (heartRate - barMin) / span * 100));
+                        return (
+                          <View style={s.vizWrap}>
+                            <View style={s.hrBarTrack}>
+                              <View style={[s.hrSafeZone, { left: `${safeL}%` as any, width: `${safeW}%` as any }]} />
+                              <View style={[s.hrRangeBar, { left: `${minPct}%` as any, width: `${maxPct - minPct}%` as any }]} />
+                              <View style={[s.hrMarker, { left: `${curPct}%` as any }]} />
+                            </View>
+                            <View style={s.hrBarLabels}>
+                              <Text style={s.hrBarLabel}>최저 {heartRateMin}</Text>
+                              <Text style={s.hrBarLabelSafe}>안정 60–100</Text>
+                              <Text style={s.hrBarLabel}>최고 {heartRateMax}</Text>
+                            </View>
+                          </View>
+                        );
+                      })()}
+
+                      <Text style={s.lumiHint}>
+                        {heartRate >= 60 && heartRate <= 100
+                          ? '심박이 안정적이에요 💙'
+                          : heartRate > 100
+                          ? '심박이 다소 빠른 편이에요. 잠시 쉬어보세요'
+                          : '심박이 낮은 편이에요. 따뜻하게 계세요'}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={s.emptyValue}>오늘 측정값 수신 대기 중...</Text>
+                  )}
                 </View>
               </View>
-            )}
+            </View>
 
             {/* 수면 카드 */}
-            {sleepHoursAuto != null && (
-              <View style={s.metricCard} onLayout={e => { cardYRef.current.sleep = e.nativeEvent.layout.y; }}>
-                <View style={s.metricTopRow}>
-                  <View style={[s.metricIconBox, { backgroundColor: '#EAE4F6' }]}>
-                    <Text style={s.metricIcon}>😴</Text>
-                  </View>
-                  <View style={s.metricContent}>
-                    <View style={s.stepsLabelRow}>
-                      <Text style={s.metricLabel}>수면</Text>
-                      <View style={s.sourceChip}><Text style={s.sourceChipText}>⌚ 워치</Text></View>
-                      <View style={s.autoBadge}>
-                        <Text style={s.autoBadgeText}>🟢 자동 측정 중</Text>
-                      </View>
+            <View style={s.metricCard} onLayout={e => { cardYRef.current.sleep = e.nativeEvent.layout.y; }}>
+              <View style={s.metricTopRow}>
+                <View style={[s.metricIconBox, { backgroundColor: '#EAE4F6' }]}>
+                  <Text style={s.metricIcon}>😴</Text>
+                </View>
+                <View style={s.metricContent}>
+                  <View style={s.stepsLabelRow}>
+                    <Text style={s.metricLabel}>수면</Text>
+                    <View style={s.sourceChip}><Text style={s.sourceChipText}>⌚ 워치</Text></View>
+                    <View style={s.autoBadge}>
+                      <Text style={s.autoBadgeText}>🟢 자동 측정 중</Text>
                     </View>
-                    <Text style={s.metricValue}>
-                      {sleepHoursAuto}<Text style={s.metricUnit}> 시간</Text>
-                    </Text>
+                  </View>
+                  {sleepHoursAuto != null ? (
+                    <>
+                      <Text style={s.metricValue}>
+                        {sleepHoursAuto}<Text style={s.metricUnit}> 시간</Text>
+                      </Text>
 
-                    {/* 수면 단계 막대 — 단계 데이터 있을 때만 */}
-                    {sleepStages != null && (() => {
-                      const total = sleepStages.deep + sleepStages.light + sleepStages.rem + sleepStages.awake;
-                      if (total === 0) return null;
-                      const pct = (m: number) => `${Math.round(m / total * 100)}%` as any;
-                      return (
-                        <View style={s.vizWrap}>
-                          <View style={s.sleepStageBar}>
-                            {sleepStages.deep  > 0 && <View style={[s.sleepSeg, { flex: sleepStages.deep,  backgroundColor: '#1E3A5F' }]} />}
-                            {sleepStages.light > 0 && <View style={[s.sleepSeg, { flex: sleepStages.light, backgroundColor: '#8B7EC8' }]} />}
-                            {sleepStages.rem   > 0 && <View style={[s.sleepSeg, { flex: sleepStages.rem,   backgroundColor: '#B8A9E8' }]} />}
-                            {sleepStages.awake > 0 && <View style={[s.sleepSeg, { flex: sleepStages.awake, backgroundColor: '#F5C842' }]} />}
+                      {/* 수면 단계 막대 — 단계 데이터 있을 때만 */}
+                      {sleepStages != null && (() => {
+                        const total = sleepStages.deep + sleepStages.light + sleepStages.rem + sleepStages.awake;
+                        if (total === 0) return null;
+                        const pct = (m: number) => `${Math.round(m / total * 100)}%` as any;
+                        return (
+                          <View style={s.vizWrap}>
+                            <View style={s.sleepStageBar}>
+                              {sleepStages.deep  > 0 && <View style={[s.sleepSeg, { flex: sleepStages.deep,  backgroundColor: '#1E3A5F' }]} />}
+                              {sleepStages.light > 0 && <View style={[s.sleepSeg, { flex: sleepStages.light, backgroundColor: '#8B7EC8' }]} />}
+                              {sleepStages.rem   > 0 && <View style={[s.sleepSeg, { flex: sleepStages.rem,   backgroundColor: '#B8A9E8' }]} />}
+                              {sleepStages.awake > 0 && <View style={[s.sleepSeg, { flex: sleepStages.awake, backgroundColor: '#F5C842' }]} />}
+                            </View>
+                            <View style={s.sleepLegendRow}>
+                              {sleepStages.deep  > 0 && <View style={s.sleepLegendItem}><View style={[s.sleepLegendDot, { backgroundColor: '#1E3A5F' }]} /><Text style={s.sleepLegendTxt}>깊은 {pct(sleepStages.deep)}</Text></View>}
+                              {sleepStages.light > 0 && <View style={s.sleepLegendItem}><View style={[s.sleepLegendDot, { backgroundColor: '#8B7EC8' }]} /><Text style={s.sleepLegendTxt}>얕은 {pct(sleepStages.light)}</Text></View>}
+                              {sleepStages.rem   > 0 && <View style={s.sleepLegendItem}><View style={[s.sleepLegendDot, { backgroundColor: '#B8A9E8' }]} /><Text style={s.sleepLegendTxt}>렘 {pct(sleepStages.rem)}</Text></View>}
+                              {sleepStages.awake > 0 && <View style={s.sleepLegendItem}><View style={[s.sleepLegendDot, { backgroundColor: '#F5C842' }]} /><Text style={s.sleepLegendTxt}>깬 {pct(sleepStages.awake)}</Text></View>}
+                            </View>
                           </View>
-                          <View style={s.sleepLegendRow}>
-                            {sleepStages.deep  > 0 && <View style={s.sleepLegendItem}><View style={[s.sleepLegendDot, { backgroundColor: '#1E3A5F' }]} /><Text style={s.sleepLegendTxt}>깊은 {pct(sleepStages.deep)}</Text></View>}
-                            {sleepStages.light > 0 && <View style={s.sleepLegendItem}><View style={[s.sleepLegendDot, { backgroundColor: '#8B7EC8' }]} /><Text style={s.sleepLegendTxt}>얕은 {pct(sleepStages.light)}</Text></View>}
-                            {sleepStages.rem   > 0 && <View style={s.sleepLegendItem}><View style={[s.sleepLegendDot, { backgroundColor: '#B8A9E8' }]} /><Text style={s.sleepLegendTxt}>렘 {pct(sleepStages.rem)}</Text></View>}
-                            {sleepStages.awake > 0 && <View style={s.sleepLegendItem}><View style={[s.sleepLegendDot, { backgroundColor: '#F5C842' }]} /><Text style={s.sleepLegendTxt}>깬 {pct(sleepStages.awake)}</Text></View>}
-                          </View>
+                        );
+                      })()}
+
+                      <View style={s.statusRow}>
+                        <View style={[s.statusBadgeSmall, { backgroundColor: STATUS[sleepStatus(sleepHoursAuto)].bg }]}>
+                          <Text style={[s.statusBadgeSmallText, { color: STATUS[sleepStatus(sleepHoursAuto)].fg }]}>
+                            {STATUS[sleepStatus(sleepHoursAuto)].label}
+                          </Text>
                         </View>
-                      );
-                    })()}
-
-                    <View style={s.statusRow}>
-                      <View style={[s.statusBadgeSmall, { backgroundColor: STATUS[sleepStatus(sleepHoursAuto)].bg }]}>
-                        <Text style={[s.statusBadgeSmallText, { color: STATUS[sleepStatus(sleepHoursAuto)].fg }]}>
-                          {STATUS[sleepStatus(sleepHoursAuto)].label}
-                        </Text>
                       </View>
-                    </View>
-                    <Text style={s.lumiHint}>
-                      {sleepStatus(sleepHoursAuto) === 'normal'
-                        ? '충분히 주무셨어요. 오늘도 활기차게! 🌟'
-                        : sleepStatus(sleepHoursAuto) === 'caution'
-                        ? '조금 더 주무시면 좋겠어요'
-                        : '수면이 부족해요. 오늘 일찍 주무세요'}
-                    </Text>
-                  </View>
+                      <Text style={s.lumiHint}>
+                        {sleepStatus(sleepHoursAuto) === 'normal'
+                          ? '충분히 주무셨어요. 오늘도 활기차게! 🌟'
+                          : sleepStatus(sleepHoursAuto) === 'caution'
+                          ? '조금 더 주무시면 좋겠어요'
+                          : '수면이 부족해요. 오늘 일찍 주무세요'}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={s.emptyValue}>어젯밤 수면 데이터 수신 대기 중...</Text>
+                  )}
                 </View>
               </View>
-            )}
+            </View>
 
             {/* SpO2 산소포화도 카드 */}
-            {spo2 != null && (
-              <View style={s.metricCard} onLayout={e => { cardYRef.current.spo2 = e.nativeEvent.layout.y; }}>
-                <View style={s.metricTopRow}>
-                  <View style={[s.metricIconBox, { backgroundColor: '#E4F0FF' }]}>
-                    <Text style={s.metricIcon}>🫁</Text>
-                  </View>
-                  <View style={s.metricContent}>
-                    <View style={s.stepsLabelRow}>
-                      <Text style={s.metricLabel}>산소포화도</Text>
-                      <View style={s.sourceChip}><Text style={s.sourceChipText}>⌚ 워치</Text></View>
-                      <View style={s.autoBadge}>
-                        <Text style={s.autoBadgeText}>🟢 자동 측정 중</Text>
-                      </View>
+            <View style={s.metricCard} onLayout={e => { cardYRef.current.spo2 = e.nativeEvent.layout.y; }}>
+              <View style={s.metricTopRow}>
+                <View style={[s.metricIconBox, { backgroundColor: '#E4F0FF' }]}>
+                  <Text style={s.metricIcon}>🫁</Text>
+                </View>
+                <View style={s.metricContent}>
+                  <View style={s.stepsLabelRow}>
+                    <Text style={s.metricLabel}>산소포화도</Text>
+                    <View style={s.sourceChip}><Text style={s.sourceChipText}>⌚ 워치</Text></View>
+                    <View style={s.autoBadge}>
+                      <Text style={s.autoBadgeText}>🟢 자동 측정 중</Text>
                     </View>
-                    <Text style={[s.metricValue, spo2 < 90 && { color: RED }]}>
-                      {spo2}<Text style={s.metricUnit}> %</Text>
-                    </Text>
-
-                    {/* SpO2 구역 막대 — 90~100 범위, 95% 이상 초록 구역 강조 */}
-                    {(() => {
-                      const barMin = 90, barMax = 100, span = barMax - barMin;
-                      const safeL = (95 - barMin) / span * 100;
-                      const safeW = (100 - 95) / span * 100;
-                      const curPct = Math.min(100, Math.max(0, (spo2 - barMin) / span * 100));
-                      const markerColor = spo2 >= 95 ? GREEN : spo2 >= 90 ? ORANGE : RED;
-                      return (
-                        <View style={s.vizWrap}>
-                          <View style={s.hrBarTrack}>
-                            {/* 95%↑ 초록 구역 */}
-                            <View style={[s.spo2SafeZone, { left: `${safeL}%` as any, width: `${safeW}%` as any }]} />
-                            {/* 현재값 마커 */}
-                            <View style={[s.hrMarker, { left: `${curPct}%` as any, backgroundColor: markerColor, borderColor: markerColor }]} />
-                          </View>
-                          <View style={s.hrBarLabels}>
-                            <Text style={s.hrBarLabel}>90%</Text>
-                            <Text style={[s.hrBarLabelSafe, { color: GREEN_DK }]}>95% 이상</Text>
-                            <Text style={s.hrBarLabel}>100%</Text>
-                          </View>
-                        </View>
-                      );
-                    })()}
-
-                    <Text style={s.lumiHint}>
-                      {spo2 >= 95
-                        ? '산소 수치가 안정적이에요. 호흡이 편안해요 😊'
-                        : spo2 >= 90
-                        ? '산소 수치가 조금 낮아요. 환기를 시켜보세요'
-                        : '산소 수치가 낮아요. 환기·휴식 후 다시 측정해보세요'}
-                    </Text>
                   </View>
+                  {spo2 != null ? (
+                    <>
+                      <Text style={[s.metricValue, spo2 < 90 && { color: RED }]}>
+                        {spo2}<Text style={s.metricUnit}> %</Text>
+                      </Text>
+
+                      {/* SpO2 구역 막대 — 90~100 범위, 95% 이상 초록 구역 강조 */}
+                      {(() => {
+                        const barMin = 90, barMax = 100, span = barMax - barMin;
+                        const safeL = (95 - barMin) / span * 100;
+                        const safeW = (100 - 95) / span * 100;
+                        const curPct = Math.min(100, Math.max(0, (spo2 - barMin) / span * 100));
+                        const markerColor = spo2 >= 95 ? GREEN : spo2 >= 90 ? ORANGE : RED;
+                        return (
+                          <View style={s.vizWrap}>
+                            <View style={s.hrBarTrack}>
+                              <View style={[s.spo2SafeZone, { left: `${safeL}%` as any, width: `${safeW}%` as any }]} />
+                              <View style={[s.hrMarker, { left: `${curPct}%` as any, backgroundColor: markerColor, borderColor: markerColor }]} />
+                            </View>
+                            <View style={s.hrBarLabels}>
+                              <Text style={s.hrBarLabel}>90%</Text>
+                              <Text style={[s.hrBarLabelSafe, { color: GREEN_DK }]}>95% 이상</Text>
+                              <Text style={s.hrBarLabel}>100%</Text>
+                            </View>
+                          </View>
+                        );
+                      })()}
+
+                      <Text style={s.lumiHint}>
+                        {spo2 >= 95
+                          ? '산소 수치가 안정적이에요. 호흡이 편안해요 😊'
+                          : spo2 >= 90
+                          ? '산소 수치가 조금 낮아요. 환기를 시켜보세요'
+                          : '산소 수치가 낮아요. 환기·휴식 후 다시 측정해보세요'}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={s.emptyValue}>오늘 측정값 수신 대기 중...</Text>
+                  )}
                 </View>
               </View>
-            )}
+            </View>
           </>
         ) : (
           /* 연결 안 됨 — 온보딩 가이드 카드 */

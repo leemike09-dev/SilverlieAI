@@ -300,6 +300,12 @@ async function readAndroidData(): Promise<HealthNativeData> {
 
     const spo2Result = await HC.readRecords('OxygenSaturation', range(startISO)).catch(() => ({ records: [] }));
     const spo2Records = (spo2Result as any).records;
+    console.log('[HC/spo2] records:', spo2Records.length, spo2Records.length > 0 ? JSON.stringify(spo2Records[spo2Records.length - 1]).slice(0, 120) : 'none');
+    await AsyncStorage.setItem('hc_spo2_debug', JSON.stringify({
+      ts: new Date().toISOString(),
+      count: spo2Records.length,
+      sample: spo2Records.slice(0, 2),
+    })).catch(() => {});
     const spo2 = spo2Records.length > 0
       ? Math.round(spo2Records[spo2Records.length - 1].percentage) : null;
 
