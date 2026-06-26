@@ -36,14 +36,14 @@ const STATUS = {
   danger: { label: '위험', fg: RED, bg: RED_BG },
 };
 
-// ─── 혈압 절대 밴드 상수 (시니어 기준 잠정값 — KB 임상검토 후 확정) ─────────
-// 수치 확정 전까지 보수적 값 사용. 최종값은 KB/임상 검토에서 결정.
-const BP_LOW_SYS        =  90;  // 수축기 저혈압 경계
-const BP_LOW_DIA        =  55;  // 이완기 저혈압 경계
-const BP_NORMAL_MAX_SYS = 135;  // 시니어 정상 상한 (일반 기준 120보다 완화)
-const BP_NORMAL_MAX_DIA =  85;  // 시니어 이완기 정상 상한
-const BP_HIGH_SYS       = 155;  // 높음 하한 (시니어 기준, 일반 140보다 완화)
-const BP_HIGH_DIA       = 100;  // 이완기 높음 하한
+// ─── 혈압 절대 밴드 상수 — KB BP-THR-001 (사용자 확정 2026-06-26, 높음 경계 150) ─────
+// 시니어 수축기 밴드: 낮음<100 / 안정 100~134 / 약간 높음 135~149 / 높음(관찰)≥150
+const BP_LOW_SYS        = 100;  // 수축기 저혈압 경계 (< 100 → 낮음 주의)
+const BP_LOW_DIA        =  60;  // 이완기 저혈압 경계 (< 60)
+const BP_NORMAL_MAX_SYS = 135;  // 안정 상한 (135 미만까지 정상)
+const BP_NORMAL_MAX_DIA =  85;  // 이완기 정상 상한
+const BP_HIGH_SYS       = 150;  // 높음(관찰) 하한 (≥ 150)
+const BP_HIGH_DIA       =  95;  // 이완기 높음 하한 (≥ 95)
 const BP_TREND_DELTA    =   5;  // 추세 판정 최소 차이 (mmHg) — 이 이상 변해야 방향 판정
 const BP_BASELINE_DAYS  =  14;  // 기준선 계산 기간 (오늘 제외, 최근 N일)
 
