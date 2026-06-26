@@ -264,7 +264,7 @@ export default function HealthScreen({ route, navigation }: any) {
   const [sleepHoursAuto, setSleepHoursAuto] = useState<number | null>(null);
   const [sleepStages, setSleepStages] = useState<import('../utils/healthNative').SleepStages | null>(null);
   const [spo2, setSpo2] = useState<number | null>(null);
-  const [hcBp, setHcBp] = useState<{ systolic: number; diastolic: number } | null>(null);
+  const [hcBp, setHcBp] = useState<{ systolic: number; diastolic: number; time?: string } | null>(null);
   const manualBpRef = useRef(false); // ref: closure 안에서도 항상 최신값
 
   // 요약 타일 → 카드 스크롤 이동용 Y 오프셋
@@ -1011,23 +1011,22 @@ export default function HealthScreen({ route, navigation }: any) {
           <Text style={s.groupHeaderTitle}>직접 재서 기록해요</Text>
         </View>
 
-        {/* 혈압 — 3-상태: 권한없음 / 권한있고오늘0 / 데이터있음 */}
+        {/* 혈압 */}
         {(() => {
           // HC 우선, 없으면 수동 폴백
           const manualBp = todayRecord?.blood_pressure_systolic
             ? { systolic: todayRecord.blood_pressure_systolic, diastolic: todayRecord.blood_pressure_diastolic }
             : null;
           const displayBp = hcBp ?? manualBp;
-          const isAuto = !!hcBp;
 
-          // Android 3-상태 안내 메시지
-          const bpHint = Platform.OS === 'android'
-            ? !healthConnected
-              ? '건강 앱 연결 후 자동으로 불러올 수 있어요'
-              : !hcBp
-              ? '오늘은 아직 기록이 없어요'
-              : null
-            : null;
+          // HC 측정시각 포맷 (HH:MM)
+          let bpTimeStr: string | null = null;
+          if (hcBp?.time) {
+            try {
+              const d = new Date(hcBp.time);
+              bpTimeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+            } catch {}
+          }
 
           return (
             <View style={s.metricCard}>
@@ -1036,11 +1035,11 @@ export default function HealthScreen({ route, navigation }: any) {
                   <Text style={s.metricIcon}>❤️</Text>
                 </View>
                 <View style={s.metricContent}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <View style={s.stepsLabelRow}>
                     <Text style={s.metricLabel}>혈압</Text>
-                    {isAuto && (
-                      <View style={{ backgroundColor: '#EAF0FA', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                        <Text style={{ fontSize: 11, color: '#3B5FA0' }}>앱 연동</Text>
+                    {bpTimeStr && (
+                      <View style={s.sourceChip}>
+                        <Text style={s.sourceChipText}>⏱ {bpTimeStr} 기록</Text>
                       </View>
                     )}
                   </View>
@@ -1060,15 +1059,12 @@ export default function HealthScreen({ route, navigation }: any) {
                       <Text style={s.lumiHint}>{lumiInterpretBp(displayBp.systolic, displayBp.diastolic)}</Text>
                     </>
                   ) : (
-                    <Text style={s.emptyValue}>측정 안 함</Text>
-                  )}
-                  {bpHint && (
-                    <Text style={{ fontSize: 12, color: INK_MUTE, marginTop: 4 }}>{bpHint}</Text>
+                    <Text style={s.emptyValue}>—</Text>
                   )}
                 </View>
               </View>
               <TouchableOpacity style={s.measureBtn} onPress={() => setModalType('bp')}>
-                <Text style={s.measureBtnText}>{displayBp ? '다시 측정하기' : '지금 측정하기'}</Text>
+                <Text style={s.measureBtnText}>직접 입력하기</Text>
               </TouchableOpacity>
             </View>
           );

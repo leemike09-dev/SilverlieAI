@@ -19,7 +19,7 @@ export interface HealthNativeData {
   spo2: number | null;
   hrv: number | null; // AI 분석용, 화면 미표시
   steps: number | null;
-  bloodPressure: { systolic: number; diastolic: number } | null;
+  bloodPressure: { systolic: number; diastolic: number; time?: string } | null;
 }
 
 const midnight = () => {
@@ -419,7 +419,7 @@ async function readAndroidData(): Promise<HealthNativeData> {
     const todayStr = midnight().toISOString().slice(0, 10);
     const bpTime: string = latestBp?.time ?? latestBp?.startTime ?? '';
     const bpIsToday = bpTime.slice(0, 10) === todayStr;
-    const bloodPressure = bpSys > 0 && bpDia > 0 && bpIsToday ? { systolic: bpSys, diastolic: bpDia } : null;
+    const bloodPressure = bpSys > 0 && bpDia > 0 && bpIsToday ? { systolic: bpSys, diastolic: bpDia, time: bpTime } : null;
 
     // 걸음수: 자정부터 지금까지 HC 기록
     // 갤럭시에서 Samsung Health(폰) + Galaxy Watch가 각각 HC에 기록 → 단순 합산 시 2배
