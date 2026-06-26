@@ -132,6 +132,8 @@ export default function SeniorHomeScreen({ route, navigation }: ScreenProps) {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [nowTime, setNowTime] = useState(new Date());
 
+  const [unreadCount, setUnreadCount] = useState(0);
+
   const ttsDoneRef = useRef(false);
   const locationRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -144,11 +146,20 @@ export default function SeniorHomeScreen({ route, navigation }: ScreenProps) {
     return () => clearInterval(id);
   }, []);
 
-  // 화면 포커스될 때마다 맨 위로
+  // 화면 포커스될 때마다 맨 위로 + 안 읽은 알림 카운트 갱신
   useFocusEffect(useCallback(() => {
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-    // HealthScreen에서 BP 수정 후 복귀 시 최신값 반영
-    if (userId && userId !== 'guest') loadTodayData(userId);
+    if (userId && userId !== 'guest') {
+      loadTodayData(userId);
+      fetch(`${API}/notifications/${userId}`)
+        .then(r => r.ok ? r.json() : [])
+        .then((data: any) => {
+          if (Array.isArray(data)) {
+            setUnreadCount(data.filter((n: any) => !n.is_read).length);
+          }
+        })
+        .catch(() => {});
+    }
   }, [userId]));
   const todayKey = useMemo(() => localDate(), []);
 
@@ -398,6 +409,11 @@ const MOOD_REACTIONS = [
               onPress={() => navigation.navigate('Notifications', { userId, name })}
               activeOpacity={0.7}>
               <Ionicons name="notifications-outline" size={26} color={INK} />
+              {unreadCount > 0 && (
+                <View style={s.bellBadge}>
+                  <Text style={s.bellBadgeText}>{unreadCount > 9 ? '9+' : String(unreadCount)}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -680,6 +696,17 @@ const s = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: 'rgba(0,0,0,0.06)',
     alignItems: 'center', justifyContent: 'center',
+  },
+  bellBadge: {
+    position: 'absolute', top: 5, right: 5,
+    minWidth: 16, height: 16, borderRadius: 8,
+    backgroundColor: RED,
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5, borderColor: '#fff',
+  },
+  bellBadgeText: {
+    fontSize: 9, fontWeight: '900', color: '#fff',
   },
   wordmark: {
     fontSize: 28,
