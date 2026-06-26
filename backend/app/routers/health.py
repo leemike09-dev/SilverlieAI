@@ -28,7 +28,7 @@ class HealthRecord(BaseModel):
 class HealthData(BaseModel):
     user_id: str
     user_name: str
-    age: int
+    age: Optional[int] = None
     steps: int
     blood_pressure_systolic: int
     blood_pressure_diastolic: int
@@ -53,7 +53,7 @@ class WeeklyDataItem(BaseModel):
 class ReportRequest(BaseModel):
     user_id: str
     user_name: str
-    age: int
+    age: Optional[int] = None
     weekly_data: List[WeeklyDataItem]
 
 
@@ -121,9 +121,10 @@ def analyze_health(data: HealthData):
 
     client = anthropic.Anthropic(api_key=api_key)
 
+    age_str = f", 나이: {data.age}세" if data.age else ""
     prompt = f"""
 시니어 건강 데이터를 분석해주세요:
-- 이름: {data.user_name}, 나이: {data.age}세
+- 이름: {data.user_name}{age_str}
 - 걸음수: {data.steps}보
 - 혈압: {data.blood_pressure_systolic}/{data.blood_pressure_diastolic} mmHg
 - 수면: {data.sleep_hours}시간
@@ -159,7 +160,7 @@ JSON 형식: {{"summary": "...", "insights": ["...", "...", "..."]}}
 class RecommendRequest(BaseModel):
     user_id: str
     user_name: str
-    age: int
+    age: Optional[int] = None
     interests: Optional[List[str]] = []
     steps: Optional[int] = None
     blood_pressure_systolic: Optional[int] = None
@@ -176,8 +177,9 @@ def get_recommendations(request: RecommendRequest):
 
     client = anthropic.Anthropic(api_key=api_key)
 
+    age_label = f"({request.age}세)" if request.age else ""
     prompt = f"""
-{request.user_name}({request.age}세) 시니어의 건강 데이터:
+{request.user_name}{age_label} 시니어의 건강 데이터:
 - 관심사: {', '.join(request.interests) if request.interests else '없음'}
 - 걸음수: {request.steps or 'N/A'}보
 - 혈압: {request.blood_pressure_systolic or 'N/A'}/{request.blood_pressure_diastolic or 'N/A'} mmHg
@@ -268,8 +270,9 @@ def weekly_report(request: ReportRequest):
         for item in request.weekly_data
     ])
 
+    age_label = f"({request.age}세)" if request.age else ""
     prompt = f"""
-{request.user_name}({request.age}세)의 주간 건강 데이터:
+{request.user_name}{age_label}의 주간 건강 데이터:
 {weekly_summary}
 
 주간 리포트를 작성해주세요. JSON 형식:

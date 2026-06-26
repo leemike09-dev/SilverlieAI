@@ -164,7 +164,7 @@ function WeeklyReportScreenInner({ route, navigation }: any) {
       const userName = (await AsyncStorage.getItem('userName')) || name || '회원';
       const hpRaw    = await AsyncStorage.getItem('health_profile');
       const hp       = hpRaw ? JSON.parse(hpRaw) : {};
-      const userAge  = hp.age ? Number(hp.age) : 70;
+      const userAge: number | null = hp.age ? Number(hp.age) : null;
       const weeklyData = recs.map(r => ({
         date: r.date,
         steps:                    r.steps                    || null,
