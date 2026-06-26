@@ -312,39 +312,69 @@ async function readAndroidData(): Promise<HealthNativeData> {
     const sleepResult = await HC.readRecords('SleepSession', range(sleepISO)).catch(() => ({ records: [] }));
     const sleepRecords: any[] = (sleepResult as any).records;
 
-    // ── 수면 단계 로그 (단계 데이터 수신 여부 확인용) ──────────────────────
-    const rawStagesSample = sleepRecords.slice(0, 2).map((r: any) => ({
-      start: r.startTime, end: r.endTime,
-      stagesCount: (r.stages || []).length,
-      stagesRaw: (r.stages || []).slice(0, 6),
-    }));
-    console.log('[HC/sleep] records:', sleepRecords.length, 'sample:', JSON.stringify(rawStagesSample));
+    // ── stage 값 정규화 헬퍼 (숫자코드 / 접두사 문자열 / 단순 문자열 전부 처리) ──
+    const STAGE_NUM_MAP: Record<number, string> = {
+      1: 'AWAKE', 2: 'SLEEPING', 3: 'OUT_OF_BED', 4: 'LIGHT', 5: 'DEEP', 6: 'REM',
+    };
+    const toStageStr = (raw: any): string => {
+      if (raw == null) return 'UNKNOWN';
+      if (typeof raw === 'number') return STAGE_NUM_MAP[raw] ?? 'UNKNOWN';
+      // 'SLEEP_STAGE_TYPE_DEEP' → 'DEEP', 'deep' → 'DEEP', 'DEEP' → 'DEEP'
+      return String(raw).toUpperCase().replace(/^SLEEP_STAGE_TYPE_/, '');
+    };
+
+    // ── 수면 원본 덤프 ─────────────────────────────────────────────────────
+    const firstStages = sleepRecords[0]?.stages ?? [];
+    const sleepFullDump = sleepRecords.slice(0, 3).map((r: any) => {
+      const origin = r.metadata?.dataOrigin ?? r.dataOrigin ?? 'unknown';
+      return {
+        topKeys:    Object.keys(r),
+        dataOrigin: origin,
+        startTime:  r.startTime,
+        endTime:    r.endTime,
+        stagesCount: (r.stages || []).length,
+        stage0raw:  r.stages?.[0] ?? null,           // 첫 stage 아이템 원본
+        stage0norm: toStageStr(r.stages?.[0]?.stage  // 정규화 결과
+          ?? r.stages?.[0]?.type
+          ?? r.stages?.[0]?.sleepStageType),
+        stagesVariants: {
+          'r.stages':          r.stages?.length ?? null,
+          'r.sleepStages':     r.sleepStages?.length ?? null,
+          'r.samples':         r.samples?.length ?? null,
+        },
+        rawJson: JSON.stringify(r).slice(0, 800),
+      };
+    });
+    console.log('[HC/sleep] recordCount:', sleepRecords.length,
+      'stages[0]:', JSON.stringify(firstStages[0]));
     await AsyncStorage.setItem('hc_sleep_stage_debug', JSON.stringify({
       ts: new Date().toISOString(),
       recordCount: sleepRecords.length,
-      sample: rawStagesSample,
+      dump: sleepFullDump,
     })).catch(() => {});
-    // ────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────
 
-    // 단계별 분(minute) 누적
+    // 단계별 분(minute) 누적 (숫자/접두사 문자열 모두 처리)
     const stageMins = { DEEP: 0, LIGHT: 0, REM: 0, SLEEPING: 0, AWAKE: 0 };
     let hasStageData = false;
 
     const sleepMs = sleepRecords.reduce((acc: number, r: any) => {
       const stages: any[] = r.stages || [];
-      const sleepStagesArr = stages.filter((s: any) =>
-        ['SLEEPING', 'LIGHT', 'DEEP', 'REM'].includes(s.stage)
-      );
+      const sleepStagesArr = stages.filter((s: any) => {
+        const st = toStageStr(s.stage ?? s.type ?? s.sleepStageType);
+        return ['SLEEPING', 'LIGHT', 'DEEP', 'REM'].includes(st);
+      });
       if (sleepStagesArr.length > 0) {
         hasStageData = true;
         stages.forEach((s: any) => {
+          const st = toStageStr(s.stage ?? s.type ?? s.sleepStageType);
           const ms = new Date(s.endTime).getTime() - new Date(s.startTime).getTime();
           const mins = ms / 60000;
-          if (s.stage === 'DEEP')     stageMins.DEEP    += mins;
-          else if (s.stage === 'LIGHT')  stageMins.LIGHT   += mins;
-          else if (s.stage === 'REM')    stageMins.REM     += mins;
-          else if (s.stage === 'SLEEPING') stageMins.SLEEPING += mins;
-          else if (s.stage === 'AWAKE')  stageMins.AWAKE   += mins;
+          if      (st === 'DEEP')     stageMins.DEEP     += mins;
+          else if (st === 'LIGHT')    stageMins.LIGHT    += mins;
+          else if (st === 'REM')      stageMins.REM      += mins;
+          else if (st === 'SLEEPING') stageMins.SLEEPING += mins;
+          else if (st === 'AWAKE')    stageMins.AWAKE    += mins;
         });
         return acc + sleepStagesArr.reduce((a: number, s: any) =>
           a + (new Date(s.endTime).getTime() - new Date(s.startTime).getTime()), 0);
@@ -352,14 +382,14 @@ async function readAndroidData(): Promise<HealthNativeData> {
       return acc + (new Date(r.endTime).getTime() - new Date(r.startTime).getTime());
     }, 0);
 
-    // SLEEPING은 미분류 수면(단계 없음)으로 LIGHT로 간주
+    // SLEEPING은 미분류 수면(단계 없음)으로 LIGHT에 병합
     const sleepStagesResult: import('./healthNative').SleepStages | null = hasStageData ? {
       deep:  Math.round(stageMins.DEEP),
       light: Math.round(stageMins.LIGHT + stageMins.SLEEPING),
       rem:   Math.round(stageMins.REM),
       awake: Math.round(stageMins.AWAKE),
     } : null;
-    console.log('[HC/sleep] hasStageData:', hasStageData, 'stages:', sleepStagesResult);
+    console.log('[HC/sleep] hasStageData:', hasStageData, 'result:', sleepStagesResult);
 
     const hrvResult = await HC.readRecords('HeartRateVariabilityRmssd', range(startISO)).catch(() => ({ records: [] }));
     const hrvRecords = (hrvResult as any).records;

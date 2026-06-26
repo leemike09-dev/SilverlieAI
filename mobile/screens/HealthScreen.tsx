@@ -512,7 +512,15 @@ export default function HealthScreen({ route, navigation }: any) {
     let sleepLines = '';
     if (sleepRaw) {
       const sd = JSON.parse(sleepRaw);
-      sleepLines = `\n\n[수면 단계]\n레코드 수: ${sd.recordCount}\nstagesCount: ${sd.sample?.[0]?.stagesCount ?? 0}`;
+      const d0 = sd.dump?.[0] ?? sd.sample?.[0];
+      sleepLines = [
+        '\n\n[수면 단계]',
+        `레코드 수: ${sd.recordCount}`,
+        `dataOrigin: ${d0?.dataOrigin ?? '?'}`,
+        `stagesCount: ${d0?.stagesCount ?? '?'}`,
+        `stage0raw: ${JSON.stringify(d0?.stage0raw ?? null).slice(0, 120)}`,
+        `stage0norm: ${d0?.stage0norm ?? '?'}`,
+      ].filter(Boolean).join('\n');
     }
     Alert.alert('Health Connect 진단', lines + bpLines + spo2Lines + sleepLines, [
       { text: '닫기' },
@@ -782,11 +790,12 @@ export default function HealthScreen({ route, navigation }: any) {
         {healthConnected ? (
           <>
             {/* 연결 상태 바 */}
-            <View style={s.connectedBar}>
+            <TouchableOpacity style={s.connectedBar} onPress={showDiagnostic} activeOpacity={0.75}>
               <Text style={s.connectedBarText}>
                 🟢 {Platform.OS === 'ios' ? '애플 건강' : '삼성 헬스'}과 연결됨 · 자동 기록 중
               </Text>
-            </View>
+              <Text style={{ fontSize: 11, color: GREEN_DK, marginTop: 2 }}>🔍 탭하면 진단 정보</Text>
+            </TouchableOpacity>
 
             {/* 심박수 카드 */}
             <View style={s.metricCard} onLayout={e => { cardYRef.current.hr = e.nativeEvent.layout.y; }}>
