@@ -346,13 +346,12 @@ export default function SeniorHomeScreen({ route, navigation }: ScreenProps) {
         fetchWeather();
       } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
 
-      // Load today's health
+      // Load today's health — 오늘 날짜 기록만 표시 (전날 기록 잔류 방지)
       const records = await AsyncStorage.getItem(`health_records.${uid}`);
       if (records) {
-        const recList = (JSON.parse(records) as HealthRecord[])
-          .filter(r => (r.blood_pressure_systolic ?? 0) > 0 || (r.blood_sugar ?? 0) > 0)
-          .sort((a, b) => b.date.localeCompare(a.date));
-        if (recList.length > 0) setHealthToday(recList[0]);
+        const todayRec = (JSON.parse(records) as HealthRecord[])
+          .find(r => r.date === todayKey && ((r.blood_pressure_systolic ?? 0) > 0 || (r.blood_sugar ?? 0) > 0));
+        setHealthToday(todayRec ?? null);
       }
     } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
   };
