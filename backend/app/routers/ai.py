@@ -71,6 +71,56 @@ CAT_KEYWORDS = {
 EMERGENCY_WORDS  = ['흉통','가슴통증','호흡곤란','숨막','마비','의식','쓰러','졸도','심정지']
 DOCTOR_KEYWORDS  = ['병원', '진료', '의사', '내원', '검사받']
 
+# ── 모델·프로바이더 상수 — 이 블록에만 모델명 하드코딩, 다른 곳 금지 ─────────
+PROVIDER_ANTHROPIC = "anthropic"
+PROVIDER_QWEN      = "qwen"              # 중국 로케일용, 별도 트랙
+
+MODEL_HAIKU        = "claude-haiku-4-5-20251001"
+MODEL_SONNET       = "claude-sonnet-4-6"
+MODEL_OPUS         = "claude-opus-4-6"   # detect_risk 'critical' fallback 전용
+
+QWEN_ENABLED       = False               # Qwen 연결 전까지 False 유지
+
+# Sonnet 라우팅 키워드 (건강·의료 뉘앙스·맥락 중요 질문)
+_SONNET_KW = [
+    '혈압', '혈당', '심박', '체중', '약', '복용', '처방', '병원', '진료', '의사',
+    '증상', '통증', '두통', '어지', '기침', '열', '당뇨', '고혈압', '콜레스테롤',
+    '수면', '불면', '관절', '허리', '소화', '변비', '설사', '치매', '기억',
+    '우울', '불안', '스트레스', '검사', '수치', '건강', '칼로리', '운동',
+]
+
+
+def selectModel(message: str, history: list, locale: str = "ko") -> dict:
+    """모델 동적 선택 → {"provider": str, "model": str, "reason": str}
+
+    주의:
+    - 응급 게이트(is_urgent_bypass)는 이 함수와 무관하게 먼저 작동한다.
+    - Opus는 selectModel 범위 밖 — detect_risk 'critical' fallback에서만 사용.
+    - session_facts 추출(Haiku 고정)도 이 함수 밖에서 직접 호출한다.
+    """
+    # 1) locale 분기 (Qwen 준비 완료 시 QWEN_ENABLED = True 로 활성화)
+    if locale == "zh":
+        if QWEN_ENABLED:
+            result = {"provider": PROVIDER_QWEN, "model": "qwen-plus", "reason": "locale:zh"}
+        else:
+            # Qwen 미연결 → Sonnet 폴백 (중국어 이해 양호)
+            result = {"provider": PROVIDER_ANTHROPIC, "model": MODEL_SONNET, "reason": "locale:zh→sonnet_fallback"}
+        print(f"[selectModel] {result}")
+        return result
+
+    # 2) 건강·의료 — 뉘앙스/맥락 중요 → Sonnet
+    combined = message + " ".join(m.get("content", "") for m in history[-4:])
+    if any(kw in combined for kw in _SONNET_KW):
+        result = {"provider": PROVIDER_ANTHROPIC, "model": MODEL_SONNET, "reason": "health_query"}
+        print(f"[selectModel] {result}")
+        return result
+
+    # 3) 일상·잡담 — 경량 → Haiku
+    result = {"provider": PROVIDER_ANTHROPIC, "model": MODEL_HAIKU, "reason": "casual"}
+    print(f"[selectModel] {result}")
+    return result
+
+
 # LLM 우회 즉시 응급 라우팅 — KB urgent entries의 keywords에서 단일 생성 (이원화 방지)
 def _build_urgent_bypass_words() -> list:
     kws = [
@@ -253,7 +303,7 @@ def extract_user_conditions_sync(
     existing_set = set(existing)
     try:
         resp = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model=MODEL_HAIKU,
             max_tokens=150,
             messages=[{"role": "user", "content": (
                 f"다음 문장에서 이 사람 \"본인\"의 만성질환·지속 건강 상태만 추출하세요.\n"
@@ -1111,7 +1161,7 @@ def _extract_and_save_facts_background(user_id: str, user_msg: str, api_key: str
             user_msg=user_msg,
         )
         resp = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model=MODEL_HAIKU,
             max_tokens=500,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -1244,31 +1294,7 @@ def _fmt_session_facts(facts: list) -> str:
     return "\n".join(lines)
 
 
-def choose_model(history_msgs: list, current_msg: str) -> str:
-    """3단계 모델 선택:
-    - Opus   : 응급/위험 키워드 포함 시
-    - Sonnet : 건강·의료 관련 질문
-    - Haiku  : 일상·안부·잡담 등 가벼운 대화
-    """
-    combined = current_msg + ' '.join(m.get('content', '') for m in history_msgs[-4:])
-
-    # 1단계: 응급 → Opus
-    opus_kw = EMERGENCY_WORDS + ['응급', '위험', '119', '즉시', '마비', '의식']
-    if any(kw in combined for kw in opus_kw):
-        return "claude-opus-4-6"
-
-    # 2단계: 건강/의료 → Sonnet
-    sonnet_kw = [
-        '혈압', '혈당', '심박', '체중', '약', '복용', '처방', '병원', '진료', '의사',
-        '증상', '통증', '두통', '어지', '기침', '열', '당뇨', '고혈압', '콜레스테롤',
-        '수면', '불면', '관절', '허리', '소화', '변비', '설사', '치매', '기억',
-        '우울', '불안', '스트레스', '검사', '수치', '건강', '칼로리', '운동',
-    ]
-    if any(kw in combined for kw in sonnet_kw):
-        return "claude-sonnet-4-6"
-
-    # 3단계: 일상/잡담 → Haiku
-    return "claude-haiku-4-5-20251001"
+# choose_model() 제거됨 — selectModel() 로 통합 (파일 상단 참조)
 
 
 class HistoryMessage(BaseModel):
@@ -1355,7 +1381,8 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
                                         session_facts=session_facts or None,
                                         confirmed_observations=confirmed_obs or None)
     history_msgs = [{"role": m.role, "content": m.content} for m in (request.history or [])[-10:]]
-    model        = choose_model(history_msgs, request.message)
+    _sel         = selectModel(request.message, history_msgs, locale=request.language or "ko")
+    model        = _sel["model"]
     ai_messages  = history_msgs + [{"role": "user", "content": request.message}]
 
     async def event_gen():
@@ -1515,15 +1542,16 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
                                           intent=request.intent, language=request.language,
                                           weather_str=request.client_weather)
     history_msgs  = [{"role": m.role, "content": m.content} for m in (request.history or [])[-10:]]
-    model         = choose_model(history_msgs, request.message)
+    _sel          = selectModel(request.message, history_msgs, locale=request.language or "ko")
+    model         = _sel["model"]
     messages      = history_msgs + [{"role": "user", "content": request.message}]
 
     try:
         client = anthropic.Anthropic(api_key=api_key)
         reply_raw = call_claude(client, model, system_prompt, messages)
         risk      = detect_risk(reply_raw)
-        if risk == 'critical' and model != "claude-opus-4-6":
-            reply_raw = call_claude(client, "claude-opus-4-6", system_prompt, messages)
+        if risk == 'critical' and model != MODEL_OPUS:
+            reply_raw = call_claude(client, MODEL_OPUS, system_prompt, messages)
             risk = detect_risk(reply_raw)
         import re as _re
         is_final_flag = bool(_re.search(r'\[FINAL\]', reply_raw, _re.IGNORECASE)) or request.force_summary
@@ -1601,7 +1629,7 @@ def generate_summary(user_id: str):
     api_key   = os.getenv("ANTHROPIC_API_KEY")
     client    = anthropic.Anthropic(api_key=api_key)
     summary_res = client.messages.create(
-        model="claude-haiku-4-5-20251001", max_tokens=400,
+        model=MODEL_HAIKU, max_tokens=400,
         messages=[{"role": "user", "content":
             "아래 건강 상담 대화를 가족이 볼 수 있도록 3줄 이내로 한국어로 요약하세요.\n"
             "핵심 증상/질문, AI 권고사항, 위험 여부를 포함하세요.\n\n" + conv_text}],
@@ -1730,7 +1758,7 @@ def proactive_greeting(user_id: str):
         )
 
         resp = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model=MODEL_HAIKU,
             max_tokens=200,
             messages=[{"role": "user", "content": prompt}],
         )
