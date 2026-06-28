@@ -682,6 +682,7 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
     }
 
     setLoading(true);
+    const t_send = Date.now();
     const newHistory: HistoryItem[] = [...history, { role: 'user', content: msg }];
 
     // 빈 AI 메시지 선점 (스트리밍 채움용)
@@ -745,22 +746,26 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
 
     try {
       let res = await fetchStream();
+      console.log(`[stream] fetch_done +${Date.now()-t_send}ms ok=${res.ok} has_body=${!!res.body}`);
       // 서버 콜드스타트 → 5초 대기 후 재시도
       if (!res.ok || !res.body) {
         await new Promise(r => setTimeout(r, 5000));
         res = await fetchStream();
+        console.log(`[stream] retry_done +${Date.now()-t_send}ms ok=${res.ok} has_body=${!!res.body}`);
       }
 
       if (!res.ok) throw new Error('server error');
 
       // React Native에서 res.body가 null이면 비스트리밍 폴백
       if (!res.body) {
+        console.log(`[stream] FALLBACK_nonstream +${Date.now()-t_send}ms`);
         await callNonStreaming();
       } else {
       const reader  = res.body.getReader();
       const decoder = new TextDecoder();
       let accumulated = '';
       let buf = '';
+      let _firstChunk = true;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -776,6 +781,10 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
           try {
             const data = JSON.parse(payload);
             if (data.token) {
+              if (_firstChunk) {
+                console.log(`[stream] FIRST_TOKEN +${Date.now()-t_send}ms`);
+                _firstChunk = false;
+              }
               accumulated += data.token;
               const partial = stripEmoji(accumulated);
               setMessages(prev => {
@@ -786,6 +795,7 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
               scrollRef.current?.scrollToEnd({ animated: false });
             }
             if (data.done || data.error) {
+              console.log(`[stream] DONE +${Date.now()-t_send}ms`);
               const riskLevel  = (data.risk_level ?? 'normal') as RiskLevel;
               const dMemo: string | undefined = data.doctor_memo ?? undefined;
               const dMemoNeeded: boolean = data.doctor_memo_needed ?? false;

@@ -1,4 +1,5 @@
 import asyncio
+import time
 import os, re, json, httpx
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import anthropic
@@ -1342,6 +1343,21 @@ class ChatRequest(BaseModel):
     intent:         str  = "health"   # health|emotional|cognitive|crisis|daily
 
 
+# ── 병렬 DB 조회 래퍼 (각자 독립 클라이언트 생성 — Supabase 비스레드세이프 우회) ────
+def _db_fetch_user(user_id: str) -> dict:
+    u = get_supabase().table("users").select("*").eq("id", user_id).execute()
+    return u.data[0] if u.data else {}
+
+def _db_load_health(user_id: str) -> dict:
+    return load_health_context(user_id, get_supabase())
+
+def _db_load_chat(user_id: str):
+    return load_chat_context(user_id, get_supabase())
+
+def _db_load_facts(user_id: str) -> list:
+    return _load_session_facts(user_id, get_supabase())
+
+
 @router.post("/chat/stream")
 async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
     """스트리밍 채팅 — SSE로 토큰 단위 전송, 마지막에 메타데이터 이벤트."""
@@ -1373,11 +1389,14 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
 
     if request.user_id and request.user_id not in ("demo-user", "guest"):
         try:
-            db = get_supabase()
-            u = db.table("users").select("*").eq("id", request.user_id).execute()
-            if u.data:
-                user_row = u.data[0]
-            server_ctx = load_health_context(request.user_id, db)
+            t_db = time.time()
+            user_row, server_ctx, chat_ctx, session_facts = await asyncio.gather(
+                asyncio.to_thread(_db_fetch_user, request.user_id),
+                asyncio.to_thread(_db_load_health, request.user_id),
+                asyncio.to_thread(_db_load_chat, request.user_id),
+                asyncio.to_thread(_db_load_facts, request.user_id),
+            )
+            print(f"[perf/DB] parallel={time.time()-t_db:.3f}s")
             for k, v in server_ctx.items():
                 if v:
                     # 클라이언트가 이미 보낸 건강기록은 덮어쓰지 않음 (클라이언트 우선)
@@ -1386,8 +1405,6 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
                     health_ctx[k] = v
             if user_row.get("health_profile") and not health_ctx.get("profile"):
                 health_ctx["profile"] = user_row["health_profile"]
-            chat_ctx = load_chat_context(request.user_id, db)
-            session_facts = _load_session_facts(request.user_id, db)
             # Phase 2: 확인된 관찰 (profile.confirmedObservations 에서 읽음)
             _p = health_ctx.get('profile') or {}
             confirmed_obs = _p.get('confirmedObservations') or []
@@ -1430,23 +1447,28 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
 
         full_text = ""
         try:
-            client_ai = anthropic.Anthropic(api_key=api_key)
+            client_ai = anthropic.AsyncAnthropic(api_key=api_key)
             _extra = (
                 {"anthropic-beta": "prompt-caching-2024-07-31"}
                 if isinstance(system_prompt, list) else {}
             )
-            with client_ai.messages.stream(
+            t_api = time.time()
+            _first_tok = True
+            async with client_ai.messages.stream(
                 model=model, max_tokens=1200,
                 system=system_prompt, messages=ai_messages,
                 extra_headers=_extra,
             ) as stream:
-                for text in stream.text_stream:
+                async for text in stream.text_stream:
+                    if _first_tok:
+                        print(f"[perf/TTFT] {time.time()-t_api:.3f}s model={model}")
+                        _first_tok = False
                     full_text += text
                     yield f"data: {json.dumps({'token': text}, ensure_ascii=False)}\n\n"
-                _final = stream.get_final_message()
+                _final = await stream.get_final_message()
                 _u = getattr(_final, 'usage', None)
                 if _u:
-                    print(f"[cache/stream] read={getattr(_u,'cache_read_input_tokens',0)} create={getattr(_u,'cache_creation_input_tokens',0)} in={getattr(_u,'input_tokens',0)} model={model}")
+                    print(f"[cache/stream] read={getattr(_u,'cache_read_input_tokens',0)} create={getattr(_u,'cache_creation_input_tokens',0)} in={getattr(_u,'input_tokens',0)} out={getattr(_u,'output_tokens',0)} model={model}")
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e), 'done': True, 'risk_level': 'normal', 'doctor_memo_needed': False, 'is_final': False})}\n\n"
             return
@@ -1493,9 +1515,9 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
 
         # Phase 2: 승격 후보 조회 (background task가 이전 턴 관찰을 이미 저장한 경우에 반환)
         promotion_candidates: list = []
-        if request.user_id and request.user_id not in ("demo-user", "guest") and db:
+        if request.user_id and request.user_id not in ("demo-user", "guest"):
             try:
-                promotion_candidates = _get_promotion_candidates(request.user_id, db)
+                promotion_candidates = _get_promotion_candidates(request.user_id, get_supabase())
             except Exception:
                 pass
 
