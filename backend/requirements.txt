@@ -9,4 +9,4 @@ feedparser==6.0.12
 requests==2.32.3
 psycopg2-binary==2.9.10
 httpx==0.28.1
-fastembed==0.4.2
+# fastembed — 서버 시작 시 모델 다운로드가 프록시 타임아웃 초과 (별도 preload 작업 후 재추가)
