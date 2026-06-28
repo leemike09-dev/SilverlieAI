@@ -407,6 +407,9 @@ function WeeklyReportScreenInner({ route, navigation }: any) {
                       <Text style={styles.recTxt}>🎯 {aiReport.recommendation}</Text>
                     </View>
                   )}
+                  <Text style={styles.reportDisclaimer}>
+                    {aiReport.disclaimer ?? '이 내용은 참고용이며, 정확한 진단은 의사 선생님과 상담하세요.'}
+                  </Text>
                 </>
               ) : (
                 <Text style={{ fontSize: 18, color: '#90A4AE', paddingVertical: 8 }}>
@@ -534,6 +537,7 @@ const styles = StyleSheet.create({
   aiBullet:   { fontSize: 17, color: '#37474F', lineHeight: 26, marginLeft: 4 },
   recBox:     { backgroundColor: '#EBF3FB', borderRadius: 12, padding: 14, marginTop: 8 },
   recTxt:     { fontSize: 17, color: '#1A4A8A', fontWeight: '600', lineHeight: 26 },
+  reportDisclaimer: { fontSize: 13, color: '#9BA5B4', textAlign: 'center', marginTop: 12 },
 
   dayRow:     { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
   dayRowBorder: { borderTopWidth: 1, borderTopColor: BORDER },

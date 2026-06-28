@@ -1585,7 +1585,7 @@ const s = StyleSheet.create({
   evalBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 99 },
   evalBadgeText: { fontSize: 13, fontWeight: '800' },
   evalSummary: { fontSize: 18, fontWeight: '600', color: INK_SOFT, lineHeight: 28, marginBottom: 12 },
-  evalDisclaimer: { fontSize: 12, color: INK_MUTE, lineHeight: 18 },
+  evalDisclaimer: { fontSize: 13, color: INK_MUTE, lineHeight: 20, textAlign: 'center', marginTop: 4 },
 
   connectedBar: {
     marginHorizontal: 18, marginBottom: 10, paddingVertical: 10, paddingHorizontal: 14,
