@@ -268,13 +268,15 @@ function WeeklyReportScreenInner({ route, navigation }: any) {
                   const h = day.score > 0 ? Math.round((day.score / maxScore) * BAR_H) : 4;
                   return (
                     <View key={i} style={styles.barWrap}>
-                      {day.score > 0
-                        ? <Text style={styles.barVal}>{day.score}</Text>
-                        : <Text style={[styles.barVal, { color: '#B0BEC5' }]}>-</Text>}
-                      <View style={[
-                        styles.bar,
-                        { height: h, backgroundColor: day.score > 0 ? BAR_COLORS[i] : '#DDE8F4' }
-                      ]} />
+                      <Text style={[styles.barVal, !day.score && { color: '#B0BEC5' }]}>
+                        {day.score > 0 ? day.score : '-'}
+                      </Text>
+                      <View style={styles.barArea}>
+                        <View style={[
+                          styles.bar,
+                          { height: h, backgroundColor: day.score > 0 ? BAR_COLORS[i] : '#DDE8F4' }
+                        ]} />
+                      </View>
                       <Text style={styles.barLbl}>{day.dayKo}</Text>
                       <Text style={styles.barDate}>{day.label}</Text>
                     </View>
@@ -503,11 +505,12 @@ const styles = StyleSheet.create({
   chartBox:   { backgroundColor: CARD, padding: 18, margin: 14, borderRadius: 18,
                 borderWidth: 1, borderColor: BORDER },
   chartLabel: { fontSize: 14, color: '#7A90A8', fontWeight: '700', letterSpacing: 1, marginBottom: 14 },
-  barsRow:    { flexDirection: 'row', alignItems: 'flex-end', gap: 4, height: BAR_H + 56 },
-  barWrap:    { flex: 1, alignItems: 'center', gap: 3, justifyContent: 'flex-end' },
+  barsRow:    { flexDirection: 'row', alignItems: 'stretch', gap: 4, height: BAR_H + 80 },
+  barWrap:    { flex: 1, alignItems: 'center' },
+  barArea:    { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'flex-end', marginVertical: 2 },
   bar:        { width: '100%', borderRadius: 4 },
-  barVal:     { fontSize: 14, fontWeight: '700', color: ACCENT },
-  barLbl:     { fontSize: 14, color: '#7A90A8', fontWeight: '600' },
+  barVal:     { fontSize: 13, fontWeight: '700', color: ACCENT, lineHeight: 18 },
+  barLbl:     { fontSize: 13, color: '#7A90A8', fontWeight: '600', marginTop: 3 },
   barDate:    { fontSize: 11, color: '#B0BEC5' },
 
   card:       { backgroundColor: CARD, padding: 20, marginHorizontal: 14, borderRadius: 18,
