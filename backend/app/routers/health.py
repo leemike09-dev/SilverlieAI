@@ -56,6 +56,8 @@ class WeeklyDataItem(BaseModel):
     blood_pressure_diastolic: Optional[int] = None
     sleep_hours: Optional[float] = None
     weight_kg: Optional[float] = None
+    blood_sugar: Optional[float] = None
+    heart_rate: Optional[int] = None
 
 
 class ReportRequest(BaseModel):
