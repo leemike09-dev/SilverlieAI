@@ -983,19 +983,15 @@ def build_doctor_memo(user: dict, health_ctx: dict, current_msg: str) -> str:
 
 
 def call_claude(client: anthropic.Anthropic, model: str, system, messages: list) -> str:
-    """Claude 호출 — prompt caching 지원 (system이 List[dict]이면 beta + cache_control)."""
-    if isinstance(system, list):
-        resp = client.beta.messages.create(
-            model=model, max_tokens=1500, system=system, messages=messages,
-            betas=["prompt-caching-2024-07-31"],
-        )
-        _u = getattr(resp, 'usage', None)
-        if _u:
-            print(f"[cache/chat] read={getattr(_u,'cache_read_input_tokens',0)} create={getattr(_u,'cache_creation_input_tokens',0)} model={model}")
-    else:
-        resp = client.messages.create(
-            model=model, max_tokens=1500, system=system, messages=messages,
-        )
+    """Claude 호출 — prompt caching 지원 (system이 List[dict]이면 cache_control 헤더 추가)."""
+    _extra = {"anthropic-beta": "prompt-caching-2024-07-31"} if isinstance(system, list) else {}
+    resp = client.messages.create(
+        model=model, max_tokens=1500, system=system, messages=messages,
+        extra_headers=_extra,
+    )
+    _u = getattr(resp, 'usage', None)
+    if _u and isinstance(system, list):
+        print(f"[cache/chat] read={getattr(_u,'cache_read_input_tokens',0)} create={getattr(_u,'cache_creation_input_tokens',0)} model={model}")
     for block in resp.content:
         if hasattr(block, 'text') and block.text:
             return block.text
@@ -1372,6 +1368,7 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
 
     chat_ctx = None
     session_facts: list = []
+    confirmed_obs: list = []
     db = None
 
     if request.user_id and request.user_id not in ("demo-user", "guest"):
@@ -1393,7 +1390,7 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
             session_facts = _load_session_facts(request.user_id, db)
             # Phase 2: 확인된 관찰 (profile.confirmedObservations 에서 읽음)
             _p = health_ctx.get('profile') or {}
-            confirmed_obs: list = _p.get('confirmedObservations') or []
+            confirmed_obs = _p.get('confirmedObservations') or []
         except Exception as ex:
             print(f"[stream/user_load] {ex}")
 
@@ -1434,18 +1431,15 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
         full_text = ""
         try:
             client_ai = anthropic.Anthropic(api_key=api_key)
-            _stream_fn = (
-                client_ai.beta.messages.stream
-                if isinstance(system_prompt, list)
-                else client_ai.messages.stream
+            _extra = (
+                {"anthropic-beta": "prompt-caching-2024-07-31"}
+                if isinstance(system_prompt, list) else {}
             )
-            _stream_kwargs = dict(
+            with client_ai.messages.stream(
                 model=model, max_tokens=1200,
                 system=system_prompt, messages=ai_messages,
-            )
-            if isinstance(system_prompt, list):
-                _stream_kwargs["betas"] = ["prompt-caching-2024-07-31"]
-            with _stream_fn(**_stream_kwargs) as stream:
+                extra_headers=_extra,
+            ) as stream:
                 for text in stream.text_stream:
                     full_text += text
                     yield f"data: {json.dumps({'token': text}, ensure_ascii=False)}\n\n"
