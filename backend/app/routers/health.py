@@ -5,10 +5,18 @@ from datetime import date
 import os
 import anthropic
 from dotenv import load_dotenv
+from ..constants import DISCLAIMER
 
 load_dotenv()
 
 router = APIRouter()
+
+
+def _append_disclaimer(text: str) -> str:
+    """면책 상수가 없을 때만 끝에 첨부 (중복 방지)."""
+    if DISCLAIMER in text:
+        return text
+    return text + "\n" + DISCLAIMER
 
 
 class HealthRecord(BaseModel):
@@ -154,6 +162,7 @@ JSON 형식: {{"summary": "...", "insights": ["...", "...", "..."]}}
     except Exception:
         result = {"summary": response.content[0].text, "insights": []}
 
+    result["disclaimer"] = DISCLAIMER
     return {"data": result}
 
 
@@ -300,6 +309,7 @@ def weekly_report(request: ReportRequest):
     except Exception:
         result = {"health_score": 70, "summary": response.content[0].text, "achievements": [], "improvements": [], "recommendation": ""}
 
+    result["disclaimer"] = DISCLAIMER
     return {"data": result}
 
 

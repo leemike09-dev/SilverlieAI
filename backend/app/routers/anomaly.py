@@ -4,9 +4,18 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import Optional
 from dotenv import load_dotenv
+from ..constants import DISCLAIMER
 
 load_dotenv()
 router = APIRouter()
+
+
+def _with_disclaimer(d: dict) -> dict:
+    """message 필드 끝에 면책 첨부 (중복 방지)."""
+    msg = d.get("message", "")
+    if DISCLAIMER not in msg:
+        d["message"] = msg + "\n" + DISCLAIMER
+    return d
 
 class AnomalyRequest(BaseModel):
     senior_name: str
@@ -57,7 +66,7 @@ def analyze_anomaly(req: AnomalyRequest):
         return rule_based_analysis(req)
 
     level = "danger" if "🚨" in text else "warn" if "⚠️" in text else "good"
-    return {"level": level, "message": text}
+    return _with_disclaimer({"level": level, "message": text})
 
 
 def rule_based_analysis(req: AnomalyRequest):
@@ -79,4 +88,4 @@ def rule_based_analysis(req: AnomalyRequest):
         msg = f"⚠️ 주의\n{', '.join(issues)}\n{req.senior_name}님께 연락해 확인해보세요."
         level = "warn"
 
-    return {"level": level, "message": msg}
+    return _with_disclaimer({"level": level, "message": msg})

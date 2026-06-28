@@ -9,6 +9,7 @@ from typing import Optional, List
 from datetime import date, datetime, timedelta, timezone
 from dotenv import load_dotenv
 from ..database import get_supabase
+from ..constants import DISCLAIMER
 
 load_dotenv()
 router = APIRouter()
@@ -1640,7 +1641,7 @@ def generate_summary(user_id: str):
         db.table("ai_chat_summaries").update({"summary": summary_text, "has_risk": has_risk}).eq("id", existing.data[0]["id"]).execute()
     else:
         db.table("ai_chat_summaries").insert({"user_id": user_id, "summary": summary_text, "date": today_str, "has_risk": has_risk}).execute()
-    return {"summary": summary_text, "date": today_str, "has_risk": has_risk}
+    return {"summary": summary_text, "date": today_str, "has_risk": has_risk, "disclaimer": DISCLAIMER}
 
 
 @router.post("/daily-summary")
@@ -1742,6 +1743,12 @@ def proactive_greeting(user_id: str):
         api_key = os.getenv("ANTHROPIC_API_KEY")
         client  = anthropic.Anthropic(api_key=api_key)
 
+        has_health_context = bool(context_notes)
+        disclaimer_rule = (
+            f"\n8. 건강 수치나 복약을 언급했다면 마지막 문장 뒤에 줄바꿈 후 반드시 이 문장을 그대로 덧붙이세요: "
+            f"'{DISCLAIMER}'"
+            if has_health_context else ""
+        )
         prompt = (
             f"당신은 루미입니다. {name_str}이 지금 AI 상담 화면을 열었습니다.\n"
             f"현재 시간대: {time_label}\n"
@@ -1754,7 +1761,7 @@ def proactive_greeting(user_id: str):
             "4. 특이사항 없으면 시간대별 따뜻한 인사\n"
             "5. 마지막은 대화를 유도하는 부드러운 질문으로 마무리\n"
             "6. 이모지 사용 금지, 마크다운 사용 금지\n"
-            "7. 시니어에게 편안한 존댓말"
+            f"7. 시니어에게 편안한 존댓말{disclaimer_rule}"
         )
 
         resp = client.messages.create(

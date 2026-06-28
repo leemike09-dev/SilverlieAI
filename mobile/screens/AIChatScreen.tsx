@@ -1370,6 +1370,7 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
 
         {/* ── 입력창 ── */}
         <View style={s.inputWrap}>
+          <Text style={s.chatDisclaimer}>이 내용은 참고용이며, 정확한 진단은 의사 선생님께 여쭤보세요.</Text>
           <View style={s.inputRow}>
             <TextInput
               style={s.inputBox}
@@ -1585,8 +1586,9 @@ const s = StyleSheet.create({
   exampleText:  { fontSize: 20, fontWeight: '600', color: '#3D4B62', flex: 1 },
 
   // 입력
+  chatDisclaimer: { fontSize: 13, color: '#9BA5B4', textAlign: 'center', marginBottom: 6 },
   inputWrap: { backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#E1BEE7',
-    paddingHorizontal: 12, paddingVertical: 10 },
+    paddingHorizontal: 12, paddingTop: 8, paddingBottom: 10 },
   inputRow:  { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   inputBox: { flex: 1, backgroundColor: '#FBF8FF', borderRadius: 22, borderWidth: 1.5,
     borderColor: '#E1BEE7', paddingHorizontal: 16, paddingVertical: 10,
