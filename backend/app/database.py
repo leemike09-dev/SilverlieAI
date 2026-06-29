@@ -5,8 +5,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 SUPABASE_URL = os.getenv('SUPABASE_URL')
-# service_role 키 우선 (RLS 우회) — 없으면 anon 키로 폴백
-SUPABASE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY') or os.getenv('SUPABASE_ANON_KEY')
+# service_role 키 우선 (RLS 우회) — SUPABASE_SECRET_KEY 도 동일 역할로 허용
+SUPABASE_KEY = (
+    os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+    or os.getenv('SUPABASE_SECRET_KEY')
+    or os.getenv('SUPABASE_ANON_KEY')
+)
 
 
 def get_supabase() -> Client:

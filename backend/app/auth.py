@@ -11,11 +11,14 @@ def create_session(user_id: str) -> str:
     token = secrets.token_urlsafe(32)
     expires_at = (datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS)).isoformat()
     db = get_supabase()
-    db.table("sessions").insert({
+    res = db.table("sessions").insert({
         "user_id": user_id,
         "token": token,
         "expires_at": expires_at,
     }).execute()
+    if not res.data:
+        # 저장 실패 시 서버 오류 — 토큰 없이 내려보내면 안 됨
+        raise HTTPException(status_code=500, detail="세션 저장 실패. 잠시 후 다시 시도해주세요.")
     return token
 
 
