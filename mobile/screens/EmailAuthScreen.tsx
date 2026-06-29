@@ -51,6 +51,7 @@ export default function EmailAuthScreen({ navigation }: any) {
 
       await AsyncStorage.setItem('userId', data.id);
       await AsyncStorage.setItem('userName', data.name);
+      if (data.session_token) await AsyncStorage.setItem('session_token', data.session_token);
 
       if (mode === 'login') {
         if (saveId) await AsyncStorage.setItem(SAVED_EMAIL_KEY, email);

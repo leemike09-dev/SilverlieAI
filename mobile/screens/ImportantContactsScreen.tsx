@@ -4,6 +4,7 @@ import {
   ScrollView, Alert, Linking, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiFetch } from '../utils/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const API_URL = 'https://silverlieai.onrender.com';
@@ -46,7 +47,7 @@ export default function ImportantContactsScreen({ navigation, route }: any) {
   useEffect(() => {
     if (!userId) return;
     setLoading(true);
-    fetch(`${API_URL}/users/${userId}`)
+    apiFetch(`/users/${userId}`)
       .then(r => r.json())
       .then(d => { if (d.important_contacts) setContacts(d.important_contacts); })
       .catch(() => {})
@@ -57,9 +58,8 @@ export default function ImportantContactsScreen({ navigation, route }: any) {
     if (!userId) return;
     setSaving(true);
     try {
-      await fetch(`${API_URL}/users/${userId}`, {
+      await apiFetch(`/users/${userId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ important_contacts: updated }),
       });
     } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } } finally { setSaving(false); }

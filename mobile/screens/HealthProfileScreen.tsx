@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiFetch } from '../utils/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const BLUE       = '#3B82F6';
@@ -246,9 +247,8 @@ export default function HealthProfileScreen({ navigation, route }: any) {
       };
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(profileToSave));
       if (userId) {
-        fetch(`${API_URL}/users/${userId}/health-profile`, {
+        apiFetch(`/users/${userId}/health-profile`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ profile: profileToSave }),
         }).catch(() => {});
       }
@@ -273,9 +273,8 @@ export default function HealthProfileScreen({ navigation, route }: any) {
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(p));
       }
       if (userId) {
-        fetch(`${API_URL}/ai/promote`, {
+        apiFetch(`/ai/promote`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: userId, observation_id: obsId, action: 'reject' }),
         }).catch(() => {});
       }

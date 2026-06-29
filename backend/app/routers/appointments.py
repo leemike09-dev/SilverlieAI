@@ -1,9 +1,14 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, List
 from app.database import get_supabase
+from app.auth import verify_token
 
 router = APIRouter()
+
+def _chk(authed_uid: str, user_id: str):
+    if authed_uid != user_id:
+        raise HTTPException(status_code=403, detail="본인 데이터만 조회할 수 있습니다.")
 
 class AppointmentIn(BaseModel):
     id: str
@@ -25,14 +30,16 @@ class SyncRequest(BaseModel):
     appointments: List[AppointmentIn]
 
 @router.get("/{user_id}")
-def get_appointments(user_id: str):
+def get_appointments(user_id: str, authed_uid: str = Depends(verify_token)):
+    _chk(authed_uid, user_id)
     db = get_supabase()
     res = db.table("appointments").select("*").eq("user_id", user_id).order("date").execute()
     return res.data or []
 
 @router.post("/sync/{user_id}")
-def sync_appointments(user_id: str, req: SyncRequest):
+def sync_appointments(user_id: str, req: SyncRequest, authed_uid: str = Depends(verify_token)):
     """로컬 전체 목록을 서버에 덮어씀 (upsert)."""
+    _chk(authed_uid, user_id)
     db = get_supabase()
     if not req.appointments:
         return {"ok": True, "count": 0}
@@ -51,7 +58,8 @@ def sync_appointments(user_id: str, req: SyncRequest):
     return {"ok": True, "count": len(rows)}
 
 @router.delete("/{user_id}/{appointment_id}")
-def delete_appointment(user_id: str, appointment_id: str):
+def delete_appointment(user_id: str, appointment_id: str, authed_uid: str = Depends(verify_token)):
+    _chk(authed_uid, user_id)
     db = get_supabase()
     db.table("appointments").delete().eq("user_id", user_id).eq("id", appointment_id).execute()
     return {"ok": True}

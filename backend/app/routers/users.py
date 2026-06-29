@@ -2,10 +2,11 @@ import os
 import base64
 import json
 import requests as http_requests
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 from app.database import get_supabase
+from app.auth import create_session, verify_token
 import bcrypt
 
 router = APIRouter()
@@ -46,7 +47,8 @@ def register(req: RegisterRequest):
     if not result.data:
         raise HTTPException(status_code=400, detail="회원가입 실패")
     user = result.data[0]
-    return {"id": user["id"], "name": user["name"], "email": user["email"]}
+    token = create_session(user["id"])
+    return {"id": user["id"], "name": user["name"], "email": user["email"], "session_token": token}
 
 
 @router.post("/login")
@@ -60,7 +62,8 @@ def login(req: LoginRequest):
         raise HTTPException(status_code=401, detail="비밀번호가 설정되지 않은 계정입니다.")
     if not bcrypt.checkpw(req.password.encode(), user["password_hash"].encode()):
         raise HTTPException(status_code=401, detail="이메일 또는 비밀번호가 틀렸습니다.")
-    return {"id": user["id"], "name": user["name"], "email": user["email"]}
+    token = create_session(user["id"])
+    return {"id": user["id"], "name": user["name"], "email": user["email"], "session_token": token}
 
 
 @router.post("/")
@@ -101,7 +104,9 @@ class UpdateUserRequest(BaseModel):
 
 
 @router.put("/{user_id}")
-def update_user(user_id: str, req: UpdateUserRequest):
+def update_user(user_id: str, req: UpdateUserRequest, authed_uid: str = Depends(verify_token)):
+    if authed_uid != user_id:
+        raise HTTPException(status_code=403, detail="본인 데이터만 수정할 수 있습니다.")
     db = get_supabase()
     update_data = {k: v for k, v in req.model_dump().items() if v is not None}
     if not update_data:
@@ -113,7 +118,9 @@ def update_user(user_id: str, req: UpdateUserRequest):
 
 
 @router.get("/{user_id}")
-def get_user(user_id: str):
+def get_user(user_id: str, authed_uid: str = Depends(verify_token)):
+    if authed_uid != user_id:
+        raise HTTPException(status_code=403, detail="본인 데이터만 조회할 수 있습니다.")
     db = get_supabase()
     result = db.table("users").select("*").eq("id", user_id).execute()
     if not result.data:
@@ -144,8 +151,10 @@ class HealthProfileRequest(BaseModel):
 
 
 @router.put("/{user_id}/health-profile")
-def save_health_profile(user_id: str, req: HealthProfileRequest):
+def save_health_profile(user_id: str, req: HealthProfileRequest, authed_uid: str = Depends(verify_token)):
     """건강프로필 전체를 JSONB로 저장 — 항목 변경 시 DB 마이그레이션 불필요."""
+    if authed_uid != user_id:
+        raise HTTPException(status_code=403, detail="본인 데이터만 수정할 수 있습니다.")
     db = get_supabase()
     try:
         result = db.table("users").update({"health_profile": req.profile}).eq("id", user_id).execute()
@@ -208,7 +217,8 @@ def kakao_login(req: KakaoLoginRequest):
             raise HTTPException(status_code=400, detail="사용자 생성 실패")
         user = result.data[0]
 
-    return {"id": user["id"], "name": user["name"], "email": user["email"]}
+    token = create_session(user["id"])
+    return {"id": user["id"], "name": user["name"], "email": user["email"], "session_token": token}
 
 
 @router.post("/kakao-token-login")
@@ -242,7 +252,8 @@ def kakao_token_login(req: KakaoTokenLoginRequest):
             raise HTTPException(status_code=400, detail="사용자 생성 실패")
         user = result.data[0]
 
-    return {"id": user["id"], "name": user["name"], "email": user["email"]}
+    token = create_session(user["id"])
+    return {"id": user["id"], "name": user["name"], "email": user["email"], "session_token": token}
 
 
 class AppleLoginRequest(BaseModel):
@@ -281,7 +292,8 @@ def apple_login(req: AppleLoginRequest):
             raise HTTPException(status_code=400, detail="사용자 생성 실패")
         user = result.data[0]
 
-    return {"id": user["id"], "name": user["name"], "email": user["email"]}
+    token = create_session(user["id"])
+    return {"id": user["id"], "name": user["name"], "email": user["email"], "session_token": token}
 
 
 class PushTokenRequest(BaseModel):
@@ -290,8 +302,10 @@ class PushTokenRequest(BaseModel):
 
 
 @router.post("/{user_id}/push-token")
-def save_push_token(user_id: str, req: PushTokenRequest):
+def save_push_token(user_id: str, req: PushTokenRequest, authed_uid: str = Depends(verify_token)):
     """Expo 푸시 토큰 저장 — 가족 SOS 알림용."""
+    if authed_uid != user_id:
+        raise HTTPException(status_code=403, detail="본인 데이터만 수정할 수 있습니다.")
     db = get_supabase()
     existing = db.table("push_tokens").select("id").eq("user_id", user_id).eq("token", req.token).execute()
     if existing.data:
@@ -326,8 +340,10 @@ def get_family_push_tokens(user_id: str):
 
 
 @router.delete("/{user_id}")
-def delete_account(user_id: str):
+def delete_account(user_id: str, authed_uid: str = Depends(verify_token)):
     """회원탈퇴: 해당 유저의 모든 데이터 삭제"""
+    if authed_uid != user_id:
+        raise HTTPException(status_code=403, detail="본인 계정만 삭제할 수 있습니다.")
     for table in ["medications", "health_records", "ai_chat_logs", "ai_chat_summaries",
                   "medication_logs", "notifications", "push_tokens", "location_logs"]:
         try:

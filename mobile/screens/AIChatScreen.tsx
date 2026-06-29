@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import Lumi, { LumiMood } from '../components/Lumi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiFetch } from '../utils/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
@@ -616,7 +617,7 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
       return;
     }
     try {
-      const res  = await fetch(`${API_URL}/ai/proactive-greeting/${userId}`);
+      const res  = await apiFetch(`/ai/proactive-greeting/${userId}`);
       const data = await res.json();
       const msg  = data.message || fallback;
       await save(msg);
@@ -739,10 +740,13 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
                   data.sos_sent ?? false, data.profile_updates || []);
     };
 
+    const _chatToken = await AsyncStorage.getItem('session_token');
+    const _chatHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (_chatToken) _chatHeaders['Authorization'] = `Bearer ${_chatToken}`;
     try {
       await new Promise<void>((resolve, reject) => {
         const es = new EventSource(`${API_URL}/ai/chat/stream`, {
-          headers: { 'Content-Type': 'application/json' },
+          headers: _chatHeaders,
           method: 'POST',
           body: JSON.stringify(chatBody),
         });
@@ -750,6 +754,7 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
         let accumulated = '';
         let _firstChunk = true;
         let _doneHandled = false;
+        let _lastScrollTime = 0;
 
         es.addEventListener('message', (event) => {
           try {
@@ -765,7 +770,11 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
                 next[next.length - 1] = { role: 'ai', text: stripEmoji(accumulated) };
                 return next;
               });
-              scrollRef.current?.scrollToEnd({ animated: false });
+              const now = Date.now();
+              if (now - _lastScrollTime > 150) {
+                _lastScrollTime = now;
+                scrollRef.current?.scrollToEnd({ animated: false });
+              }
             }
             if (d.done || d.error) {
               console.log(`[stream] DONE +${Date.now() - t_send}ms`);
@@ -831,10 +840,13 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
       intent: currentIntent, client_mood: todayMood,
       client_record: healthRecord, client_weather: weatherRef.current,
     };
+    const _sumToken = await AsyncStorage.getItem('session_token');
+    const _sumHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (_sumToken) _sumHeaders['Authorization'] = `Bearer ${_sumToken}`;
     try {
       await new Promise<void>((resolve, reject) => {
         const es = new EventSource(`${API_URL}/ai/chat/stream`, {
-          headers: { 'Content-Type': 'application/json' },
+          headers: _sumHeaders,
           method: 'POST',
           body: JSON.stringify(summaryBody),
         });

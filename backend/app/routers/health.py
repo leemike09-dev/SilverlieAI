@@ -1,11 +1,12 @@
 from typing import Optional, List
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from datetime import date
 import os
 import anthropic
 from dotenv import load_dotenv
 from ..constants import DISCLAIMER
+from ..auth import verify_token
 
 load_dotenv()
 
@@ -108,7 +109,9 @@ def create_health_record(record: HealthRecord):
 
 
 @router.get("/records/{user_id}")
-def get_health_records(user_id: str):
+def get_health_records(user_id: str, authed_uid: str = Depends(verify_token)):
+    if authed_uid != user_id:
+        raise HTTPException(status_code=403, detail="본인 데이터만 조회할 수 있습니다.")
     from app.database import get_supabase
     db = get_supabase()
     result = db.table("health_records").select("*").eq("user_id", user_id).order("date", desc=True).execute()
@@ -116,7 +119,9 @@ def get_health_records(user_id: str):
 
 
 @router.get("/history/{user_id}")
-def get_health_history(user_id: str, days: int = 7):
+def get_health_history(user_id: str, days: int = 7, authed_uid: str = Depends(verify_token)):
+    if authed_uid != user_id:
+        raise HTTPException(status_code=403, detail="본인 데이터만 조회할 수 있습니다.")
     from app.database import get_supabase
     db = get_supabase()
     result = db.table("health_records").select("*").eq("user_id", user_id).order("date", desc=True).limit(days).execute()

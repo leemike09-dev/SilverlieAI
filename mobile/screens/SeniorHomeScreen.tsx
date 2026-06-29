@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import Lumi from '../components/Lumi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiFetch } from '../utils/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import SeniorTabBar from '../components/SeniorTabBar';
@@ -151,7 +152,7 @@ export default function SeniorHomeScreen({ route, navigation }: ScreenProps) {
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
     if (userId && userId !== 'guest') {
       loadTodayData(userId);
-      fetch(`${API}/notifications/${userId}`)
+      apiFetch(`/notifications/${userId}`)
         .then(r => r.ok ? r.json() : [])
         .then((data: any) => {
           if (Array.isArray(data)) {
@@ -222,7 +223,7 @@ export default function SeniorHomeScreen({ route, navigation }: ScreenProps) {
       const mood = await AsyncStorage.getItem(`mood.${uid}.${todayKey}`);
       if (mood) setTodayMood(parseInt(mood));
       // 서버 기분 로그 동기화 (백그라운드)
-      fetch(`${API}/moods/${uid}`)
+      apiFetch(`/moods/${uid}`)
         .then(r => r.ok ? r.json() : null)
         .then(async (serverLogs: Array<{ date: string; mood_index: number }> | null) => {
           if (!serverLogs || serverLogs.length === 0) return;
@@ -368,9 +369,8 @@ export default function SeniorHomeScreen({ route, navigation }: ScreenProps) {
     else log.push({ date: todayKey, moodIndex });
     await AsyncStorage.setItem(`mood_log.${userId}`, JSON.stringify(log));
     // 서버 동기화
-    fetch(`${API}/moods/sync/${userId}`, {
+    apiFetch(`/moods/sync/${userId}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ logs: log }),
     }).catch(() => {});
   };

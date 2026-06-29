@@ -4,6 +4,7 @@ const localDate = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 import { View, Text, StyleSheet, ScrollView, StatusBar, ActivityIndicator, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiFetch } from '../utils/api';
 import SeniorTabBar from '../components/SeniorTabBar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -129,7 +130,7 @@ function WeeklyReportScreenInner({ route, navigation }: any) {
       // 2) 백엔드 API 시도
       let serverRecs: any[] = [];
       try {
-        const res = await fetch(`${API}/health/history/${uid}?days=7`);
+        const res = await apiFetch(`/health/history/${uid}?days=7`);
         if (res.ok) {
           const d = await res.json();
           serverRecs = d.records || [];
@@ -175,9 +176,8 @@ function WeeklyReportScreenInner({ route, navigation }: any) {
         heart_rate:               r.heart_rate               || null,
         weight_kg:                r.weight                   || null,
       }));
-      const res = await fetch(`${API}/health/weekly-report`, {
+      const res = await apiFetch(`/health/weekly-report`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: uid, user_name: userName, age: userAge, weekly_data: weeklyData }),
       });
       if (res.ok) {

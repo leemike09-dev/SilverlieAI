@@ -90,7 +90,7 @@ export default function SettingsScreen({ route, navigation }: Props) {
     if (!confirmed) return;
     // 세션 토큰만 제거 — userId 네임스페이스 데이터(medications.uid, health_records.uid 등)는 유지
     // (재로그인 시 서버에서 복원 + 같은 userId면 로컬 캐시 재사용)
-    await AsyncStorage.multiRemove(['userId', 'userName']);
+    await AsyncStorage.multiRemove(['userId', 'userName', 'session_token']);
     navigation.reset({ index: 0, routes: [{ name: 'Intro' }] });
   };
 

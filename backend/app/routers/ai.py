@@ -3,7 +3,7 @@ import time
 import os, re, json, httpx
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import anthropic
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List
@@ -11,6 +11,7 @@ from datetime import date, datetime, timedelta, timezone
 from dotenv import load_dotenv
 from ..database import get_supabase
 from ..constants import DISCLAIMER
+from ..auth import verify_token, verify_token_or_guest
 
 load_dotenv()
 router = APIRouter()
@@ -1359,8 +1360,13 @@ def _db_load_facts(user_id: str) -> list:
 
 
 @router.post("/chat/stream")
-async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
+async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks, authed_uid: str = Depends(verify_token_or_guest)):
     """스트리밍 채팅 — SSE로 토큰 단위 전송, 마지막에 메타데이터 이벤트."""
+    if authed_uid != "guest" and request.user_id and authed_uid != request.user_id:
+        async def _forbidden():
+            yield f"data: {json.dumps({'error': '인증 오류', 'done': True, 'risk_level': 'normal', 'doctor_memo_needed': False, 'is_final': False})}\n\n"
+        return StreamingResponse(_forbidden(), media_type="text/event-stream")
+
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
         async def _err():
@@ -1531,7 +1537,9 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks):
 
 
 @router.post("/chat")
-def chat(request: ChatRequest, background_tasks: BackgroundTasks):
+def chat(request: ChatRequest, background_tasks: BackgroundTasks, authed_uid: str = Depends(verify_token_or_guest)):
+    if authed_uid != "guest" and request.user_id and authed_uid != request.user_id:
+        raise HTTPException(status_code=403, detail="본인 데이터만 조회할 수 있습니다.")
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY가 설정되지 않았습니다.")
@@ -1649,7 +1657,9 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks):
 
 
 @router.get("/history/{user_id}")
-def get_chat_history(user_id: str, limit: int = 20):
+def get_chat_history(user_id: str, limit: int = 20, authed_uid: str = Depends(verify_token)):
+    if authed_uid != user_id:
+        raise HTTPException(status_code=403, detail="본인 데이터만 조회할 수 있습니다.")
     db = get_supabase()
     result = (
         db.table("ai_chat_logs")
@@ -1662,9 +1672,8 @@ def get_chat_history(user_id: str, limit: int = 20):
     return result.data
 
 
-@router.post("/summary/{user_id}")
-def generate_summary(user_id: str):
-    """오늘 대화를 Claude로 요약해 ai_chat_summaries에 저장."""
+def _do_generate_summary(user_id: str) -> dict:
+    """오늘 대화를 Claude로 요약해 ai_chat_summaries에 저장 (내부 호출용)."""
     db        = get_supabase()
     today_str = date.today().isoformat()
     result = (
@@ -1693,6 +1702,13 @@ def generate_summary(user_id: str):
     return {"summary": summary_text, "date": today_str, "has_risk": has_risk, "disclaimer": DISCLAIMER}
 
 
+@router.post("/summary/{user_id}")
+def generate_summary(user_id: str, authed_uid: str = Depends(verify_token)):
+    if authed_uid != user_id:
+        raise HTTPException(status_code=403, detail="본인 데이터만 조회할 수 있습니다.")
+    return _do_generate_summary(user_id)
+
+
 @router.post("/daily-summary")
 def trigger_daily_summaries():
     """자정 배치용 -- 오늘 대화가 있는 모든 유저의 요약 생성 (cron 또는 수동 호출)."""
@@ -1708,7 +1724,7 @@ def trigger_daily_summaries():
     results = []
     for uid in user_ids:
         try:
-            result = generate_summary(uid)
+            result = _do_generate_summary(uid)
             results.append({"user_id": uid, "status": "ok", **result})
         except HTTPException as he:
             results.append({"user_id": uid, "status": "skip", "reason": he.detail})
@@ -1718,7 +1734,9 @@ def trigger_daily_summaries():
 
 
 @router.get("/summaries/{user_id}")
-def get_summaries(user_id: str, limit: int = 7):
+def get_summaries(user_id: str, limit: int = 7, authed_uid: str = Depends(verify_token)):
+    if authed_uid != user_id:
+        raise HTTPException(status_code=403, detail="본인 데이터만 조회할 수 있습니다.")
     db = get_supabase()
     result = (
         db.table("ai_chat_summaries").select("id,summary,date,has_risk,created_at")
@@ -1728,8 +1746,10 @@ def get_summaries(user_id: str, limit: int = 7):
 
 
 @router.get("/context/{user_id}")
-def get_chat_context(user_id: str):
+def get_chat_context(user_id: str, authed_uid: str = Depends(verify_token)):
     """프론트엔드에서 현재 맥락 확인용 (옵션)."""
+    if authed_uid != user_id:
+        raise HTTPException(status_code=403, detail="본인 데이터만 조회할 수 있습니다.")
     db = get_supabase()
     ctx = load_chat_context(user_id, db)
     return {
@@ -1740,8 +1760,10 @@ def get_chat_context(user_id: str):
 
 
 @router.get("/proactive-greeting/{user_id}")
-def proactive_greeting(user_id: str):
+def proactive_greeting(user_id: str, authed_uid: str = Depends(verify_token)):
     """화면 진입 시 루미의 선제적 맞춤 인사 메시지 생성."""
+    if authed_uid != user_id:
+        raise HTTPException(status_code=403, detail="본인 데이터만 조회할 수 있습니다.")
     hour = (datetime.now(timezone.utc).hour + 9) % 24
     time_label = "아침" if hour < 12 else "오후" if hour < 18 else "저녁"
 
@@ -1839,7 +1861,7 @@ class PromoteRequest(BaseModel):
 
 
 @router.post("/promote")
-def promote_observation(req: PromoteRequest):
+def promote_observation(req: PromoteRequest, authed_uid: str = Depends(verify_token_or_guest)):
     """관찰 후보 승격 처리.
     accept → session_observations 확인 + health_profile.confirmedObservations 추가.
     reject → promoted=True 로 마킹 (다시 제안 안 함).
@@ -1847,6 +1869,8 @@ def promote_observation(req: PromoteRequest):
     4제약 안전선: 자동 승격 없음 — 반드시 사용자 action 필요."""
     if not req.user_id or req.user_id in ("demo-user", "guest"):
         return {"ok": False, "reason": "no_user"}
+    if authed_uid != "guest" and authed_uid != req.user_id:
+        raise HTTPException(status_code=403, detail="본인 데이터만 조회할 수 있습니다.")
 
     if req.action == 'snooze':
         return {"ok": True}

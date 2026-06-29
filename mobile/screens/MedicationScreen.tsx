@@ -8,6 +8,7 @@ import {
   Image, Animated, ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiFetch } from '../utils/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import SeniorTabBar from '../components/SeniorTabBar';
@@ -175,7 +176,7 @@ export default function MedicationScreen({ navigation }: any) {
             if (attempt > 0) await new Promise(r => setTimeout(r, 4000 * attempt));
             const ctrl = new AbortController();
             const timer = setTimeout(() => ctrl.abort(), 20000);
-            const res = await fetch(`${API_URL}/medications/today/${uid}`, { signal: ctrl.signal });
+            const res = await apiFetch(`/medications/today/${uid}`, { signal: ctrl.signal });
             clearTimeout(timer);
             if (res.ok) {
               const serverData: any[] = await res.json();
@@ -231,9 +232,8 @@ export default function MedicationScreen({ navigation }: any) {
 
   const apiToggle = (uid: string, medId: string, field: string, value: boolean) => {
     if (isDemo(uid)) return;
-    fetch(`${API_URL}/medications/toggle`, {
+    apiFetch(`/medications/toggle`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: uid, med_id: medId, field, value }),
     }).catch(() => {});
   };
@@ -269,9 +269,8 @@ export default function MedicationScreen({ navigation }: any) {
     setWeekLogs(prev => ({ ...prev, [today]: dayLog }));
 
     if (!isDemo(userId)) {
-      fetch(`${API_URL}/medications/update-stock/${userId}/${id}`, {
+      apiFetch(`/medications/update-stock/${userId}/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stock: newStock }),
       }).catch(() => {});
     }
@@ -320,9 +319,8 @@ export default function MedicationScreen({ navigation }: any) {
     scheduleMedNotification(tempId, newMed.name, newMed.timeSlot);
     if (!isDemo(userId)) {
       try {
-        const res = await fetch(`${API_URL}/medications/add-simple/${userId}`, {
+        const res = await apiFetch(`/medications/add-simple/${userId}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: newMed.name, dosage: newMed.dosage,
             method: newMed.method, time_slot: newMed.timeSlot, stock: newMed.stock,
@@ -348,7 +346,7 @@ export default function MedicationScreen({ navigation }: any) {
       { text: '삭제', style: 'destructive', onPress: () => {
           saveMeds(meds.filter(m => m.id !== id));
           if (!isDemo(userId)) {
-            fetch(`${API_URL}/medications/delete/${userId}/${id}`, { method: 'DELETE' }).catch(() => {});
+            apiFetch(`/medications/delete/${userId}/${id}`, { method: 'DELETE' }).catch(() => {});
           }
         }},
     ]);

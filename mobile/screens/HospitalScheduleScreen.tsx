@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import Lumi from '../components/Lumi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiFetch } from '../utils/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import SeniorTabBar from '../components/SeniorTabBar';
@@ -132,7 +133,7 @@ export default function HospitalScheduleScreen({ route, navigation }: any) {
       // 서버에서 최신 목록 병합
       if (userId && userId !== 'guest') {
         try {
-          const res = await fetch(`${BACKEND}/appointments/${userId}`);
+          const res = await apiFetch(`/appointments/${userId}`);
           if (res.ok) {
             const server: any[] = await res.json();
             if (server.length > 0) {

@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 from app.database import get_supabase
+from app.auth import verify_token
 
 router = APIRouter()
 
@@ -60,7 +61,9 @@ def create_notification(notification: NotificationCreate):
 
 
 @router.get("/{user_id}")
-def get_notifications(user_id: str):
+def get_notifications(user_id: str, authed_uid: str = Depends(verify_token)):
+    if authed_uid != user_id:
+        raise HTTPException(status_code=403, detail="본인 데이터만 조회할 수 있습니다.")
     db = get_supabase()
     result = db.table("notifications").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
     return result.data
@@ -83,7 +86,9 @@ def delete_notification(notification_id: str):
 
 
 @router.delete("/all/{user_id}")
-def delete_all_notifications(user_id: str):
+def delete_all_notifications(user_id: str, authed_uid: str = Depends(verify_token)):
+    if authed_uid != user_id:
+        raise HTTPException(status_code=403, detail="본인 데이터만 조회할 수 있습니다.")
     db = get_supabase()
     db.table("notifications").delete().eq("user_id", user_id).execute()
     return {"ok": True}

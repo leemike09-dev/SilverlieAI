@@ -1,10 +1,15 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, List
 from app.database import get_supabase
+from app.auth import verify_token
 from datetime import date
 
 router = APIRouter()
+
+def _chk(authed_uid: str, user_id: str):
+    if authed_uid != user_id:
+        raise HTTPException(status_code=403, detail="본인 데이터만 조회할 수 있습니다.")
 
 class Medication(BaseModel):
     user_id: str
@@ -25,13 +30,15 @@ class MedicationLog(BaseModel):
     status: Optional[str] = "taken"
 
 @router.get("/{user_id}")
-def get_medications(user_id: str):
+def get_medications(user_id: str, authed_uid: str = Depends(verify_token)):
+    _chk(authed_uid, user_id)
     db = get_supabase()
     res = db.table("medications").select("*").eq("user_id", user_id).execute()
     return res.data or []
 
 @router.post("/add")
-def add_medication(med: Medication):
+def add_medication(med: Medication, authed_uid: str = Depends(verify_token)):
+    _chk(authed_uid, med.user_id)
     db = get_supabase()
     payload = {
         "user_id": med.user_id,
@@ -48,13 +55,14 @@ def add_medication(med: Medication):
     return res.data[0] if res.data else {}
 
 @router.delete("/{med_id}")
-def delete_medication(med_id: str):
+def delete_medication(med_id: str, authed_uid: str = Depends(verify_token)):
     db = get_supabase()
-    db.table("medications").delete().eq("id", med_id).execute()
+    db.table("medications").delete().eq("id", med_id).eq("user_id", authed_uid).execute()
     return {"ok": True}
 
 @router.post("/log")
-def log_medication(log: MedicationLog):
+def log_medication(log: MedicationLog, authed_uid: str = Depends(verify_token)):
+    _chk(authed_uid, log.user_id)
     db = get_supabase()
     existing = db.table("medication_logs") \
         .select("id") \
@@ -81,7 +89,8 @@ def log_medication(log: MedicationLog):
     return {"ok": True}
 
 @router.get("/log/{user_id}/{log_date}")
-def get_logs(user_id: str, log_date: str):
+def get_logs(user_id: str, log_date: str, authed_uid: str = Depends(verify_token)):
+    _chk(authed_uid, user_id)
     db = get_supabase()
     res = db.table("medication_logs") \
         .select("*") \
@@ -91,7 +100,8 @@ def get_logs(user_id: str, log_date: str):
     return res.data or []
 
 @router.get("/taken-count/{user_id}/{med_id}")
-def get_taken_count(user_id: str, med_id: str):
+def get_taken_count(user_id: str, med_id: str, authed_uid: str = Depends(verify_token)):
+    _chk(authed_uid, user_id)
     db = get_supabase()
     res = db.table("medication_logs") \
         .select("id") \
@@ -102,8 +112,9 @@ def get_taken_count(user_id: str, med_id: str):
     return {"count": len(res.data or [])}
 
 @router.get("/low-stock/{user_id}")
-def get_low_stock(user_id: str):
+def get_low_stock(user_id: str, authed_uid: str = Depends(verify_token)):
     """잔여량이 7일치 이하인 약 목록 반환 — 가족/시니어 알림용"""
+    _chk(authed_uid, user_id)
     db = get_supabase()
     meds = db.table("medications").select("*").eq("user_id", user_id).execute().data or []
 
@@ -170,8 +181,9 @@ def _med_to_front(med: dict, log: dict) -> dict:
     }
 
 @router.get("/today/{user_id}")
-def get_today_meds(user_id: str):
+def get_today_meds(user_id: str, authed_uid: str = Depends(verify_token)):
     """오늘 복약 현황 포함 약 목록 (프론트 MedicationScreen용)."""
+    _chk(authed_uid, user_id)
     db = get_supabase()
     today = date.today().isoformat()
     meds = db.table("medications").select("*").eq("user_id", user_id).order("created_at").execute().data or []
@@ -180,8 +192,9 @@ def get_today_meds(user_id: str):
     return [_med_to_front(m, logs.get(m['id'], {})) for m in meds]
 
 @router.post("/add-simple/{user_id}")
-def add_med_simple(user_id: str, med: SimpleMedRequest):
+def add_med_simple(user_id: str, med: SimpleMedRequest, authed_uid: str = Depends(verify_token)):
     """약 추가 (프론트 단순 포맷). id는 Supabase 자동 생성."""
+    _chk(authed_uid, user_id)
     db = get_supabase()
     try:
         payload = {
@@ -201,8 +214,9 @@ def add_med_simple(user_id: str, med: SimpleMedRequest):
         return {"ok": False, "note": str(e)}
 
 @router.put("/toggle")
-def toggle_med_status(req: ToggleRequest):
+def toggle_med_status(req: ToggleRequest, authed_uid: str = Depends(verify_token)):
     """복용/건너뜀 토글 (오늘 날짜 기준)."""
+    _chk(authed_uid, req.user_id)
     db = get_supabase()
     today = date.today().isoformat()
     status = None
@@ -238,14 +252,16 @@ class StockUpdateRequest(BaseModel):
     stock: int
 
 @router.put("/update-stock/{user_id}/{med_id}")
-def update_stock(user_id: str, med_id: str, req: StockUpdateRequest):
+def update_stock(user_id: str, med_id: str, req: StockUpdateRequest, authed_uid: str = Depends(verify_token)):
+    _chk(authed_uid, user_id)
     db = get_supabase()
     db.table("medications").update({"stock": max(0, req.stock)}) \
         .eq("id", med_id).eq("user_id", user_id).execute()
     return {"ok": True}
 
 @router.delete("/delete/{user_id}/{med_id}")
-def delete_med_v2(user_id: str, med_id: str):
+def delete_med_v2(user_id: str, med_id: str, authed_uid: str = Depends(verify_token)):
+    _chk(authed_uid, user_id)
     db = get_supabase()
     db.table("medications").delete().eq("id", med_id).eq("user_id", user_id).execute()
     db.table("medication_logs").delete().eq("medication_id", med_id).eq("user_id", user_id).execute()

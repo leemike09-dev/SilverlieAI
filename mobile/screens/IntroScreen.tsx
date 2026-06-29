@@ -58,7 +58,7 @@ export default function IntroScreen({ navigation }: any) {
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent animated={false} />
 
       {/* ── 배경 영상 (lumi3.mp4) ── */}
       <VideoView

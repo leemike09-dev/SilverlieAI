@@ -4,6 +4,7 @@ import {
   ScrollView, ActivityIndicator, Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiFetch } from '../utils/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,7 +39,7 @@ export default function NotificationsScreen({ navigation, route }: any) {
       if (uid) setUserId(uid);
       if (!uid) { setLoading(false); return; }
       try {
-        const r = await fetch(`${API_URL}/notifications/${uid}`);
+        const r = await apiFetch(`/notifications/${uid}`);
         if (r.ok) {
           const data = await r.json();
           if (Array.isArray(data)) setNotifications(data);
@@ -51,7 +52,7 @@ export default function NotificationsScreen({ navigation, route }: any) {
 
   const markAsRead = (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-    fetch(`${API_URL}/notifications/${id}/read`, { method: 'PATCH' }).catch(() => {});
+    apiFetch(`/notifications/${id}/read`, { method: 'PATCH' }).catch(() => {});
   };
 
   const deleteOne = (id: string) => {
@@ -61,7 +62,7 @@ export default function NotificationsScreen({ navigation, route }: any) {
         text: '삭제', style: 'destructive',
         onPress: () => {
           setNotifications(prev => prev.filter(n => n.id !== id));
-          fetch(`${API_URL}/notifications/${id}`, { method: 'DELETE' }).catch(() => {});
+          apiFetch(`/notifications/${id}`, { method: 'DELETE' }).catch(() => {});
         },
       },
     ]);
@@ -75,7 +76,7 @@ export default function NotificationsScreen({ navigation, route }: any) {
         text: '전체 삭제', style: 'destructive',
         onPress: () => {
           setNotifications([]);
-          fetch(`${API_URL}/notifications/all/${userId}`, { method: 'DELETE' }).catch(() => {});
+          apiFetch(`/notifications/all/${userId}`, { method: 'DELETE' }).catch(() => {});
         },
       },
     ]);
@@ -84,7 +85,7 @@ export default function NotificationsScreen({ navigation, route }: any) {
   const markAllRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     notifications.filter(n => !n.is_read).forEach(n =>
-      fetch(`${API_URL}/notifications/${n.id}/read`, { method: 'PATCH' }).catch(() => {})
+      apiFetch(`/notifications/${n.id}/read`, { method: 'PATCH' }).catch(() => {})
     );
   };
 

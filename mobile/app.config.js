@@ -15,7 +15,7 @@ module.exports = {
       backgroundColor: '#ffffff',
     },
     android: {
-      package: IS_DEV ? 'com.silverlifeai.app.dev' : 'com.silverlifeai.app',
+      package: 'com.silverlifeai.app',
       adaptiveIcon: {
         foregroundImage: './assets/android-icon-foreground.png',
         backgroundImage: './assets/android-icon-background.png',
@@ -49,7 +49,7 @@ module.exports = {
       ],
     },
     ios: {
-      bundleIdentifier: IS_DEV ? 'com.silverlifeai.app.dev' : 'com.silverlifeai.app',
+      bundleIdentifier: 'com.silverlifeai.app',
       infoPlist: {
         NSMotionUsageDescription: '걸음수를 자동으로 측정하기 위해 신체 활동 접근 권한이 필요합니다.',
         NSMicrophoneUsageDescription: '음성 입력을 위해 마이크 접근 권한이 필요합니다.',

@@ -53,9 +53,10 @@ export default function LoginScreen({ navigation }: any) {
       }
 
       if (!data?.id) throw new Error('사용자 정보 오류');
-      await AsyncStorage.setItem('userId',   String(data.id));
-      await AsyncStorage.setItem('userName', data.name || '');
+      await AsyncStorage.setItem('userId',        String(data.id));
+      await AsyncStorage.setItem('userName',      data.name || '');
       await AsyncStorage.setItem('onboarding_seen', '1');
+      if (data.session_token) await AsyncStorage.setItem('session_token', data.session_token);
       navigation.replace('SeniorHome', { userId: String(data.id), name: data.name || '회원' });
     } catch (e: any) {
       if (e?.code !== 'E_CANCELLED_OPERATION') {
@@ -95,6 +96,7 @@ export default function LoginScreen({ navigation }: any) {
           const data = await res.json();
           await AsyncStorage.setItem('userId',   String(data.id));
           await AsyncStorage.setItem('userName', data.name || 'Apple 사용자');
+          if (data.session_token) await AsyncStorage.setItem('session_token', data.session_token);
           navigation.replace('SeniorHome', { userId: String(data.id), name: data.name });
           return;
         } catch (e: any) {
@@ -115,7 +117,7 @@ export default function LoginScreen({ navigation }: any) {
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent animated={false} />
       <Image source={bgImage} style={s.bg} resizeMode="cover" />
       <View style={s.overlay} />
 
