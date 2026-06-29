@@ -705,12 +705,6 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
       language,
     };
 
-    const fetchStream = () => fetch(`${API_URL}/ai/chat/stream`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(chatBody),
-    });
-
     const applyResult = (cleanText: string, riskLevel: RiskLevel, dMemo: string | undefined, dMemoNeeded: boolean, isFinal: boolean, sosSent: boolean, profileUpdates: string[]) => {
       setMessages(prev => {
         const next = [...prev];
@@ -745,85 +739,83 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
     };
 
     try {
-      let res = await fetchStream();
-      console.log(`[stream] fetch_done +${Date.now()-t_send}ms ok=${res.ok} has_body=${!!res.body}`);
-      // 서버 콜드스타트 → 5초 대기 후 재시도
-      if (!res.ok || !res.body) {
-        await new Promise(r => setTimeout(r, 5000));
-        res = await fetchStream();
-        console.log(`[stream] retry_done +${Date.now()-t_send}ms ok=${res.ok} has_body=${!!res.body}`);
-      }
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${API_URL}/ai/chat/stream`);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.timeout = 60000;
 
-      if (!res.ok) throw new Error('server error');
+        let processedLen = 0;
+        let accumulated = '';
+        let buf = '';
+        let _firstChunk = true;
+        let _doneHandled = false;
 
-      // React Native에서 res.body가 null이면 비스트리밍 폴백
-      if (!res.body) {
-        console.log(`[stream] FALLBACK_nonstream +${Date.now()-t_send}ms`);
-        await callNonStreaming();
-      } else {
-      const reader  = res.body.getReader();
-      const decoder = new TextDecoder();
-      let accumulated = '';
-      let buf = '';
-      let _firstChunk = true;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        const lines = buf.split('\n');
-        buf = lines.pop() ?? '';
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const payload = line.slice(6).trim();
-          if (!payload) continue;
-          try {
-            const data = JSON.parse(payload);
-            if (data.token) {
-              if (_firstChunk) {
-                console.log(`[stream] FIRST_TOKEN +${Date.now()-t_send}ms`);
-                _firstChunk = false;
+        const processChunk = () => {
+          const chunk = xhr.responseText.slice(processedLen);
+          if (!chunk) return;
+          processedLen = xhr.responseText.length;
+          buf += chunk;
+          const lines = buf.split('\n');
+          buf = lines.pop() ?? '';
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const payload = line.slice(6).trim();
+            if (!payload) continue;
+            try {
+              const d = JSON.parse(payload);
+              if (d.token) {
+                if (_firstChunk) {
+                  console.log(`[stream] FIRST_TOKEN +${Date.now() - t_send}ms`);
+                  _firstChunk = false;
+                }
+                accumulated += d.token;
+                setMessages(prev => {
+                  const next = [...prev];
+                  next[next.length - 1] = { role: 'ai', text: stripEmoji(accumulated) };
+                  return next;
+                });
+                scrollRef.current?.scrollToEnd({ animated: false });
               }
-              accumulated += data.token;
-              const partial = stripEmoji(accumulated);
-              setMessages(prev => {
-                const next = [...prev];
-                next[next.length - 1] = { role: 'ai', text: partial };
-                return next;
-              });
-              scrollRef.current?.scrollToEnd({ animated: false });
-            }
-            if (data.done || data.error) {
-              console.log(`[stream] DONE +${Date.now()-t_send}ms`);
-              const riskLevel  = (data.risk_level ?? 'normal') as RiskLevel;
-              const dMemo: string | undefined = data.doctor_memo ?? undefined;
-              const dMemoNeeded: boolean = data.doctor_memo_needed ?? false;
-              const isFinal: boolean     = data.is_final ?? false;
-              const cleanText = stripEmoji(accumulated) || '죄송합니다, 다시 시도해주세요.';
-              applyResult(cleanText, riskLevel, dMemo, dMemoNeeded, isFinal,
-                          data.sos_sent ?? false, data.profile_updates || []);
-              // Phase 2: 승격 후보 — 다른 카드 없을 때만 노출
-              const cands = data.promotion_candidates || [];
-              if (cands.length > 0) {
-                setPendingPromotion({ id: cands[0].id, fact_type: cands[0].fact_type, verbatim: cands[0].verbatim });
+              if (d.done || d.error) {
+                console.log(`[stream] DONE +${Date.now() - t_send}ms`);
+                _doneHandled = true;
+                const cleanText = stripEmoji(accumulated) || '죄송합니다, 다시 시도해주세요.';
+                applyResult(cleanText, (d.risk_level ?? 'normal') as RiskLevel,
+                  d.doctor_memo ?? undefined, d.doctor_memo_needed ?? false,
+                  d.is_final ?? false, d.sos_sent ?? false, d.profile_updates || []);
+                const cands = d.promotion_candidates || [];
+                if (cands.length > 0) {
+                  setPendingPromotion({ id: cands[0].id, fact_type: cands[0].fact_type, verbatim: cands[0].verbatim });
+                }
+                resolve();
               }
-            }
-          } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
-        }
-      }
-      }
-    } catch {
-      setMessages(prev => {
-        const next = [...prev];
-        const last = next[next.length - 1];
-        if (last?.role === 'ai' && last.text === '') {
-          next[next.length - 1] = { role: 'ai', text: '연결에 실패했습니다. 잠시 후 다시 시도해주세요.' };
-        } else {
-          next.push({ role: 'ai', text: '연결에 실패했습니다. 잠시 후 다시 시도해주세요.' });
-        }
-        return next;
+            } catch {}
+          }
+        };
+
+        xhr.onprogress = processChunk;
+        xhr.onload = () => { processChunk(); if (!_doneHandled) resolve(); };
+        xhr.onerror = () => reject(new Error('network'));
+        xhr.ontimeout = () => reject(new Error('timeout'));
+        xhr.send(JSON.stringify(chatBody));
       });
+    } catch {
+      // 네트워크 단절·타임아웃 → 비스트리밍 폴백
+      try {
+        await callNonStreaming();
+      } catch {
+        setMessages(prev => {
+          const next = [...prev];
+          const last = next[next.length - 1];
+          if (last?.role === 'ai' && last.text === '') {
+            next[next.length - 1] = { role: 'ai', text: '연결이 불안정합니다. 잠시 후 다시 보내주세요.' };
+          } else {
+            next.push({ role: 'ai', text: '연결이 불안정합니다. 잠시 후 다시 보내주세요.' });
+          }
+          return next;
+        });
+      }
     } finally {
       setLoading(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
@@ -846,75 +838,63 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
       intent: currentIntent, client_mood: todayMood,
       client_record: healthRecord, client_weather: weatherRef.current,
     };
-    const doFetch = () => fetch(`${API_URL}/ai/chat/stream`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(summaryBody),
-    });
-
     try {
-      let res = await doFetch();
-      // 서버 콜드스타트 → 5초 대기 후 재시도
-      if (!res.ok || !res.body) {
-        await new Promise(r => setTimeout(r, 5000));
-        res = await doFetch();
-      }
-      if (!res.ok) throw new Error('server error');
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${API_URL}/ai/chat/stream`);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.timeout = 60000;
 
-      // React Native에서 res.body null → 비스트리밍 폴백
-      if (!res.body) {
-        const fallback = await fetch(`${API_URL}/ai/chat`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(summaryBody),
-        });
-        if (!fallback.ok) throw new Error('fallback error');
-        const data = await fallback.json();
-        const cleanText = stripEmoji(data.reply) || '요약 실패. 다시 시도해주세요.';
-        setMessages(prev => { const next=[...prev]; next[next.length-1]={ role:'ai', text:cleanText }; return next; });
-        setHistory(prev => [...prev, { role:'user', content:'요약 요청' }, { role:'assistant', content:cleanText }]);
-        setTurnCount(t => t + 1);
-        return;
-      }
+        let processedLen = 0;
+        let accumulated = '';
+        let buf = '';
+        let _doneHandled = false;
 
-      const reader  = res.body.getReader();
-      const decoder = new TextDecoder();
-      let accumulated = '';
-      let buf = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        const lines = buf.split('\n');
-        buf = lines.pop() ?? '';
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const payload = line.slice(6).trim();
-          if (!payload) continue;
-          try {
-            const data = JSON.parse(payload);
-            if (data.token) {
-              accumulated += data.token;
-              const partial = stripEmoji(accumulated);
-              setMessages(prev => { const next = [...prev]; next[next.length-1] = { role: 'ai', text: partial }; return next; });
-              scrollRef.current?.scrollToEnd({ animated: false });
-            }
-            if (data.done || data.error) {
-              const riskLevel = (data.risk_level ?? 'normal') as RiskLevel;
-              const dMemo: string | undefined = data.doctor_memo ?? undefined;
-              const cleanText = stripEmoji(accumulated) || '요약 실패. 다시 시도해주세요.';
-              setMessages(prev => { const next=[...prev]; next[next.length-1]={ role:'ai', text:cleanText, riskLevel, doctorMemoNeeded:true, doctorMemo:dMemo }; return next; });
-              setHistory(prev => [...prev, { role:'user', content:'요약 요청' }, { role:'assistant', content:cleanText }]);
-              setTurnCount(t => t + 1);
-              if (cleanText) {
-                setPendingMemo(dMemo || cleanText);
-                const mainMs = ttsEnabled ? Math.min(Math.max(3000, cleanText.length * 80), 8000) : 1500;
-                setTimeout(() => setMemoState('asking'), mainMs);
+        const processChunk = () => {
+          const chunk = xhr.responseText.slice(processedLen);
+          if (!chunk) return;
+          processedLen = xhr.responseText.length;
+          buf += chunk;
+          const lines = buf.split('\n');
+          buf = lines.pop() ?? '';
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const payload = line.slice(6).trim();
+            if (!payload) continue;
+            try {
+              const d = JSON.parse(payload);
+              if (d.token) {
+                accumulated += d.token;
+                setMessages(prev => { const next = [...prev]; next[next.length - 1] = { role: 'ai', text: stripEmoji(accumulated) }; return next; });
+                scrollRef.current?.scrollToEnd({ animated: false });
               }
-            }
-          } catch (e: any) { if (__DEV__) { console.warn("[catch]", e); } }
-        }
-      }
+              if (d.done || d.error) {
+                _doneHandled = true;
+                const riskLevel = (d.risk_level ?? 'normal') as RiskLevel;
+                const dMemo: string | undefined = d.doctor_memo ?? undefined;
+                const cleanText = stripEmoji(accumulated) || '요약 실패. 다시 시도해주세요.';
+                setMessages(prev => { const next=[...prev]; next[next.length-1]={ role:'ai', text:cleanText, riskLevel, doctorMemoNeeded:true, doctorMemo:dMemo }; return next; });
+                setHistory(prev => [...prev, { role:'user', content:'요약 요청' }, { role:'assistant', content:cleanText }]);
+                setTurnCount(t => t + 1);
+                if (cleanText) {
+                  setPendingMemo(dMemo || cleanText);
+                  const mainMs = ttsEnabled ? Math.min(Math.max(3000, cleanText.length * 80), 8000) : 1500;
+                  setTimeout(() => setMemoState('asking'), mainMs);
+                }
+                resolve();
+              }
+            } catch {}
+          }
+        };
+
+        xhr.onprogress = processChunk;
+        xhr.onload = () => { processChunk(); if (!_doneHandled) resolve(); };
+        xhr.onerror = () => reject(new Error('network'));
+        xhr.ontimeout = () => reject(new Error('timeout'));
+        xhr.send(JSON.stringify(summaryBody));
+      });
     } catch {
-      setMessages(prev => { const next=[...prev]; next[next.length-1]={ role:'ai', text:'연결에 실패했습니다.' }; return next; });
+      setMessages(prev => { const next=[...prev]; next[next.length-1]={ role:'ai', text:'연결이 불안정합니다. 잠시 후 다시 보내주세요.' }; return next; });
     } finally {
       setLoading(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
