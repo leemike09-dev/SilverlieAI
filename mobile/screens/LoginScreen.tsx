@@ -3,7 +3,7 @@ import { login as kakaoLogin } from '@react-native-seoul/kakao-login';
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Platform, Image, Alert,
+  ActivityIndicator, Platform, Image, Alert, StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -115,6 +115,7 @@ export default function LoginScreen({ navigation }: any) {
 
   return (
     <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <Image source={bgImage} style={s.bg} resizeMode="cover" />
       <View style={s.overlay} />
 

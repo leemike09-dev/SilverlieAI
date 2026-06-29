@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Animated, Platform, Dimensions, Image,
+  Animated, Platform, Dimensions, Image, StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -58,6 +58,7 @@ export default function IntroScreen({ navigation }: any) {
 
   return (
     <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* ── 배경 영상 (lumi3.mp4) ── */}
       <VideoView
