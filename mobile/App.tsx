@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Platform, View, Text, TextInput, ActivityIndicator, StyleSheet, AppState } from 'react-native';
+import { Platform, View, Text, TextInput, ActivityIndicator, StyleSheet, AppState, StatusBar } from 'react-native';
 
 // TODO: 출시 빌드(EAS Build) 시 Sentry 활성화
 // import * as Sentry from '@sentry/react-native';
@@ -321,6 +321,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       <LanguageProvider>
         {/* routeReady=true 후에만 렌더 → initialRouteName이 올바른 값으로 적용됨 */}
         {routeReady && (
