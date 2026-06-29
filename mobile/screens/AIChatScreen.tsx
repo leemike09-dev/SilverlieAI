@@ -18,6 +18,7 @@ import * as Location from 'expo-location';
 import { speak, stopSpeech } from '../utils/speech';
 import SeniorTabBar from '../components/SeniorTabBar';
 import { useLanguage } from '../i18n/LanguageContext';
+import EventSource from 'react-native-sse';
 
 const API_URL = 'https://silverlieai.onrender.com';
 type Props = { route: any; navigation: any };
@@ -740,68 +741,60 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
 
     try {
       await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `${API_URL}/ai/chat/stream`);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.timeout = 60000;
+        const es = new EventSource(`${API_URL}/ai/chat/stream`, {
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          body: JSON.stringify(chatBody),
+        });
 
-        let processedLen = 0;
         let accumulated = '';
-        let buf = '';
         let _firstChunk = true;
         let _doneHandled = false;
 
-        const processChunk = () => {
-          const chunk = xhr.responseText.slice(processedLen);
-          if (!chunk) return;
-          processedLen = xhr.responseText.length;
-          buf += chunk;
-          const lines = buf.split('\n');
-          buf = lines.pop() ?? '';
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            const payload = line.slice(6).trim();
-            if (!payload) continue;
-            try {
-              const d = JSON.parse(payload);
-              if (d.token) {
-                if (_firstChunk) {
-                  console.log(`[stream] FIRST_TOKEN +${Date.now() - t_send}ms`);
-                  _firstChunk = false;
-                }
-                accumulated += d.token;
-                setMessages(prev => {
-                  const next = [...prev];
-                  next[next.length - 1] = { role: 'ai', text: stripEmoji(accumulated) };
-                  return next;
-                });
-                scrollRef.current?.scrollToEnd({ animated: false });
+        es.addEventListener('message', (event) => {
+          try {
+            const d = JSON.parse(event.data as string);
+            if (d.token) {
+              if (_firstChunk) {
+                console.log(`[stream] FIRST_TOKEN +${Date.now() - t_send}ms`);
+                _firstChunk = false;
               }
-              if (d.done || d.error) {
-                console.log(`[stream] DONE +${Date.now() - t_send}ms`);
-                _doneHandled = true;
-                const cleanText = stripEmoji(accumulated) || '죄송합니다, 다시 시도해주세요.';
-                applyResult(cleanText, (d.risk_level ?? 'normal') as RiskLevel,
-                  d.doctor_memo ?? undefined, d.doctor_memo_needed ?? false,
-                  d.is_final ?? false, d.sos_sent ?? false, d.profile_updates || []);
-                const cands = d.promotion_candidates || [];
-                if (cands.length > 0) {
-                  setPendingPromotion({ id: cands[0].id, fact_type: cands[0].fact_type, verbatim: cands[0].verbatim });
-                }
-                resolve();
+              accumulated += d.token;
+              setMessages(prev => {
+                const next = [...prev];
+                next[next.length - 1] = { role: 'ai', text: stripEmoji(accumulated) };
+                return next;
+              });
+              scrollRef.current?.scrollToEnd({ animated: false });
+            }
+            if (d.done || d.error) {
+              console.log(`[stream] DONE +${Date.now() - t_send}ms`);
+              _doneHandled = true;
+              es.removeAllEventListeners();
+              es.close();
+              const cleanText = stripEmoji(accumulated) || '죄송합니다, 다시 시도해주세요.';
+              applyResult(cleanText, (d.risk_level ?? 'normal') as RiskLevel,
+                d.doctor_memo ?? undefined, d.doctor_memo_needed ?? false,
+                d.is_final ?? false, d.sos_sent ?? false, d.profile_updates || []);
+              const cands = d.promotion_candidates || [];
+              if (cands.length > 0) {
+                setPendingPromotion({ id: cands[0].id, fact_type: cands[0].fact_type, verbatim: cands[0].verbatim });
               }
-            } catch {}
-          }
-        };
+              resolve();
+            }
+          } catch {}
+        });
 
-        xhr.onprogress = processChunk;
-        xhr.onload = () => { processChunk(); if (!_doneHandled) resolve(); };
-        xhr.onerror = () => reject(new Error('network'));
-        xhr.ontimeout = () => reject(new Error('timeout'));
-        xhr.send(JSON.stringify(chatBody));
+        es.addEventListener('error', () => {
+          if (!_doneHandled) {
+            es.removeAllEventListeners();
+            es.close();
+            reject(new Error('sse'));
+          }
+        });
       });
     } catch {
-      // 네트워크 단절·타임아웃 → 비스트리밍 폴백
+      // 진짜 네트워크 오류 → 비스트리밍 폴백
       try {
         await callNonStreaming();
       } catch {
@@ -840,58 +833,50 @@ function ChatSessionView({ userId, name, seedMood = '', language, navigation, on
     };
     try {
       await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `${API_URL}/ai/chat/stream`);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.timeout = 60000;
+        const es = new EventSource(`${API_URL}/ai/chat/stream`, {
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          body: JSON.stringify(summaryBody),
+        });
 
-        let processedLen = 0;
         let accumulated = '';
-        let buf = '';
         let _doneHandled = false;
 
-        const processChunk = () => {
-          const chunk = xhr.responseText.slice(processedLen);
-          if (!chunk) return;
-          processedLen = xhr.responseText.length;
-          buf += chunk;
-          const lines = buf.split('\n');
-          buf = lines.pop() ?? '';
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            const payload = line.slice(6).trim();
-            if (!payload) continue;
-            try {
-              const d = JSON.parse(payload);
-              if (d.token) {
-                accumulated += d.token;
-                setMessages(prev => { const next = [...prev]; next[next.length - 1] = { role: 'ai', text: stripEmoji(accumulated) }; return next; });
-                scrollRef.current?.scrollToEnd({ animated: false });
+        es.addEventListener('message', (event) => {
+          try {
+            const d = JSON.parse(event.data as string);
+            if (d.token) {
+              accumulated += d.token;
+              setMessages(prev => { const next = [...prev]; next[next.length - 1] = { role: 'ai', text: stripEmoji(accumulated) }; return next; });
+              scrollRef.current?.scrollToEnd({ animated: false });
+            }
+            if (d.done || d.error) {
+              _doneHandled = true;
+              es.removeAllEventListeners();
+              es.close();
+              const riskLevel = (d.risk_level ?? 'normal') as RiskLevel;
+              const dMemo: string | undefined = d.doctor_memo ?? undefined;
+              const cleanText = stripEmoji(accumulated) || '요약 실패. 다시 시도해주세요.';
+              setMessages(prev => { const next=[...prev]; next[next.length-1]={ role:'ai', text:cleanText, riskLevel, doctorMemoNeeded:true, doctorMemo:dMemo }; return next; });
+              setHistory(prev => [...prev, { role:'user', content:'요약 요청' }, { role:'assistant', content:cleanText }]);
+              setTurnCount(t => t + 1);
+              if (cleanText) {
+                setPendingMemo(dMemo || cleanText);
+                const mainMs = ttsEnabled ? Math.min(Math.max(3000, cleanText.length * 80), 8000) : 1500;
+                setTimeout(() => setMemoState('asking'), mainMs);
               }
-              if (d.done || d.error) {
-                _doneHandled = true;
-                const riskLevel = (d.risk_level ?? 'normal') as RiskLevel;
-                const dMemo: string | undefined = d.doctor_memo ?? undefined;
-                const cleanText = stripEmoji(accumulated) || '요약 실패. 다시 시도해주세요.';
-                setMessages(prev => { const next=[...prev]; next[next.length-1]={ role:'ai', text:cleanText, riskLevel, doctorMemoNeeded:true, doctorMemo:dMemo }; return next; });
-                setHistory(prev => [...prev, { role:'user', content:'요약 요청' }, { role:'assistant', content:cleanText }]);
-                setTurnCount(t => t + 1);
-                if (cleanText) {
-                  setPendingMemo(dMemo || cleanText);
-                  const mainMs = ttsEnabled ? Math.min(Math.max(3000, cleanText.length * 80), 8000) : 1500;
-                  setTimeout(() => setMemoState('asking'), mainMs);
-                }
-                resolve();
-              }
-            } catch {}
-          }
-        };
+              resolve();
+            }
+          } catch {}
+        });
 
-        xhr.onprogress = processChunk;
-        xhr.onload = () => { processChunk(); if (!_doneHandled) resolve(); };
-        xhr.onerror = () => reject(new Error('network'));
-        xhr.ontimeout = () => reject(new Error('timeout'));
-        xhr.send(JSON.stringify(summaryBody));
+        es.addEventListener('error', () => {
+          if (!_doneHandled) {
+            es.removeAllEventListeners();
+            es.close();
+            reject(new Error('sse'));
+          }
+        });
       });
     } catch {
       setMessages(prev => { const next=[...prev]; next[next.length-1]={ role:'ai', text:'연결이 불안정합니다. 잠시 후 다시 보내주세요.' }; return next; });
