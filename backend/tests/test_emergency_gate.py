@@ -25,10 +25,16 @@ from app.routers.ai import is_urgent_bypass
 CASES = [
     # E-01: 거짓양성 제거 (응급 X 가 정답) ──────────────────────────────────────
     dict(
-        id="E-01/FP-01", name="가족의 과거 병력 서술 → 응급 아님",
+        id="E-01/FP-01a", name="가족의 과거 병력 서술 → 응급 아님",
         msg="어머니가 6개월 전에 뇌출혈로 쓰러지셨어요",
         expect=False,
         note="→ B-04(test_session_facts.py): 가족력 타입으로 추출 확인",
+    ),
+    dict(
+        id="E-01/FP-01b", name="과거 뇌출혈 + '지금은 재활 중' 상태 서술 → 응급 아님 (회귀 고정)",
+        msg="어머니가 6개월 전에 뇌출혈로 쓰러지셨어요. 지금은 재활 중이에요.",
+        expect=False,
+        note="'지금은'(상태 서술)이 '지금'(현재 증상) 신호로 오인되던 FP — 영구 고정",
     ),
     dict(
         id="E-01/FP-02", name="예전 본인 증상 서술 → 응급 아님",

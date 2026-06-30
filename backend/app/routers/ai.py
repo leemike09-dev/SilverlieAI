@@ -230,18 +230,24 @@ _URGENT_HISTORY_KW = [
 
 def is_urgent_bypass(message: str) -> bool:
     """응급 게이트 — '지금·본인/눈앞 사람에게 벌어지는 일'일 때만 bypass.
-    1) 현재성 신호(지금/갑자기 등) → 주어 불문 즉시 응급
-    2) 명백한 과거·이력 서술 → 응급 제외 (일반 대화로)
+    1) 과거 시점·이력 서술 → 응급 제외 (FP 방지 우선)
+       단, "지금은~/지금도~"(상태 서술) 제거 후에도 현재성 신호가 남으면 응급 유지
+    2) 현재성 신호(지금/갑자기 등) → 응급
     3) 애매하면 응급 유지 (놓치는 것보다 거짓경보가 안전)
     """
     if not any(w in message for w in URGENT_BYPASS_WORDS):
         return False
-    # 1) 현재성 신호 → 무조건 응급
+    # 1) 과거 시점·이력 서술 → 원칙적으로 응급 제외
+    if _URGENT_PAST_ANCHOR_RE.search(message) or any(k in message for k in _URGENT_HISTORY_KW):
+        # "지금은 재활 중"처럼 상태 서술 "지금은/지금도"를 제거한 뒤 현재성 신호가 없으면 응급 아님
+        # (예: "6개월 전 뇌출혈, 지금은 재활 중" → FP 차단)
+        # 반면 "예전에도 아팠는데 지금 또 흉통" → "지금" 잔존 → 응급 유지
+        _msg_destate = message.replace('지금은', '').replace('지금도', '')
+        if not any(kw in _msg_destate for kw in _URGENT_NOW_KW):
+            return False
+    # 2) 현재성 신호 → 응급
     if any(kw in message for kw in _URGENT_NOW_KW):
         return True
-    # 2) 과거 시점 고정 또는 이력/병력 서술 → 응급 아님
-    if _URGENT_PAST_ANCHOR_RE.search(message) or any(k in message for k in _URGENT_HISTORY_KW):
-        return False
     # 3) 의심스러우면 응급 유지
     return True
 
@@ -1484,6 +1490,14 @@ async def chat_stream(request: ChatRequest, background_tasks: BackgroundTasks, a
         risk       = detect_risk(full_text2)
         reply_text = strip_risk_token(full_text2)
 
+        # 서버 강제 면책 — health 맥락, 비응급, 미포함 시 스트림에도 토큰으로 추가
+        if (request.intent not in ("daily", "emotional")
+                and risk != "critical"
+                and DISCLAIMER not in reply_text):
+            _disc_chunk = f"\n\n{DISCLAIMER}"
+            reply_text += _disc_chunk
+            yield f"data: {json.dumps({'token': _disc_chunk}, ensure_ascii=False)}\n\n"
+
         sos_sent = False
         if risk == 'critical' and request.user_id and request.user_id not in ("demo-user", "guest"):
             uname = user_row.get('name', '사용자')
@@ -1615,6 +1629,11 @@ def chat(request: ChatRequest, background_tasks: BackgroundTasks, authed_uid: st
         is_final_flag = bool(_re.search(r'\[FINAL\]', reply_raw, _re.IGNORECASE)) or request.force_summary
         reply_raw2  = _re.sub(r'\[FINAL\]', '', reply_raw, flags=_re.IGNORECASE).strip()
         reply_text  = strip_risk_token(reply_raw2)
+        # 서버 강제 면책 — health 맥락, 비응급, 미포함 시
+        if (request.intent not in ("daily", "emotional")
+                and risk != "critical"
+                and DISCLAIMER not in reply_text):
+            reply_text += f"\n\n{DISCLAIMER}"
         suggestions = get_suggested_questions(relevant_qa)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI 오류: {str(e)}")
